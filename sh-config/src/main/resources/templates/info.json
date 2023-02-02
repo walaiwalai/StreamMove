@@ -1,0 +1,87 @@
+{
+  "streamerHelper": {
+    "debug": false,
+    "roomCheckCron": "0 0/5 * * * ?",
+    "recycleCheckCron": "0 0 0 1/2 * ?",
+    "videoPartLimitSize": 100,
+    "segmentDuration": 3000,
+    "logLevel": "error",
+    "push": {
+      "mail": {
+        "enable": true,
+        "host": "smtp.qq.com",
+        "port": 465,
+        "from": "2584447689@qq.com",
+        "pwd": "knbojmwnbarydhji",
+        "to": "caiwen12382@qq.com",
+        "secure": true
+      },
+      "wechat": {
+        "enable": false,
+        "sendkey": ""
+      }
+    }
+  },
+  "personInfo": {
+    "nickname": "小王录播",
+    "accessToken": "",
+    "refreshToken": "",
+    "expiresIn": 0,
+    "tokenSignDate": 0,
+    "mid": 0
+  },
+  "streamerInfos": [
+    {
+      "name": "TheShy",
+      "uploadLocalFile": true,
+      "deleteLocalFile": true,
+      "templateTitle": "【TheShy录播】 ${time}",
+      "delayTime": 1,
+      "desc": "TheShy直播录播",
+      "source": "",
+      "dynamic": "",
+      "copyright": 2,
+      "roomUrl": "https://www.huya.com/loldongyueyue",
+      "tid": 171,
+      "tags": [
+        "游戏",
+        "TheShy",
+        "英雄联盟",
+        "电子游戏",
+        "电子竞技",
+        "直播录播",
+        "直播回放",
+        "WBG",
+        "Theshy直播",
+        "上单",
+        "第一视角"
+      ]
+    },
+    {
+      "name": "369",
+      "uploadLocalFile": true,
+      "deleteLocalFile": true,
+      "templateTitle": "【369录播】 ${time}",
+      "delayTime": 1,
+      "desc": "369直播录播",
+      "source": "",
+      "dynamic": "",
+      "copyright": 2,
+      "roomUrl": "https://www.huya.com/827465",
+      "tid": 171,
+      "tags": [
+        "游戏",
+        "369",
+        "英雄联盟",
+        "电子游戏",
+        "电子竞技",
+        "直播录播",
+        "直播回放",
+        "JDG",
+        "Theshy直播",
+        "上单",
+        "第一视角"
+      ]
+    }
+  ]
+}
