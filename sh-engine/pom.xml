@@ -9,19 +9,9 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>sh-upload</artifactId>
-
+    <artifactId>sh-engine</artifactId>
 
     <dependencies>
-        <dependency>
-            <groupId>com.sh</groupId>
-            <artifactId>sh-engine</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.sh</groupId>
-            <artifactId>sh-config</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
@@ -50,6 +40,15 @@
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
         </dependency>
-    </dependencies>
 
+        <dependency>
+            <groupId>ws.schild</groupId>
+            <artifactId>jave-all-deps</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sh</groupId>
+            <artifactId>sh-config</artifactId>
+        </dependency>
+    </dependencies>
 </project>

@@ -138,9 +138,6 @@ public class HttpClientUtil {
      * @param url  请求地址
      * @param data 请求实体
      * @return String
-     * @throws
-     * @Title: sendPost
-     * @Description: TODO(发送post请求 ， 请求数据默认使用json格式 ， 默认使用UTF - 8编码)
      */
     public static String sendPost(String url, JSONObject data) {
         // 设置默认请求头
@@ -185,9 +182,6 @@ public class HttpClientUtil {
      * @param headers 请求头
      * @param params  请求实体
      * @return String
-     * @throws
-     * @Title: sendPost
-     * @Description:(发送post请求，请求数据默认使用UTF-8编码)
      */
     public static String sendPost(String url, Map<String, String> headers, Map<String, String> params) {
         // 将map转成json

@@ -5,13 +5,12 @@ import com.sh.config.model.config.ShGlobalConfig;
 import com.sh.config.model.config.UploadPersonInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.Optional;
 
 /**
@@ -21,22 +20,17 @@ import java.util.Optional;
 @Slf4j
 @Component
 public class ConfigManager {
-//    public static final String CONFIG_FILE_DIR = "/home/admin/StreamHelperV2/template";
-    public static final String CONFIG_FILE_DIR = "classpath:template";
     private ShGlobalConfig streamerHelperInfoConfig;
+    public static final String INFO_JSON_PATH = "/home/admin/sh2/info.json";
 
     @PostConstruct
     public void init() {
         loadConfigFromFile();
+        log.info("reload config success");
     }
 
     public ShGlobalConfig getConfig() {
         return this.streamerHelperInfoConfig;
-    }
-
-    public void reload() {
-        loadConfigFromFile();
-        log.info("reload config success");
     }
 
     public void syncUploadPersonInfoToConfig(UploadPersonInfo updateUserInfo) {
@@ -55,8 +49,7 @@ public class ConfigManager {
 
 
     private void loadConfigFromFile() {
-//        Resource resource = new DefaultResourceLoader().getResource("classpath:templates/info.json");
-        File file = new File(CONFIG_FILE_DIR, "info.json");
+        File file = new File(INFO_JSON_PATH);
         try {
             String configStr = IOUtils.toString(new FileInputStream(file), "utf-8");
             this.streamerHelperInfoConfig = JSON.parseObject(configStr, ShGlobalConfig.class);
@@ -66,7 +59,7 @@ public class ConfigManager {
     }
 
     private void writeConfigToFile() {
-        File file = new File(CONFIG_FILE_DIR, "info.json");
+        File file = new File(INFO_JSON_PATH);
         try {
             IOUtils.write(JSON.toJSONString(getConfig()), new FileOutputStream(file), "utf-8");
         } catch (IOException e) {

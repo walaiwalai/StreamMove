@@ -1,5 +1,6 @@
 package com.sh.upload.model;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,13 +15,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class BiliPreUploadInfoModel {
-    private Integer OK;
+    @JSONField(name="OK")
+    private Integer ok;
+
     private String auth;
-    private Integer chunk_retry;
-    private Integer chunk_retry_delay;
-    private Integer chunk_size;
+
+    @JSONField(name="chunk_size")
+    private Integer chunkSize;
+
     private String endpoint;
-    private String upos_uri;
+
+    @JSONField(name="upos_uri")
+    private String uposUri;
 
     /**
      * 预上传过期时间（分）

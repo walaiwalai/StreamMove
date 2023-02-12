@@ -11,6 +11,11 @@ public enum StreamChannelTypeEnum {
      * 虎牙
      */
     HUYA(1, "虎牙", "www.huya.com"),
+
+    /**
+     * 斗鱼
+     */
+    DOUYU(2, "斗鱼", "www.douyu.com"),
     ;
 
     private int type;

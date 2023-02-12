@@ -12,7 +12,7 @@ public class UploadConstant {
     public static final String BILI_VIDEO_UPLOAD_APP_SECRET = "af125a0d5279fd576c1b4418a3e8276d";
 
     public static final String BILI_VIDEO_CHUNK_UPLOAD_URL = "%s?partNumber=%s&uploadId=%s" +
-            "&chunks=%s&chunk=%s&size=%s&start=%s&end=%s&total=%s";
+            "&chunk=%s&chunks=%s&size=%s&start=%s&end=%s&total=%s";
 
     /**
      * 分块上传的状态, 分为未上传，上传失败，上传成功
@@ -32,6 +32,7 @@ public class UploadConstant {
     public static final String BILI_BIZ_ID = "biz_id";
     public static final String BILI_UPLOAD_URL = "uploadUrl";
     public static final String BILI_UPOS_URI = "upos_uri";
+    public static final String BILI_UPOS_AUTH = "x-upos-auth";
     public static final String BILI_VIDEO_TILE = "title";
     public static final String BILI_VIDEO_DESC = "desc";
     public static final String BILI_VIDEO_DYNAMIC = "dynamic";

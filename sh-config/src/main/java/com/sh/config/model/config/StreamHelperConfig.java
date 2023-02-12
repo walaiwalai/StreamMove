@@ -15,15 +15,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class StreamHelperConfig {
     /**
-     * 调试开关
-     */
-    private Boolean debug;
-    /**
-     * 分多端拉流的每段大小
-     */
-    private Integer segmentDuration;
-
-    /**
      * 房间检查时间cron表达式
      */
     private String roomCheckCron;
@@ -44,7 +35,7 @@ public class StreamHelperConfig {
     private Integer videoPartLimitSize;
 
     /**
-     * 此级别之上（包括）的日志将被推送，可选"TRACE"|"DEBUG"|"INFO"|"WARN"|"ERROR"。
+     * 分多端拉流的每段大小
      */
-    private String logLevel;
+    private Integer segmentDuration;
 }

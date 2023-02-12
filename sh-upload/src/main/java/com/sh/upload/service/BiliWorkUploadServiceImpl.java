@@ -13,15 +13,20 @@ import com.sh.upload.constant.UploadConstant;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpOptions;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 
 import static com.sh.upload.constant.UploadConstant.*;
 
@@ -39,35 +44,42 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
      * chunk上传失败重试次数
      */
     public static final Integer CHUNK_RETRY = 10;
-    public static final Integer CHUNK_RETRY_DELAY = 3;
+    public static final Integer CHUNK_RETRY_DELAY = 1000;
 
     @Override
     public boolean uploadChunk(InputStreamEntity uploadChunk, Integer chunkNo, Integer totalChunks,
-            Long curChunkSize, Long curChunkStart, Long curChunkEnd, Long totalSize, CountDownLatch countDownLatch,
-            Map<String, String> extension) {
-        long startTime = System.currentTimeMillis();
+            Long curChunkSize, Long curChunkStart, Long curChunkEnd, Long totalSize, Map<String, String> extension) {
+        log.info("start to upload {}th video chunk, curChunkSize: {}M.", chunkNo + 1, curChunkSize / 1024 / 1024);
+
         String chunkUploadUrl = String.format(UploadConstant.BILI_VIDEO_CHUNK_UPLOAD_URL,
                 extension.get("uploadUrl"),
                 chunkNo + 1,
                 extension.get("uploadId"),
-                totalChunks,
                 chunkNo,
+                totalChunks,
                 curChunkSize,
                 curChunkStart,
                 curChunkEnd,
                 totalSize
         );
 
+        return doChunkUploadRequest(uploadChunk, chunkNo, totalChunks, chunkUploadUrl, extension);
+    }
+
+    private boolean doChunkUploadRequest(InputStreamEntity uploadChunk, Integer chunkNo, Integer totalChunks,
+            String chunkUploadUrl, Map<String, String> extension) {
+        long startTime = System.currentTimeMillis();
         CloseableHttpClient client = HttpClientUtil.getClient();
         HttpPut httpPut = new HttpPut(chunkUploadUrl);
         httpPut.setEntity(uploadChunk);
-        Map<String, String> uploadChunkHeaders = buildHeaders(extension);
+        Map<String, String> uploadChunkHeaders = buildHeaders(extension, false);
         for (String headerName : uploadChunkHeaders.keySet()) {
             httpPut.addHeader(headerName, uploadChunkHeaders.get(headerName));
         }
 
-        try {
-            for (int i = 0; i < CHUNK_RETRY; i++) {
+        for (int i = 0; i < CHUNK_RETRY; i++) {
+            try {
+                Thread.sleep(CHUNK_RETRY_DELAY);
                 CloseableHttpResponse response = client.execute(httpPut);
                 String ret = EntityUtils.toString(response.getEntity(), "utf-8");
                 if (Objects.equals(response.getStatusLine().getStatusCode(), 200)) {
@@ -75,18 +87,13 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
                             (System.currentTimeMillis() - startTime) / 1000);
                     return true;
                 } else {
-                    log.error("the {}th chunk upload fail, ret: {}", chunkNo, ret);
-                    Thread.sleep(CHUNK_RETRY_DELAY * 1000);
+                    log.error("the {}th chunk upload fail, ret: {}, will retry...", chunkNo, ret);
                 }
+            } catch (Exception e) {
+                log.error("th {}th chunk upload error, will retry...", chunkNo, e);
             }
-            return false;
-        } catch (Exception e) {
-            log.error("upload chunk error, uploadUrl: {}", chunkUploadUrl, e);
-            return false;
-        } finally {
-            // 无论成功还是失败，都进行countDown操作
-            countDownLatch.countDown();
         }
+        return false;
     }
 
 
@@ -109,7 +116,7 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
                 extension.get(UploadConstant.BILI_BIZ_ID)
         );
 
-        Map<String, String> headers = buildHeaders(extension);
+        Map<String, String> headers = buildHeaders(extension, false);
         String resp = HttpClientUtil.sendPost(chunkUploadFinishUrl, headers, params);
         JSONObject resObj = JSON.parseObject(resp);
         if (Objects.equals(resObj.getString("OK"), "1")) {
@@ -135,11 +142,11 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
 
         String postWorkUrl = String.format(UploadConstant.BILI_POST_WORK, System.currentTimeMillis(),
                 fetchCsrf(configManager.getConfig().getPersonInfo().getBiliCookies()));
-        Map<String, String> headers = buildHeaders(extension);
+        Map<String, String> headers = buildHeaders(extension, false);
         String resp = HttpClientUtil.sendPost(postWorkUrl, headers,
                 buildPostWorkParam(streamerInfo, remoteSeverVideos, extension));
         JSONObject respObj = JSONObject.parseObject(resp);
-        if (Objects.equals(respObj.getString("code"), 0)) {
+        if (Objects.equals(respObj.getString("code"), "0")) {
             log.info("postWork success, video is upload, title: {}", extension.get(BILI_VIDEO_TILE));
             return true;
         } else {
@@ -149,15 +156,24 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
     }
 
 
-    private Map<String, String> buildHeaders(Map<String, String> extension) {
+    private Map<String, String> buildHeaders(Map<String, String> extension, boolean isOptions) {
         Map<String, String> uploadChunkHeaders = Maps.newHashMap();
-        uploadChunkHeaders.put("Accept", "*/*");
-        uploadChunkHeaders.put("Accept-Encoding", "gzip, deflate, br");
-        uploadChunkHeaders.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) Chrome/63.0.3239.132 Safari/537.36");
-        uploadChunkHeaders.put("Origin", "https://member.bilibili.com");
-        uploadChunkHeaders.put("Referer", "https://member.bilibili.com/video/upload.html");
-        uploadChunkHeaders.put("Cookie", configManager.getConfig().getPersonInfo().getBiliCookies());
-        uploadChunkHeaders.put("X-Upos-Auth", extension.get(UploadConstant.BILI_UPOS_URI));
+        uploadChunkHeaders.put("accept", "*/*");
+        uploadChunkHeaders.put("accept-Encoding", "gzip, deflate, br");
+        uploadChunkHeaders.put("user-agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) Chrome/63.0.3239.132 Safari/537.36");
+        uploadChunkHeaders.put("content-type", "application/octet-stream");
+        uploadChunkHeaders.put("origin", "https://member.bilibili.com");
+        uploadChunkHeaders.put("sec-fetch-mode", "cors");
+        uploadChunkHeaders.put("sec-fetch-site", "cross-site");
+        uploadChunkHeaders.put("origin", "https://member.bilibili.com");
+        uploadChunkHeaders.put("referer", "https://member.bilibili.com/platform/upload/video/frame");
+        uploadChunkHeaders.put("cookie", configManager.getConfig().getPersonInfo().getBiliCookies());
+        uploadChunkHeaders.put("x-upos-auth", extension.get(BILI_UPOS_AUTH));
+        if (isOptions) {
+            uploadChunkHeaders.put("access-control-request-method", "PUT");
+            uploadChunkHeaders.put("referer", "https://member.bilibili.com");
+        }
+
         return uploadChunkHeaders;
     }
 
@@ -175,6 +191,7 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
         params.put("desc", extension.get(BILI_VIDEO_DESC));
         params.put("dynamic", extension.get(BILI_VIDEO_DYNAMIC));
         params.put("copyright", streamerInfo.getCopyright());
+        params.put("source", streamerInfo.getSource());
         params.put("videos", remoteSeverVideos);
         params.put("no_reprint", 0);
 

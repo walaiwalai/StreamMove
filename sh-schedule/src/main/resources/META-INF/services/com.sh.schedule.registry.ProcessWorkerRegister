@@ -1,1 +1,3 @@
 com.sh.schedule.registry.RoomCheckWorkerRegister
+com.sh.schedule.registry.FileCleanWorkerRegister
+com.sh.schedule.registry.RecordUploadWorkerRegister

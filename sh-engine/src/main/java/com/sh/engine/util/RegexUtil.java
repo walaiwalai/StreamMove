@@ -1,5 +1,7 @@
 package com.sh.engine.util;
 
+import org.apache.commons.collections4.CollectionUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -34,5 +36,20 @@ public final class RegexUtil {
         }
         result.trimToSize();
         return result;
+    }
+
+    /**
+     * 获得匹配正则表达式第一个匹配内容
+     * @param str 字符串
+     * @param reg 正则表达式
+     * @param isCaseInsensitive 是否忽略大小写，true忽略大小写，false大小写敏感
+     * @return
+     */
+    public static String fetchFirstMatchedOne(final String str, final String reg, final boolean isCaseInsensitive) {
+        List<String> matchList = getMatchList(str, reg, isCaseInsensitive);
+        if (CollectionUtils.isEmpty(matchList)) {
+            return "";
+        }
+        return matchList.get(0);
     }
 }

@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
+import static com.sh.config.constant.StreamHelperConstant.RECORD_ROOT_PATH;
+
 /**
  * 进行录制，停止录制
  *
@@ -33,9 +35,6 @@ public class RecordManager {
     ConfigManager configManager;
     @Resource
     StatusManager statusManager;
-
-//    public static final String RECORD_ROOT_PATH = "D:\\360MoveData\\Users\\caiwe\\Desktop\\download";
-    public static final String RECORD_ROOT_PATH = "/home/admin/StreamHelperV2/download";
 
     /**
      * 录播线程池

@@ -3,6 +3,7 @@ package com.sh.upload.model.web;
 
 import com.sh.config.model.video.FailUploadVideoChunk;
 import com.sh.config.model.video.RemoteSeverVideo;
+import com.sh.upload.manager.BiliPreUploadModel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -37,4 +38,6 @@ public class BiliVideoUploadResultModel {
     private RemoteSeverVideo remoteSeverVideo;
 
     private long deadline;
+
+    private BiliPreUploadModel preUploadModel;
 }

@@ -5,7 +5,6 @@ import org.apache.http.entity.InputStreamEntity;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 
 /**
  * @author caiWen
@@ -21,13 +20,11 @@ public interface PlatformWorkUploadService {
      * @param curChunkStart
      * @param curChunkEnd
      * @param totalSize
-     * @param countDownLatch
      * @param extension
      * @return
      */
     boolean uploadChunk(InputStreamEntity uploadChunk, Integer chunkNo, Integer totalChunks,
-            Long curChunkSize, Long curChunkStart, Long curChunkEnd, Long totalSize, CountDownLatch countDownLatch,
-            Map<String, String> extension);
+            Long curChunkSize, Long curChunkStart, Long curChunkEnd, Long totalSize, Map<String, String> extension);
 
     /**
      * 完成视频分块的上传

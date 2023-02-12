@@ -11,5 +11,5 @@ public interface RecordUploadService {
      * 上传本地文件
      * @param fileStatus
      */
-    public void upload(FileStatusModel fileStatus);
+    void upload(FileStatusModel fileStatus);
 }

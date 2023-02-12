@@ -27,7 +27,7 @@ public class FileCleanWorkerRegister extends ProcessWorkerRegister {
         // 默认每天10点钟检查一次
         return Optional.ofNullable(getShGlobalConfig())
                 .map(ShGlobalConfig::getStreamerHelper)
-                .map(StreamHelperConfig::getRecordUploadCron)
+                .map(StreamHelperConfig::getFileCleanCron)
                 .orElse("0 0 10 * * ?");
     }
 

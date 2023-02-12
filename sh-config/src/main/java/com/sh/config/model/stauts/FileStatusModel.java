@@ -122,7 +122,7 @@ public class FileStatusModel {
         File statusFile = new File(dirName, "fileStatus.json");
         String statusStr = null;
         try {
-            statusStr = IOUtils.toString(new FileInputStream(statusFile), "utf- 8");
+            statusStr = IOUtils.toString(new FileInputStream(statusFile), "utf-8");
         } catch (IOException e) {
             log.error("open fileStatus.json fail, maybe file not exited, dirName: {}", dirName);
         }

@@ -1,6 +1,5 @@
 package com.sh.upload.service;
 
-import com.sh.config.model.config.StreamerInfo;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.record.RecordTask;
