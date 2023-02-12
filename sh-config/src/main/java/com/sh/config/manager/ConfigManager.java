@@ -1,6 +1,7 @@
 package com.sh.config.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.sh.config.constant.StreamHelperConstant;
 import com.sh.config.model.config.ShGlobalConfig;
 import com.sh.config.model.config.UploadPersonInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +22,6 @@ import java.util.Optional;
 @Component
 public class ConfigManager {
     private ShGlobalConfig streamerHelperInfoConfig;
-    public static final String INFO_JSON_PATH = "/home/admin/sh2/info.json";
 
     @PostConstruct
     public void init() {
@@ -49,7 +49,7 @@ public class ConfigManager {
 
 
     private void loadConfigFromFile() {
-        File file = new File(INFO_JSON_PATH);
+        File file = new File(StreamHelperConstant.APP_PATH, "info.json");
         try {
             String configStr = IOUtils.toString(new FileInputStream(file), "utf-8");
             this.streamerHelperInfoConfig = JSON.parseObject(configStr, ShGlobalConfig.class);
@@ -59,7 +59,7 @@ public class ConfigManager {
     }
 
     private void writeConfigToFile() {
-        File file = new File(INFO_JSON_PATH);
+        File file = new File(StreamHelperConstant.APP_PATH, "info.json");
         try {
             IOUtils.write(JSON.toJSONString(getConfig()), new FileOutputStream(file), "utf-8");
         } catch (IOException e) {

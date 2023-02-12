@@ -26,7 +26,6 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
     private static final String ROOM_LOOP_INFO_URL = "https://www.douyu.com/wgapi/live/liveweb/getRoomLoopInfo?rid=%s";
     public static final String HOME_H5_URL = "https://www.douyu.com/swf_api/homeH5Enc?rids=%s";
     private final static String ENCRYPT_METHOD = "ub98484234";
-    private final static String H5_PLAY_POST_DATA = "?cdn=tct-h5&did=%s&iar=0&ive=0&rate=0&v=%s&tt=%s&sign=%s";
     private final static String H5_PLAY_URL
             = "https://www.douyu.com/lapi/live/getH5Play/%s?cdn=tct-h5&did=%s&iar=0&ive=0&rate=0&v=%s&tt=%s&sign=%s";
 
@@ -46,7 +45,7 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
         String resp1 = HttpClientUtil.sendGet(roomLoopInfoUrl);
         JSONObject roomInfoObj = JSON.parseObject(resp1);
         System.out.println("----" + resp1 + "-------");
-        if (StringUtils.isNotBlank(roomInfoObj.getJSONObject("data").getString("vid"))) {
+        if (StringUtils.isBlank(roomInfoObj.getJSONObject("data").getString("vid"))) {
             // vid不为空表示录像
             return null;
         }
@@ -98,9 +97,9 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
 
     public static void main(String[] args) {
         DouyuStreamerServiceImpl douyuStreamerService = new DouyuStreamerServiceImpl();
-        String roomOnline = douyuStreamerService.isRoomOnline(StreamerInfo.builder()
+        String res = douyuStreamerService.isRoomOnline(StreamerInfo.builder()
                 .roomUrl("https://www.douyu.com/8925391")
                 .build());
-        System.out.println(roomOnline);
+        System.out.println(res);
     }
 }

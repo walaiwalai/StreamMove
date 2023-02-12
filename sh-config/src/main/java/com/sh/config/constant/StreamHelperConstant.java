@@ -6,5 +6,11 @@ package com.sh.config.constant;
  */
 public class StreamHelperConstant {
     public static final String RECORD_ROOT_PATH = "/home/admin/sh2/download";
+    public static final String APP_PATH = "/home/admin/sh2";
+
+
 //    public static final String RECORD_ROOT_PATH = "D:\\360MoveData\\Users\\caiwe\\Desktop\\download";
+//    public static final String APP_PATH = "D:\\360MoveData\\Users\\caiwe\\Desktop";
+
+
 }

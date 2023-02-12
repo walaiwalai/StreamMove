@@ -13,7 +13,7 @@
     </appender>
 
     <!--文件日志， 按照每天生成日志文件 -->
-    <appender name="COMMON_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="INFO_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!--日志文件输出的文件名-->
             <FileNamePattern>${LOG_HOME}/common-default.log.%d{yyyy-MM-dd}.log</FileNamePattern>
@@ -38,6 +38,10 @@
             <!--日志文件保留天数-->
             <MaxHistory>10</MaxHistory>
         </rollingPolicy>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <!--只输入error日志-->
+            <level>ERROR</level>
+        </filter>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
@@ -48,13 +52,25 @@
         </triggeringPolicy>
     </appender>
 
+    <!-- 异步输出 -->
+    <appender name="ASYNC-INFO" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>256</queueSize>
+        <appender-ref ref="INFO_APPENDER"/>
+    </appender>
+
+    <appender name="ASYNC-ERROR" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>256</queueSize>
+        <appender-ref ref="ERROR_APPENDER"/>
+    </appender>
+
+
+
     <!-- 日志输出级别 -->
     <root level="INFO">
         <appender-ref ref="STDOUT" />
-        <appender-ref ref="COMMON_APPENDER"/>
-    </root>
-
-    <root level="ERROR">
-        <appender-ref ref="ERROR_APPENDER"/>
+        <appender-ref ref="ASYNC-INFO"/>
+        <appender-ref ref="ASYNC-ERROR"/>
     </root>
 </configuration>

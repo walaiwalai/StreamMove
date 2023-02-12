@@ -1,6 +1,6 @@
 {
   "streamerHelper": {
-    "roomCheckCron": "0 0/5 * * * ?",
+    "roomCheckCron": "0/30 * * * * ?",
     "recordUploadCron": "0 1/10 * * * ?",
     "fileCleanCron": "0 3 0 1/2 * ?",
     "videoPartLimitSize": 0,
@@ -32,86 +32,6 @@
     "mid": 0
   },
   "streamerInfos": [
-    {
-      "name": "TheShy",
-      "uploadLocalFile": true,
-      "deleteLocalFile": true,
-      "templateTitle": "【${name}直播回放】 ${time}",
-      "delayTime": 1,
-      "desc": "TheShy直播录播",
-      "source": "TheShy直播间：https://www.huya.com/991111",
-      "dynamic": "",
-      "copyright": 2,
-      "roomUrl": "https://www.huya.com/991111",
-      "tid": 171,
-      "tags": [
-        "游戏",
-        "TheShy",
-        "英雄联盟",
-        "电子游戏",
-        "电子竞技",
-        "直播录播",
-        "直播回放",
-        "WBG",
-        "Theshy直播",
-        "上单",
-        "第一视角"
-      ]
-    },
-    {
-      "name": "369",
-      "uploadLocalFile": true,
-      "deleteLocalFile": true,
-      "templateTitle": "【${name}直播回放】 ${time}",
-      "delayTime": 1,
-      "desc": "369直播录播",
-      "desc": "JDG 369直播回放",
-      "source": "JDG 369直播间：https://www.douyu.com/8925391",
-      "dynamic": "",
-      "copyright": 2,
-      "roomUrl": "https://www.douyu.com/8925391",
-      "tid": 171,
-      "tags": [
-        "游戏",
-        "369",
-        "英雄联盟",
-        "电子游戏",
-        "电子竞技",
-        "直播录播",
-        "直播回放",
-        "JDG",
-        "369直播",
-        "上单",
-        "第一视角"
-      ]
-    },
-
-    {
-      "name": "WBG-Xiaohu",
-      "uploadLocalFile": true,
-      "deleteLocalFile": true,
-      "templateTitle": "【{{name}}直播回放】[{{time}}]",
-      "delayTime": 1,
-      "desc": "Xiaohu直播回放",
-      "source": "WBG Xiaohu直播间：https://www.huya.com/990128",
-      "dynamic": "",
-      "copyright": 2,
-      "roomUrl": "https://www.huya.com/990128",
-      "tid": 171,
-      "tags": [
-        "游戏",
-        "小虎",
-        "英雄联盟",
-        "电子游戏",
-        "电子竞技",
-        "直播录播",
-        "直播回放",
-        "WBG",
-        "小虎直播",
-        "第一视角"
-      ]
-    },
-
     {
       "name": "test",
       "uploadLocalFile": false,

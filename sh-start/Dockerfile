@@ -20,4 +20,4 @@ RUN mkdir -p ${APP_HOME}/download && \
 
 
 # 运行jar包
-ENTRYPOINT ["java","-jar","/home/admin/sh2/stream-move.jar", " &"]
+ENTRYPOINT ["nohup", "java", "-Dfile.encoding=utf-8", "-jar","/home/admin/sh2/stream-move.jar"]
