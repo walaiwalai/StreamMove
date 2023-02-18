@@ -3,7 +3,7 @@ package com.sh.config.manager;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.sh.config.constant.StreamHelperConstant;
+import com.sh.config.constant.StreamHelperPathConfig;
 import com.sh.config.model.config.StreamHelperConfig;
 import com.sh.config.model.config.StreamerInfo;
 import com.sh.config.model.config.UploadPersonInfo;
@@ -85,7 +85,7 @@ public class ConfigManager {
 
 
     private void loadConfigFromFile() {
-        File file = new File(StreamHelperConstant.APP_PATH, "info.json");
+        File file = new File(StreamHelperPathConfig.APP_PATH, "info.json");
         try {
             String configStr = IOUtils.toString(new FileInputStream(file), "utf-8");
             JSONObject configObj = JSONObject.parseObject(configStr);

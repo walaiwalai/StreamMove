@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
-import static com.sh.config.constant.StreamHelperConstant.RECORD_ROOT_PATH;
+import static com.sh.config.constant.StreamHelperPathConfig.RECORD_ROOT_PATH;
 
 /**
  * 进行录制，停止录制

@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 
-import static com.sh.config.constant.StreamHelperConstant.RECORD_ROOT_PATH;
+import static com.sh.config.constant.StreamHelperPathConfig.RECORD_ROOT_PATH;
 
 /**
  * @author caiWen
