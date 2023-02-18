@@ -90,7 +90,7 @@ public class ConfigManager {
             String configStr = IOUtils.toString(new FileInputStream(file), "utf-8");
             JSONObject configObj = JSONObject.parseObject(configStr);
             streamHelperConfig = configObj.getJSONObject("streamerHelper").toJavaObject(StreamHelperConfig.class);
-            uploadPersonInfo = configObj.getJSONObject("uploadPersonInfo").toJavaObject(UploadPersonInfo.class);
+            uploadPersonInfo = configObj.getJSONObject("personInfo").toJavaObject(UploadPersonInfo.class);
             name2StreamerMap = configObj.getJSONArray("streamerInfos").toJavaList(StreamerInfo.class).stream()
                     .peek(this::fillDefaultValueForStreamerInfo)
                     .collect(Collectors.toMap(StreamerInfo::getName, Function.identity(), (a, b) -> b));
