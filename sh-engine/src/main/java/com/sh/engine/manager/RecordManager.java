@@ -3,7 +3,6 @@ package com.sh.engine.manager;
 import cn.hutool.core.io.FileUtil;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigManager;
-import com.sh.config.model.config.ShGlobalConfig;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
@@ -141,13 +140,12 @@ public class RecordManager {
             }
             fakeHeaders += "$" + key + ":" + fakeHeaderMap.get(key) + "\\r\\n";
         }
-        ShGlobalConfig config = configManager.getConfig();
         String command = String.format(" -headers \"%s\" -user_agent \"%s\" -i \"%s\" -c:v copy -c:a copy -f segment " +
                         "-segment_time %s -segment_start_number %s \"%s\"",
                 fakeHeaders,
                 fakeHeaderMap.get(USER_AGENT),
                 streamUrl,
-                config.getStreamerHelper().getSegmentDuration(),
+                configManager.getStreamHelperConfig().getSegmentDuration(),
                 startNumber,
                 downloadFileName
         );

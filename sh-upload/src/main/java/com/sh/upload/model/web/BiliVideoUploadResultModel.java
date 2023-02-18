@@ -3,7 +3,6 @@ package com.sh.upload.model.web;
 
 import com.sh.config.model.video.FailUploadVideoChunk;
 import com.sh.config.model.video.RemoteSeverVideo;
-import com.sh.upload.manager.BiliPreUploadModel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,21 +22,18 @@ import java.util.List;
 @Builder
 public class BiliVideoUploadResultModel {
     /**
-     * 上传失败的chunk
-     */
-    private List<FailUploadVideoChunk> failedChunks;
-
-    /**
      * 是否完成视频chunks上传
      */
     private boolean finishChunksUpload;
+
+    /**
+     * 上传失败的chunk
+     */
+    private List<FailUploadVideoChunk> failedChunks;
 
     /**
      * 如果上传成功，得到在服务器上的相关信息
      */
     private RemoteSeverVideo remoteSeverVideo;
 
-    private long deadline;
-
-    private BiliPreUploadModel preUploadModel;
 }

@@ -2,7 +2,6 @@ package com.sh.engine.service;
 
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigManager;
-import com.sh.config.model.config.ShGlobalConfig;
 import com.sh.config.model.config.StreamerInfo;
 import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.manager.RecordManager;
@@ -21,6 +20,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -53,13 +53,13 @@ public class RoomCheckServiceImpl implements RoomCheckService {
      */
     @Override
     public void check() {
-        ShGlobalConfig config = configManager.getConfig();
-        if (CollectionUtils.isEmpty(config.getStreamerInfos())) {
+        List<StreamerInfo> streamerInfoList = configManager.getStreamerInfoList();
+        if (CollectionUtils.isEmpty(streamerInfoList)) {
             log.info("has no streamerInfo, will return");
             return;
         }
 
-        for (StreamerInfo streamerInfo : config.getStreamerInfos()) {
+        for (StreamerInfo streamerInfo :streamerInfoList) {
             // 1. 检查streamer是否正在录制
             String name = streamerInfo.getName();
             boolean isOnRecord = statusManager.isOnRecord(name);
@@ -73,7 +73,6 @@ public class RoomCheckServiceImpl implements RoomCheckService {
             boolean isRoomOnline = StringUtils.isNotBlank(streamUrl);
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             RecordTask recordTask = RecordTask.builder()
-                    .streamerInfo(streamerInfo)
                     .streamUrl(streamUrl)
                     .recorderName(name)
                     .timeV(dateFormat.format(new Date()))
@@ -170,12 +169,14 @@ public class RoomCheckServiceImpl implements RoomCheckService {
     }
 
     private String getTipsString(Recorder recorder) {
+        String recorderName = recorder.getRecordTask().getRecorderName();
+        StreamerInfo streamerInfo = configManager.getStreamerInfoByName(recorderName);
         return String.format("直播间名称：%s, 直播间地址: %s, 时间: %s, 是否删除本地文件: %s, 是否上传本地文件: %s",
-                recorder.getRecordTask().getRecorderName(),
-                recorder.getRecordTask().getStreamerInfo().getRoomUrl(),
+                recorderName,
+                streamerInfo.getRoomUrl(),
                 recorder.getRecordTask().getTimeV(),
-                recorder.getRecordTask().getStreamerInfo().getDeleteLocalFile() ? "是" : "否",
-                recorder.getRecordTask().getStreamerInfo().getUploadLocalFile() ? "是" : "否"
+                streamerInfo.getDeleteLocalFile() ? "是" : "否",
+                streamerInfo.getUploadLocalFile() ? "是" : "否"
         );
     }
 }

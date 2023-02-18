@@ -47,30 +47,6 @@ public class FileStatusModel {
     private String endRecordTime;
     private UploadVideoPair videoParts;
 
-
-//    public FileStatusModel(Recorder recorder) {
-//        RecordTask recordTask = recorder.getRecordTask();
-//
-//        this.path = recorder.getSavePath();
-//        this.recorderName = recordTask.getRecorderName();
-//        this.recorderLink = recordTask.getStreamerInfo().getRoomUrl();
-//        this.tags = recordTask.getStreamerInfo().getTags();
-//        this.tid = recordTask.getStreamerInfo().getTid();
-//        this.startRecordTime = new Date();
-//        this.uploadLocalFile = recordTask.getStreamerInfo().getUploadLocalFile();
-//        this.deleteLocalFile = recordTask.getStreamerInfo().getDeleteLocalFile();
-//        this.isPost = false;
-//        this.isFailed = false;
-//        this.delayTime = recordTask.getStreamerInfo().getDelayTime() == null ? 2 :
-//                recordTask.getStreamerInfo().getDelayTime();
-//        this.templateTitle = recordTask.getStreamerInfo().getTemplateTitle();
-//        this.desc = recordTask.getStreamerInfo().getDesc();
-//        this.source = recordTask.getStreamerInfo().getSource();
-//        this.dynamic = recordTask.getStreamerInfo().getDynamic();
-//        this.copyright = recordTask.getStreamerInfo().getCopyright();
-//        this.timeV = recordTask.getTimeV();
-//    }
-
     /**
      * 写到fileStatus.json，没有值不覆盖
      *

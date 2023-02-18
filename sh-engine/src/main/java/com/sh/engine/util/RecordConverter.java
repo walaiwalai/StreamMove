@@ -1,58 +1,51 @@
 package com.sh.engine.util;
+import cn.hutool.extra.spring.SpringUtil;
 import com.google.common.collect.Lists;
 import java.util.Date;
 import java.util.Optional;
 
+import com.sh.config.manager.ConfigManager;
 import com.sh.config.model.config.StreamerInfo;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
+import org.springframework.stereotype.Component;
 
 /**
  * @author caiWen
  * @date 2023/1/26 9:47
  */
 public class RecordConverter {
+    public static ConfigManager configManager = SpringUtil.getBean(ConfigManager.class);
+    
+    
     public static FileStatusModel convertToFileStatusModel(Recorder recorder) {
-        RecordTask recordTask = recorder.getRecordTask();
+        String recorderName = recorder.getRecordTask().getRecorderName();
+        StreamerInfo streamerInfo = configManager.getStreamerInfoByName(recorderName);
+        
         FileStatusModel fileStatusModel = new FileStatusModel();
         fileStatusModel.setPath(recorder.getSavePath());
-        fileStatusModel.setRecorderName(recordTask.getRecorderName());
-        fileStatusModel.setRecorderLink(recordTask.getStreamerInfo().getRoomUrl());
-        fileStatusModel.setTags(recordTask.getStreamerInfo().getTags());
-        fileStatusModel.setTid(recordTask.getStreamerInfo().getTid());
-        fileStatusModel.setUploadLocalFile(recordTask.getStreamerInfo().getUploadLocalFile());
-        fileStatusModel.setDeleteLocalFile(recordTask.getStreamerInfo().getDeleteLocalFile());
+        fileStatusModel.setRecorderName(recorderName);
+        fileStatusModel.setRecorderLink(streamerInfo.getRoomUrl());
+        fileStatusModel.setTags(streamerInfo.getTags());
+        fileStatusModel.setTid(streamerInfo.getTid());
+        fileStatusModel.setUploadLocalFile(streamerInfo.getUploadLocalFile());
+        fileStatusModel.setDeleteLocalFile(streamerInfo.getDeleteLocalFile());
         fileStatusModel.setIsPost(false);
         fileStatusModel.setIsFailed(false);
-        fileStatusModel.setDelayTime(recordTask.getStreamerInfo().getDelayTime() == null ? 2 :
-                recordTask.getStreamerInfo().getDelayTime());
-        fileStatusModel.setTemplateTitle(recordTask.getStreamerInfo().getTemplateTitle());
-        fileStatusModel.setDesc(recordTask.getStreamerInfo().getDesc());
-        fileStatusModel.setSource(recordTask.getStreamerInfo().getSource());
+        fileStatusModel.setDelayTime(streamerInfo.getDelayTime() == null ? 2 : streamerInfo.getDelayTime());
+        fileStatusModel.setTemplateTitle(streamerInfo.getTemplateTitle());
+        fileStatusModel.setDesc(streamerInfo.getDesc());
+        fileStatusModel.setSource(streamerInfo.getSource());
         fileStatusModel.setDynamic("");
         fileStatusModel.setCopyright(0);
-        fileStatusModel.setTimeV(recordTask.getStreamerInfo().getDynamic());
+        fileStatusModel.setTimeV(streamerInfo.getDynamic());
         fileStatusModel.setStartRecordTime(new Date());
         return fileStatusModel;
     }
 
     public static RecordTask convertToRecordTask(FileStatusModel fileStatus) {
         return RecordTask.builder()
-                .streamerInfo(StreamerInfo.builder()
-                        .name(fileStatus.getRecorderName())
-                        .uploadLocalFile(Optional.ofNullable(fileStatus.getUploadLocalFile()).orElse(true))
-                        .deleteLocalFile(Optional.ofNullable(fileStatus.getDeleteLocalFile()).orElse(true))
-                        .templateTitle(Optional.ofNullable(fileStatus.getTemplateTitle()).orElse(""))
-                        .delayTime(Optional.ofNullable(fileStatus.getDelayTime()).orElse(2))
-                        .desc(Optional.ofNullable(fileStatus.getDesc()).orElse(""))
-                        .source(Optional.ofNullable(fileStatus.getSource()).orElse(""))
-                        .dynamic(Optional.ofNullable(fileStatus.getDynamic()).orElse(""))
-                        .copyright(Optional.ofNullable(fileStatus.getCopyright()).orElse(2))
-                        .roomUrl(fileStatus.getRecorderLink())
-                        .tid(fileStatus.getTid())
-                        .tags(Optional.ofNullable(fileStatus.getTags()).orElse(Lists.newArrayList()))
-                        .build())
                 .dirName(fileStatus.getPath())
                 .recorderName(fileStatus.getRecorderName())
                 .timeV(fileStatus.getTimeV())
