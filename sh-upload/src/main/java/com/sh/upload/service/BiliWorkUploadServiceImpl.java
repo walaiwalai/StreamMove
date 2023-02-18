@@ -159,7 +159,7 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
     private Map<String, String> buildHeaders(Map<String, String> extension, boolean isOptions) {
         Map<String, String> uploadChunkHeaders = Maps.newHashMap();
         uploadChunkHeaders.put("accept", "*/*");
-        uploadChunkHeaders.put("accept-Encoding", "gzip, deflate, br");
+        uploadChunkHeaders.put("accept-Encoding", "deflate");
         uploadChunkHeaders.put("user-agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) Chrome/63.0.3239.132 Safari/537.36");
         uploadChunkHeaders.put("content-type", "application/octet-stream");
         uploadChunkHeaders.put("origin", "https://member.bilibili.com");

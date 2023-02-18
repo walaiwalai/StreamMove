@@ -20,7 +20,7 @@ import java.util.List;
 @Builder
 @Slf4j
 public class BiliVideoUploadTask {
-    private String appSecret;
+//    private String appSecret;
     private Integer videoPartLimitSizeInput;
     private String streamerName;
     /**
@@ -43,8 +43,12 @@ public class BiliVideoUploadTask {
     private String recorderName;
     private Long deadline;
     private Long uploadStart;
-    private List<SucceedUploadSeverVideo> succeedUploaded;
+
+    /**
+     * 上传相关
+     */
     private Boolean isUploadFail;
+    private List<SucceedUploadSeverVideo> succeedUploaded;
     private FailedUploadVideo failUpload;
     private Integer succeedUploadChunk;
     private Integer succeedTotalLength;

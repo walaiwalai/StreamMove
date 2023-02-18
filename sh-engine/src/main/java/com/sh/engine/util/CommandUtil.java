@@ -2,6 +2,7 @@ package com.sh.engine.util;
 
 import com.google.common.collect.Maps;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
+import com.sh.engine.model.ffmpeg.StreamGobbler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 
@@ -24,19 +25,24 @@ public class CommandUtil {
      */
     public static Integer cmdExec(FfmpegCmd ffmpegCmd) {
         // 错误流
-        Integer code = null;
-        InputStream errorStream = null;
+        Integer code = 999;
         String errMsg = null;
         try {
             // destroyOnRuntimeShutdown表示是否立即关闭Runtime, openIOStreams表示是不是需要打开输入输出流:
             // 如果ffmpeg命令需要长时间执行，destroyOnRuntimeShutdown = false
+            Thread.sleep(5000);
             ffmpegCmd.execute(false, true);
-            errorStream = ffmpegCmd.getErrorStream();
 
-            // 记录一下错误日志
-            errMsg = IOUtils.toString(errorStream, "utf-8");
+            // 打印输出信息
+            StreamGobbler errorGobbler = new StreamGobbler(ffmpegCmd.getErrorStream(),  "ERROR");
+            errorGobbler.start();
+
+            StreamGobbler outGobbler = new StreamGobbler(ffmpegCmd.getInputStream(), "OUTPUT",
+                    ffmpegCmd.getOutputStream());
+            outGobbler.start();
+
             code = ffmpegCmd.getProcessExitCode();
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("exec cmd fail, cmdStr: {}, errMsg: {}", ffmpegCmd.getFfmpegCommand(), errMsg, e);
         } finally {
             // 关闭资源

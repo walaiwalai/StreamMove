@@ -69,16 +69,12 @@ public class FfmpegCmd {
      */
     public void execute(boolean destroyOnRuntimeShutdown, boolean openIOStreams) throws IOException {
         DefaultFFMPEGLocator defaultFFMPEGLocator = new DefaultFFMPEGLocator();
-
-        StringBuffer cmd = new StringBuffer(defaultFFMPEGLocator.getExecutablePath());
-        //insert blank for delimiter
-        cmd.append(" ");
-        cmd.append(this.ffmpegCommand);
-        log.info("ffmpegCmd final is: {}", cmd.toString());
+        String cmd = defaultFFMPEGLocator.getExecutablePath() + " " + ffmpegCommand;
+        log.info("ffmpegCmd final is: {}", cmd);
 
         Runtime runtime = Runtime.getRuntime();
         try {
-            ffmpeg = runtime.exec(cmd.toString());
+            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
 
             if (destroyOnRuntimeShutdown) {
                 ffmpegKiller = new ProcessKiller(ffmpeg);
@@ -91,7 +87,7 @@ public class FfmpegCmd {
                 errorStream = ffmpeg.getErrorStream();
             }
         } catch (Exception e) {
-            log.error("run ffmpeg error!, cmd: {}", cmd.toString(), e);
+            log.error("run ffmpeg error!, cmd: {}", cmd, e);
         }
     }
 

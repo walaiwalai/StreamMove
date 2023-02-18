@@ -4,6 +4,7 @@ import cn.hutool.core.io.FileUtil;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerHelperException;
 import com.sh.config.manager.ConfigManager;
@@ -11,6 +12,7 @@ import com.sh.config.model.config.StreamerInfo;
 import com.sh.config.model.config.UploadPersonInfo;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.model.video.*;
+import com.sh.config.utils.MyFileUtil;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.upload.constant.UploadConstant;
@@ -21,6 +23,8 @@ import com.sh.upload.model.web.BiliVideoUploadResultModel;
 import com.sh.upload.service.BiliWorkUploadServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
@@ -29,10 +33,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.*;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -59,11 +60,16 @@ public class BiliVideoWebUploadManager {
     private static final int CHUNK_SIZE = 1024 * 1024 * 5;
 
     /**
-     * 录播线程池
+     * 上传视频线程池
      */
     private final ExecutorService UPLOAD_POOL = new ThreadPoolExecutor(
-            3, 3, 600, TimeUnit.SECONDS, new ArrayBlockingQueue<>(120),
-            Executors.defaultThreadFactory(), new ThreadPoolExecutor.CallerRunsPolicy()
+            3,
+            3,
+            600,
+            TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(120),
+            new ThreadFactoryBuilder().setNameFormat("bili-upload-thread-%d").build(),
+            new ThreadPoolExecutor.CallerRunsPolicy()
     );
 
     public static final Map<String, String> BILI_HEADERS = Maps.newHashMap();
@@ -143,21 +149,16 @@ public class BiliVideoWebUploadManager {
         long videoPartLimitSize = uploadModel.getVideoPartLimitSizeInput() * 1024L * 1024L;
         Integer videoIndex = 0;
 
-        List<String> subFileNames = FileUtil.listFileNames(dirName);
+        Collection<File> files = FileUtils.listFiles(new File(dirName), FileFilterUtils.suffixFileFilter("mp4"), null);
+        List<File> sortedFile = MyFileUtil.getFileSort(Lists.newArrayList(files));
         List<LocalVideo> localVideos = Lists.newArrayList();
-        for (String subFileName : subFileNames) {
-            if (StringUtils.equals("fileStatus.json", subFileName)) {
-                // 只处理视频文件
-                continue;
-            }
-
-            File subVideoFile = new File(dirName, subFileName);
+        for (File subVideoFile : sortedFile) {
             String fullPath = subVideoFile.getAbsolutePath();
             // 过小的视频文件不上场
             long fileSize = FileUtil.size(subVideoFile);
             if (fileSize < videoPartLimitSize) {
-                log.info("video size too small, give up upload, fileName: {}, size: {}, limitSize: {}", subFileName,
-                        fileSize, videoPartLimitSize);
+                log.info("video size too small, give up upload, fileName: {}, size: {}, limitSize: {}",
+                        subVideoFile.getName(), fileSize, videoPartLimitSize);
                 continue;
             }
 
@@ -237,7 +238,7 @@ public class BiliVideoWebUploadManager {
                 // 同步最新状态到fileStatus.json
                 syncStatus(uploadModel.getDirName(), localVideo, biliVideoUploadResult);
             } catch (Exception e) {
-                log.error("upload video part fail, localVideoPart: {}", localVideo.getLocalFileFullPath());
+                log.error("upload video part fail, localVideoPart: {}", localVideo.getLocalFileFullPath(), e);
                 statusManager.releaseRecordForSubmission(uploadModel.getDirName());
                 throw e;
             }
@@ -434,7 +435,7 @@ public class BiliVideoWebUploadManager {
     public BiliVideoUploadTask convertToUploadModel(RecordTask recordTask) {
         StreamerInfo streamerInfo = recordTask.getStreamerInfo();
         return BiliVideoUploadTask.builder()
-                .appSecret(UploadConstant.BILI_VIDEO_UPLOAD_APP_SECRET)
+//                .appSecret(UploadConstant.BILI_VIDEO_UPLOAD_APP_SECRET)
                 .streamerName(recordTask.getStreamerInfo().getName())
                 .videoPartLimitSizeInput(
                         Optional.ofNullable(configManager.getConfig().getStreamerHelper().getVideoPartLimitSize())
@@ -444,8 +445,7 @@ public class BiliVideoWebUploadManager {
                 .accessToken(Optional.ofNullable(
                         configManager.getConfig().getPersonInfo().getAccessToken()).orElse("xxx"))
                 .copyright(Optional.ofNullable(streamerInfo.getCopyright()).orElse(2))
-                // todo 支持封面
-                .cover("")
+                .cover(Optional.ofNullable(streamerInfo.getCover()).orElse(""))
                 .desc(Optional.ofNullable(streamerInfo.getDesc()).orElse("视频投稿"))
                 .noRePrint(0)
                 .openElec(1)

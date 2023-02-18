@@ -18,6 +18,14 @@ public class RecordTask {
     private StreamerInfo streamerInfo;
     private String timeV;
     private String dirName;
+
+    /**
+     * 主播名称
+     */
     private String recorderName;
+
+    /**
+     * 拉视频流的地址
+     */
     private String streamUrl;
 }

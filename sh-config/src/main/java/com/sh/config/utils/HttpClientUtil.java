@@ -42,12 +42,8 @@ public class HttpClientUtil {
     private static CloseableHttpClient httpclient;
     private static PoolingHttpClientConnectionManager connMrg;
     // 默认字符集
-    private static String encoding = "UTF-8";
-
-    /**
-     * 设置定时任务清理连接
-     */
-    private static final ScheduledExecutorService scheduledService = Executors.newScheduledThreadPool(2);
+    private static String encoding = "utf-8";
+//    private static String encoding = "gbk";
 
     static {
         init();
@@ -61,7 +57,6 @@ public class HttpClientUtil {
                 try {
                     httpclient.close();
                 } catch (IOException e) {
-                    //
                 }
             }
         });
@@ -70,13 +65,18 @@ public class HttpClientUtil {
 
     private static void init() {
         connMrg = new PoolingHttpClientConnectionManager();
-        connMrg.setMaxTotal(MAX_TOTAL_CONN); // 最大连接数
-        connMrg.setDefaultMaxPerRoute(MAX_CONN_PER_HOST);//每个路由基础的连接
+        // 最大连接数
+        connMrg.setMaxTotal(MAX_TOTAL_CONN);
+        //每个路由基础的连接
+        connMrg.setDefaultMaxPerRoute(MAX_CONN_PER_HOST);
 
         RequestConfig defaultRequestConfig = RequestConfig.custom()
-                .setConnectTimeout(CONNECTION_TIMEOUT)//设置连接超时时间，单位毫秒。
-                .setSocketTimeout(SOCKET_TIMEOUT)//请求获取数据的超时时间，单位毫秒
-                .setConnectionRequestTimeout(CONNECTION_MANAGER_TIMEOUT)//设置从连接池获取连接超时时间，单位毫秒
+                //设置连接超时时间，单位毫秒。
+                .setConnectTimeout(CONNECTION_TIMEOUT)
+                //请求获取数据的超时时间，单位毫秒
+                .setSocketTimeout(SOCKET_TIMEOUT)
+                //设置从连接池获取连接超时时间，单位毫秒
+                .setConnectionRequestTimeout(CONNECTION_MANAGER_TIMEOUT)
                 .build();
         httpclient = HttpClients.custom()
                 .setConnectionManager(connMrg)
@@ -95,17 +95,10 @@ public class HttpClientUtil {
      * @param encoding 字符集
      * @return String
      * @throws
-     * @Title: sendPost
-     * @Description: TODO(发送post请求)
      */
     public static String sendPost(String url, Map<String, String> headers, JSONObject data, String encoding) {
-        log.info("进入post请求方法..." + encoding);
-        log.info("请求入参：headers=" + JSON.toJSONString(headers));
-        log.info("请求入参：URL= " + url);
-        log.info("请求入参：data=" + JSON.toJSONString(data));
-        // 创建Client
-        //        CloseableHttpClient client = HttpClients.createDefault();
-        // 创建HttpPost对象
+        log.info("send http post, encoding: {}, headers: {}, url: {}, data: {}", encoding, JSON.toJSONString(headers)
+                ,url, JSON.toJSONString(data));
         HttpPost httpPost = new HttpPost();
         try {
             // 设置请求地址
@@ -150,16 +143,12 @@ public class HttpClientUtil {
     /**
      * @param url    请求地址
      * @param params 请求实体
-     * @return String
-     * @throws
-     * @Title: sendPost
-     * @Description: TODO(发送post请求 ， 请求数据默认使用json格式 ， 默认使用UTF - 8编码)
+     * @return
      */
     public static String sendPost(String url, Map<String, Object> params) {
         // 设置默认请求头
         Map<String, String> headers = new HashMap<>();
         headers.put("content-type", "application/json");
-        // 将map转成json
         JSONObject data = JSONObject.parseObject(JSON.toJSONString(params));
         return sendPost(url, headers, data, encoding);
     }
@@ -168,10 +157,7 @@ public class HttpClientUtil {
      * @param url     请求地址
      * @param headers 请求头
      * @param data    请求实体
-     * @return String
-     * @throws
-     * @Title: sendPost
-     * @Description:
+     * @return
      */
     public static String sendPost(String url, Map<String, String> headers, JSONObject data) {
         return sendPost(url, headers, data, encoding);
@@ -181,10 +167,9 @@ public class HttpClientUtil {
      * @param url     请求地址
      * @param headers 请求头
      * @param params  请求实体
-     * @return String
+     * @return
      */
     public static String sendPost(String url, Map<String, String> headers, Map<String, String> params) {
-        // 将map转成json
         JSONObject data = JSONObject.parseObject(JSON.toJSONString(params));
         return sendPost(url, headers, data, encoding);
     }
@@ -228,7 +213,7 @@ public class HttpClientUtil {
 
     /**
      * @param url 请求地址
-     * @return String
+     * @return
      */
     public static String sendGet(String url) {
         return sendGet(url, null);
@@ -246,9 +231,11 @@ public class HttpClientUtil {
         int status = response.getStatusLine().getStatusCode();
         if (status == HttpStatus.SC_OK) {
             // 获取响应数据
-            return EntityUtils.toString(response.getEntity(), encoding);
+            String res = EntityUtils.toString(response.getEntity(), encoding);
+            log.info("HttpClientUtil receive response: {}", res);
+            return res;
         } else {
-            log.error("响应失败，状态码：" + status);
+            log.error("response fail, code: {}", status);
         }
         return null;
     }

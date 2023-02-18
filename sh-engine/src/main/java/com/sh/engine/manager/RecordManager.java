@@ -39,10 +39,7 @@ public class RecordManager {
     /**
      * 录播线程池
      */
-    private final ExecutorService RECORD_POOL = new ThreadPoolExecutor(
-            1, 8, 600, TimeUnit.SECONDS, new ArrayBlockingQueue<>(120),
-            Executors.defaultThreadFactory(), new ThreadPoolExecutor.CallerRunsPolicy()
-    );
+    private final ExecutorService RECORD_POOL = Executors.newFixedThreadPool(4, Executors.defaultThreadFactory());
 
     private static Map<String, String> fakeHeaderMap = Maps.newHashMap();
     private static final String USER_AGENT = "User-Agent";
@@ -126,6 +123,7 @@ public class RecordManager {
     private void startDownLoadWithFfmpeg(Recorder recorder, RecordTask recordTask, Integer startNumber) {
         File fileToDownload = new File(recorder.getSavePath(),
                 recordTask.getRecorderName() + "-" + recordTask.getTimeV() + "-part-%03d." + recorder.getVideoExt());
+
         String command = genFfmpegCmd(recordTask.getStreamUrl(), startNumber, fileToDownload.getAbsolutePath());
         statusManager.addRoomPathStatus(recorder.getSavePath());
 
@@ -160,19 +158,16 @@ public class RecordManager {
         CompletableFuture.supplyAsync(() -> {
             return CommandUtil.cmdExec(ffmpegCmd);
         }, RECORD_POOL).whenComplete((resCode, throwable) -> {
-            if (throwable == null) {
-                if (resCode != null) {
-                    log.info("download stream completed, recordName: {}, savePath: {}, code: {}",
-                            recordTask.getRecorderName(), recorder.getSavePath(), resCode);
-                    recorder.writeInfoToFileStatus();
-                } else {
-                    log.error("download stream fail, recordName: {}, savePath: {}", recordTask.getRecorderName(),
-                            recorder.getSavePath());
-                }
-
-                // 清除直播间状态
-                statusManager.deleteRoomPathStatus(recorder.getSavePath());
+            if (throwable == null && resCode == 0) {
+                log.info("download stream completed, recordName: {}, savePath: {}, code: {}",
+                        recordTask.getRecorderName(), recorder.getSavePath(), resCode);
+                recorder.writeInfoToFileStatus();
+            } else {
+                log.error("download stream fail, recordName: {}, savePath: {}", recordTask.getRecorderName(),
+                        recorder.getSavePath());
             }
+            // 清除直播间状态
+            statusManager.deleteRoomPathStatus(recorder.getSavePath());
         });
     }
 }

@@ -1,0 +1,60 @@
+package com.sh.engine.model.ffmpeg;
+
+import lombok.extern.slf4j.Slf4j;
+
+import  java.io.BufferedReader;
+import  java.io.IOException;
+import  java.io.InputStream;
+import  java.io.InputStreamReader;
+import  java.io.OutputStream;
+import  java.io.PrintWriter;
+/**
+ * @author caiWen
+ * @date 2023/2/15 21:52
+ */
+@Slf4j
+public class StreamGobbler extends  Thread {
+    InputStream is;
+    String type;
+    OutputStream os;
+
+    public StreamGobbler(InputStream is, String type) {
+        this(is, type, null);
+    }
+
+    public StreamGobbler(InputStream is, String type, OutputStream redirect) {
+        this.is = is;
+        this.type = type;
+        this.os = redirect;
+    }
+
+    @Override
+    public void run() {
+        int lineNo = 1;
+        try {
+            PrintWriter pw = null;
+            if (os != null) {
+                pw = new PrintWriter(os);
+            }
+
+            InputStreamReader isr = new InputStreamReader(is);
+            BufferedReader br = new BufferedReader(isr);
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                lineNo++;
+                if (pw != null) {
+                    pw.println(line);
+                }
+                if (lineNo < 100) {
+                    log.info(type + ">>>>" + line);
+                }
+            }
+
+            if (pw != null) {
+                pw.flush();
+            }
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+    }
+}

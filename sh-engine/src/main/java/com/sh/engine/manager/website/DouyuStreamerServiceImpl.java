@@ -44,7 +44,6 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
         String roomLoopInfoUrl = String.format(ROOM_LOOP_INFO_URL, rid);
         String resp1 = HttpClientUtil.sendGet(roomLoopInfoUrl);
         JSONObject roomInfoObj = JSON.parseObject(resp1);
-        System.out.println("----" + resp1 + "-------");
         if (StringUtils.isBlank(roomInfoObj.getJSONObject("data").getString("vid"))) {
             // vid不为空表示录像
             return null;

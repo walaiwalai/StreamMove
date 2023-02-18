@@ -1,6 +1,7 @@
 package com.sh.schedule.registry;
 
 import com.alibaba.fastjson.JSON;
+import com.sh.config.constant.StreamHelperConstant;
 import com.sh.config.model.config.ShGlobalConfig;
 import com.sh.schedule.ProcessScheduler;
 import com.sh.schedule.worker.ProcessWorker;
@@ -8,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.quartz.*;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -28,8 +31,8 @@ public abstract class ProcessWorkerRegister {
         }
         try {
             log.info("try to load global config...");
-            InputStream ins = this.getClass().getClassLoader().getResourceAsStream("templates/info.json");
-            String configStr = IOUtils.toString(ins, "utf-8");
+            File file = new File(StreamHelperConstant.APP_PATH, "info.json");
+            String configStr = IOUtils.toString(new FileInputStream(file), "utf-8");
             shGlobalConfig = JSON.parseObject(configStr, ShGlobalConfig.class);
             log.info("load global config success");
         } catch (IOException e) {

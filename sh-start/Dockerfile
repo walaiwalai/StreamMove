@@ -10,9 +10,6 @@ ENV APP_HOME=/home/admin/sh2
 COPY target/sh-start-1.0-SNAPSHOT.jar stream-move.jar
 COPY target/classes/jssecacerts jssecacerts
 
-#ADD ../../../target/sh-start-1.0-SNAPSHOT.jar stream-move.jar
-#ADD ../classes/jssecacerts jssecacerts
-
 RUN mkdir -p ${APP_HOME}/download && \
     mkdir -p ${APP_HOME}/logs && \
     touch ${APP_HOME}/info.json && \
@@ -20,4 +17,5 @@ RUN mkdir -p ${APP_HOME}/download && \
 
 
 # 运行jar包
-ENTRYPOINT ["nohup", "java", "-Dfile.encoding=utf-8", "-jar","/home/admin/sh2/stream-move.jar"]
+ENTRYPOINT ["nohup", "java", "-Dfile.encoding=utf-8", "-Xms512m", "-Xmx512m", "-Xmn190m", "-Xss128k", "-jar",
+"/home/admin/sh2/stream-move.jar", "&"]
