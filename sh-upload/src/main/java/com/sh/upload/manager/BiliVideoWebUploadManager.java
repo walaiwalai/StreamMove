@@ -93,7 +93,7 @@ public class BiliVideoWebUploadManager {
             insertValueFromFileStatus(uploadTaskModel);
 
             // 3. 获取本地视频文件
-            log.info("get local videos, path: {}", dirName);
+            log.info("get local videos, path: {}.", dirName);
             List<LocalVideo> localVideos = fetchLocalVideos(dirName, uploadTaskModel);
             if (CollectionUtils.isEmpty(localVideos)) {
                 log.warn("{} has no videos", dirName);

@@ -16,6 +16,11 @@ public enum StreamChannelTypeEnum {
      * 斗鱼
      */
     DOUYU(2, "斗鱼", "www.douyu.com"),
+
+    /**
+     * afreecatv
+     */
+    AFREECA_TV(3, "afreecatv", "play.afreecatv.com"),
     ;
 
     private int type;

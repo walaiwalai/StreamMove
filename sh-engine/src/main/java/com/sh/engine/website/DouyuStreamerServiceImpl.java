@@ -1,4 +1,4 @@
-package com.sh.engine.manager.website;
+package com.sh.engine.website;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;

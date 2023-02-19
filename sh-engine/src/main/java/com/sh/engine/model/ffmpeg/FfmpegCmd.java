@@ -9,10 +9,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * @Description:(cmd方式调用ffmpeg)
- * @author: HeShengjin
- * @date: 2021年6月22日 下午5:31:38
- * @Copyright:
+ * cmd方式调用ffmpeg
  */
 @Slf4j
 public class FfmpegCmd {
@@ -75,6 +72,7 @@ public class FfmpegCmd {
         Runtime runtime = Runtime.getRuntime();
         try {
             ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
+//            ffmpeg = runtime.exec(cmd);
 
             if (destroyOnRuntimeShutdown) {
                 ffmpegKiller = new ProcessKiller(ffmpeg);

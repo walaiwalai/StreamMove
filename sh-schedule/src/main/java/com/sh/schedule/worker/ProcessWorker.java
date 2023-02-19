@@ -4,6 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.slf4j.MDC;
+
+import java.util.UUID;
 
 /**
  * @author caiWen
@@ -15,9 +18,13 @@ public abstract class ProcessWorker implements Job {
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
+        MDC.put("tranceId", UUID.randomUUID().toString());
+
         log.info("[ProcessWorker] {} start to work...", PROCESS_WORK_NAME);
         executeJob(jobExecutionContext);
         log.info("[ProcessWorker] {} finish work.", PROCESS_WORK_NAME);
+
+        MDC.clear();
     }
 
     /**

@@ -6,7 +6,7 @@ import com.sh.config.model.config.StreamerInfo;
 import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.manager.RecordManager;
 import com.sh.engine.manager.StatusManager;
-import com.sh.engine.manager.website.AbstractStreamerService;
+import com.sh.engine.website.AbstractStreamerService;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
 import lombok.extern.slf4j.Slf4j;
