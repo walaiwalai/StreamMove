@@ -9,6 +9,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -121,6 +122,42 @@ public class HttpClientUtil {
 
         } catch (Exception e) {
             log.error("发送post请求失败", e);
+        } finally {
+            httpPost.releaseConnection();
+        }
+        return null;
+    }
+
+
+    /**
+     * @param url      请求地址
+     * @param headers  请求头
+     * @param httpEntity     请求实体
+     * @return
+     */
+    public static String sendPost(String url, Map<String, String> headers, HttpEntity httpEntity) {
+        log.info("send http post, encoding: {}, headers: {}, url: {}", encoding, JSON.toJSONString(headers),url);
+        HttpPost httpPost = new HttpPost();
+        try {
+            // 设置请求地址
+            httpPost.setURI(new URI(url));
+            // 设置请求头
+            if (headers != null) {
+                Header[] allHeader = new BasicHeader[headers.size()];
+                int i = 0;
+                for (Map.Entry<String, String> entry : headers.entrySet()) {
+                    allHeader[i] = new BasicHeader(entry.getKey(), entry.getValue());
+                    i++;
+                }
+                httpPost.setHeaders(allHeader);
+            }
+            // 设置实体
+            httpPost.setEntity(httpEntity);
+            // 发送请求,返回响应对象
+            CloseableHttpResponse response = httpclient.execute(httpPost);
+            return parseData(response);
+        } catch (Exception e) {
+            log.error("do post request fail", e);
         } finally {
             httpPost.releaseConnection();
         }
