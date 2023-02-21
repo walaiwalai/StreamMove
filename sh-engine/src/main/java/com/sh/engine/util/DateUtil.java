@@ -12,16 +12,16 @@ public class DateUtil {
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH");
         Integer curHour = Integer.valueOf(dateFormat.format(new Date()));
         if (curHour <= 6) {
-            return "凌晨";
+            return "midnight";
         }
         if (curHour <= 12) {
-            return "早上";
+            return "morning";
         }
         if (curHour <= 18) {
-            return "下午";
+            return "afternoon";
         }
         if (curHour <= 24) {
-            return "晚上";
+            return "evening";
         }
         return "";
     }
