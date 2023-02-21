@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class RecordTask {
     /**
      * 当前录像的时间
-     * 如：2023-02-12
+     * 如：2023-02-12晚上
      */
     private String timeV;
 

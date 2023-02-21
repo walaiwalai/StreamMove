@@ -53,12 +53,14 @@ public class BiliVideoWebUploadManager {
     @Resource
     BiliWorkUploadServiceImpl biliVideoUploadService;
 
+    private static final int UPLOAD_CORE_SIZE = 4;
+
     /**
      * 上传视频线程池
      */
-    private final ExecutorService UPLOAD_POOL = new ThreadPoolExecutor(
-            3,
-            3,
+    private static final ExecutorService UPLOAD_POOL = new ThreadPoolExecutor(
+            4,
+            4,
             600,
             TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(120),
@@ -77,6 +79,10 @@ public class BiliVideoWebUploadManager {
         BILI_HEADERS.put("Accept-Encoding", "gzip,deflate");
     }
 
+
+    public static boolean isUploadPoolAllWork() {
+        return ((ThreadPoolExecutor) UPLOAD_POOL).getActiveCount() >= UPLOAD_CORE_SIZE;
+    }
 
     public void upload(BiliVideoUploadTask uploadTaskModel) {
         if (!checkNeedUpload(uploadTaskModel)) {
@@ -146,6 +152,7 @@ public class BiliVideoWebUploadManager {
         List<File> sortedFile = MyFileUtil.getFileSort(Lists.newArrayList(files));
         List<LocalVideo> localVideos = Lists.newArrayList();
         for (File subVideoFile : sortedFile) {
+            videoIndex++;
             String fullPath = subVideoFile.getAbsolutePath();
             // 过小的视频文件不上场
             long fileSize = FileUtil.size(subVideoFile);
@@ -179,7 +186,7 @@ public class BiliVideoWebUploadManager {
                             .localFileFullPath(Optional.ofNullable(uploadModel.getFailUpload())
                                     .map(FailedUploadVideo::getLocalFileFullPath)
                                     .orElse(null))
-                            .title(uploadModel.getTitle() + "-P" + (videoIndex + 1))
+                            .title(uploadModel.getTitle() + " [P" + (videoIndex + 1) + "]")
                             .desc(streamerInfo.getDesc())
                             .fileSize(fileSize)
                             .build());
@@ -189,11 +196,10 @@ public class BiliVideoWebUploadManager {
                 localVideos.add(LocalVideo.builder()
                         .isFailed(false)
                         .localFileFullPath(fullPath)
-                        .title(uploadModel.getTitle() + "-P" + (videoIndex + 1))
-                        .desc("")
+                        .title(uploadModel.getTitle() + " [P" + (videoIndex + 1) + "]")
+                        .desc(streamerInfo.getDesc())
                         .fileSize(fileSize)
                         .build());
-                videoIndex++;
             }
         }
         log.info("Final videoParts: {}", JSON.toJSONString(localVideos));
@@ -298,7 +304,7 @@ public class BiliVideoWebUploadManager {
             throw new StreamerHelperException(ErrorEnum.UPLOAD_CHUNK_ERROR);
         }
         BiliPreUploadInfoModel biliPreUploadInfo = biliPreUploadModel.getBiliPreUploadVideoInfo();
-        Map<String, String> extension = buildExtension(uploadModel, biliPreUploadModel);
+        Map<String, String> extension = buildExtension(localVideo, biliPreUploadModel);
 
         // 2.进行视频分块上传
         Integer chunkSize = biliPreUploadInfo.getChunkSize();
@@ -338,7 +344,7 @@ public class BiliVideoWebUploadManager {
 
 
         if (CollectionUtils.isEmpty(failUploadVideoChunks)) {
-            log.info("video chunks upload success, videoName: {}", videoName);
+            log.info("video chunks upload success, videoPath: {}", localVideo.getLocalFileFullPath());
         } else {
             log.error("video chunks upload fail, failed chunkNos: {}", failUploadVideoChunks.stream().map(
                     FailUploadVideoChunk::getChunkNo).collect(Collectors.toList()));
@@ -370,13 +376,13 @@ public class BiliVideoWebUploadManager {
         return uploadResult;
     }
 
-    private Map<String, String> buildExtension(BiliVideoUploadTask uploadModel, BiliPreUploadModel biliPreUploadModel) {
+    private Map<String, String> buildExtension(LocalVideo localVideo, BiliPreUploadModel biliPreUploadModel) {
         Map<String, String> extension = Maps.newHashMap();
         extension.put(BILI_UPLOAD_URL, biliPreUploadModel.getUploadUrl());
         extension.put(BILI_UPLOAD_ID, biliPreUploadModel.getUploadId());
         extension.put(BILI_UPOS_URI, biliPreUploadModel.getBiliPreUploadVideoInfo().getUposUri());
         extension.put(BILI_UPOS_AUTH, biliPreUploadModel.getBiliPreUploadVideoInfo().getAuth());
-        extension.put(BILI_VIDEO_TILE, uploadModel.getTitle());
+        extension.put(BILI_VIDEO_TILE, localVideo.getTitle());
         return extension;
     }
 

@@ -39,7 +39,7 @@ public class RecordConverter {
         fileStatusModel.setSource(streamerInfo.getSource());
         fileStatusModel.setDynamic("");
         fileStatusModel.setCopyright(0);
-        fileStatusModel.setTimeV(streamerInfo.getDynamic());
+        fileStatusModel.setTimeV(recorder.getRecordTask().getTimeV());
         fileStatusModel.setStartRecordTime(new Date());
         return fileStatusModel;
     }

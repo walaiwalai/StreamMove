@@ -6,6 +6,7 @@ import com.sh.config.model.config.StreamerInfo;
 import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.manager.RecordManager;
 import com.sh.engine.manager.StatusManager;
+import com.sh.engine.util.DateUtil;
 import com.sh.engine.website.AbstractStreamerService;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
@@ -75,7 +76,7 @@ public class RoomCheckServiceImpl implements RoomCheckService {
             RecordTask recordTask = RecordTask.builder()
                     .streamUrl(streamUrl)
                     .recorderName(name)
-                    .timeV(dateFormat.format(new Date()))
+                    .timeV(dateFormat.format(new Date()) + DateUtil.getCurDateDesc())
                     .build();
             if (isRoomOnline) {
                 // 2.1 直播间开播

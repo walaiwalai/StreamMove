@@ -7,6 +7,7 @@ import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
 import com.sh.engine.util.CommandUtil;
+import com.sh.engine.util.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -92,7 +93,7 @@ public class RecordManager {
             // 清除直播间的状态
             statusManager.deleteRoomPathStatus(recorder.getSavePath());
             recorder.setSavePath(pathWithTimeV + "-" + curTime);
-            recordTask.setTimeV(recordTask.getTimeV() + curTime);
+            recordTask.setTimeV(recordTask.getTimeV() + " " + curTime + DateUtil.getCurDateDesc());
             timeVFile.mkdir();
         } else {
             // 计算记录应该写第几个文件
