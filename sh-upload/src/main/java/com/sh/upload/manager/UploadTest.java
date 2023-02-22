@@ -20,7 +20,9 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.entity.mime.FormBodyPart;
 import org.apache.http.entity.mime.FormBodyPartBuilder;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
@@ -62,7 +64,8 @@ public class UploadTest {
     }
 
     public static void main(String[] args) throws Exception {
-        String filePath = "D:\\360MoveData\\Users\\caiwe\\Desktop\\test-2023-02-12-part-001.mp4";
+        String filePath
+                = "D:\\360MoveData\\Users\\caiwe\\Desktop\\download\\test\\2023-02-12\\test-2023-02-12-part-001.mp4";
         File videoFile = new File(filePath);
 
         String accessToken = "73e93b10ad24b367db3d15e1aa96b012";
@@ -121,13 +124,16 @@ public class UploadTest {
                             .setName("version")
                             .setBody(new StringBody("2.3.0.1088", ContentType.APPLICATION_FORM_URLENCODED))
                             .build())
-                    .addPart(FormBodyPartBuilder.create()
-                            .setName("filesize")
-                            .setBody(new StringBody(String.valueOf(curChunkSize), ContentType.APPLICATION_FORM_URLENCODED))
-                            .build())
+                    //                    .addPart(FormBodyPartBuilder.create()
+                    //                            .setName("filesize")
+                    //                            .setBody(new StringBody(String.valueOf(curChunkSize),
+                    //                             error, will retry.        ContentType.APPLICATION_FORM_URLENCODED))
+                    //                            .build())
+                    .addPart("filesize", new StringBody(String.valueOf(curChunkSize),
+                            ContentType.APPLICATION_FORM_URLENCODED))
                     .addPart(FormBodyPartBuilder.create()
                             .setName("chunk")
-                            .setBody(new StringBody(String.valueOf(i+1), ContentType.APPLICATION_FORM_URLENCODED))
+                            .setBody(new StringBody(String.valueOf(i + 1), ContentType.APPLICATION_FORM_URLENCODED))
                             .build())
                     .addPart(FormBodyPartBuilder.create()
                             .setName("chunks")
@@ -137,11 +143,16 @@ public class UploadTest {
                             .setName("md5")
                             .setBody(new StringBody(md5Str, ContentType.APPLICATION_FORM_URLENCODED))
                             .build())
+                    //                    .addBinaryBody("file", chunkData.getContent(), ContentType
+                    //                    .APPLICATION_OCTET_STREAM,
+                    //                            "test-2023-02-12-part-001.mp4")
                     .addPart(FormBodyPartBuilder.create()
                             .setName("file")
-//                            .setBody(new FileBody(chunkData.getContent(), ContentType.APPLICATION_OCTET_STREAM))
+                            //                            .setBody(new FileBody(chunkData.getContent(), ContentType
+                            //                            .APPLICATION_OCTET_STREAM))
                             .setBody(new FileBody(videoFile, ContentType.APPLICATION_OCTET_STREAM))
-                            .addField("filename", "2part-000_bilibili.mp4")
+                            .setField("filename", "test-2023-02-12-part-001.mp4")
+                            //                            .setField("filesize", String.valueOf(fileSize))
                             .build())
                     .build();
 
