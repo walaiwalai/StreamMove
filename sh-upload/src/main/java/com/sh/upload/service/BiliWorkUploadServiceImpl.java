@@ -43,7 +43,7 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
     /**
      * chunk上传失败重试次数
      */
-    public static final Integer CHUNK_RETRY = 10;
+    public static final Integer CHUNK_RETRY = 3;
     public static final Integer CHUNK_RETRY_DELAY = 1000;
 
     @Override
