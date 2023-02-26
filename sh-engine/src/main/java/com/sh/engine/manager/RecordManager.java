@@ -3,11 +3,11 @@ package com.sh.engine.manager;
 import cn.hutool.core.io.FileUtil;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigManager;
-import com.sh.config.model.config.ShGlobalConfig;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
 import com.sh.engine.util.CommandUtil;
+import com.sh.engine.util.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
-import static com.sh.config.constant.StreamHelperConstant.RECORD_ROOT_PATH;
+import static com.sh.config.constant.StreamHelperPathConfig.RECORD_ROOT_PATH;
 
 /**
  * 进行录制，停止录制
@@ -93,7 +93,7 @@ public class RecordManager {
             // 清除直播间的状态
             statusManager.deleteRoomPathStatus(recorder.getSavePath());
             recorder.setSavePath(pathWithTimeV + "-" + curTime);
-            recordTask.setTimeV(recordTask.getTimeV() + curTime);
+            recordTask.setTimeV(recordTask.getTimeV() + " " + curTime + DateUtil.getCurDateDesc());
             timeVFile.mkdir();
         } else {
             // 计算记录应该写第几个文件
@@ -141,13 +141,12 @@ public class RecordManager {
             }
             fakeHeaders += "$" + key + ":" + fakeHeaderMap.get(key) + "\\r\\n";
         }
-        ShGlobalConfig config = configManager.getConfig();
         String command = String.format(" -headers \"%s\" -user_agent \"%s\" -i \"%s\" -c:v copy -c:a copy -f segment " +
                         "-segment_time %s -segment_start_number %s \"%s\"",
                 fakeHeaders,
                 fakeHeaderMap.get(USER_AGENT),
                 streamUrl,
-                config.getStreamerHelper().getSegmentDuration(),
+                configManager.getStreamHelperConfig().getSegmentDuration(),
                 startNumber,
                 downloadFileName
         );

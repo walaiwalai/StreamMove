@@ -1,4 +1,4 @@
-package com.sh.engine.manager.website;
+package com.sh.engine.website;
 
 import com.sh.config.model.config.StreamerInfo;
 import com.sh.engine.StreamChannelTypeEnum;

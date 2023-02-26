@@ -43,7 +43,7 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
     /**
      * chunk上传失败重试次数
      */
-    public static final Integer CHUNK_RETRY = 10;
+    public static final Integer CHUNK_RETRY = 3;
     public static final Integer CHUNK_RETRY_DELAY = 1000;
 
     @Override
@@ -131,17 +131,14 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
     @Override
     public boolean postWork(String streamerName, List<RemoteSeverVideo> remoteSeverVideos,
             Map<String, String> extension) {
-        List<StreamerInfo> streamerInfos = configManager.getConfig().getStreamerInfos();
-        StreamerInfo streamerInfo = streamerInfos.stream()
-                .filter(info -> StringUtils.equals(info.getName(), streamerName))
-                .findFirst().orElse(null);
+        StreamerInfo streamerInfo = configManager.getStreamerInfoByName(streamerName);
         if (streamerInfo == null) {
             log.error("has no streamer info to post work, streamerName: {}", streamerName);
             return false;
         }
 
         String postWorkUrl = String.format(UploadConstant.BILI_POST_WORK, System.currentTimeMillis(),
-                fetchCsrf(configManager.getConfig().getPersonInfo().getBiliCookies()));
+                fetchCsrf(configManager.getUploadPersonInfo().getBiliCookies()));
         Map<String, String> headers = buildHeaders(extension, false);
         String resp = HttpClientUtil.sendPost(postWorkUrl, headers,
                 buildPostWorkParam(streamerInfo, remoteSeverVideos, extension));
@@ -167,7 +164,7 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
         uploadChunkHeaders.put("sec-fetch-site", "cross-site");
         uploadChunkHeaders.put("origin", "https://member.bilibili.com");
         uploadChunkHeaders.put("referer", "https://member.bilibili.com/platform/upload/video/frame");
-        uploadChunkHeaders.put("cookie", configManager.getConfig().getPersonInfo().getBiliCookies());
+        uploadChunkHeaders.put("cookie", configManager.getUploadPersonInfo().getBiliCookies());
         uploadChunkHeaders.put("x-upos-auth", extension.get(BILI_UPOS_AUTH));
         if (isOptions) {
             uploadChunkHeaders.put("access-control-request-method", "PUT");
@@ -188,8 +185,8 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
         params.put("title", extension.get(BILI_VIDEO_TILE));
         params.put("tid", streamerInfo.getTid());
         params.put("tag", StringUtils.join(streamerInfo.getTags(), ","));
-        params.put("desc", extension.get(BILI_VIDEO_DESC));
-        params.put("dynamic", extension.get(BILI_VIDEO_DYNAMIC));
+        params.put("desc", streamerInfo.getDesc());
+        params.put("dynamic", streamerInfo.getDynamic());
         params.put("copyright", streamerInfo.getCopyright());
         params.put("source", streamerInfo.getSource());
         params.put("videos", remoteSeverVideos);

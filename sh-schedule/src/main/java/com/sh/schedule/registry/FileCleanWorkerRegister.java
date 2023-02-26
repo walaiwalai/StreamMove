@@ -1,6 +1,5 @@
 package com.sh.schedule.registry;
 
-import com.sh.config.model.config.ShGlobalConfig;
 import com.sh.config.model.config.StreamHelperConfig;
 import com.sh.schedule.worker.FileCleanWorker;
 import com.sh.schedule.worker.ProcessWorker;
@@ -26,7 +25,6 @@ public class FileCleanWorkerRegister extends ProcessWorkerRegister {
     public String getCronExpr() {
         // 默认每天10点钟检查一次
         return Optional.ofNullable(getShGlobalConfig())
-                .map(ShGlobalConfig::getStreamerHelper)
                 .map(StreamHelperConfig::getFileCleanCron)
                 .orElse("0 0 10 * * ?");
     }

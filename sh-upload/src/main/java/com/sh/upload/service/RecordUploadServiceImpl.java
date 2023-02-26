@@ -40,6 +40,10 @@ public class RecordUploadServiceImpl implements RecordUploadService {
             return;
         }
 
+        if (BiliVideoWebUploadManager.isUploadPoolAllWork()) {
+            return;
+        }
+
         RecordTask recordTask = RecordConverter.convertToRecordTask(fileStatus);
         log.info("new upload task begin, recordName: {}, dirName: {}", recordTask.getRecorderName(),
                 recordTask.getDirName());

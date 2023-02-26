@@ -1,8 +1,9 @@
 package com.sh.schedule.registry;
 
 import com.alibaba.fastjson.JSON;
-import com.sh.config.constant.StreamHelperConstant;
-import com.sh.config.model.config.ShGlobalConfig;
+import com.alibaba.fastjson.JSONObject;
+import com.sh.config.constant.StreamHelperPathConfig;
+import com.sh.config.model.config.StreamHelperConfig;
 import com.sh.schedule.ProcessScheduler;
 import com.sh.schedule.worker.ProcessWorker;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +13,6 @@ import org.quartz.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 
 /**
  * @author caiWen
@@ -22,18 +22,19 @@ import java.io.InputStream;
 public abstract class ProcessWorkerRegister {
     private static final String JOB_KEY_SUFFIX = "_JOBKEY";
     private static final String TRIGGER_SUFFIX = "_TRIGGER";
-    private ShGlobalConfig shGlobalConfig;
+    private StreamHelperConfig streamHelperConfig;
 
     public void loadGlobalConfig() {
         // 加载一下全局配置
-        if (shGlobalConfig != null) {
+        if (streamHelperConfig != null) {
             return;
         }
         try {
             log.info("try to load global config...");
-            File file = new File(StreamHelperConstant.APP_PATH, "info.json");
+            File file = new File(StreamHelperPathConfig.APP_PATH, "info.json");
             String configStr = IOUtils.toString(new FileInputStream(file), "utf-8");
-            shGlobalConfig = JSON.parseObject(configStr, ShGlobalConfig.class);
+            JSONObject configObj = JSON.parseObject(configStr);
+            streamHelperConfig = configObj.getJSONObject("streamerHelper").toJavaObject(StreamHelperConfig.class);
             log.info("load global config success");
         } catch (IOException e) {
             log.error("load global config error", e);
@@ -69,8 +70,8 @@ public abstract class ProcessWorkerRegister {
         return this.getClass().getSimpleName() + ", " + getJobKey() + "," + getTriggerKey() + "," + getCronExpr();
     }
 
-    protected ShGlobalConfig getShGlobalConfig() {
-        return this.shGlobalConfig;
+    protected StreamHelperConfig getShGlobalConfig() {
+        return this.streamHelperConfig;
     }
 
     /**

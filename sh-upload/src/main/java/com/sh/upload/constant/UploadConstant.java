@@ -14,13 +14,6 @@ public class UploadConstant {
     public static final String BILI_VIDEO_CHUNK_UPLOAD_URL = "%s?partNumber=%s&uploadId=%s" +
             "&chunk=%s&chunks=%s&size=%s&start=%s&end=%s&total=%s";
 
-    /**
-     * 分块上传的状态, 分为未上传，上传失败，上传成功
-     */
-    public static final int CHUNK_UPLOAD_NO_STATUS = -1;
-    public static final int CHUNK_UPLOAD_FAIL_STATUS = 0;
-    public static final int CHUNK_UPLOAD_SUCCESS_STATUS = 1;
-
     public static final String BILI_CHUNK_UPLOAD_FINISH_URL = "%s?output=json&name=%s&profile=ugcfx/bup&uploadId=%s"
             + "&biz_id=%s";
 
@@ -34,8 +27,6 @@ public class UploadConstant {
     public static final String BILI_UPOS_URI = "upos_uri";
     public static final String BILI_UPOS_AUTH = "x-upos-auth";
     public static final String BILI_VIDEO_TILE = "title";
-    public static final String BILI_VIDEO_DESC = "desc";
-    public static final String BILI_VIDEO_DYNAMIC = "dynamic";
 
 
 

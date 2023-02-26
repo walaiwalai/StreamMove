@@ -47,49 +47,22 @@ public class FileStatusModel {
     private String endRecordTime;
     private UploadVideoPair videoParts;
 
-
-//    public FileStatusModel(Recorder recorder) {
-//        RecordTask recordTask = recorder.getRecordTask();
-//
-//        this.path = recorder.getSavePath();
-//        this.recorderName = recordTask.getRecorderName();
-//        this.recorderLink = recordTask.getStreamerInfo().getRoomUrl();
-//        this.tags = recordTask.getStreamerInfo().getTags();
-//        this.tid = recordTask.getStreamerInfo().getTid();
-//        this.startRecordTime = new Date();
-//        this.uploadLocalFile = recordTask.getStreamerInfo().getUploadLocalFile();
-//        this.deleteLocalFile = recordTask.getStreamerInfo().getDeleteLocalFile();
-//        this.isPost = false;
-//        this.isFailed = false;
-//        this.delayTime = recordTask.getStreamerInfo().getDelayTime() == null ? 2 :
-//                recordTask.getStreamerInfo().getDelayTime();
-//        this.templateTitle = recordTask.getStreamerInfo().getTemplateTitle();
-//        this.desc = recordTask.getStreamerInfo().getDesc();
-//        this.source = recordTask.getStreamerInfo().getSource();
-//        this.dynamic = recordTask.getStreamerInfo().getDynamic();
-//        this.copyright = recordTask.getStreamerInfo().getCopyright();
-//        this.timeV = recordTask.getTimeV();
-//    }
-
     /**
      * 写到fileStatus.json，没有值不覆盖
      *
      * @param dirName
      */
     public void writeSelfToFile(String dirName) {
-        File file = new File(dirName, "fileStatus.json");
-        if (file.exists()) {
-            return;
-        }
+        createFileIfNotExisted(dirName);
 
-        // 创建一个新文件，并把自身写到文件
+        // 把自身写到文件
+        File file = new File(dirName, "fileStatus.json");
         String statusStr = JSON.toJSONString(this);
         try {
-            file.createNewFile();
             IOUtils.write(statusStr, new FileOutputStream(file), "utf-8");
             log.info("Create fileStatus.json: {}", statusStr);
         } catch (IOException e) {
-            log.error("create file fail, savePath: {}", dirName, e);
+            log.error("writeSelfToFile to file fail, savePath: {}", dirName, e);
         }
     }
 
@@ -101,11 +74,9 @@ public class FileStatusModel {
      * @param updated
      */
     public static void updateToFile(String dirName, FileStatusModel updated) {
-        File file = new File(dirName, "fileStatus.json");
-        if (!file.exists()) {
-            return;
-        }
+        createFileIfNotExisted(dirName);
 
+        File file = new File(dirName, "fileStatus.json");
         try {
             String oldStatusStr = IOUtils.toString(new FileInputStream(file), "utf-8");
             JSONObject statusObj = JSON.parseObject(oldStatusStr);
@@ -127,5 +98,21 @@ public class FileStatusModel {
             log.error("open fileStatus.json fail, maybe file not exited, dirName: {}", dirName);
         }
         return JSON.parseObject(statusStr, FileStatusModel.class);
+    }
+
+    private static void createFileIfNotExisted(String dirName) {
+        File curFile = new File(dirName);
+        if (!curFile.exists()) {
+            curFile.mkdirs();
+        }
+
+        File file = new File(dirName, "fileStatus.json");
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                log.error("create file fail, savePath: {}", dirName, e);
+            }
+        }
     }
 }

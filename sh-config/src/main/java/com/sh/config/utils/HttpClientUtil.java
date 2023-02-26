@@ -92,14 +92,13 @@ public class HttpClientUtil {
     /**
      * @param url      请求地址
      * @param headers  请求头
-     * @param data     请求实体
      * @param encoding 字符集
      * @return String
      * @throws
      */
-    public static String sendPost(String url, Map<String, String> headers, JSONObject data, String encoding) {
-        log.info("send http post, encoding: {}, headers: {}, url: {}, data: {}", encoding, JSON.toJSONString(headers)
-                ,url, JSON.toJSONString(data));
+    private static String sendPost(String url, Map<String, String> headers, String entityStr, String encoding) {
+        log.info("send http post, encoding: {}, headers: {}, url: {}, data: {}", encoding, JSON.toJSONString(headers),
+                url, entityStr);
         HttpPost httpPost = new HttpPost();
         try {
             // 设置请求地址
@@ -115,7 +114,7 @@ public class HttpClientUtil {
                 httpPost.setHeaders(allHeader);
             }
             // 设置实体
-            httpPost.setEntity(new StringEntity(JSON.toJSONString(data), encoding));
+            httpPost.setEntity(new StringEntity(entityStr, encoding));
             // 发送请求,返回响应对象
             CloseableHttpResponse response = httpclient.execute(httpPost);
             return parseData(response);
@@ -165,39 +164,13 @@ public class HttpClientUtil {
     }
 
     /**
-     * @param url  请求地址
-     * @param data 请求实体
-     * @return String
-     */
-    public static String sendPost(String url, JSONObject data) {
-        // 设置默认请求头
-        Map<String, String> headers = new HashMap<>();
-        headers.put("content-type", "application/json");
-
-        return sendPost(url, headers, data, encoding);
-    }
-
-    /**
-     * @param url    请求地址
-     * @param params 请求实体
-     * @return
-     */
-    public static String sendPost(String url, Map<String, Object> params) {
-        // 设置默认请求头
-        Map<String, String> headers = new HashMap<>();
-        headers.put("content-type", "application/json");
-        JSONObject data = JSONObject.parseObject(JSON.toJSONString(params));
-        return sendPost(url, headers, data, encoding);
-    }
-
-    /**
      * @param url     请求地址
      * @param headers 请求头
      * @param data    请求实体
      * @return
      */
     public static String sendPost(String url, Map<String, String> headers, JSONObject data) {
-        return sendPost(url, headers, data, encoding);
+        return sendPost(url, headers, JSON.toJSONString(data), encoding);
     }
 
     /**
@@ -208,7 +181,17 @@ public class HttpClientUtil {
      */
     public static String sendPost(String url, Map<String, String> headers, Map<String, String> params) {
         JSONObject data = JSONObject.parseObject(JSON.toJSONString(params));
-        return sendPost(url, headers, data, encoding);
+        return sendPost(url, headers, JSON.toJSONString(params), encoding);
+    }
+
+    /**
+     * @param url     请求地址
+     * @param headers 请求头
+     * @param entityStr  请求实体
+     * @return
+     */
+    public static String sendPost(String url, Map<String, String> headers, String entityStr) {
+        return sendPost(url, headers, entityStr, encoding);
     }
 
     public static String sendGet(String url, Map<String, String> headers, Map<String, String> params) {
@@ -276,7 +259,5 @@ public class HttpClientUtil {
         }
         return null;
     }
-
-
 }
 

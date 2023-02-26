@@ -22,37 +22,6 @@ public class FailedUploadVideo {
     private String localFileFullPath;
 
     /**
-     * 上传视频的url
-     */
-    @Deprecated
-    private String uploadUrl;
-
-
-    @Deprecated
-    private String completeUploadUrl;
-
-    /**
-     * 上传服务器端的视频名称
-     */
-    @Deprecated
-    private String serverFileName;
-
-
-    @Deprecated
-    private Long uploadStartTime;
-
-    private Long deadline;
-
-    /**
-     * 失败视频中成功的chunk数量
-     */
-    @Deprecated
-    private Integer succeedUploadChunkCount;
-
-    @Deprecated
-    private Integer succeedTotalLength;
-
-    /**
      * 上传失败的chunks
      */
     private List<FailUploadVideoChunk> failUploadVideoChunks;

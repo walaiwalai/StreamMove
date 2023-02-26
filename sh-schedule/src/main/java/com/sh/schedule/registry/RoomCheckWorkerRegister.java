@@ -1,6 +1,5 @@
 package com.sh.schedule.registry;
 
-import com.sh.config.model.config.ShGlobalConfig;
 import com.sh.config.model.config.StreamHelperConfig;
 import com.sh.schedule.worker.ProcessWorker;
 import com.sh.schedule.worker.RoomCheckWorker;
@@ -27,7 +26,6 @@ public class RoomCheckWorkerRegister extends ProcessWorkerRegister {
     public String getCronExpr() {
         // 默认每6分钟检查一次
         return Optional.ofNullable(getShGlobalConfig())
-                .map(ShGlobalConfig::getStreamerHelper)
                 .map(StreamHelperConfig::getRoomCheckCron)
                 .orElse("0 0/6 * * * ?");
     }

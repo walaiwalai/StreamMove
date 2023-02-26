@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.lang3.BooleanUtils;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 
-import static com.sh.config.constant.StreamHelperConstant.RECORD_ROOT_PATH;
+import static com.sh.config.constant.StreamHelperPathConfig.RECORD_ROOT_PATH;
 
 /**
  * @author caiWen
@@ -30,7 +32,8 @@ public class RecordUploadWorker extends ProcessWorker {
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {
-        Collection<File> files = FileUtils.listFiles(new File(RECORD_ROOT_PATH), new String[]{"json"}, true);
+        Collection<File> files = FileUtils.listFiles(new File(RECORD_ROOT_PATH), new NameFileFilter("fileStatus.json"),
+                DirectoryFileFilter.INSTANCE);
         if (CollectionUtils.isEmpty(files)) {
             return;
         }

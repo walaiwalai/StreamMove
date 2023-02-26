@@ -1,10 +1,9 @@
-package com.sh.upload.manager;
+package com.sh.upload.model;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.HttpClientUtil;
-import com.sh.upload.model.BiliPreUploadInfoModel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -14,16 +13,29 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-@Setter
-@Getter
 @Slf4j
 public class BiliPreUploadModel {
     private String fileName;
-    private BiliPreUploadInfoModel biliPreUploadVideoInfo;
     private long size;
     private String cookies;
+
+
+    private BiliPreUploadInfoModel biliPreUploadVideoInfo;
     private String uploadUrl;
     private String uploadId;
+
+
+    public BiliPreUploadInfoModel getBiliPreUploadVideoInfo() {
+        return biliPreUploadVideoInfo;
+    }
+
+    public String getUploadUrl() {
+        return uploadUrl;
+    }
+
+    public String getUploadId() {
+        return uploadId;
+    }
 
 
     public BiliPreUploadModel(String name, long size, String cookies) {
@@ -50,20 +62,6 @@ public class BiliPreUploadModel {
         String res = HttpClientUtil.sendGet(preUploadUrl, headers, null);
 
         return JSON.parseObject(res, BiliPreUploadInfoModel.class);
-    }
-
-    public static void main(String[] args) {
-//        https://member.bilibili.com/preupload?name=Xiaohu-2023-02-15-part-003.mp4&size=19716776&r=upos&profile=ugcupos%2Fbup&ssl=0&version=2.7.1&build=2070100&os=upos&upcdn=ws
-        BiliPreUploadModel s = new BiliPreUploadModel("Xiaohu-2023-02-15-part-003.mp4", 19716776L,
-                "_uuid=51082D299-A10F5-5C92-D327-48E1F8A2816932071infoc; "
-                        + "buvid3=24635A34-84D2-3E1A-32C1-EFF41DB1FE7A31950infoc; b_nut=1675432032; "
-                        + "buvid_fp_plain=undefined; b_lsid=4C877BDC_1865AAF8CD2; "
-                        + "fingerprint=f4143708344460adbbb91eb07d6564d7; SESSDATA=f252a3fa,1692110753,a51ea*21; "
-                        + "bili_jct=875c1da0faa8f770f673bd8576fe6f08; DedeUserID=3493088808930053; "
-                        + "DedeUserID__ckMd5=2c8ca43685739904; sid=687ihxju; "
-                        + "buvid_fp=f4143708344460adbbb91eb07d6564d7; "
-                        + "buvid4=5CC226D9-7E45-F132-9A7D-F3C68D77FC8731950-023020321-FRmBv7s/ltliOd9bosY5dQ==");
-
     }
 
     /**
