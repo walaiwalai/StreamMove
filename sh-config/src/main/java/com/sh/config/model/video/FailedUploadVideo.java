@@ -25,4 +25,11 @@ public class FailedUploadVideo {
      * 上传失败的chunks
      */
     private List<FailUploadVideoChunk> failUploadVideoChunks;
+
+    /**
+     * 上次失败的参数
+     */
+    private String uploadUrl;
+    private String completeUploadUrl;
+    private String serverFileName;
 }

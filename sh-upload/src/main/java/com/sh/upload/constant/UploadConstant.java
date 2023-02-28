@@ -27,6 +27,7 @@ public class UploadConstant {
     public static final String BILI_UPOS_URI = "upos_uri";
     public static final String BILI_UPOS_AUTH = "x-upos-auth";
     public static final String BILI_VIDEO_TILE = "title";
+    public static final String SERVER_FILE_NAME = "serverFileName";
 
 
 

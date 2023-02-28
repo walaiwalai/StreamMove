@@ -10,6 +10,11 @@ public enum ErrorEnum {
      */
     UPLOAD_CHUNK_ERROR(1, "upload chunk error"),
 
+    /**
+     * 上传完整视频失败
+     */
+    POST_WORK_ERROR(2, "post work error"),
+
     ;
     private int errorCode;
     private String message;

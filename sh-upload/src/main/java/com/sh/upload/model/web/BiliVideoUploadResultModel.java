@@ -36,4 +36,6 @@ public class BiliVideoUploadResultModel {
      */
     private RemoteSeverVideo remoteSeverVideo;
 
+    private boolean isComplete;
+
 }

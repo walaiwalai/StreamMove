@@ -4,6 +4,7 @@ import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.util.RecordConverter;
+import com.sh.upload.manager.BiliVideoClientUploadManager;
 import com.sh.upload.manager.BiliVideoWebUploadManager;
 import com.sh.upload.model.BiliVideoUploadTask;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +23,10 @@ import java.util.Optional;
 public class RecordUploadServiceImpl implements RecordUploadService {
     @Resource
     StatusManager statusManager;
+//    @Resource
+//    BiliVideoWebUploadManager biliVideoWebUploadManager;
     @Resource
-    BiliVideoWebUploadManager biliVideoWebUploadManager;
+    BiliVideoClientUploadManager biliVideoClientUploadManager;
 
     @Override
     public void upload(FileStatusModel fileStatus) {
@@ -40,7 +43,7 @@ public class RecordUploadServiceImpl implements RecordUploadService {
             return;
         }
 
-        if (BiliVideoWebUploadManager.isUploadPoolAllWork()) {
+        if (BiliVideoClientUploadManager.isUploadPoolAllWork()) {
             return;
         }
 
@@ -48,7 +51,7 @@ public class RecordUploadServiceImpl implements RecordUploadService {
         log.info("new upload task begin, recordName: {}, dirName: {}", recordTask.getRecorderName(),
                 recordTask.getDirName());
 
-        BiliVideoUploadTask biliVideoUploadTask = biliVideoWebUploadManager.convertToUploadModel(recordTask);
-        biliVideoWebUploadManager.upload(biliVideoUploadTask);
+        BiliVideoUploadTask biliVideoUploadTask = biliVideoClientUploadManager.convertToUploadModel(recordTask);
+        biliVideoClientUploadManager.upload(biliVideoUploadTask);
     }
 }

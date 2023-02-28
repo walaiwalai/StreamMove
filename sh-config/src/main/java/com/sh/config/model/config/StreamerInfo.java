@@ -29,4 +29,5 @@ public class StreamerInfo {
     private Integer tid;
     private List<String> tags;
     private String cover;
+    private boolean openElec;
 }

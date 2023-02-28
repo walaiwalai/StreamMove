@@ -1,7 +1,10 @@
 package com.sh.upload.manager;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -11,41 +14,49 @@ import com.sh.config.manager.ConfigManager;
 import com.sh.config.model.config.StreamerInfo;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.model.video.*;
+import com.sh.config.utils.HttpClientUtil;
 import com.sh.config.utils.VideoFileUtils;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.record.RecordTask;
+import com.sh.upload.constant.UploadConstant;
 import com.sh.upload.model.BiliPreUploadInfoModel;
-import com.sh.upload.model.BiliPreUploadModel;
 import com.sh.upload.model.BiliVideoUploadTask;
+import com.sh.upload.model.web.BiliPreUploadRespose;
 import com.sh.upload.model.web.BiliVideoUploadResultModel;
 import com.sh.upload.service.BiliWorkUploadServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
-import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.HttpEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.FormBodyPartBuilder;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.StringBody;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
-import static com.sh.upload.constant.UploadConstant.*;
+import static com.sh.upload.constant.UploadConstant.SERVER_FILE_NAME;
 
 /**
- * 上传视频文件
+ * b站客户端上传视频文件
  *
  * @author caiWen
  * @date 2023/1/25 18:58
  */
 @Component
 @Slf4j
-public class BiliVideoWebUploadManager {
+public class BiliVideoClientUploadManager {
     @Resource
     ConfigManager configManager;
     @Resource
@@ -53,14 +64,21 @@ public class BiliVideoWebUploadManager {
     @Resource
     BiliWorkUploadServiceImpl biliVideoUploadService;
 
-    private static final int UPLOAD_CORE_SIZE = 4;
+    public static final Map<String, String> BILI_HEADERS = Maps.newHashMap();
+    private static final String BILI_PRE_URL
+            = "https://member.bilibili.com/preupload?access_key=${accessToken}&mid=${mid}&profile=ugcfr%2Fpc3";
+    /**
+     * 视频上传分块大小为2M
+     */
+    private static final int CHUNK_SIZE = 1024 * 1024 * 2;
 
     /**
      * 上传视频线程池
      */
+    private static final int UPLOAD_CORE_SIZE = 4;
     private static final ExecutorService UPLOAD_POOL = new ThreadPoolExecutor(
-            UPLOAD_CORE_SIZE,
-            UPLOAD_CORE_SIZE,
+            4,
+            4,
             600,
             TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(120),
@@ -68,11 +86,9 @@ public class BiliVideoWebUploadManager {
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
 
-    public static final Map<String, String> BILI_HEADERS = Maps.newHashMap();
-
     static {
         BILI_HEADERS.put("Connection", "alive");
-        BILI_HEADERS.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        BILI_HEADERS.put("Content-Type", "multipart/form-data");
         BILI_HEADERS.put("User-Agent",
                 "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) "
                         + "Chrome/109.0.0.0 Mobile Safari/537.36 Edg/109.0.1518.55");
@@ -84,32 +100,50 @@ public class BiliVideoWebUploadManager {
         return ((ThreadPoolExecutor) UPLOAD_POOL).getActiveCount() >= UPLOAD_CORE_SIZE;
     }
 
-    public void upload(BiliVideoUploadTask uploadTaskModel) {
-        if (!checkNeedUpload(uploadTaskModel)) {
+    public void upload(BiliVideoUploadTask uploadModel) {
+        if (!checkNeedUpload(uploadModel)) {
             return;
         }
 
-        String dirName = uploadTaskModel.getDirName();
+        String dirName = uploadModel.getDirName();
         try {
             log.info("begin upload, dirName: {}", dirName);
             // 1. 锁住上传视频
             statusManager.lockRecordForSubmission(dirName);
 
             // 2.加载文件夹状态并注入
-            insertValueFromFileStatus(uploadTaskModel);
+            insertValueFromFileStatus(uploadModel);
 
             // 3. 获取本地视频文件
-            log.info("get local videos, path: {}.", dirName);
-            List<LocalVideo> localVideos = fetchLocalVideos(dirName, uploadTaskModel);
-            if (CollectionUtils.isEmpty(localVideos)) {
+            log.info("get local videos, path: {}", dirName);
+            List<LocalVideo> localVideoParts = fetchLocalVideos(dirName, uploadModel);
+            if (CollectionUtils.isEmpty(localVideoParts)) {
                 log.warn("{} has no videos", dirName);
                 return;
             }
 
-            // 4.上传视频
+            // 4.预上传视频
             log.info("Start to upload videoParts ...");
-            List<RemoteSeverVideo> remoteSeverVideos = uploadVideoParts(localVideos, uploadTaskModel);
-            log.info("Upload videoParts END, remoteVideos: {}", JSON.toJSONString(remoteSeverVideos));
+            List<RemoteSeverVideo> remoteVideoParts = uploadVideoParts(localVideoParts, uploadModel);
+            log.info("Upload videoParts END, remoteVideos: {}", JSON.toJSONString(remoteVideoParts));
+            if (CollectionUtils.isNotEmpty(uploadModel.getSucceedUploaded())) {
+                log.info("Found succeed uploaded videos ... Concat ...");
+                remoteVideoParts.addAll(uploadModel.getSucceedUploaded());
+            }
+            // 4.1 给需要上传的视频文件命名
+            for (int i = 0; i < remoteVideoParts.size(); i++) {
+                remoteVideoParts.get(i).setTitle("P" + (i + 1));
+            }
+
+            // 5.post视频
+            log.info("Try to post Videos: {}", JSON.toJSONString(remoteVideoParts));
+            boolean isPostSuccess = biliVideoUploadService.postWorkOnClient(uploadModel.getStreamerName(),
+                    remoteVideoParts, ImmutableMap.of(UploadConstant.BILI_VIDEO_TILE, uploadModel.getTitle()));
+            if (!isPostSuccess) {
+                throw new StreamerHelperException(ErrorEnum.POST_WORK_ERROR);
+            }
+
+            log.info("upload video success.");
 
             // 6.更新文件属性
             FileStatusModel.updateToFile(dirName, FileStatusModel.builder().isPost(true).build());
@@ -186,7 +220,7 @@ public class BiliVideoWebUploadManager {
                             .localFileFullPath(Optional.ofNullable(uploadModel.getFailUpload())
                                     .map(FailedUploadVideo::getLocalFileFullPath)
                                     .orElse(null))
-                            .title(uploadModel.getTitle() + " [P" + (videoIndex + 1) + "]")
+                            .title("P" + (videoIndex + 1))
                             .desc(streamerInfo.getDesc())
                             .fileSize(fileSize)
                             .build());
@@ -196,7 +230,7 @@ public class BiliVideoWebUploadManager {
                 localVideos.add(LocalVideo.builder()
                         .isFailed(false)
                         .localFileFullPath(fullPath)
-                        .title(uploadModel.getTitle() + " [P" + (videoIndex + 1) + "]")
+                        .title("P" + (videoIndex + 1))
                         .desc(streamerInfo.getDesc())
                         .fileSize(fileSize)
                         .build());
@@ -209,39 +243,156 @@ public class BiliVideoWebUploadManager {
     /**
      * 上传分段视频
      *
-     * @param localVideos
+     * @param localVideoParts
      * @param uploadModel
      * @return
      */
-    private List<RemoteSeverVideo> uploadVideoParts(List<LocalVideo> localVideos, BiliVideoUploadTask uploadModel)
-            throws Exception {
+    private List<RemoteSeverVideo> uploadVideoParts(List<LocalVideo> localVideoParts, BiliVideoUploadTask uploadModel) {
         List<RemoteSeverVideo> remoteVideos = Lists.newArrayList();
-        for (LocalVideo localVideo : localVideos) {
-            BiliVideoUploadResultModel biliVideoUploadResult;
+        for (int i = 0; i < localVideoParts.size(); i++) {
+            LocalVideo localVideo = localVideoParts.get(i);
             try {
-                // 1. 上传视频
-                biliVideoUploadResult = uploadChunksForNewVideo(uploadModel, localVideo);
+                String uploadUrl, completeUploadUrl, serverFileName;
+                if (localVideo.isFailed()) {
+                    uploadUrl = Optional.ofNullable(uploadModel.getFailUpload().getUploadUrl()).orElse("");
+                    completeUploadUrl = Optional.ofNullable(uploadModel.getFailUpload().getCompleteUploadUrl()).orElse(
+                            "");
+                    serverFileName = Optional.ofNullable(uploadModel.getFailUpload().getServerFileName()).orElse("");
+                } else {
+                    // 进行预上传
+                    BiliPreUploadRespose preUploadData = getPreUploadData(uploadModel);
+                    uploadUrl = preUploadData.getUrl();
+                    completeUploadUrl = preUploadData.getComplete();
+                    serverFileName = preUploadData.getFilename();
+                }
+                log.info("path: {}, serverFileName: {}, uploadUrl: {}, completeUploadUrl: {}",
+                        uploadModel.getDirName(), serverFileName, uploadUrl, completeUploadUrl);
+
+                // 进行上传
+                BiliVideoUploadResultModel biliVideoUploadResult = uploadSingVideo(uploadUrl, completeUploadUrl,
+                        serverFileName, localVideo);
                 if (CollectionUtils.isNotEmpty(biliVideoUploadResult.getFailedChunks()) || !biliVideoUploadResult
-                        .isFinishChunksUpload() || biliVideoUploadResult.getRemoteSeverVideo() == null) {
+                        .isComplete() || biliVideoUploadResult.getRemoteSeverVideo() == null) {
                     // 上传chunks失败，完成上传失败，发送作品为空均视为失败
                     localVideo.setFailed(true);
                     syncStatus(uploadModel.getDirName(), localVideo, biliVideoUploadResult);
                     throw new StreamerHelperException(ErrorEnum.UPLOAD_CHUNK_ERROR);
                 }
 
+
                 remoteVideos.add(biliVideoUploadResult.getRemoteSeverVideo());
 
-                // 同步最新状态到fileStatus.json
+                // 写文件状态
                 syncStatus(uploadModel.getDirName(), localVideo, biliVideoUploadResult);
+
             } catch (Exception e) {
-                log.error("upload video part fail, localVideoPart: {}", localVideo.getLocalFileFullPath(), e);
+                log.error("upload video part fail, localVideoPart: {}", localVideo.getLocalFileFullPath());
                 statusManager.releaseRecordForSubmission(uploadModel.getDirName());
-                throw e;
             }
         }
         return remoteVideos;
     }
 
+    private BiliVideoUploadResultModel uploadSingVideo(String uploadUrl, String completeUrl, String serverFileName,
+            LocalVideo localVideo) throws Exception {
+        File videoFile = new File(localVideo.getLocalFileFullPath());
+        String videoName = videoFile.getName();
+        long fileSize = localVideo.getFileSize();
+        BiliVideoUploadResultModel uploadResult = new BiliVideoUploadResultModel();
+
+        // 1.获得预加载上传的b站视频地址信息
+        Map<String, String> extension = ImmutableMap.of(SERVER_FILE_NAME, serverFileName);
+
+        // 2.进行视频分块上传
+        int partCount = (int) Math.ceil(fileSize * 1.0 / CHUNK_SIZE);
+        log.info("video size is {}M, seg {} parts to upload.", fileSize / 1024 / 1024, partCount);
+        CountDownLatch countDownLatch = new CountDownLatch(partCount);
+        List<FailUploadVideoChunk> failUploadVideoChunks = Lists.newCopyOnWriteArrayList();
+        for (int i = 0; i < partCount; i++) {
+            //当前分段起始位置
+            long curChunkStart = i * CHUNK_SIZE;
+            // 当前分段大小  如果为最后一个大小为fileSize-curChunkStart  其他为partSize
+            long curChunkSize = (i + 1 == partCount) ? (fileSize - curChunkStart) : CHUNK_SIZE;
+
+            int finalI = i;
+            CompletableFuture.supplyAsync(() -> {
+                return biliVideoUploadService.uploadChunkOnClient(uploadUrl, videoFile, finalI, partCount,
+                        (int) curChunkSize, curChunkStart, extension);
+            }, UPLOAD_POOL)
+                    .whenComplete((isSuccess, throwbale) -> {
+                        if (!isSuccess) {
+                            FailUploadVideoChunk failUploadVideoChunk = new FailUploadVideoChunk();
+                            failUploadVideoChunk.setChunkStart(curChunkStart);
+                            failUploadVideoChunk.setCurChunkSize(curChunkSize);
+                            failUploadVideoChunk.setChunkNo(finalI);
+                            failUploadVideoChunks.add(failUploadVideoChunk);
+                        }
+                        countDownLatch.countDown();
+                    });
+        }
+
+        countDownLatch.await(1, TimeUnit.HOURS);
+
+        if (CollectionUtils.isEmpty(failUploadVideoChunks)) {
+            log.info("video chunks upload success, videoPath: {}", localVideo.getLocalFileFullPath());
+        } else {
+            log.error("video chunks upload fail, failed chunkNos: {}", failUploadVideoChunks.stream().map(
+                    FailUploadVideoChunk::getChunkNo).collect(Collectors.toList()));
+            uploadResult.setFailedChunks(failUploadVideoChunks);
+            return uploadResult;
+        }
+
+        // 3. 调用完成整个视频上传
+        boolean isComplete = completeSingVideo(completeUrl, partCount, videoName, localVideo);
+        uploadResult.setComplete(isComplete);
+        if (!isComplete) {
+            return uploadResult;
+        }
+
+        RemoteSeverVideo remoteSeverVideo = new RemoteSeverVideo(localVideo.getTitle(), localVideo.getDesc(),
+                serverFileName);
+        uploadResult.setRemoteSeverVideo(remoteSeverVideo);
+
+        return uploadResult;
+    }
+
+    private boolean completeSingVideo(String completeUrl, int totalChunks, String videoName, LocalVideo localVideo)
+            throws Exception {
+        HttpEntity completeEntity = MultipartEntityBuilder.create()
+                .addPart(FormBodyPartBuilder.create()
+                        .setName("version")
+                        .setBody(new StringBody("2.3.0.1088", ContentType.APPLICATION_FORM_URLENCODED))
+                        .build())
+                .addPart(FormBodyPartBuilder.create()
+                        .setName("filesize")
+                        .setBody(new StringBody(String.valueOf(localVideo.getFileSize()),
+                                ContentType.APPLICATION_FORM_URLENCODED))
+                        .build())
+                .addPart(FormBodyPartBuilder.create()
+                        .setName("chunks")
+                        .setBody(new StringBody(String.valueOf(totalChunks), ContentType.APPLICATION_FORM_URLENCODED))
+                        .build())
+                .addPart(FormBodyPartBuilder.create()
+                        .setName("md5")
+                        .setBody(new StringBody(
+                                DigestUtils.md5Hex(new FileInputStream(localVideo.getLocalFileFullPath())),
+                                ContentType.APPLICATION_FORM_URLENCODED))
+                        .build())
+                .addPart(FormBodyPartBuilder.create()
+                        .setName("name")
+                        .setBody(new StringBody(videoName, ContentType.APPLICATION_FORM_URLENCODED))
+                        .build())
+                .build();
+        String completeResp = HttpClientUtil.sendPost(completeUrl, null, completeEntity);
+        JSONObject respObj = JSONObject.parseObject(completeResp);
+        if (Objects.equals(respObj.getString("OK"), "1")) {
+            log.info("complete upload success, videoName: {}", videoName);
+            return true;
+        } else {
+            log.error("complete upload fail, videoName: {}", videoName);
+            return false;
+        }
+    }
 
     /**
      * 更新状态到fileStatus.json
@@ -288,102 +439,47 @@ public class BiliVideoWebUploadManager {
         FileStatusModel.updateToFile(dirName, fileStatusModel);
     }
 
+    /**
+     * 预上传接口请求
+     *
+     * @param uploadModel
+     * @return
+     */
+    public BiliPreUploadRespose getPreUploadData(BiliVideoUploadTask uploadModel) {
+        Map<String, String> urlParams = ImmutableMap.of(
+                "accessToken", configManager.getUploadPersonInfo().getAccessToken(),
+                "mid", configManager.getUploadPersonInfo().getMid().toString()
+        );
+        StringSubstitutor sub = new StringSubstitutor(urlParams);
+        String preUrl = sub.replace(BILI_PRE_URL);
 
-    public BiliVideoUploadResultModel uploadChunksForNewVideo(BiliVideoUploadTask uploadModel, LocalVideo localVideo)
-            throws Exception {
-        File videoFile = new File(localVideo.getLocalFileFullPath());
-        String videoName = videoFile.getName();
-        long fileSize = localVideo.getFileSize();
-        BiliVideoUploadResultModel uploadResult = new BiliVideoUploadResultModel();
+        String resp = HttpUtil.get(preUrl);
+        BiliPreUploadRespose biliPreUploadRespose = JSON.parseObject(resp, BiliPreUploadRespose.class);
 
-        // 1.获得预加载上传的b站视频地址信息
-        String biliCookies = configManager.getUploadPersonInfo().getBiliCookies();
-        BiliPreUploadModel biliPreUploadModel = new BiliPreUploadModel(videoName, fileSize, biliCookies);
-        if (StringUtils.isBlank(biliPreUploadModel.getUploadId())) {
-            log.error("video preUpload info fetch error, videoName: {}", videoFile);
-            throw new StreamerHelperException(ErrorEnum.UPLOAD_CHUNK_ERROR);
-        }
-        BiliPreUploadInfoModel biliPreUploadInfo = biliPreUploadModel.getBiliPreUploadVideoInfo();
-        Map<String, String> extension = buildExtension(localVideo, biliPreUploadModel);
-
-        // 2.进行视频分块上传
-        Integer chunkSize = biliPreUploadInfo.getChunkSize();
-        int partCount = (int) Math.ceil(fileSize * 1.0 / chunkSize);
-        log.info("video size is {}M, seg {} parts to upload.", fileSize / 1024 / 1024, partCount);
-        CountDownLatch countDownLatch = new CountDownLatch(partCount);
-        List<FailUploadVideoChunk> failUploadVideoChunks = Lists.newCopyOnWriteArrayList();
-        for (int i = 0; i < partCount; i++) {
-            //当前分段起始位置
-            long curChunkStart = i * chunkSize;
-            // 当前分段大小  如果为最后一个大小为fileSize-curChunkStart  其他为partSize
-            long curChunkSize = (i + 1 == partCount) ? (fileSize - curChunkStart) : chunkSize;
-            long curChunkEnd = curChunkStart + curChunkSize;
-
-            FileInputStream fis = new FileInputStream(videoFile);
-            fis.skip(curChunkStart);
-            int finalI = i;
-
-            CompletableFuture.supplyAsync(() -> {
-                return biliVideoUploadService.uploadChunkOnWeb(
-                        new InputStreamEntity(fis, curChunkSize), finalI, partCount, curChunkSize, curChunkStart,
-                        curChunkEnd, fileSize, extension);
-            }, UPLOAD_POOL)
-                    .whenComplete((isSuccess, throwbale) -> {
-                        if (!isSuccess) {
-                            FailUploadVideoChunk failUploadVideoChunk = new FailUploadVideoChunk();
-                            failUploadVideoChunk.setChunkStart(curChunkStart);
-                            failUploadVideoChunk.setCurChunkSize(curChunkSize);
-                            failUploadVideoChunk.setChunkNo(finalI);
-                            failUploadVideoChunks.add(failUploadVideoChunk);
-                        }
-                        countDownLatch.countDown();
-                    });
+        if (biliPreUploadRespose.getOK() != 1) {
+            log.error("video preUpload fail, resp: {}", resp);
+            return null;
         }
 
-        countDownLatch.await(1, TimeUnit.HOURS);
-
-
-        if (CollectionUtils.isEmpty(failUploadVideoChunks)) {
-            log.info("video chunks upload success, videoPath: {}", localVideo.getLocalFileFullPath());
-        } else {
-            log.error("video chunks upload fail, failed chunkNos: {}", failUploadVideoChunks.stream().map(
-                    FailUploadVideoChunk::getChunkNo).collect(Collectors.toList()));
-            uploadResult.setFailedChunks(failUploadVideoChunks);
-            return uploadResult;
+        String uploadUrl = biliPreUploadRespose.getUrl();
+        String[] params = StringUtils.split(uploadUrl, "?")[1].split("\\u0026");
+        Map<String, String> paramMap = Maps.newHashMap();
+        for (String param : params) {
+            String[] split = param.split("=");
+            paramMap.put(split[0], split[1]);
         }
 
-        // 3. 完成分块的上传
-        boolean isFinish = biliVideoUploadService.finishChunksUploadOnWeb(localVideo.getTitle(), partCount, extension);
-        uploadResult.setFinishChunksUpload(isFinish);
-        if (isFinish) {
-            log.info("video finish upload success, videoName: {}", videoName);
-        } else {
-            log.error("video finish upload fail, videoName: {}", videoName);
-            return uploadResult;
+        // 拼接一些参数到uploadModel
+        String deadline = paramMap.get("deadline");
+        if (StringUtils.isNotBlank(deadline)) {
+            uploadModel.setDeadline(Long.valueOf(deadline));
+        }
+        String uploadstart = paramMap.get("uploadstart");
+        if (StringUtils.isNotBlank(uploadstart)) {
+            uploadModel.setUploadStart(Long.valueOf(uploadstart));
         }
 
-        // 4. 组装服务器端的视频
-        String uposUri = biliPreUploadInfo.getUposUri();
-        String[] tmps = uposUri.split("//")[1].split("/");
-        String fileNameOnServer = tmps[tmps.length - 1].split(".mp4")[0];
-        RemoteSeverVideo remoteSeverVideo = new RemoteSeverVideo(localVideo.getTitle(), localVideo.getDesc(),
-                fileNameOnServer);
-        boolean isPostSuccess = biliVideoUploadService.postWorkOnWeb(uploadModel.getStreamerName(),
-                Lists.newArrayList(remoteSeverVideo), extension);
-        if (isPostSuccess) {
-            uploadResult.setRemoteSeverVideo(remoteSeverVideo);
-        }
-        return uploadResult;
-    }
-
-    private Map<String, String> buildExtension(LocalVideo localVideo, BiliPreUploadModel biliPreUploadModel) {
-        Map<String, String> extension = Maps.newHashMap();
-        extension.put(BILI_UPLOAD_URL, biliPreUploadModel.getUploadUrl());
-        extension.put(BILI_UPLOAD_ID, biliPreUploadModel.getUploadId());
-        extension.put(BILI_UPOS_URI, biliPreUploadModel.getBiliPreUploadVideoInfo().getUposUri());
-        extension.put(BILI_UPOS_AUTH, biliPreUploadModel.getBiliPreUploadVideoInfo().getAuth());
-        extension.put(BILI_VIDEO_TILE, localVideo.getTitle());
-        return extension;
+        return biliPreUploadRespose;
     }
 
 
@@ -409,20 +505,6 @@ public class BiliVideoWebUploadManager {
         }
         return true;
     }
-
-
-//    private void syncUserInfo(BiliUploadUser uploadUser) {
-//        configManager.syncUploadPersonInfoToConfig(
-//                UploadPersonInfo.builder()
-//                        .accessToken(uploadUser.getAccessToken())
-//                        .mid(uploadUser.getMid())
-//                        .refreshToken(uploadUser.getRefreshToken())
-//                        .expiresIn(uploadUser.getExpiresIn())
-//                        .nickname(uploadUser.getNickName())
-//                        .tokenSignDate(uploadUser.getTokenSignTime())
-//                        .build()
-//        );
-//    }
 
     public BiliVideoUploadTask convertToUploadModel(RecordTask recordTask) {
         return BiliVideoUploadTask.builder()

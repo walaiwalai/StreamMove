@@ -3,6 +3,7 @@ package com.sh.upload.service;
 import com.sh.config.model.video.RemoteSeverVideo;
 import org.apache.http.entity.InputStreamEntity;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +24,7 @@ public interface PlatformWorkUploadService {
      * @param extension
      * @return
      */
-    boolean uploadChunk(InputStreamEntity uploadChunk, Integer chunkNo, Integer totalChunks,
+    boolean uploadChunkOnWeb(InputStreamEntity uploadChunk, Integer chunkNo, Integer totalChunks,
             Long curChunkSize, Long curChunkStart, Long curChunkEnd, Long totalSize, Map<String, String> extension);
 
     /**
@@ -33,7 +34,7 @@ public interface PlatformWorkUploadService {
      * @param extension
      * @return
      */
-    boolean finishChunksUpload(String videoName, Integer totalChunks, Map<String, String> extension);
+    boolean finishChunksUploadOnWeb(String videoName, Integer totalChunks, Map<String, String> extension);
 
     /**
      * 上传视频
@@ -43,5 +44,31 @@ public interface PlatformWorkUploadService {
      * @param extension
      * @return
      */
-    boolean postWork(String streamerName, List<RemoteSeverVideo> remoteSeverVideos, Map<String, String> extension);
+    boolean postWorkOnWeb(String streamerName, List<RemoteSeverVideo> remoteSeverVideos, Map<String, String> extension);
+
+
+    /**
+     * 客户端视频分块上传
+     * @param uploadUrl
+     * @param targetFile
+     * @param chunkNo
+     * @param totalChunks
+     * @param curChunkSize
+     * @param curChunkStart
+     * @param extension
+     * @return
+     */
+    boolean uploadChunkOnClient(String uploadUrl, File targetFile, Integer chunkNo, Integer totalChunks,
+            Integer curChunkSize, Long curChunkStart, Map<String, String> extension);
+
+
+    /**
+     * 客户端上传视频
+     * @param streamerName
+     * @param remoteSeverVideos
+     * @param extension
+     * @return
+     */
+    public boolean postWorkOnClient(String streamerName, List<RemoteSeverVideo> remoteSeverVideos,
+            Map<String, String> extension);
 }

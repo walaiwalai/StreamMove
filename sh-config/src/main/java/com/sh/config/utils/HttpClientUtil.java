@@ -16,7 +16,11 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.entity.mime.FormBodyPartBuilder;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -44,7 +48,6 @@ public class HttpClientUtil {
     private static PoolingHttpClientConnectionManager connMrg;
     // 默认字符集
     private static String encoding = "utf-8";
-//    private static String encoding = "gbk";
 
     static {
         init();
@@ -127,7 +130,6 @@ public class HttpClientUtil {
         return null;
     }
 
-
     /**
      * @param url      请求地址
      * @param headers  请求头
@@ -180,7 +182,6 @@ public class HttpClientUtil {
      * @return
      */
     public static String sendPost(String url, Map<String, String> headers, Map<String, String> params) {
-        JSONObject data = JSONObject.parseObject(JSON.toJSONString(params));
         return sendPost(url, headers, JSON.toJSONString(params), encoding);
     }
 

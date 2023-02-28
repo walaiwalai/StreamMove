@@ -1,8 +1,9 @@
 package com.sh.config.utils;
 
 import org.springframework.util.CollectionUtils;
+import sun.applet.Main;
 
-import java.io.File;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.List;
  * @author caiWen
  * @date 2023/2/16 23:28
  */
-public class MyFileUtil {
+public class VideoFileUtils {
     /**
      * 获取目录下所有文件(按时间排序)
      *
@@ -34,4 +35,22 @@ public class MyFileUtil {
 
         return files;
     }
+
+    public static byte[] fetchBlock(File targetFile, long start, int blockSize) throws IOException {
+        byte[] b = new byte[blockSize];
+        RandomAccessFile raf = null;
+        try {
+            raf = new RandomAccessFile(targetFile, "r");
+            raf.seek(start);
+            raf.read(b, 0, blockSize);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (raf != null) {
+                raf.close();
+            }
+        }
+        return b;
+    }
+
 }

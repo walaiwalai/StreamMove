@@ -49,4 +49,14 @@ public class BiliVideoUploadTask {
      * 上传失败的视频
      */
     private FailedUploadVideo failUpload;
+
+    /**
+     * 任务开始上传时间(秒时间戳，如1677538240)
+     */
+    private Long uploadStart;
+
+    /**
+     * 上传任务的过期时间(秒时间戳，如1677538240)
+     */
+    private Long deadline;
 }
