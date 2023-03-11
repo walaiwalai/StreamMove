@@ -141,7 +141,7 @@ public class RecordManager {
             }
             fakeHeaders += "$" + key + ":" + fakeHeaderMap.get(key) + "\\r\\n";
         }
-        String command = String.format(" -headers \"%s\" -user_agent \"%s\" -i \"%s\" -c:v copy -c:a copy -f segment " +
+        String command = String.format(" -headers \"%s\" -user_agent \"%s\" -r 60 -async 1 -i \"%s\" -c:v copy -c:a copy -f segment " +
                         "-segment_time %s -segment_start_number %s \"%s\"",
                 fakeHeaders,
                 fakeHeaderMap.get(USER_AGENT),

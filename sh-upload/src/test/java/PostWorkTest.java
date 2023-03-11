@@ -1,5 +1,3 @@
-package com.sh.upload.manager;
-
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;

@@ -117,10 +117,6 @@ public class BiliVideoClientUploadManager {
             // 3. 获取本地视频文件
             log.info("get local videos, path: {}", dirName);
             List<LocalVideo> localVideoParts = fetchLocalVideos(dirName, uploadModel);
-            if (CollectionUtils.isEmpty(localVideoParts)) {
-                log.warn("{} has no videos", dirName);
-                return;
-            }
 
             // 4.预上传视频
             log.info("Start to upload videoParts ...");
@@ -184,6 +180,8 @@ public class BiliVideoClientUploadManager {
         // 遍历本地的视频文件
         Collection<File> files = FileUtils.listFiles(new File(dirName), FileFilterUtils.suffixFileFilter("mp4"), null);
         List<File> sortedFile = VideoFileUtils.getFileSort(Lists.newArrayList(files));
+        List<String> succeedPaths = Optional.ofNullable(uploadModel.getSucceedUploaded()).orElse(Lists.newArrayList())
+                .stream().map(SucceedUploadSeverVideo::getLocalFileFullPath).collect(Collectors.toList());
         List<LocalVideo> localVideos = Lists.newArrayList();
         for (File subVideoFile : sortedFile) {
             videoIndex++;
@@ -197,13 +195,9 @@ public class BiliVideoClientUploadManager {
             }
 
             // 已经上传的文件不重复上传
-            if (CollectionUtils.isNotEmpty(uploadModel.getSucceedUploaded())) {
-                List<String> succeedPaths = uploadModel.getSucceedUploaded().stream().map(
-                        SucceedUploadSeverVideo::getLocalFileFullPath).collect(Collectors.toList());
-                if (succeedPaths.contains(fullPath)) {
-                    log.info("video has been uploaded, path: {}", fullPath);
-                    continue;
-                }
+            if (succeedPaths.contains(fullPath)) {
+                log.info("video has been uploaded, path: {}", fullPath);
+                continue;
             }
 
 
@@ -220,7 +214,7 @@ public class BiliVideoClientUploadManager {
                             .localFileFullPath(Optional.ofNullable(uploadModel.getFailUpload())
                                     .map(FailedUploadVideo::getLocalFileFullPath)
                                     .orElse(null))
-                            .title("P" + (videoIndex + 1))
+                            .title("P" + (videoIndex))
                             .desc(streamerInfo.getDesc())
                             .fileSize(fileSize)
                             .build());
@@ -230,7 +224,7 @@ public class BiliVideoClientUploadManager {
                 localVideos.add(LocalVideo.builder()
                         .isFailed(false)
                         .localFileFullPath(fullPath)
-                        .title("P" + (videoIndex + 1))
+                        .title("P" + (videoIndex))
                         .desc(streamerInfo.getDesc())
                         .fileSize(fileSize)
                         .build());
@@ -286,7 +280,7 @@ public class BiliVideoClientUploadManager {
                 syncStatus(uploadModel.getDirName(), localVideo, biliVideoUploadResult);
 
             } catch (Exception e) {
-                log.error("upload video part fail, localVideoPart: {}", localVideo.getLocalFileFullPath());
+                log.error("upload video part fail, localVideoPart: {}", localVideo.getLocalFileFullPath(), e);
                 statusManager.releaseRecordForSubmission(uploadModel.getDirName());
             }
         }

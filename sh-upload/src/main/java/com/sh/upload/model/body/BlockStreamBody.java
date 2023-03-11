@@ -1,4 +1,4 @@
-package com.sh.upload.model.upload;
+package com.sh.upload.model.body;
 
 /**
  * @author caiWen

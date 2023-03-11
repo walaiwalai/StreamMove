@@ -47,6 +47,9 @@ public class FileCleanWorker extends ProcessWorker {
                 if (statusManager.isRoomPathFetchStream(file.getPath())) {
                     continue;
                 }
+                if (fileStatusModel.getIsPost() == null || !fileStatusModel.getIsPost()) {
+                    continue;
+                }
 
                 log.info("Begin to delete file {}", fileStatusModel.getPath());
                 FileUtils.deleteDirectory(new File(fileStatusModel.getPath()));
