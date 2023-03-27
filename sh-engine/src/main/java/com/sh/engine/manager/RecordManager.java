@@ -167,6 +167,7 @@ public class RecordManager {
             }
             // 清除直播间状态
             statusManager.deleteRoomPathStatus(recorder.getSavePath());
+            statusManager.deleteRecorder(recorder.getRecordTask().getRecorderName());
         });
     }
 }

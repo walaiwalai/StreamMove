@@ -65,9 +65,6 @@ public class RoomCheckServiceImpl implements RoomCheckService {
             String name = streamerInfo.getName();
             boolean isOnRecord = statusManager.isOnRecord(name);
             Recorder curRecorder = statusManager.getRecorderByStreamerName(name);
-            if (isOnRecord) {
-                log.info(getTipsString(curRecorder));
-            }
 
             // 2. 检查直播间是否开播
             String streamUrl = fetchRoomStreamUrl(streamerInfo);
