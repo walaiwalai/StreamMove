@@ -117,6 +117,9 @@ public class BiliVideoClientUploadManager {
             // 3. 获取本地视频文件
             log.info("get local videos, path: {}", dirName);
             List<LocalVideo> localVideoParts = fetchLocalVideos(dirName, uploadModel);
+            if (CollectionUtils.isEmpty(localVideoParts)) {
+                log.info("no videos cab be upload, will return");
+            }
 
             // 4.预上传视频
             log.info("Start to upload videoParts ...");
