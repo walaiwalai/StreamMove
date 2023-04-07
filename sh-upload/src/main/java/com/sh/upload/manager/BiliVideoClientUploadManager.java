@@ -70,7 +70,7 @@ public class BiliVideoClientUploadManager {
     /**
      * 视频上传分块大小为2M
      */
-    private static final int CHUNK_SIZE = 1024 * 1024 * 2;
+    private static final int CHUNK_SIZE = 1024 * 1024 * 5;
 
     /**
      * 上传视频线程池
@@ -328,7 +328,7 @@ public class BiliVideoClientUploadManager {
                     });
         }
 
-        countDownLatch.await(1, TimeUnit.HOURS);
+        countDownLatch.await(3, TimeUnit.HOURS);
 
         if (CollectionUtils.isEmpty(failUploadVideoChunks)) {
             log.info("video chunks upload success, videoPath: {}", localVideo.getLocalFileFullPath());
