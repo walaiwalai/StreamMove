@@ -64,8 +64,6 @@ public class BiliWorkUploadServiceImpl implements PlatformWorkUploadService {
     @Override
     public boolean uploadChunkOnWeb(InputStreamEntity uploadChunk, Integer chunkNo, Integer totalChunks,
             Long curChunkSize, Long curChunkStart, Long curChunkEnd, Long totalSize, Map<String, String> extension) {
-        log.info("start to upload {}th video chunk, curChunkSize: {}M.", chunkNo + 1, curChunkSize / 1024 / 1024);
-
         String chunkUploadUrl = String.format(UploadConstant.BILI_VIDEO_CHUNK_UPLOAD_URL,
                 extension.get("uploadUrl"),
                 chunkNo + 1,

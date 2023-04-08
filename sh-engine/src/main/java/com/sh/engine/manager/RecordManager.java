@@ -151,7 +151,7 @@ public class RecordManager {
 //                downloadFileName
 //        );
         String command = String.format(
-                " -headers \"%s\" -user_agent \"%s\" -r 60 -async 1 -i \"%s\" -c:v libx264 -preset ultrafast -crf 23 -c:a "
+                " -headers \"%s\" -user_agent \"%s\" -r 60 -async 1 -i \"%s\" -c:v libx264 -crf 18 -c:a "
                         + "aac -b:a 128k -f segment " + "-segment_time %s -segment_start_number %s \"%s\"",
                 fakeHeaders,
                 fakeHeaderMap.get(USER_AGENT),
