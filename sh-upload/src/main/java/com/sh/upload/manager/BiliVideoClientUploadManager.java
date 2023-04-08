@@ -70,7 +70,7 @@ public class BiliVideoClientUploadManager {
     /**
      * 视频上传分块大小为2M
      */
-    private static final int CHUNK_SIZE = 1024 * 1024 * 5;
+    private static final int CHUNK_SIZE = 1024 * 1024 * 2;
 
     /**
      * 上传视频线程池
@@ -81,7 +81,7 @@ public class BiliVideoClientUploadManager {
             4,
             600,
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(120),
+            new ArrayBlockingQueue<>(2048),
             new ThreadFactoryBuilder().setNameFormat("bili-upload-thread-%d").build(),
             new ThreadPoolExecutor.CallerRunsPolicy()
     );

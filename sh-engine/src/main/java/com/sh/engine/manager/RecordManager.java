@@ -141,8 +141,18 @@ public class RecordManager {
             }
             fakeHeaders += "$" + key + ":" + fakeHeaderMap.get(key) + "\\r\\n";
         }
-        String command = String.format(" -headers \"%s\" -user_agent \"%s\" -r 60 -async 1 -i \"%s\" -c:v copy -c:a copy -f segment " +
-                        "-segment_time %s -segment_start_number %s \"%s\"",
+//        String command = String.format(" -headers \"%s\" -user_agent \"%s\" -r 60 -async 1 -i \"%s\" -c:v copy -c:a copy -f segment " +
+//                        "-segment_time %s -segment_start_number %s \"%s\"",
+//                fakeHeaders,
+//                fakeHeaderMap.get(USER_AGENT),
+//                streamUrl,
+//                configManager.getStreamHelperConfig().getSegmentDuration(),
+//                startNumber,
+//                downloadFileName
+//        );
+        String command = String.format(
+                " -headers \"%s\" -user_agent \"%s\" -r 60 -async 1 -i \"%s\" -c:v libx264 -preset ultrafast -crf 23 -c:a "
+                        + "aac -b:a 128k -f segment " + "-segment_time %s -segment_start_number %s \"%s\"",
                 fakeHeaders,
                 fakeHeaderMap.get(USER_AGENT),
                 streamUrl,
