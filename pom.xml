@@ -133,7 +133,17 @@
             <!--ffmpeg工具类<-->
             <dependency>
                 <groupId>ws.schild</groupId>
-                <artifactId>jave-all-deps</artifactId>
+                <artifactId>jave-core</artifactId>
+                <version>3.1.1</version>
+            </dependency>
+            <dependency>
+                <groupId>ws.schild</groupId>
+                <artifactId>jave-nativebin-win64</artifactId>
+                <version>3.1.1</version>
+            </dependency>
+            <dependency>
+                <groupId>ws.schild</groupId>
+                <artifactId>jave-nativebin-linux64</artifactId>
                 <version>3.1.1</version>
             </dependency>
 

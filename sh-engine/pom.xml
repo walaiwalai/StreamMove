@@ -22,7 +22,15 @@
         </dependency>
         <dependency>
             <groupId>ws.schild</groupId>
-            <artifactId>jave-all-deps</artifactId>
+            <artifactId>jave-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ws.schild</groupId>
+            <artifactId>jave-nativebin-win64</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ws.schild</groupId>
+            <artifactId>jave-nativebin-linux64</artifactId>
         </dependency>
         <dependency>
             <groupId>com.sh</groupId>
