@@ -41,14 +41,6 @@ public class InitConfig {
      */
     private String quality;
 
-
-
-    // ********************* 上传配置*********************
-    /**
-     *投稿检测cron表达式
-     */
-    private String recordUploadCron;
-
     /**
      * 投稿时忽略小于此大小的文件(M)
      */

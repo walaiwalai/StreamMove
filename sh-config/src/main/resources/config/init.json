@@ -1,16 +1,14 @@
 {
-  "roomCheckCron": "0/30 * * * * ?",
-  "videoSavePath": "C:/Users/caiwen/Desktop/download",
+  "roomCheckCron": "0 2/5 * * * ?",
+  "videoSavePath": "/home/admin/stream/download",
   "segmentDuration": 3600,
   "quality": "超清",
 
 
-  "recordUploadCron": "0 17/20 * * * ?",
   "videoPartLimitSize": 10,
-
   "biliCookies": "",
-  "accessToken": "4a12b3f8b8f806d2dea52d7388d1ffc1CjDeQSoHYjdpO8ze0T7uM7kvljf9fPfeyz0dQVBfz8OBMhNuPINcv5UwVbju4-5VIbwSVlUxQ0dHRkRTaXB6cjlJMDBIcGJCSUxXZGUwdWRKcHBFVzE1dWVTVzBpbWp0a0lUYmxzZHFwN0llYldxV0tZT0tjdHVTNlNVNkhuLVE3OGZrVDEwV3NnIIEC",
-  "mid": 3493088808930053,
+  "accessToken": "xx",
+  "mid": 123,
 
   "fileCleanCron": "0 3 0 * * ?",
   "configRefreshCron": "0/5 * * * * ?"
