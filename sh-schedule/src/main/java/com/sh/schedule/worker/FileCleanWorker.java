@@ -1,6 +1,7 @@
 package com.sh.schedule.worker;
 
 import com.alibaba.fastjson.JSON;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.engine.manager.StatusManager;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +16,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 
-import static com.sh.config.constant.StreamHelperPathConfig.RECORD_ROOT_PATH;
 
 /**
  * @author caiWen
@@ -29,7 +29,7 @@ public class FileCleanWorker extends ProcessWorker {
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {
-        Collection<File> files = FileUtils.listFiles(new File(RECORD_ROOT_PATH), new String[]{"json"}, true);
+        Collection<File> files = FileUtils.listFiles(new File(ConfigFetcher.getInitConfig().getVideoSavePath()), new String[]{"json"}, true);
         if (CollectionUtils.isEmpty(files)) {
             return;
         }

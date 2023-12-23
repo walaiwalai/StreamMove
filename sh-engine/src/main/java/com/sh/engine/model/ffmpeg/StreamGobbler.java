@@ -14,6 +14,7 @@ import  java.io.PrintWriter;
  */
 @Slf4j
 public class StreamGobbler extends  Thread {
+    public static final int LINE_LOG_INTERVAL = 50;
     InputStream is;
     String type;
     OutputStream os;
@@ -45,7 +46,7 @@ public class StreamGobbler extends  Thread {
                 if (pw != null) {
                     pw.println(line);
                 }
-                if (lineNo < 100) {
+                if (lineNo % LINE_LOG_INTERVAL == 0) {
                     log.info(type + ">>>>" + line);
                 }
             }

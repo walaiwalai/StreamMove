@@ -14,8 +14,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Date;
-import java.util.List;
 
 /**
  * @author caiWen
@@ -29,22 +27,10 @@ import java.util.List;
 public class FileStatusModel {
     private String path;
     private String recorderName;
-    private String recorderLink;
-    private List<String> tags;
-    private Integer tid;
-    private Boolean uploadLocalFile;
-    private Boolean deleteLocalFile;
     private Boolean isPost;
     private Boolean isFailed;
-    private Integer delayTime;
-    private String templateTitle;
-    private String desc;
-    private String source;
-    private String dynamic;
-    private Integer copyright;
     private String timeV;
-    private Date startRecordTime;
-    private String endRecordTime;
+    private String updateTime;
     private UploadVideoPair videoParts;
 
     /**

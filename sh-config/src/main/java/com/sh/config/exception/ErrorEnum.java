@@ -15,6 +15,11 @@ public enum ErrorEnum {
      */
     POST_WORK_ERROR(2, "post work error"),
 
+    /**
+     * 预上传失败
+     */
+    PRE_UPLOAD_ERROR(2, "pre upload error"),
+
     ;
     private int errorCode;
     private String message;

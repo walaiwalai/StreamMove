@@ -7,6 +7,7 @@ import com.google.common.collect.Maps;
 import com.sh.config.model.config.StreamerInfo;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
+import com.sh.engine.model.record.LivingStreamer;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -37,9 +38,9 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
 //    private static final List<String> QUALITYS = Lists.newArrayList("master");
 
     @Override
-    public String isRoomOnline(StreamerInfo streamerInfo) {
+    public LivingStreamer isRoomOnline(StreamerInfo streamerInfo) {
         String roomUrl = streamerInfo.getRoomUrl();
-        String bid = RegexUtil.fetchFirstMatchedOne(roomUrl, BID_REGEX, false);
+        String bid = RegexUtil.fetchFirstMatchedOne(roomUrl, BID_REGEX);
         if (StringUtils.isBlank(bid)) {
             log.error("Afreecatv Room not exists, roomUrl: {}.", roomUrl);
             return null;
@@ -60,7 +61,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         }
 
         // 获取streamUrl
-        return fetchAvailableStreamUrl(roomUrl, broadcast, bid, cdn, rmd);
+        return LivingStreamer.builder().recordUrl(fetchAvailableStreamUrl(roomUrl, broadcast, bid, cdn, rmd)).build();
     }
 
     @Override

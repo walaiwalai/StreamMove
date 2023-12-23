@@ -31,7 +31,8 @@ public class CommandUtil {
             // destroyOnRuntimeShutdown表示是否立即关闭Runtime, openIOStreams表示是不是需要打开输入输出流:
             // 如果ffmpeg命令需要长时间执行，destroyOnRuntimeShutdown = false
             Thread.sleep(5000);
-            ffmpegCmd.execute(false, true);
+//            ffmpegCmd.execute(false, true);
+            ffmpegCmd.execute(true, true);
 
             // 打印输出信息
             StreamGobbler errorGobbler = new StreamGobbler(ffmpegCmd.getErrorStream(),  "ERROR");

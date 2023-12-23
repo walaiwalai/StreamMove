@@ -2,8 +2,6 @@ package com.sh.schedule.registry;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.sh.config.constant.StreamHelperPathConfig;
-import com.sh.config.model.config.StreamHelperConfig;
 import com.sh.schedule.ProcessScheduler;
 import com.sh.schedule.worker.ProcessWorker;
 import lombok.extern.slf4j.Slf4j;
@@ -22,24 +20,6 @@ import java.io.IOException;
 public abstract class ProcessWorkerRegister {
     private static final String JOB_KEY_SUFFIX = "_JOBKEY";
     private static final String TRIGGER_SUFFIX = "_TRIGGER";
-    private StreamHelperConfig streamHelperConfig;
-
-    public void loadGlobalConfig() {
-        // 加载一下全局配置
-        if (streamHelperConfig != null) {
-            return;
-        }
-        try {
-            log.info("try to load global config...");
-            File file = new File(StreamHelperPathConfig.APP_PATH, "info.json");
-            String configStr = IOUtils.toString(new FileInputStream(file), "utf-8");
-            JSONObject configObj = JSON.parseObject(configStr);
-            streamHelperConfig = configObj.getJSONObject("streamerHelper").toJavaObject(StreamHelperConfig.class);
-            log.info("load global config success");
-        } catch (IOException e) {
-            log.error("load global config error", e);
-        }
-    }
 
     public void registry(ProcessScheduler scheduler) {
         if (needRegistry()) {
@@ -68,10 +48,6 @@ public abstract class ProcessWorkerRegister {
 
     private String fetchDetailInfo() {
         return this.getClass().getSimpleName() + ", " + getJobKey() + "," + getTriggerKey() + "," + getCronExpr();
-    }
-
-    protected StreamHelperConfig getShGlobalConfig() {
-        return this.streamHelperConfig;
     }
 
     /**

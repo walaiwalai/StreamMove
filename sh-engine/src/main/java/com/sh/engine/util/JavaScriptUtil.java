@@ -1,13 +1,20 @@
 package com.sh.engine.util;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
+import org.springframework.core.io.ClassPathResource;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * @author caiWen
@@ -51,6 +58,31 @@ public class JavaScriptUtil {
             log.error("exec js error", e);
         }
         return back;
+    }
+
+
+    public static String execJsByFileName(String jsFilePath, String functionName, Object... params) {
+        // 获取JavaScript引擎
+        ScriptEngineManager sem = new ScriptEngineManager();
+        ScriptEngine engine = sem.getEngineByName("nashorn");
+        String result = null;
+        try {
+            // 读取JavaScript文件内容
+            ClassPathResource classPathResource = new ClassPathResource("js/" + jsFilePath);
+            String scriptContent = IOUtils.toString(classPathResource.getInputStream(), StandardCharsets.UTF_8);
+
+            // 执行JavaScript代码
+            engine.eval(scriptContent);
+
+            // 调用指定函数
+            Invocable invocable = (Invocable) engine;
+            result = (String) invocable.invokeFunction(functionName, params);
+            return result;
+        } catch (Exception e) {
+            log.error("exec js error", e);
+        }
+
+        return null;
     }
 }
 

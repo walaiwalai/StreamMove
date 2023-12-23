@@ -2,12 +2,13 @@ package com.sh.engine.manager;
 
 import cn.hutool.core.io.FileUtil;
 import com.google.common.collect.Maps;
-import com.sh.config.manager.ConfigManager;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
 import com.sh.engine.util.CommandUtil;
 import com.sh.engine.util.DateUtil;
+import com.sh.engine.util.WebsiteStreamUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -20,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
-import static com.sh.config.constant.StreamHelperPathConfig.RECORD_ROOT_PATH;
 
 /**
  * 进行录制，停止录制
@@ -31,8 +31,6 @@ import static com.sh.config.constant.StreamHelperPathConfig.RECORD_ROOT_PATH;
 @Slf4j
 @Component
 public class RecordManager {
-    @Resource
-    ConfigManager configManager;
     @Resource
     StatusManager statusManager;
 
@@ -69,7 +67,7 @@ public class RecordManager {
         // 1.创建直播录像保存的文件夹（主播维度）
         String recorderName = recordTask.getRecorderName();
         log.info("begin download: {}, stream: {}", recorderName, targetStreamUrl);
-        File recordStreamerFile = new File(RECORD_ROOT_PATH, recorderName);
+        File recordStreamerFile = new File(ConfigFetcher.getInitConfig().getVideoSavePath(), recorderName);
         String pathWithRecordName = recordStreamerFile.getAbsolutePath();
         if (!recordStreamerFile.exists()) {
             recordStreamerFile.mkdir();
@@ -80,7 +78,7 @@ public class RecordManager {
         File timeVFile = new File(pathWithRecordName, recordTask.getTimeV());
         String pathWithTimeV = timeVFile.getAbsolutePath();
         recorder.setSavePath(pathWithTimeV);
-        recorder.syncFileStatus(pathWithTimeV);
+//        recorder.syncFileStatus(pathWithTimeV);
 
 
         if (!timeVFile.exists()) {
@@ -128,9 +126,10 @@ public class RecordManager {
         statusManager.addRoomPathStatus(recorder.getSavePath());
 
         // 生成一个ffmpegCmd命令放到线程池中
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
-        recorder.setFfmpegCmd(ffmpegCmd);
-        doFfmpegCmd(ffmpegCmd, recordTask, recorder);
+//        FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
+//        recorder.setFfmpegCmd(ffmpegCmd);
+//        doFfmpegCmd(ffmpegCmd, recordTask, recorder);
+        doFfmpegCmdRepeat(command, recordTask, recorder);
     }
 
     private String genFfmpegCmd(String streamUrl, Integer startNumber, String downloadFileName) {
@@ -141,7 +140,7 @@ public class RecordManager {
             }
             fakeHeaders += "$" + key + ":" + fakeHeaderMap.get(key) + "\\r\\n";
         }
-//        String command = String.format(" -headers \"%s\" -user_agent \"%s\" -r 60 -async 1 -i \"%s\" -c:v copy -c:a copy -f segment " +
+//        String command = String.format(" -headers \"%s\" -user_agent \"%s\" -r 30 -async 1 -i \"%s\" -c:v copy -c:a copy -f segment " +
 //                        "-segment_time %s -segment_start_number %s \"%s\"",
 //                fakeHeaders,
 //                fakeHeaderMap.get(USER_AGENT),
@@ -150,16 +149,25 @@ public class RecordManager {
 //                startNumber,
 //                downloadFileName
 //        );
-        String command = String.format(
-                " -headers \"%s\" -user_agent \"%s\" -r 60 -async 1 -i \"%s\" -c:v libx264 -crf 18 -c:a "
-                        + "aac -b:a 128k -f segment " + "-segment_time %s -segment_start_number %s \"%s\"",
+//        String command = String.format(" -headers \"%s\" -user_agent \"%s\" -r 30 -async 1 -i \"%s\" -c:v copy -c:a copy -f segment " +
+//                        "-segment_size 1200000000 -segment_start_number %s \"%s\"",
+//                fakeHeaders,
+//                fakeHeaderMap.get(USER_AGENT),
+//                streamUrl,
+//                startNumber,
+//                downloadFileName
+//        );
+        String command = String.format(" -headers \"%s\" -user_agent \"%s\" -r 60  -i \"%s\" " +
+                        "-c:v  libx264 -crf 22 -c:a copy " +
+                        "-f  segment -segment_time %s -segment_start_number %s \"%s\"",
                 fakeHeaders,
                 fakeHeaderMap.get(USER_AGENT),
                 streamUrl,
-                configManager.getStreamHelperConfig().getSegmentDuration(),
+                ConfigFetcher.getInitConfig().getSegmentDuration(),
                 startNumber,
                 downloadFileName
         );
+
         return command;
     }
 
@@ -172,12 +180,49 @@ public class RecordManager {
                         recordTask.getRecorderName(), recorder.getSavePath(), resCode);
                 recorder.writeInfoToFileStatus();
             } else {
-                log.error("download stream fail, recordName: {}, savePath: {}", recordTask.getRecorderName(),
-                        recorder.getSavePath());
+                log.error("download stream fail, recordName: {}, savePath: {}, code: {}", recordTask.getRecorderName(),
+                        recorder.getSavePath(), resCode, throwable);
             }
             // 清除直播间状态
             statusManager.deleteRoomPathStatus(recorder.getSavePath());
             statusManager.deleteRecorder(recorder.getRecordTask().getRecorderName());
         });
     }
+
+
+    private void doFfmpegCmdRepeat(String command, RecordTask recordTask, Recorder recorder) {
+        CompletableFuture.supplyAsync(() -> {
+            long cur = System.currentTimeMillis() / 1000L;
+            int resCode = 0;
+            for (int i = 0; i < 100; i++) {
+                log.info("do ffmpeg repeatly, interation: {}, streamerName: {}", i, recordTask.getRecorderName());
+
+                String newCommand = WebsiteStreamUtil.getHuyaCurStreamUrl(command, cur);
+                FfmpegCmd ffmpegCmd = new FfmpegCmd(newCommand);
+                resCode = CommandUtil.cmdExec(ffmpegCmd);
+                if (resCode != 0) {
+                    break;
+                }
+
+                cur += 10;
+            }
+            return resCode;
+        }, RECORD_POOL).whenComplete((resCode, throwable) -> {
+            if (throwable == null && resCode == 0) {
+                log.info("download stream completed, recordName: {}, savePath: {}, code: {}",
+                        recordTask.getRecorderName(), recorder.getSavePath(), resCode);
+                recorder.writeInfoToFileStatus();
+            } else {
+                log.error("download stream fail, recordName: {}, savePath: {}, code: {}", recordTask.getRecorderName(),
+                        recorder.getSavePath(), resCode, throwable);
+            }
+            // 清除直播间状态
+            statusManager.deleteRoomPathStatus(recorder.getSavePath());
+            statusManager.deleteRecorder(recorder.getRecordTask().getRecorderName());
+        });
+    }
+
+
+
+
 }

@@ -1,17 +1,12 @@
 package com.sh.engine.model.record;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.util.RecordConverter;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.BooleanUtils;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -86,9 +81,9 @@ public class Recorder {
     }
 
     /**
-     * 终止录制
+     * 手动终止录制
      */
-    public void stopRecord() {
+    public void manualStopRecord() {
         ffmpegProcessEndByUser = true;
         if (!ffmpegProcessEnd) {
             ffmpegCmd.destroy();
@@ -105,21 +100,21 @@ public class Recorder {
         ffmpegCmd.destroy();
     }
 
-    /**
-     * 从fileStatus.json同步文件状态
-     *
-     * @param dirName
-     * @throws Exception
-     */
-    @SneakyThrows
-    public void syncFileStatus(String dirName) {
-        File file = new File(dirName, "fileStatus.json");
-        if (file.exists()) {
-            String statusStr = IOUtils.toString(new FileInputStream(file), "utf-8");
-            JSONObject statusObj = JSON.parseObject(statusStr);
-            this.isPost = BooleanUtils.isTrue(statusObj.getBoolean("isPost"));
-        }
-    }
+//    /**
+//     * 从fileStatus.json同步文件状态
+//     *
+//     * @param dirName
+//     * @throws Exception
+//     */
+//    @SneakyThrows
+//    public void syncFileStatus(String dirName) {
+//        File file = new File(dirName, "fileStatus.json");
+//        if (file.exists()) {
+//            String statusStr = IOUtils.toString(new FileInputStream(file), "utf-8");
+//            JSONObject statusObj = JSON.parseObject(statusStr);
+//            this.isPost = BooleanUtils.isTrue(statusObj.getBoolean("isPost"));
+//        }
+//    }
 
 
     /**
@@ -134,7 +129,7 @@ public class Recorder {
             SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
             FileStatusModel.updateToFile(savePath,
                     FileStatusModel.builder()
-                            .endRecordTime(formatter.format(new Date()))
+                            .updateTime(formatter.format(new Date()))
                             .build()
             );
         }

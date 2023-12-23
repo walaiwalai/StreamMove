@@ -1,46 +1,34 @@
 package com.sh.engine.util;
-import cn.hutool.extra.spring.SpringUtil;
-import com.google.common.collect.Lists;
 import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 
-import com.sh.config.manager.ConfigManager;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerInfo;
 import com.sh.config.model.stauts.FileStatusModel;
+import com.sh.config.model.video.UploadVideoPair;
+import com.sh.engine.model.bili.BiliVideoUploadTask;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
-import org.springframework.stereotype.Component;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringSubstitutor;
 
 /**
  * @author caiWen
  * @date 2023/1/26 9:47
  */
 public class RecordConverter {
-    public static ConfigManager configManager = SpringUtil.getBean(ConfigManager.class);
-    
-    
     public static FileStatusModel convertToFileStatusModel(Recorder recorder) {
         String recorderName = recorder.getRecordTask().getRecorderName();
-        StreamerInfo streamerInfo = configManager.getStreamerInfoByName(recorderName);
-        
+
         FileStatusModel fileStatusModel = new FileStatusModel();
         fileStatusModel.setPath(recorder.getSavePath());
         fileStatusModel.setRecorderName(recorderName);
-        fileStatusModel.setRecorderLink(streamerInfo.getRoomUrl());
-        fileStatusModel.setTags(streamerInfo.getTags());
-        fileStatusModel.setTid(streamerInfo.getTid());
-        fileStatusModel.setUploadLocalFile(streamerInfo.getUploadLocalFile());
-        fileStatusModel.setDeleteLocalFile(streamerInfo.getDeleteLocalFile());
         fileStatusModel.setIsPost(false);
         fileStatusModel.setIsFailed(false);
-        fileStatusModel.setDelayTime(streamerInfo.getDelayTime() == null ? 2 : streamerInfo.getDelayTime());
-        fileStatusModel.setTemplateTitle(streamerInfo.getTemplateTitle());
-        fileStatusModel.setDesc(streamerInfo.getDesc());
-        fileStatusModel.setSource(streamerInfo.getSource());
-        fileStatusModel.setDynamic("");
-        fileStatusModel.setCopyright(0);
         fileStatusModel.setTimeV(recorder.getRecordTask().getTimeV());
-        fileStatusModel.setStartRecordTime(new Date());
         return fileStatusModel;
     }
 
@@ -50,5 +38,33 @@ public class RecordConverter {
                 .recorderName(fileStatus.getRecorderName())
                 .timeV(fileStatus.getTimeV())
                 .build();
+    }
+
+    public static BiliVideoUploadTask initUploadModel(FileStatusModel fileStatus) {
+        UploadVideoPair videoParts = fileStatus.getVideoParts();
+        return BiliVideoUploadTask.builder()
+                .streamerName(fileStatus.getRecorderName())
+                .dirName(fileStatus.getPath())
+                .title(genVideoTitle(fileStatus.getTimeV(), fileStatus.getRecorderName()))
+                .succeedUploaded(Optional.ofNullable(videoParts).map(UploadVideoPair::getSucceedUploadedVideos)
+                        .orElse(Lists.newArrayList()))
+                .isUploadFail(fileStatus.getIsFailed())
+                .failUpload(Optional.ofNullable(videoParts)
+                        .map(UploadVideoPair::getFailedUploadVideo).orElse(null))
+                .build();
+    }
+
+    private static String genVideoTitle(String timeV, String name) {
+        Map<String, String> paramsMap = Maps.newHashMap();
+        paramsMap.put("time", timeV);
+        paramsMap.put("name", name);
+
+        StreamerInfo streamerInfo = ConfigFetcher.getStreamerInfoByName(name);
+        if (StringUtils.isNotBlank(streamerInfo.getTemplateTitle())) {
+            StringSubstitutor sub = new StringSubstitutor(paramsMap);
+            return sub.replace(streamerInfo.getTemplateTitle());
+        } else {
+            return name + " " + timeV + " " + "录播";
+        }
     }
 }

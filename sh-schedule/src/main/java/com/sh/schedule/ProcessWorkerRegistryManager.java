@@ -20,7 +20,7 @@ import java.util.ServiceLoader;
 @Slf4j
 public class ProcessWorkerRegistryManager {
     @Resource
-    StreamerHelperProcessScheduler streamerHelperProcessScheduler;
+    StreamerRecordProcessScheduler streamerRecordProcessScheduler;
 
     @PostConstruct
     public void init() {
@@ -33,12 +33,11 @@ public class ProcessWorkerRegistryManager {
                 Iterator<ProcessWorkerRegister> iterator = registers.iterator();
                 while (iterator.hasNext()) {
                     ProcessWorkerRegister register = iterator.next();
-                    register.loadGlobalConfig();
                     if (!checkRegister(register)) {
                         log.warn("check register fail");
                         continue;
                     }
-                    register.registry(streamerHelperProcessScheduler);
+                    register.registry(streamerRecordProcessScheduler);
                 }
                 return null;
             }

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 直播，投稿，录播的状态统一在这维护
@@ -40,6 +41,31 @@ public class StatusManager {
 
 
 
+    public void printInfo() {
+        log.info("There are {} streamers are recoding, they are: ", recorderMap.keySet().size());
+        for (Map.Entry<String, Recorder> entry : recorderMap.entrySet()) {
+            log.info("name: {}，path: {}", entry.getKey(), entry.getValue().getSavePath());
+        }
+
+        long onLineCount = roomStatusMap.values().stream().filter(v -> v == 1).count();
+        log.info("There are {} streamers online, they are: ", onLineCount);
+        for (Map.Entry<String, Integer> entry : roomStatusMap.entrySet()) {
+            if (entry.getValue() == 1) {
+                log.info("name: {}", entry.getKey());
+            }
+        }
+
+        long uploadCount = uploadStatusMap.values().stream().filter(v -> v == 1).count();
+        log.info("There are {} streamers are uploading, they are: ", uploadCount);
+        for (Map.Entry<String, Integer> entry : uploadStatusMap.entrySet()) {
+            if (entry.getValue() == 1) {
+                log.info("name: {}", entry.getKey());
+            }
+        }
+    }
+
+
+
 
     /**
      * 录像是否在投稿中(某个主播某段时间维度)
@@ -65,8 +91,6 @@ public class StatusManager {
     public void releaseRecordForSubmission(String pathWithTimeV) {
         uploadStatusMap.remove(pathWithTimeV);
     }
-
-
 
 
     /**

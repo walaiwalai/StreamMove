@@ -3,16 +3,22 @@ package com.sh.engine.website;
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerInfo;
+import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
+import com.sh.engine.model.record.LivingStreamer;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
+ * 参考：https://github.com/ihmily/DouyinLiveRecorder
  * @author caiWen
  * @date 2023/1/23 13:39
  */
@@ -20,8 +26,9 @@ import java.util.List;
 @Slf4j
 public class HuyaStreamerServiceImpl extends AbstractStreamerService {
     private static final String STREAM_REGEX = "(?<=(\"gameStreamInfoList\":)).*?](?=(}]))";
+    private static final String QUALITY_REGEX = "(?<=264_)\\d+";
     @Override
-    public String isRoomOnline(StreamerInfo streamerInfo) {
+    public LivingStreamer isRoomOnline(StreamerInfo streamerInfo) {
         String resp = HttpUtil.get(streamerInfo.getRoomUrl());
         List<String> matchList = RegexUtil.getMatchList(resp, STREAM_REGEX, false);
         if (matchList.size() >= 1) {
@@ -32,10 +39,27 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
             }
 
             log.info("{} is online", streamerInfo.getName());
-            String aliFlv = streamInfoObj.getJSONObject(0).get("sFlvUrl") + "/"
-                    + streamInfoObj.getJSONObject(0).get("sStreamName") + ".flv?"
-                    + streamInfoObj.getJSONObject(0).get("sFlvAntiCode");
-            return StringUtils.replace(aliFlv, "&amp;", "");
+            JSONObject selectCdn = streamInfoObj.getJSONObject(1);
+            String sFlvUrl = selectCdn.getString("sFlvUrl");
+            String sStreamName = selectCdn.getString("sStreamName");
+            String sFlvUrlSuffix = selectCdn.getString("sFlvUrlSuffix");
+            String sHlsUrl = selectCdn.getString("sHlsUrl");
+            String sHlsUrlSuffix = selectCdn.getString("sHlsUrlSuffix");
+            String sFlvAntiCode = selectCdn.getString("sFlvAntiCode");
+            String[] qualityChoices = StringUtils.split(sFlvAntiCode, "&exsphd=");
+
+            String aliFlv = sFlvUrl + "/" + sStreamName + "." + sFlvUrlSuffix + "?" + sFlvAntiCode + "&ratio=";
+            if (qualityChoices.length > 0) {
+                List<String> qualities = RegexUtil.getMatchList(qualityChoices[qualityChoices.length - 1], QUALITY_REGEX, false);
+                String quality = ConfigFetcher.getInitConfig().getQuality();
+                if (StringUtils.equals(quality, "原画")) {
+                    aliFlv += qualities.get(qualities.size() - 1);
+                } else {
+                    aliFlv += qualities.get(qualities.size() - 2);
+                }
+            }
+
+            return LivingStreamer.builder().recordUrl(aliFlv).build();
         } else {
             return null;
         }
@@ -44,14 +68,5 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
     @Override
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.HUYA;
-    }
-
-    public static void main(String[] args) {
-        HuyaStreamerServiceImpl huyaStreamerService = new HuyaStreamerServiceImpl();
-        String s = huyaStreamerService.isRoomOnline(StreamerInfo.builder().roomUrl("https://www.huya.com/gushouyu").build());
-        String s2 =
-                huyaStreamerService.isRoomOnline(StreamerInfo.builder().roomUrl("https://www.huya.com/chenzihao").build());
-        System.out.println(s);
-        System.out.println(s2);
     }
 }

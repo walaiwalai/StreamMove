@@ -23,16 +23,29 @@ public final class RegexUtil {
         ArrayList<String> result = new ArrayList<String>();
         Pattern pattern = null;
         if (isCaseInsensitive) {
-            //编译正则表达式,忽略大小写
             pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
         } else {
-            //编译正则表达式,大小写敏感
             pattern = Pattern.compile(reg);
         }
         Matcher matcher = pattern.matcher(str);
         while (matcher.find()) {
-            //此处find（）每次被调用后，会偏移到下一个匹配
             result.add(matcher.group());
+        }
+        result.trimToSize();
+        return result;
+    }
+
+    public static List<String> getMatchListV2(final String str, final String reg, final boolean isCaseInsensitive) {
+        ArrayList<String> result = new ArrayList<String>();
+        Pattern pattern = null;
+        if (isCaseInsensitive) {
+            pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
+        } else {
+            pattern = Pattern.compile(reg);
+        }
+        Matcher matcher = pattern.matcher(str);
+        while (matcher.find()) {
+            result.add(matcher.group(1));
         }
         result.trimToSize();
         return result;
@@ -42,14 +55,22 @@ public final class RegexUtil {
      * 获得匹配正则表达式第一个匹配内容
      * @param str 字符串
      * @param reg 正则表达式
-     * @param isCaseInsensitive 是否忽略大小写，true忽略大小写，false大小写敏感
      * @return
      */
-    public static String fetchFirstMatchedOne(final String str, final String reg, final boolean isCaseInsensitive) {
-        List<String> matchList = getMatchList(str, reg, isCaseInsensitive);
+    public static String fetchFirstMatchedOne(final String str, final String reg) {
+        List<String> matchList = getMatchList(str, reg, false);
         if (CollectionUtils.isEmpty(matchList)) {
             return "";
         }
         return matchList.get(0);
+    }
+
+    public static String fetchMatchedOne(final String str, final String reg) {
+        Pattern pattern = Pattern.compile(reg);;
+        Matcher matcher = pattern.matcher(str);
+        while (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
     }
 }

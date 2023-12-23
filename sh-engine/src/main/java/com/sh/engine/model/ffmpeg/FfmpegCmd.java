@@ -64,15 +64,17 @@ public class FfmpegCmd {
      *                                 C:\\Users\\hsj\\AppData\\Local\\Temp\\jave\\honer_test.mov "
      * @throws IOException If the process call fails.
      */
-    public void execute(boolean destroyOnRuntimeShutdown, boolean openIOStreams) throws IOException {
+    public void execute(boolean destroyOnRuntimeShutdown, boolean openIOStreams) {
         DefaultFFMPEGLocator defaultFFMPEGLocator = new DefaultFFMPEGLocator();
         String cmd = defaultFFMPEGLocator.getExecutablePath() + " " + ffmpegCommand;
+//        String cmd = "ffmpeg" + " " + ffmpegCommand;
+//        String cmd = ffmpegCommand;
         log.info("ffmpegCmd final is: {}", cmd);
 
         Runtime runtime = Runtime.getRuntime();
         try {
-            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
-//            ffmpeg = runtime.exec(cmd);
+//            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
+            ffmpeg = runtime.exec(cmd);
 
             if (destroyOnRuntimeShutdown) {
                 ffmpegKiller = new ProcessKiller(ffmpeg);

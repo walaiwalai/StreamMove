@@ -17,17 +17,12 @@ import java.util.List;
 @Builder
 public class StreamerInfo {
     private String name;
-    private Boolean uploadLocalFile;
-    private Boolean deleteLocalFile;
+    private String roomUrl;
     private String templateTitle;
-    private Integer delayTime;
     private String desc;
     private String source;
     private String dynamic;
-    private Integer copyright;
-    private String roomUrl;
     private Integer tid;
     private List<String> tags;
     private String cover;
-    private boolean openElec;
 }

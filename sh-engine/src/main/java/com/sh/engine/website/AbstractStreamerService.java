@@ -2,6 +2,7 @@ package com.sh.engine.website;
 
 import com.sh.config.model.config.StreamerInfo;
 import com.sh.engine.StreamChannelTypeEnum;
+import com.sh.engine.model.record.LivingStreamer;
 
 /**
  * @author caiWen
@@ -13,7 +14,7 @@ public abstract class AbstractStreamerService {
      * @param streamerInfo
      * @return
      */
-    public abstract String isRoomOnline(StreamerInfo streamerInfo);
+    public abstract LivingStreamer isRoomOnline(StreamerInfo streamerInfo);
 
     /**
      * 流接受平台类型
