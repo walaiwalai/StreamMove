@@ -37,7 +37,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
     public void processInternal(RecordContext context) {
         String name = context.getName();
         if (context.getLivingStreamer() != null && StringUtils.isNotBlank(context.getLivingStreamer().getRecordUrl())) {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
             // 2.1 直播间开播
             RecordTask recordTask = RecordTask.builder()
                     .streamUrl(context.getLivingStreamer().getRecordUrl())

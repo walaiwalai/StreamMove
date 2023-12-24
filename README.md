@@ -1,7 +1,10 @@
 
 ## 介绍
-该项目用java实现了一个直播录制工具，实时录制直播保存为视频文件，向B站自动投稿，目前支持的平台有虎牙、斗鱼。代码借鉴了StreamerHelper、DouyinLiveRecorder
-等。
+该项目用java实现了一个直播录制工具，实时录制直播保存为视频文件，向B站自动投稿。代码借鉴了StreamerHelper、DouyinLiveRecorder
+等。目前支持平台有：
+- 虎牙
+- 斗鱼
+- Afreecatv
 
 ## 容器部署
 - 配置sh-config中的init.json和streamer.json
@@ -44,7 +47,8 @@ streamer.json
 以上配置借鉴了[StreamerHelper](https://github.com/ZhangMingZhao1/StreamerHelper)
 
 
-## 关于B站视频上传
+## 关于视频上传和录制
+- 录制视频采用的是ws.schild，用的时候根据自己的系统版本在根pom中进行排包即可，目前是只针对linux64位
 - B站Web端视频分P上传需要满足：用户等级大于 3，且粉丝数 > 1000，所以暂不支持web端上传(后续支持)。
 - 支持“哔哩哔哩投稿工具”客户端（版本2.3.0.1089）分P上传视频，其中init.json中的accessToken和mid抓包“member.bilibili.com/preupload”这个请求。
 

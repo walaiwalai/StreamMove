@@ -38,7 +38,12 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor{
     @Override
     public void processInternal(RecordContext context) {
         // 1. 搜索当前streamer下的所有文件夹中的fileStatus.json文件
-        Collection<File> files = FileUtils.listFiles(new File(ConfigFetcher.getInitConfig().getVideoSavePath(), context.getName()), new NameFileFilter("fileStatus.json"),
+        File streamerFile = new File(ConfigFetcher.getInitConfig().getVideoSavePath(), context.getName());
+        if (!streamerFile.exists()) {
+            return;
+        }
+
+        Collection<File> files = FileUtils.listFiles(streamerFile, new NameFileFilter("fileStatus.json"),
                 DirectoryFileFilter.INSTANCE);
         if (CollectionUtils.isEmpty(files)) {
             return;

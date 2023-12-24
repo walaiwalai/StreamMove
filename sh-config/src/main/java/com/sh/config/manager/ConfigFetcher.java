@@ -27,9 +27,9 @@ public class ConfigFetcher {
     private static InitConfig initConfig;
 
     static {
-        loadStreamConfig();
-        loadInitConfig();
-        log.info("load config success");
+        loadStreamConfig(true);
+        loadInitConfig(true);
+        log.info("init config success");
     }
 
     /**
@@ -54,29 +54,45 @@ public class ConfigFetcher {
     }
 
     public static void refresh() {
-        loadStreamConfig();
-        loadInitConfig();
+        loadStreamConfig(false);
+        loadInitConfig(false);
         log.info("refresh config success");
     }
 
 
-    private static void loadInitConfig() {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    private static void loadInitConfig(boolean fistLoad) {
+
+        String configStr;
         try {
-            // String configStr = IOUtils.toString(classLoader.getResourceAsStream("config/init.json"), "utf-8");
-            String configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/init.json").toPath()), "utf-8");
+            // 重新刷新从挂载目录读取
+//            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+//            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/init.json"), "utf-8");
+            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/init.json").toPath()), "utf-8");
+//            if (fistLoad) {
+//                // 第一次从resource资源读取
+//                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+//                configStr = IOUtils.toString(classLoader.getResourceAsStream("config/init.json"), "utf-8");
+//            } else {
+//            }
             initConfig = JSONObject.parseObject(configStr, InitConfig.class);
         } catch (Exception e) {
             log.error("error load init.json, please check it!", e);
         }
     }
 
-    private static void loadStreamConfig() {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-
+    private static void loadStreamConfig(boolean fistLoad) {
+        String configStr;
         try {
-//            String configStr = IOUtils.toString(classLoader.getResourceAsStream("config/streamer.json"), "utf-8");
-            String configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/streamer.json").toPath()), "utf-8");
+            // 重新刷新从挂载目录读取
+//            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+//            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/streamer.json"), "utf-8");
+            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/streamer.json").toPath()), "utf-8");
+//            if (fistLoad) {
+//                // 第一次从resource资源读取
+//                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+//                configStr = IOUtils.toString(classLoader.getResourceAsStream("config/streamer.json"), "utf-8");
+//            } else {
+//            }
             name2StreamerMap = JSONObject.parseArray(configStr).toJavaList(StreamerInfo.class).stream()
                     .peek(ConfigFetcher::fillDefaultValueForStreamerInfo)
                     .collect(Collectors.toMap(StreamerInfo::getName, Function.identity(), (a, b) -> b));

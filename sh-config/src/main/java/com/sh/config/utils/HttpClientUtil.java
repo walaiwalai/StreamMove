@@ -130,6 +130,17 @@ public class HttpClientUtil {
         return null;
     }
 
+    public static String encodeParams(Map<String, String> params) {
+        StringBuilder encodedParams = new StringBuilder();
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            if (encodedParams.length() > 0) {
+                encodedParams.append("&");
+            }
+            encodedParams.append(entry.getKey()).append("=").append(entry.getValue());
+        }
+        return encodedParams.toString();
+    }
+
     /**
      * @param url      请求地址
      * @param headers  请求头

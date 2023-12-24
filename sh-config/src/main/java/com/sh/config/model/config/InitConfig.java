@@ -62,4 +62,7 @@ public class InitConfig {
     private String fileCleanCron;
     private String configRefreshCron;
 
+
+    // *********************cookies**********************
+    private String afreecaTvCookies;
 }
