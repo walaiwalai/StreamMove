@@ -2,14 +2,14 @@ package com.sh.engine.processor;
 
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.engine.RecordStageEnum;
-import com.sh.engine.manager.RecordManager;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
+import com.sh.engine.service.MsgSendService;
 import com.sh.engine.service.StreamRecordService;
-import com.sh.engine.util.DateUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,25 +32,40 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
     private StatusManager statusManager;
     @Autowired
     private StreamRecordService streamRecordService;
+    @Autowired
+    private MsgSendService msgSendService;
 
     @Override
     public void processInternal(RecordContext context) {
         String name = context.getName();
-        if (context.getLivingStreamer() != null && StringUtils.isNotBlank(context.getLivingStreamer().getRecordUrl())) {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        if (context.getLivingStreamer() == null) {
+            processWhenRoomOffline(name);
+            return;
+        }
+
+        String type = context.getLivingStreamer().getType();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        if (StringUtils.equals(type, RecordConstant.LIVING_STREAM_TYPE)) {
             // 2.1 直播间开播
             RecordTask recordTask = RecordTask.builder()
-                    .streamUrl(context.getLivingStreamer().getRecordUrl())
+                    .streamUrl(context.getLivingStreamer().getStreamUrl())
                     .recorderName(name)
                     .timeV(dateFormat.format(new Date()))
                     .build();
-            processWhenRoomOnline(name, recordTask);
-        } else {
-            processWhenRoomOffline(name);
+            processWhenRoomOnline(recordTask);
+        } else if (StringUtils.equals(type, RecordConstant.RECORD_STREAM_TYPE)) {
+            // 2.2 是否有新的视频上传
+            RecordTask recordTask = RecordTask.builder()
+                    .tsUrl(context.getLivingStreamer().getTsUrl())
+                    .recorderName(name)
+                    .timeV(dateFormat.format(new Date()))
+                    .build();
+            processWhenNewVideoUpload(recordTask);
         }
     }
 
-    private void processWhenRoomOnline(String name, RecordTask task) {
+    private void processWhenRoomOnline(RecordTask task) {
+        String name = task.getRecorderName();
         boolean isLastRecording = statusManager.isOnRecord(name);
         boolean lastRoomOnline = statusManager.isRoomOnline(name);
         Recorder curRecorder = statusManager.getRecorderByStreamerName(name);
@@ -62,24 +77,39 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
             if (isLastRecording) {
                 if (!curRecorder.getRecorderStat()) {
                     // 房间在线但是直播流断开，重启
-                    log.info("下载流{} 断开，但直播间在线，重启", curRecorder.getRecordTask().getDirName());
-                    record(curRecorder);
+                    msgSendService.send("主播" + name + "下载流断开，重启录制..");
+                    recordLiving(curRecorder);
                 } else {
                     log.info("{} is recording...", curRecorder.getRecordTask().getRecorderName());
                 }
             } else {
                 // 之前认为在线，但不存在 Recorder，这种情况不应该出现
-                record(Recorder.initRecorder(task));
+                recordLiving(Recorder.initRecorder(task));
             }
         } else {
             // 上次检测后认为房间不在线
             if (isLastRecording) {
                 // 之前认为不在线，但存在 Recorder，这种情况不应该出现，可能未退出，应该将Record对应的线程杀死
+                log.info("kill recorder for {}", name);
                 curRecorder.kill();
             } else {
                 // 创建一个新的Recorder
-                record(Recorder.initRecorder(task));
+                msgSendService.send("主播" + name + "开播了，即将开始录制..");
+                recordLiving(Recorder.initRecorder(task));
             }
+        }
+    }
+
+    private void processWhenNewVideoUpload(RecordTask task) {
+        String name = task.getRecorderName();
+        boolean isLastRecording = statusManager.isOnRecord(name);
+
+        if (isLastRecording) {
+            log.info("{}'s new video is recording...", name);
+        } else {
+            // 之前认为在线，但不存在 Recorder，这种情况不应该出现
+            msgSendService.send("主播" + name + "有新的视频上传，即将开始录制..");
+            recordNewVideo(Recorder.initRecorder(task));
         }
     }
 
@@ -93,6 +123,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
         Recorder curRecorder = statusManager.getRecorderByStreamerName(name);
         if (isLastOnRecord) {
             // 房间不在线，但仍在录制，先停止录制
+            msgSendService.send("主播" + name + "下线了，停止录制..");
             log.info("stop recording for {}", name);
             curRecorder.manualStopRecord();
             statusManager.deleteRoomPathStatus(curRecorder.getSavePath());
@@ -102,7 +133,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
         statusManager.offlineRoom(name);
     }
 
-    private void record(Recorder recorder) {
+    private void recordLiving(Recorder recorder) {
         String streamerName = recorder.getRecordTask().getRecorderName();
         // 1.创建录像文件夹
         File file = createVideoFile(recorder);
@@ -117,6 +148,27 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
 
         // 3，录像开始(长时间)
         streamRecordService.startRecord(recorder);
+
+        // 4. 状态解除
+        statusManager.deleteRoomPathStatus(videoRecordPath);
+        statusManager.deleteRecorder(streamerName);
+    }
+
+    private void recordNewVideo(Recorder recorder) {
+        String streamerName = recorder.getRecordTask().getRecorderName();
+        // 1.创建录像文件夹
+        File file = createVideoFile(recorder);
+        String videoRecordPath = file.getAbsolutePath();
+        recorder.setSavePath(videoRecordPath);
+
+        recorder.writeInfoToFileStatus();
+
+        // 2.注入状态（文件夹状态 和 录像机状态）
+        statusManager.addRecorder(streamerName, recorder);
+        statusManager.addRoomPathStatus(videoRecordPath);
+
+        // 3，录像开始(长时间)
+        streamRecordService.startDownload(recorder);
 
         // 4. 状态解除
         statusManager.deleteRoomPathStatus(videoRecordPath);

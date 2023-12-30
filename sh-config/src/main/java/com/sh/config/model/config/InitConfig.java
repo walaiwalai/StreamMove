@@ -46,14 +46,17 @@ public class InitConfig {
      */
     private Integer videoPartLimitSize = 100;
 
-    /**
-     * b站投稿参数
-     */
+    // *********************B站视频上传**********************
     private String biliCookies;
     private String accessToken;
     private Long mid;
 
+    // *********************B站视频上传**********************
+    private String weComSecret;
 
+
+    // *********************cookies**********************
+    private String afreecaTvCookies;
 
     // *********************其他配置**********************
     /**
@@ -63,6 +66,4 @@ public class InitConfig {
     private String configRefreshCron;
 
 
-    // *********************cookies**********************
-    private String afreecaTvCookies;
 }

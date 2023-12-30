@@ -1,8 +1,6 @@
 package com.sh.engine.model.ffmpeg;
 
 import lombok.extern.slf4j.Slf4j;
-import ws.schild.jave.process.ProcessKiller;
-import ws.schild.jave.process.ffmpeg.DefaultFFMPEGLocator;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,11 +16,11 @@ public class FfmpegCmd {
      */
     private Process ffmpeg = null;
 
-    /**
-     * A process killer to kill the ffmpeg process with a shutdown hook, useful if the jvm execution
-     * is shutted down during an ongoing encoding process.
-     */
-    private ProcessKiller ffmpegKiller = null;
+//    /**
+//     * A process killer to kill the ffmpeg process with a shutdown hook, useful if the jvm execution
+//     * is shutted down during an ongoing encoding process.
+//     */
+//    private ProcessKiller ffmpegKiller = null;
 
     /**
      * A stream reading from the ffmpeg process standard output channel.
@@ -65,21 +63,20 @@ public class FfmpegCmd {
      * @throws IOException If the process call fails.
      */
     public void execute(boolean destroyOnRuntimeShutdown, boolean openIOStreams) {
-        DefaultFFMPEGLocator defaultFFMPEGLocator = new DefaultFFMPEGLocator();
-        String cmd = defaultFFMPEGLocator.getExecutablePath() + " " + ffmpegCommand;
-//        String cmd = "ffmpeg" + " " + ffmpegCommand;
+//        String cmd = defaultFFMPEGLocator.getExecutablePath() + " " + ffmpegCommand;
+        String cmd = "ffmpeg" + " " + ffmpegCommand;
 //        String cmd = ffmpegCommand;
         log.info("ffmpegCmd final is: {}", cmd);
 
         Runtime runtime = Runtime.getRuntime();
         try {
-            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
-//            ffmpeg = runtime.exec(cmd);
+//            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
+            ffmpeg = runtime.exec(cmd);
 
-            if (destroyOnRuntimeShutdown) {
-                ffmpegKiller = new ProcessKiller(ffmpeg);
-                runtime.addShutdownHook(ffmpegKiller);
-            }
+//            if (destroyOnRuntimeShutdown) {
+//                ffmpegKiller = new ProcessKiller(ffmpeg);
+//                runtime.addShutdownHook(ffmpegKiller);
+//            }
 
             if (openIOStreams) {
                 inputStream = ffmpeg.getInputStream();
@@ -154,11 +151,11 @@ public class FfmpegCmd {
             ffmpeg = null;
         }
 
-        if (ffmpegKiller != null) {
-            Runtime runtime = Runtime.getRuntime();
-            runtime.removeShutdownHook(ffmpegKiller);
-            ffmpegKiller = null;
-        }
+//        if (ffmpegKiller != null) {
+//            Runtime runtime = Runtime.getRuntime();
+//            runtime.removeShutdownHook(ffmpegKiller);
+//            ffmpegKiller = null;
+//        }
     }
 
     /**

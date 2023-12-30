@@ -13,7 +13,7 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.model.video.*;
 import com.sh.config.utils.VideoFileUtils;
-import com.sh.engine.constant.UploadConstant;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.bili.BiliVideoUploadTask;
 import com.sh.engine.model.bili.web.BiliPreUploadRespose;
 import com.sh.engine.model.bili.web.BiliVideoUploadResultModel;
@@ -24,6 +24,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -32,7 +33,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
-import static com.sh.engine.constant.UploadConstant.SERVER_FILE_NAME;
+import static com.sh.engine.constant.RecordConstant.SERVER_FILE_NAME;
 
 /**
  * @Author caiwen
@@ -51,7 +52,10 @@ public class VideoUploadServiceImpl implements VideoUploadService {
     /**
      * 视频上传分块大小为2M
      */
-    private static final int CHUNK_SIZE = 1024 * 1024 * 2;
+    private static final int CHUNK_SIZE = 1024 * 1024 * 5;
+
+    @Autowired
+    private MsgSendService msgSendService;
 
     /**
      * 上传视频线程池
@@ -102,7 +106,7 @@ public class VideoUploadServiceImpl implements VideoUploadService {
         // 5.post视频
         log.info("Try to post Videos: {}", JSON.toJSONString(remoteVideoParts));
         boolean isPostSuccess = biliVideoClientUploadService.postWork(uploadModel.getStreamerName(),
-                remoteVideoParts, ImmutableMap.of(UploadConstant.BILI_VIDEO_TILE, uploadModel.getTitle()));
+                remoteVideoParts, ImmutableMap.of(RecordConstant.BILI_VIDEO_TILE, uploadModel.getTitle()));
         if (!isPostSuccess) {
             throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
         }
@@ -218,6 +222,8 @@ public class VideoUploadServiceImpl implements VideoUploadService {
 
             // 写文件状态
             remoteVideos.add(biliVideoUploadResult.getRemoteSeverVideo());
+
+            msgSendService.send(localVideo.getLocalFileFullPath() + "路径下的视频上传成功！");
         }
         return remoteVideos;
     }

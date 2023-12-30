@@ -65,9 +65,9 @@ public class ConfigFetcher {
         String configStr;
         try {
             // 重新刷新从挂载目录读取
-//            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-//            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/init.json"), "utf-8");
-            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/init.json").toPath()), "utf-8");
+            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/init.json"), "utf-8");
+//            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/init.json").toPath()), "utf-8");
 //            if (fistLoad) {
 //                // 第一次从resource资源读取
 //                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -84,9 +84,9 @@ public class ConfigFetcher {
         String configStr;
         try {
             // 重新刷新从挂载目录读取
-//            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-//            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/streamer.json"), "utf-8");
-            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/streamer.json").toPath()), "utf-8");
+            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/streamer.json"), "utf-8");
+//            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/streamer.json").toPath()), "utf-8");
 //            if (fistLoad) {
 //                // 第一次从resource资源读取
 //                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();

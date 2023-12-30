@@ -73,7 +73,7 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
             String rate = "-1";
             String flvStr = fetchStreamData(rid, rate);
             JSONObject flvObj = JSONObject.parseObject(flvStr);
-            return new LivingStreamer(flvObj.getJSONObject("data").getString("url"), null, anchorName);
+            return LivingStreamer.builder().streamUrl(flvObj.getJSONObject("data").getString("url")).anchorName(anchorName).build();
         } else {
             // 没有直播
             return null;

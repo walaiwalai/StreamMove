@@ -5,7 +5,6 @@ import com.sh.config.model.config.StreamerInfo;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
 import com.sh.engine.processor.RecordStateMachine;
-import com.sh.engine.service.RoomCheckService;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 

@@ -4,7 +4,7 @@ import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.sh.engine.constant.UploadConstant;
+import com.sh.engine.constant.RecordConstant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -42,7 +42,7 @@ public class BiliUploadUser {
 
 
     public void checkToken() {
-        String url = UploadConstant.BILI_TOKEN_CHECK_URL_PREFIX + accessToken;
+        String url = RecordConstant.BILI_TOKEN_CHECK_URL_PREFIX + accessToken;
         String resp = HttpUtil.get(url);
         System.out.println(resp);
     }

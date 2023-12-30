@@ -5,18 +5,25 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerInfo;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.record.LivingStreamer;
+import com.sh.engine.model.record.TsUrl;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
  *
+ * 视频相关信息：videoimg.afreecatv.com/php/SnapshotLoad.php?rowKey=20231228_E8F3995E_250550585_1_r
+ * 分片视频：https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/vod/20231228/585/250550585/REGL_E8F3995E_250550585_1.smil/original/both/seg-3.ts
+ * 总分片数地址：https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/vod/20231228/585/250550585/REGL_E8F3995E_250550585_1.smil/hd/both/playlist.m3u8
  * @author caiWen
  * @date 2023/2/18 21:24
  */
@@ -25,9 +32,132 @@ import java.util.*;
 public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     private static final String USER_URL = "http://api.m.afreecatv.com/broad/a/watch";
     private static final String BID_REGEX = "(?<=com/)([^/]+)$";
-
+    private static final String TS_COUNT_REGEX = "seg-(\\d+)\\.ts";
+    private static final String RECORD_HISTORY_URL = "https://bjapi.afreecatv.com/api/%s/vods/review?page=1&per_page=20&orderby=reg_date";
     @Override
     public LivingStreamer isRoomOnline(StreamerInfo streamerInfo) {
+        if (BooleanUtils.isTrue(streamerInfo.isRecordWhenOnline())) {
+            return fetchOnlineLivingInfo(streamerInfo);
+        } else {
+            return fetchTsUploadInfo(streamerInfo);
+        }
+    }
+
+    @Override
+    public StreamChannelTypeEnum getType() {
+        return StreamChannelTypeEnum.AFREECA_TV;
+    }
+
+    private LivingStreamer fetchTsUploadInfo(StreamerInfo streamerInfo) {
+        String roomUrl = streamerInfo.getRoomUrl();
+        String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
+
+        // 1. 获取历史直播列表
+        JSONObject lastedRecord = fetchLastedRecord(bid);
+        boolean isNewTs = checkIsNew(streamerInfo, lastedRecord.getString("reg_date"));
+        if (!isNewTs) {
+            return null;
+        }
+
+        log.info("new ts record upload for {}", streamerInfo.getName());
+        // 2. 解析切片成链接格式
+        String thumb = lastedRecord.getJSONObject("ucc").getString("thumb");
+        String rowKey = thumb.substring(thumb.indexOf("rowKey=") + 7);
+        String[] infos = StringUtils.split(rowKey, "_");
+        String tsPrefix = "https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/vod/"
+                + infos[0] + "/"
+                + infos[2].substring(infos[2].length() - 3) + "/"
+                + infos[2] + "/"
+                + "REGL_" + infos[1] + "_" + infos[2] + "_" + infos[3] + ".smil";
+        TsUrl tsUrl = fetchTsInfo(tsPrefix);
+
+        return LivingStreamer.builder()
+                .type(RecordConstant.RECORD_STREAM_TYPE)
+                .tsUrl(tsUrl)
+                .build();
+
+    }
+
+    private boolean checkIsNew(StreamerInfo streamerInfo, String tsRegDate) {
+        if (StringUtils.isBlank(streamerInfo.getLastRecordTime())) {
+            return true;
+        }
+        String lastRecordTime = streamerInfo.getLastRecordTime();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        try {
+            Date date1 = dateFormat.parse(lastRecordTime);
+            Date date2 = dateFormat.parse(tsRegDate);
+            return date1.getTime() < date2.getTime();
+        } catch (Exception e) {
+        }
+        return false;
+    }
+
+    private JSONObject fetchLastedRecord(String bid) {
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(String.format(RECORD_HISTORY_URL, bid))
+                .get()
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
+                .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
+        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
+            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
+        }
+        Response response = null;
+        try {
+            response = CLIENT.newCall(requestBuilder.build()).execute();
+            if (response.isSuccessful()) {
+                String resp = response.body().string();
+                log.info("query user record history success, resp: {}", resp);
+                return JSONObject.parseObject(resp).getJSONArray("data").getJSONObject(0);
+            } else {
+                String message = response.message();
+                String bodyStr = response.body() != null ? response.body().string() : null;
+                log.error("query user info failed, message: {}, body: {}", message, bodyStr);
+                return null;
+            }
+        } catch (IOException e) {
+            log.error("query user info error, bid: {}", bid, e);
+            return null;
+        }
+    }
+
+    private TsUrl fetchTsInfo(String tsPrefix) {
+        String playlistUrl = tsPrefix + "/hd/both/playlist.m3u8";
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(playlistUrl)
+                .get()
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
+                .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
+        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
+            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
+        }
+        Response response = null;
+        try {
+            response = CLIENT.newCall(requestBuilder.build()).execute();
+            if (response.isSuccessful()) {
+                String resp = response.body().string();
+                log.info("query playlist success.");
+                String[] lines = StringUtils.split(resp, "\n");
+                String lastSegFile = lines[lines.length - 2];
+                String s = RegexUtil.fetchMatchedOne(lastSegFile, TS_COUNT_REGEX);
+                return TsUrl.builder()
+                        .tsFormatUrl(tsPrefix + "/original/both/seg-%s.ts")
+                        .count(Integer.valueOf(s))
+                        .build();
+            } else {
+                String message = response.message();
+                String bodyStr = response.body() != null ? response.body().string() : null;
+                log.error("query user info failed, message: {}, body: {}", message, bodyStr);
+                return null;
+            }
+        } catch (IOException e) {
+            log.error("query playlist success, playlistUrl: {}", playlistUrl, e);
+            return null;
+        }
+    }
+
+
+    private LivingStreamer fetchOnlineLivingInfo(StreamerInfo streamerInfo) {
         String roomUrl = streamerInfo.getRoomUrl();
         String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
 
@@ -46,14 +176,10 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         String viewUrl = fetchCdnUrl(boardNo);
         String m3u8Url = StringUtils.isNotBlank(viewUrl) ? viewUrl + "?aid=" + hlsAuthenticationKey : null;
         return LivingStreamer.builder()
-                .recordUrl(m3u8Url)
+                .type(RecordConstant.LIVING_STREAM_TYPE)
+                .streamUrl(m3u8Url)
                 .anchorName(anchorName)
                 .build();
-    }
-
-    @Override
-    public StreamChannelTypeEnum getType() {
-        return StreamChannelTypeEnum.AFREECA_TV;
     }
 
     private JSONObject fetchUserInfo(String bid) {
@@ -97,7 +223,6 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     }
 
     private String fetchCdnUrl(String boardNo) {
-        MediaType mediaType = MediaType.parse("application/x-www-form-urlencoded");
         Map<String, String> params = new HashMap<>();
         params.put("return_type", "gcp_cdn");
         params.put("use_cors", "false");
@@ -136,8 +261,11 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     }
 
     public static void main(String[] args) {
+        System.setProperty("http.proxySet", "true");
+        System.setProperty("http.proxyHost", "127.0.0.1");
+        System.setProperty("http.proxyPort", "10809");
         AfreecatvStreamerServiceImpl service = new AfreecatvStreamerServiceImpl();
-        LivingStreamer s = service.isRoomOnline(StreamerInfo.builder().roomUrl("https://play.afreecatv.com/hongdda").build());
-        System.out.println(s.getRecordUrl());
+        LivingStreamer s = service.isRoomOnline(StreamerInfo.builder().recordWhenOnline(false).roomUrl("https://play.afreecatv.com/leesh2148").build());
+        System.out.println(s.getStreamUrl());
     }
 }

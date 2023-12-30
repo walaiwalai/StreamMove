@@ -28,8 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.sh.engine.constant.UploadConstant.BILI_UPOS_AUTH;
-import static com.sh.engine.constant.UploadConstant.BILI_VIDEO_TILE;
+import static com.sh.engine.constant.RecordConstant.BILI_VIDEO_TILE;
 
 /**
  * @Author caiwen

@@ -36,4 +36,9 @@ public class RecordTask {
      * 拉视频流的地址(不是roomUrl)
      */
     private String streamUrl;
+
+    /**
+     * 视频切片地址
+     */
+    private TsUrl tsUrl;
 }

@@ -7,6 +7,7 @@ import com.sh.engine.RecordStageEnum;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
+import com.sh.engine.service.MsgSendService;
 import com.sh.engine.service.VideoUploadService;
 import com.sh.engine.util.RecordConverter;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;

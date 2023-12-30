@@ -8,4 +8,6 @@ import com.sh.engine.model.record.Recorder;
  **/
 public interface StreamRecordService {
     public void startRecord(Recorder recorder);
+
+    public void startDownload(Recorder recorder);
 }

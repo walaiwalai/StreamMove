@@ -1,26 +1,28 @@
 package com.sh.engine.service;
 
-import cn.hutool.core.io.FileUtil;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
+import com.sh.engine.model.record.TsUrl;
 import com.sh.engine.util.CommandUtil;
-import com.sh.engine.util.WebsiteStreamUtil;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @Author caiwen
@@ -31,7 +33,18 @@ import java.util.concurrent.Executors;
 public class StreamRecordServiceImpl implements StreamRecordService {
 
     private static Map<String, String> fakeHeaderMap = Maps.newHashMap();
-    private static final String USER_AGENT = "User-Agent";
+    ExecutorService TS_DOWNLOAD_POOL = new ThreadPoolExecutor(
+            4,
+            4,
+            600,
+            TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(2048),
+            new ThreadFactoryBuilder().setNameFormat("seg-download-%d").build(),
+            new ThreadPoolExecutor.CallerRunsPolicy()
+    );
+    OkHttpClient CLIENT = new OkHttpClient();
+//    private static final int BATCH_RECORD_TS_COUNT = 1200;
+    private static final int BATCH_RECORD_TS_COUNT = 30;
 
     static {
         fakeHeaderMap.put("Accept", "*/*");
@@ -46,17 +59,119 @@ public class StreamRecordServiceImpl implements StreamRecordService {
     public void startRecord(Recorder recorder) {
         RecordTask recordTask = recorder.getRecordTask();
         String streamerName = recordTask.getRecorderName();
-        log.info("begin download: {}, stream: {}", streamerName, recordTask.getStreamUrl());
+        log.info("begin living download: {}, stream: {}", streamerName, recordTask.getStreamUrl());
 
-        startDownLoadWithFfmpeg(recorder, recordTask);
+        livingRecordWithFfmpeg(recorder, recordTask);
     }
+
+    @Override
+    public void startDownload(Recorder recorder) {
+        RecordTask recordTask = recorder.getRecordTask();
+        String streamerName = recordTask.getRecorderName();
+        log.info("begin new video download: {}, stream: {}", streamerName, recordTask.getTsUrl().getTsFormatUrl());
+
+        try {
+            downloadTs(recordTask);
+            log.info("new video download finish, stream: {}", streamerName);
+        } catch (Exception e) {
+            log.error("new video download error, stream: {}", streamerName);
+        }
+    }
+
+    private void downloadTs(RecordTask task) throws Exception {
+        TsUrl tsUrl = task.getTsUrl();
+        String dirName = task.getDirName();
+        Integer total = tsUrl.getCount();
+        List<Integer> segIndexes = Lists.newArrayList();
+        for (int i = 1; i < total + 1; i++) {
+            segIndexes.add(i);
+        }
+
+        int videoIndex = 1;
+        AtomicInteger finishCount = new AtomicInteger();
+        for (List<Integer> batchIndexes : Lists.partition(segIndexes, BATCH_RECORD_TS_COUNT)) {
+            CountDownLatch downloadLatch = new CountDownLatch(Math.min(total - finishCount.get(), BATCH_RECORD_TS_COUNT));
+            // 每一个BATCH_RECORD_TS_COUNT去下载
+            for (Integer i : batchIndexes) {
+                String segTsUrl = tsUrl.genTsUrl(i);
+                int finalI1 = i;
+                CountDownLatch finalDownloadLatch = downloadLatch;
+                CompletableFuture.supplyAsync(() -> {
+                            return downloadTsSeg(segTsUrl, dirName + "/seg-" + finalI1 + ".ts");
+                        }, TS_DOWNLOAD_POOL)
+                        .whenComplete((isSuccess, throwable) -> {
+                            finalDownloadLatch.countDown();
+                            finishCount.getAndIncrement();
+                        });
+            }
+
+            // 等待一批视频下载完成，对视频进行合并并删除
+            downloadLatch.await();
+            File targetMergedVideo = new File(dirName, "P" + videoIndex + ".mp4");
+            int s = (videoIndex - 1) * BATCH_RECORD_TS_COUNT + 1;
+            int e = Math.min(videoIndex * BATCH_RECORD_TS_COUNT, total);
+            mergeVideos(s, e, targetMergedVideo);
+            deleteDownloadedVideos(s, e, dirName);
+            videoIndex++;
+        }
+    }
+
+    private boolean downloadTsSeg(String targetUrl, String targetFilePath) {
+        Request request = new Request.Builder().url(targetUrl).build();
+
+        try (Response response = CLIENT.newCall(request).execute()) {
+            if (response.isSuccessful()) {
+                File file = new File(targetFilePath);
+                try (FileOutputStream fos = new FileOutputStream(file)) {
+                    fos.write(response.body().bytes());
+                }
+                log.info("Seg Video Download finish, filePath: {}", file.getAbsolutePath());
+                return true;
+            } else {
+                log.error("Seg Video download failed, url: {}", targetUrl);
+                return false;
+            }
+        } catch (IOException e) {
+            log.error("Seg Video calling error, url: {}", targetUrl, e);
+            return false;
+        }
+    }
+
+    private static void mergeVideos(int start, int end, File targetVideo) {
+        // 使用FFmpeg合并视频
+        String targetPath = targetVideo.getAbsolutePath();
+        StringBuilder sb = new StringBuilder();
+        for (int i = start; i <= end; i++) {
+            File segFile = new File(targetVideo.getParent(), "seg-" + i + ".ts");
+            sb.append(segFile.getAbsolutePath()).append("|");
+        }
+        String concatList = sb.toString();
+        String command = "-i \"concat:" + concatList.substring(0, concatList.length() - 1) + "\" -c copy " + targetPath;
+        FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
+        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
+        if (resCode == 0) {
+            log.info("merge video success, path: {}", targetPath);
+        } else {
+            log.info("merge video fail, path: {}", targetPath);
+        }
+    }
+
+    private static void deleteDownloadedVideos(int start, int send, String dirName) {
+        // 删除下载的视频文件
+        for (int i = start; i <= send; i++) {
+            File file = new File(dirName, "seg-" + i + ".ts");
+            file.delete();
+        }
+    }
+
+
     /**
      * 使用ffmpeg开始拉流
      *
      * @param recorder
      * @param recordTask
      */
-    private boolean startDownLoadWithFfmpeg(Recorder recorder, RecordTask recordTask) {
+    private boolean livingRecordWithFfmpeg(Recorder recorder, RecordTask recordTask) {
         File fileToDownload = new File(recorder.getSavePath(),
                 recordTask.getRecorderName() + "-part-%03d." + recorder.getVideoExt());
 
@@ -66,45 +181,6 @@ public class StreamRecordServiceImpl implements StreamRecordService {
 
         // 2. ffmpegCmd命令放到线程池中
         return doFfmpegCmd(new FfmpegCmd(command), recorder);
-    }
-
-    private String genFfmpegCmd(String streamUrl, String downloadFileName) {
-        String fakeHeaders = "";
-        for (String key : fakeHeaderMap.keySet()) {
-            if (StringUtils.equals(key, USER_AGENT)) {
-                continue;
-            }
-            fakeHeaders += "$" + key + ":" + fakeHeaderMap.get(key) + "\\r\\n";
-        }
-        String command = String.format("ffmpeg -headers \"%s\" -user_agent \"%s\" -r 30 -async 1 -i \"%s\" -c:v copy -c:a copy -f segment " +
-                        "-segment_time %s -segment_start_number %s \"%s\"",
-                fakeHeaders,
-                fakeHeaderMap.get(USER_AGENT),
-                streamUrl,
-                ConfigFetcher.getInitConfig().getSegmentDuration(),
-                1,
-                downloadFileName
-        );
-//        String command = String.format(" -headers \"%s\" -user_agent \"%s\" -r 30 -async 1 -i \"%s\" -c:v copy -c:a copy -f segment " +
-//                        "-segment_size 1200000000 -segment_start_number %s \"%s\"",
-//                fakeHeaders,
-//                fakeHeaderMap.get(USER_AGENT),
-//                streamUrl,
-//                startNumber,
-//                downloadFileName
-//        );
-//        String command = String.format(" -headers \"%s\" -user_agent \"%s\" -r 60  -i \"%s\" " +
-//                        "-c:v  libx264 -crf 22 -c:a copy " +
-//                        "-f  segment -segment_time %s -segment_start_number %s \"%s\"",
-//                fakeHeaders,
-//                fakeHeaderMap.get(USER_AGENT),
-//                streamUrl,
-//                ConfigFetcher.getInitConfig().getSegmentDuration(),
-//                startNumber,
-//                downloadFileName
-//        );
-
-        return command;
     }
 
     private String buildFfmpegCmd(String streamUrl, String downloadFileName) {
@@ -128,11 +204,14 @@ public class StreamRecordServiceImpl implements StreamRecordService {
                 "-reconnect_streamed", "-reconnect_at_eof",
                 "-max_muxing_queue_size", "64",
                 "-correct_ts_overflow", "1",
+//                "-c:v", "libx264",
+                "-r", "30",
                 "-c:v", "copy",
-                "-c:a", "aac",
+                "-c:a", "libfdk_aac",
                 "-map", "0",
                 "-f", "segment",
                 "-segment_time", ConfigFetcher.getInitConfig().getSegmentDuration() + "",
+                "-segment_start_number", "1",
                 "-segment_format", "mp4",
                 "-movflags", "+faststart",
                 "-reset_timestamps", "1",
@@ -153,5 +232,21 @@ public class StreamRecordServiceImpl implements StreamRecordService {
             log.error("download stream fail, recordName: {}, savePath: {}, code: {}", recorderName, recorder.getSavePath(), resCode);
             return false;
         }
+    }
+
+    public static void main(String[] args) {
+        System.setProperty("http.proxySet", "true");
+        System.setProperty("http.proxyHost", "127.0.0.1");
+        System.setProperty("http.proxyPort", "10809");
+        StreamRecordServiceImpl streamRecordService = new StreamRecordServiceImpl();
+        streamRecordService.startDownload(Recorder.initRecorder(RecordTask.builder()
+                .tsUrl(TsUrl.builder()
+                        .tsFormatUrl("https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/vod/20231228/585/250550585/REGL_E8F3995E_250550585_1.smil/original/both/seg-%s.ts")
+                        .count(61)
+                        .build())
+                        .dirName("C:\\Users\\caiwen\\Desktop\\download\\Zeus\\2023-12-30-10-10-00")
+                .recorderName("Zeus")
+                .timeV("2023-12-30 10:10:00")
+                .build()));
     }
 }

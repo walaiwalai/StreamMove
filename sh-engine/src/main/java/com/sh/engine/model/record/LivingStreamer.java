@@ -3,7 +3,8 @@ package com.sh.engine.model.record;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import java.util.Date;
 
 /**
  * @Author caiwen
@@ -14,13 +15,22 @@ import lombok.NoArgsConstructor;
 @Builder
 public class LivingStreamer {
     /**
-     * 录播的url
-     */
-    private String recordUrl;
-    private String flvUrl;
-
-    /**
      * 直播用户名字
      */
     private String anchorName;
+
+    /**
+     * living/ts
+     */
+    private String type;
+
+    /**
+     * 录播的url
+     */
+    private String streamUrl;
+
+    /**
+     * 切片详情
+     */
+    private TsUrl tsUrl;
 }

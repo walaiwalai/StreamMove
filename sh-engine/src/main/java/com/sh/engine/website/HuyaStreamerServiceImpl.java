@@ -6,12 +6,10 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerInfo;
-import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.model.record.LivingStreamer;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -59,7 +57,7 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
                 }
             }
 
-            return LivingStreamer.builder().recordUrl(aliFlv).build();
+            return LivingStreamer.builder().streamUrl(aliFlv).build();
         } else {
             return null;
         }
