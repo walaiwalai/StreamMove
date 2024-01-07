@@ -10,14 +10,21 @@ import com.sh.engine.model.record.LivingStreamer;
 import com.sh.engine.model.record.TsUrl;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
+import okhttp3.MultipartBody;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -34,6 +41,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     private static final String BID_REGEX = "(?<=com/)([^/]+)$";
     private static final String TS_COUNT_REGEX = "seg-(\\d+)\\.ts";
     private static final String RECORD_HISTORY_URL = "https://bjapi.afreecatv.com/api/%s/vods/review?page=1&per_page=20&orderby=reg_date";
+
     @Override
     public LivingStreamer isRoomOnline(StreamerInfo streamerInfo) {
         if (BooleanUtils.isTrue(streamerInfo.isRecordWhenOnline())) {
@@ -54,7 +62,8 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
 
         // 1. 获取历史直播列表
         JSONObject lastedRecord = fetchLastedRecord(bid);
-        boolean isNewTs = checkIsNew(streamerInfo, lastedRecord.getString("reg_date"));
+        String regDate = lastedRecord.getString("reg_date");
+        boolean isNewTs = checkIsNew(streamerInfo, regDate);
         if (!isNewTs) {
             return null;
         }
@@ -70,6 +79,12 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
                 + infos[2] + "/"
                 + "REGL_" + infos[1] + "_" + infos[2] + "_" + infos[3] + ".smil";
         TsUrl tsUrl = fetchTsInfo(tsPrefix);
+        if (tsUrl != null) {
+            try {
+                tsUrl.setRegDate(DateUtils.parseDate(regDate, "yyyy-MM-dd HH:mm:ss"));
+            } catch (ParseException e) {
+            }
+        }
 
         return LivingStreamer.builder()
                 .type(RecordConstant.RECORD_STREAM_TYPE)
@@ -107,7 +122,6 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
             response = CLIENT.newCall(requestBuilder.build()).execute();
             if (response.isSuccessful()) {
                 String resp = response.body().string();
-                log.info("query user record history success, resp: {}", resp);
                 return JSONObject.parseObject(resp).getJSONArray("data").getJSONObject(0);
             } else {
                 String message = response.message();
@@ -136,7 +150,6 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
             response = CLIENT.newCall(requestBuilder.build()).execute();
             if (response.isSuccessful()) {
                 String resp = response.body().string();
-                log.info("query playlist success.");
                 String[] lines = StringUtils.split(resp, "\n");
                 String lastSegFile = lines[lines.length - 2];
                 String s = RegexUtil.fetchMatchedOne(lastSegFile, TS_COUNT_REGEX);

@@ -1,14 +1,14 @@
 package com.sh.engine.manager;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.engine.model.record.Recorder;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * 直播，投稿，录播的状态统一在这维护
@@ -95,14 +95,24 @@ public class StatusManager {
 
     /**
      * 当前主播是否在被录制
+     *
      * @return
      */
     public boolean isOnRecord(String streamerName) {
         return recorderMap.containsKey(streamerName);
     }
 
+    public Integer countOnRecord() {
+        return recorderMap.keySet().size();
+    }
+
+    public List<String> listOnRecordName() {
+        return Lists.newArrayList(recorderMap.keySet());
+    }
+
     /**
      * 根据当前主播名称获得recorder
+     *
      * @param streamerName
      * @return
      */

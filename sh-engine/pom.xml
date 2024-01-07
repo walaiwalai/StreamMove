@@ -20,10 +20,6 @@
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>ws.schild</groupId>-->
-<!--            <artifactId>jave-all-deps</artifactId>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>com.sh</groupId>
             <artifactId>sh-config</artifactId>
@@ -31,6 +27,10 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.qcloud</groupId>
+            <artifactId>cos_api</artifactId>
         </dependency>
     </dependencies>
 </project>

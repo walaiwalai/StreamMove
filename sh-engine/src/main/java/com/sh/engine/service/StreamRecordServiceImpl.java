@@ -13,9 +13,12 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -31,6 +34,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 @Slf4j
 public class StreamRecordServiceImpl implements StreamRecordService {
+    @Resource
+    private MsgSendService msgSendService;
 
     private static Map<String, String> fakeHeaderMap = Maps.newHashMap();
     ExecutorService TS_DOWNLOAD_POOL = new ThreadPoolExecutor(
@@ -38,13 +43,13 @@ public class StreamRecordServiceImpl implements StreamRecordService {
             4,
             600,
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(2048),
+            new ArrayBlockingQueue<>(20480),
             new ThreadFactoryBuilder().setNameFormat("seg-download-%d").build(),
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
     OkHttpClient CLIENT = new OkHttpClient();
-//    private static final int BATCH_RECORD_TS_COUNT = 1200;
-    private static final int BATCH_RECORD_TS_COUNT = 30;
+    private static final int BATCH_RECORD_TS_COUNT = 1200;
+    private static final int SEG_DOWNLOAD_RETRY = 3;
 
     static {
         fakeHeaderMap.put("Accept", "*/*");
@@ -71,16 +76,18 @@ public class StreamRecordServiceImpl implements StreamRecordService {
         log.info("begin new video download: {}, stream: {}", streamerName, recordTask.getTsUrl().getTsFormatUrl());
 
         try {
-            downloadTs(recordTask);
+            downloadTs(recorder);
             log.info("new video download finish, stream: {}", streamerName);
         } catch (Exception e) {
             log.error("new video download error, stream: {}", streamerName);
         }
     }
 
-    private void downloadTs(RecordTask task) throws Exception {
+    private void downloadTs(Recorder recorder) throws Exception {
+        RecordTask task = recorder.getRecordTask();
         TsUrl tsUrl = task.getTsUrl();
-        String dirName = task.getDirName();
+        String dirName = recorder.getSavePath();
+
         Integer total = tsUrl.getCount();
         List<Integer> segIndexes = Lists.newArrayList();
         for (int i = 1; i < total + 1; i++) {
@@ -90,6 +97,14 @@ public class StreamRecordServiceImpl implements StreamRecordService {
         int videoIndex = 1;
         AtomicInteger finishCount = new AtomicInteger();
         for (List<Integer> batchIndexes : Lists.partition(segIndexes, BATCH_RECORD_TS_COUNT)) {
+            File targetMergedVideo = new File(dirName, "P" + videoIndex + ".mp4");
+            if (targetMergedVideo.exists()) {
+                log.info("merge video: {} existed, skip this batch", targetMergedVideo.getAbsolutePath());
+                finishCount.addAndGet(Math.min(total - BATCH_RECORD_TS_COUNT, BATCH_RECORD_TS_COUNT));
+                videoIndex++;
+                continue;
+            }
+
             CountDownLatch downloadLatch = new CountDownLatch(Math.min(total - finishCount.get(), BATCH_RECORD_TS_COUNT));
             // 每一个BATCH_RECORD_TS_COUNT去下载
             for (Integer i : batchIndexes) {
@@ -97,7 +112,12 @@ public class StreamRecordServiceImpl implements StreamRecordService {
                 int finalI1 = i;
                 CountDownLatch finalDownloadLatch = downloadLatch;
                 CompletableFuture.supplyAsync(() -> {
-                            return downloadTsSeg(segTsUrl, dirName + "/seg-" + finalI1 + ".ts");
+                            File targetFile = new File(dirName, "seg-" + finalI1 + ".ts");
+                            if (targetFile.exists()) {
+                                log.info("ts file existed, path: {}", targetFile.getAbsolutePath());
+                                return true;
+                            }
+                            return downloadTsSeg(segTsUrl, targetFile);
                         }, TS_DOWNLOAD_POOL)
                         .whenComplete((isSuccess, throwable) -> {
                             finalDownloadLatch.countDown();
@@ -107,52 +127,75 @@ public class StreamRecordServiceImpl implements StreamRecordService {
 
             // 等待一批视频下载完成，对视频进行合并并删除
             downloadLatch.await();
-            File targetMergedVideo = new File(dirName, "P" + videoIndex + ".mp4");
             int s = (videoIndex - 1) * BATCH_RECORD_TS_COUNT + 1;
             int e = Math.min(videoIndex * BATCH_RECORD_TS_COUNT, total);
-            mergeVideos(s, e, targetMergedVideo);
-            deleteDownloadedVideos(s, e, dirName);
+            boolean mergedSuccess = mergeVideos(s, e, targetMergedVideo);
+            if (mergedSuccess) {
+                deleteDownloadedVideos(s, e, dirName);
+            }
             videoIndex++;
         }
     }
 
-    private boolean downloadTsSeg(String targetUrl, String targetFilePath) {
-        Request request = new Request.Builder().url(targetUrl).build();
-
-        try (Response response = CLIENT.newCall(request).execute()) {
-            if (response.isSuccessful()) {
-                File file = new File(targetFilePath);
-                try (FileOutputStream fos = new FileOutputStream(file)) {
-                    fos.write(response.body().bytes());
-                }
-                log.info("Seg Video Download finish, filePath: {}", file.getAbsolutePath());
-                return true;
-            } else {
-                log.error("Seg Video download failed, url: {}", targetUrl);
-                return false;
+    private boolean downloadTsSeg(String targetUrl, File targetFile) {
+        for (int i = 0; i < SEG_DOWNLOAD_RETRY; i++) {
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
             }
-        } catch (IOException e) {
-            log.error("Seg Video calling error, url: {}", targetUrl, e);
-            return false;
+
+            Request request = new Request.Builder().url(targetUrl).build();
+            try (Response response = CLIENT.newCall(request).execute()) {
+                if (response.isSuccessful()) {
+                    try (FileOutputStream fos = new FileOutputStream(targetFile)) {
+                        fos.write(response.body().bytes());
+                    }
+                    log.info("Seg Video Download finish, filePath: {}", targetFile.getAbsolutePath());
+                    return true;
+                } else {
+                    log.error("Seg Video download failed, url: {}, retry: {}/{}", targetUrl, i + 1, SEG_DOWNLOAD_RETRY);
+                }
+            } catch (IOException e) {
+                log.error("Seg Video calling error, url: {}, retry: {}/{}", targetUrl, i + 1, SEG_DOWNLOAD_RETRY, e);
+            }
         }
+        return false;
     }
 
-    private static void mergeVideos(int start, int end, File targetVideo) {
-        // 使用FFmpeg合并视频
-        String targetPath = targetVideo.getAbsolutePath();
-        StringBuilder sb = new StringBuilder();
+    private boolean mergeVideos(int start, int end, File targetVideo) {
+        // 1. 写入代合并的文件路径
+        List<String> mergeTsPaths = Lists.newArrayList();
         for (int i = start; i <= end; i++) {
             File segFile = new File(targetVideo.getParent(), "seg-" + i + ".ts");
-            sb.append(segFile.getAbsolutePath()).append("|");
+            if (segFile.exists() && FileUtils.sizeOf(segFile) > 0) {
+                // 判断一些文件是否存在，如果不存在不合并
+                mergeTsPaths.add("file " + segFile.getAbsolutePath());
+            }
         }
-        String concatList = sb.toString();
-        String command = "-i \"concat:" + concatList.substring(0, concatList.length() - 1) + "\" -c copy " + targetPath;
+
+        File mergeListFile = new File(targetVideo.getParent(), "merge.txt");
+        try {
+            IOUtils.write(StringUtils.join(mergeTsPaths, "\n"), new FileOutputStream(mergeListFile), "utf-8");
+        } catch (IOException e) {
+            log.error("write merge list file fail, savePath: {}", mergeListFile.getAbsolutePath(), e);
+        }
+
+        // 2. 使用FFmpeg合并视频
+        String targetPath = targetVideo.getAbsolutePath();
+//        String command = "-f concat -safe 0 -i " + mergeListFile.getAbsolutePath() + " -c:v libx264 -c:a libfdk_aac " + targetPath;
+        String command = "-f concat -safe 0 -i " + mergeListFile.getAbsolutePath() + " -c:v libx264 -crf 25 -preset superfast -c:a libfdk_aac -r 30 " + targetPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
+
+        msgSendService.send("开始压缩视频... 路径为：" + targetVideo.getAbsolutePath());
         Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
         if (resCode == 0) {
+            msgSendService.send("压缩视频完成！路径为：" + targetVideo.getAbsolutePath());
             log.info("merge video success, path: {}", targetPath);
+            return true;
         } else {
+            msgSendService.send("压缩视频失败！路径为：" + targetVideo.getAbsolutePath());
             log.info("merge video fail, path: {}", targetPath);
+            return false;
         }
     }
 
@@ -244,7 +287,6 @@ public class StreamRecordServiceImpl implements StreamRecordService {
                         .tsFormatUrl("https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/vod/20231228/585/250550585/REGL_E8F3995E_250550585_1.smil/original/both/seg-%s.ts")
                         .count(61)
                         .build())
-                        .dirName("C:\\Users\\caiwen\\Desktop\\download\\Zeus\\2023-12-30-10-10-00")
                 .recorderName("Zeus")
                 .timeV("2023-12-30 10:10:00")
                 .build()));

@@ -30,6 +30,8 @@ public class InitConfig {
      */
     private String videFormat = "mp4";
 
+    private TencentCosConfig tencentCosConfig;
+
 
     /**
      * 分多端拉流的每段大小
@@ -41,21 +43,27 @@ public class InitConfig {
      */
     private String quality;
 
-    /**
-     * 投稿时忽略小于此大小的文件(M)
-     */
-    private Integer videoPartLimitSize = 100;
+    private Integer maxRecordingCount = 2;
 
     // *********************B站视频上传**********************
     private String biliCookies;
     private String accessToken;
     private Long mid;
+    /**
+     * 投稿时忽略小于此大小的文件(M)
+     */
+    private Integer videoPartLimitSize = 100;
+    /**
+     * 1为网站/2为客户端
+     */
+    private Integer uploadType = 1;
 
-    // *********************B站视频上传**********************
+
+    // *********************消息通知**********************
     private String weComSecret;
 
 
-    // *********************cookies**********************
+    // *********************直播cookies**********************
     private String afreecaTvCookies;
 
     // *********************其他配置**********************
@@ -65,5 +73,12 @@ public class InitConfig {
     private String fileCleanCron;
     private String configRefreshCron;
 
-
+    @Data
+    @Builder
+    public static class TencentCosConfig {
+        private String secretId;
+        private String secretKey;
+        private String region;
+        private String bucketName;
+    }
 }

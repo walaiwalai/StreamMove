@@ -26,7 +26,7 @@ public interface PlatformWorkUploadService {
     boolean uploadChunk(String uploadUrl, File targetFile, Integer chunkNo, Integer totalChunks,
                         Integer curChunkSize, Long curChunkStart, Map<String, String> extension);
 
-    boolean finishChunks(String finishUrl, int totalChunks, String videoName, LocalVideo localVideo) throws Exception;
+    boolean finishChunks(String finishUrl, int totalChunks, String videoName, LocalVideo localVideo, Map<String, String> extension) throws Exception;
 
     /**
      * 客户端上传视频

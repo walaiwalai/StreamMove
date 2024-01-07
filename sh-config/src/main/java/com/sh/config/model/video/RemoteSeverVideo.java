@@ -21,12 +21,19 @@ public class RemoteSeverVideo {
      */
     private String filename;
 
-    public RemoteSeverVideo() {}
+    /**
+     * 就是视频上传的bizId
+     */
+    private Long cid;
 
-    public RemoteSeverVideo(String title, String desc, String filename) {
+    public RemoteSeverVideo() {
+    }
+
+    public RemoteSeverVideo(String title, String desc, String filename, Long cid) {
         this.title = title;
         this.desc = desc;
         this.filename = filename;
+        this.cid = cid;
     }
 
     public String getTitle() {
@@ -51,5 +58,13 @@ public class RemoteSeverVideo {
 
     public void setFilename(String filename) {
         this.filename = filename;
+    }
+
+    public Long getCid() {
+        return cid;
+    }
+
+    public void setCid(Long cid) {
+        this.cid = cid;
     }
 }

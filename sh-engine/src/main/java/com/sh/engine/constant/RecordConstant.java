@@ -9,14 +9,18 @@ public class RecordConstant {
             ".tv/x/tv/account/myinfo?access_key=";
     public static final String BILI_VIDEO_UPLOAD_APP_SECRET = "af125a0d5279fd576c1b4418a3e8276d";
 
-    public static final String BILI_VIDEO_CHUNK_UPLOAD_URL = "%s?partNumber=%s&uploadId=%s" +
-            "&chunk=%s&chunks=%s&size=%s&start=%s&end=%s&total=%s";
+    public static final String BILI_VIDEO_CHUNK_UPLOAD_URL = "{uploadUrl}?partNumber={partNumber}&uploadId={uploadId}" +
+            "&chunk={chunk}&chunks={chunks}&size={size}&start={start}&end={end}&total={total}";
+
+    public static final String BILI_WEB_PRE_UPLOAD_URL = "https://member.bilibili.com/preupload?name={name}&size={size}&r=upos&profile=ugcupos%2Fbup&ssl=0&version=2.7.1&build=2070100&os=upos&upcdn=ws";
 
     public static final String BILI_CHUNK_UPLOAD_FINISH_URL = "%s?output=json&name=%s&profile=ugcfx/bup&uploadId=%s"
             + "&biz_id=%s";
 
+    public static final String BILI_CLIENT_PRE_URL
+            = "https://member.bilibili.com/preupload?access_key={accessToken}&mid={mid}&profile=ugcfr%2Fpc3";
 
-    public static final String BILI_POST_WORK = "https://member.bilibili.com/x/vu/web/add/v3?t=%s&csrf=%s";
+    public static final String BILI_POST_WORK = "https://member.bilibili.com/x/vu/web/add/v3?t={t}&csrf={csrf}";
 
 
     public static final String BILI_UPLOAD_ID = "uploadId";

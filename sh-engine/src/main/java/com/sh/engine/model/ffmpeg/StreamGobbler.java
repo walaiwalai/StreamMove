@@ -2,12 +2,7 @@ package com.sh.engine.model.ffmpeg;
 
 import lombok.extern.slf4j.Slf4j;
 
-import  java.io.BufferedReader;
-import  java.io.IOException;
-import  java.io.InputStream;
-import  java.io.InputStreamReader;
-import  java.io.OutputStream;
-import  java.io.PrintWriter;
+import java.io.*;
 /**
  * @author caiWen
  * @date 2023/2/15 21:52
@@ -15,6 +10,7 @@ import  java.io.PrintWriter;
 @Slf4j
 public class StreamGobbler extends  Thread {
     public static final int LINE_LOG_INTERVAL = 50;
+    public static final int MAX_LINE = 8000;
     InputStream is;
     String type;
     OutputStream os;

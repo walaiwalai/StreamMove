@@ -128,6 +128,13 @@
                 <version>3.10.0</version>
             </dependency>
 
+            <!--            cos存储-->
+            <dependency>
+                <groupId>com.qcloud</groupId>
+                <artifactId>cos_api</artifactId>
+                <version>5.6.155</version>
+            </dependency>
+
 
             <dependency>
                 <groupId>cn.hutool</groupId>
@@ -136,7 +143,7 @@
             </dependency>
 
             <!--ffmpeg工具类<-->
-<!--            <dependency>-->
+            <!--            <dependency>-->
 <!--                <groupId>ws.schild</groupId>-->
 <!--                <artifactId>jave-all-deps</artifactId>-->
 <!--                <version>3.3.1</version>-->

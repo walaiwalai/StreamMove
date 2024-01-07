@@ -27,6 +27,7 @@ public class Recorder {
 
     /**
      * 录播视频保存路径
+     * 如：...download/TheShy/2023-02-12
      */
     private String savePath;
 

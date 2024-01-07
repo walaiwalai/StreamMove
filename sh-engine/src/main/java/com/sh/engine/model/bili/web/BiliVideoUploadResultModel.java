@@ -21,10 +21,6 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class BiliVideoUploadResultModel {
-    /**
-     * 是否完成视频chunks上传
-     */
-    private boolean finishChunksUpload;
 
     /**
      * 上传失败的chunk

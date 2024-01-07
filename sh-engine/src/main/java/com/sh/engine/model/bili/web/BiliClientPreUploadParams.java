@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class BiliPreUploadRespose {
+public class BiliClientPreUploadParams {
     private Integer OK;
     private String url;
     private String complete;

@@ -18,7 +18,7 @@ public enum ErrorEnum {
     /**
      * 预上传失败
      */
-    PRE_UPLOAD_ERROR(2, "pre upload error"),
+    PRE_UPLOAD_ERROR(3, "pre upload error"),
 
     ;
     private int errorCode;

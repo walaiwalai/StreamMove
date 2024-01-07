@@ -22,12 +22,6 @@ public class RecordTask {
     private String timeV;
 
     /**
-     * 视频所在的文件夹（带日期）
-     * 如：...download/TheShy/2023-02-12
-     */
-    private String dirName;
-
-    /**
      * 主播名称（对应streamerInfo中的name）
      */
     private String recorderName;

@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
@@ -18,7 +17,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Slf4j
 public class BiliVideoUploadTask {
     /**
      * 上传的主播名称（对应streamerInfo中的name）
@@ -59,4 +57,6 @@ public class BiliVideoUploadTask {
 //     * 上传任务的过期时间(秒时间戳，如1677538240)
 //     */
 //    private Long deadline;
+
+    private BiliWebPreUploadParams biliPreUploadInfo;
 }

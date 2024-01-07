@@ -32,14 +32,6 @@ public class RecordConverter {
         return fileStatusModel;
     }
 
-    public static RecordTask convertToRecordTask(FileStatusModel fileStatus) {
-        return RecordTask.builder()
-                .dirName(fileStatus.getPath())
-                .recorderName(fileStatus.getRecorderName())
-                .timeV(fileStatus.getTimeV())
-                .build();
-    }
-
     public static BiliVideoUploadTask initUploadModel(FileStatusModel fileStatus) {
         UploadVideoPair videoParts = fileStatus.getVideoParts();
         return BiliVideoUploadTask.builder()

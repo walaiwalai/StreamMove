@@ -70,8 +70,8 @@ public class FfmpegCmd {
 
         Runtime runtime = Runtime.getRuntime();
         try {
-//            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
-            ffmpeg = runtime.exec(cmd);
+            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
+//            ffmpeg = runtime.exec(cmd);
 
 //            if (destroyOnRuntimeShutdown) {
 //                ffmpegKiller = new ProcessKiller(ffmpeg);

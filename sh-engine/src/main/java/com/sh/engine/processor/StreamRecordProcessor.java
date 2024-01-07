@@ -1,6 +1,8 @@
 package com.sh.engine.processor;
 
+import com.alibaba.fastjson.JSON;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.StreamerInfo;
 import com.sh.engine.RecordStageEnum;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.manager.StatusManager;
@@ -8,6 +10,7 @@ import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
+import com.sh.engine.model.record.TsUrl;
 import com.sh.engine.service.MsgSendService;
 import com.sh.engine.service.StreamRecordService;
 import org.apache.commons.lang3.StringUtils;
@@ -19,6 +22,8 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @Author caiwen
@@ -58,7 +63,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
             RecordTask recordTask = RecordTask.builder()
                     .tsUrl(context.getLivingStreamer().getTsUrl())
                     .recorderName(name)
-                    .timeV(dateFormat.format(new Date()))
+                    .timeV(dateFormat.format(context.getLivingStreamer().getTsUrl().getRegDate()))
                     .build();
             processWhenNewVideoUpload(recordTask);
         }
@@ -77,7 +82,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
             if (isLastRecording) {
                 if (!curRecorder.getRecorderStat()) {
                     // 房间在线但是直播流断开，重启
-                    msgSendService.send("主播" + name + "下载流断开，重启录制..");
+//                    msgSendService.send("主播" + name + "下载流断开，重启录制..");
                     recordLiving(curRecorder);
                 } else {
                     log.info("{} is recording...", curRecorder.getRecordTask().getRecorderName());
@@ -94,7 +99,6 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
                 curRecorder.kill();
             } else {
                 // 创建一个新的Recorder
-                msgSendService.send("主播" + name + "开播了，即将开始录制..");
                 recordLiving(Recorder.initRecorder(task));
             }
         }
@@ -108,7 +112,6 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
             log.info("{}'s new video is recording...", name);
         } else {
             // 之前认为在线，但不存在 Recorder，这种情况不应该出现
-            msgSendService.send("主播" + name + "有新的视频上传，即将开始录制..");
             recordNewVideo(Recorder.initRecorder(task));
         }
     }
@@ -135,6 +138,14 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
 
     private void recordLiving(Recorder recorder) {
         String streamerName = recorder.getRecordTask().getRecorderName();
+        if (statusManager.countOnRecord() >= ConfigFetcher.getInitConfig().getMaxRecordingCount()) {
+            List<String> recodingNames = statusManager.listOnRecordName();
+            log.info("hit max recoding count, will return, name: {}, recoding: {}", streamerName, JSON.toJSONString(recodingNames));
+            return;
+        }
+
+        msgSendService.send("主播" + streamerName + "开播了，即将开始录制..");
+
         // 1.创建录像文件夹
         File file = createVideoFile(recorder);
         String videoRecordPath = file.getAbsolutePath();
@@ -156,6 +167,15 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
 
     private void recordNewVideo(Recorder recorder) {
         String streamerName = recorder.getRecordTask().getRecorderName();
+        if (statusManager.countOnRecord() >= ConfigFetcher.getInitConfig().getMaxRecordingCount()) {
+            List<String> recodingNames = statusManager.listOnRecordName();
+            log.info("hit max recoding count, will return, name: {}, recoding: {}", streamerName, JSON.toJSONString(recodingNames));
+            return;
+        }
+
+        msgSendService.send("主播" + streamerName + "有新的视频上传，即将开始录制..");
+        TsUrl tsUrl = recorder.getRecordTask().getTsUrl();
+
         // 1.创建录像文件夹
         File file = createVideoFile(recorder);
         String videoRecordPath = file.getAbsolutePath();
@@ -169,6 +189,12 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
 
         // 3，录像开始(长时间)
         streamRecordService.startDownload(recorder);
+        // 修改streamer.json
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        ConfigFetcher.refreshStreamer(StreamerInfo.builder()
+                .name(streamerName)
+                .lastRecordTime(dateFormat.format(Optional.ofNullable(tsUrl.getRegDate()).orElse(new Date())))
+                .build());
 
         // 4. 状态解除
         statusManager.deleteRoomPathStatus(videoRecordPath);

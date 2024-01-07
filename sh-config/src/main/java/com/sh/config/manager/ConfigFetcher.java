@@ -1,5 +1,6 @@
 package com.sh.config.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -9,7 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
@@ -55,8 +57,24 @@ public class ConfigFetcher {
 
     public static void refresh() {
         loadStreamConfig(false);
-        loadInitConfig(false);
         log.info("refresh config success");
+    }
+
+    public static void refreshStreamer(StreamerInfo updated) {
+        String name = updated.getName();
+        StreamerInfo existed = getStreamerInfoByName(name);
+        JSONObject streamerInfo = JSONObject.parseObject(JSON.toJSONString(existed));
+        streamerInfo.putAll(JSONObject.parseObject(JSON.toJSONString(updated)));
+
+        name2StreamerMap.put(name, streamerInfo.toJavaObject(StreamerInfo.class));
+
+        // 写入streamer.json
+        try {
+            File file = new File("/home/admin/stream", "streamer.json");
+            IOUtils.write(JSON.toJSONString(getStreamerInfoList()), new FileOutputStream(file), "utf-8");
+        } catch (IOException e) {
+            log.error("update streamer.json fail", e);
+        }
     }
 
 
@@ -65,9 +83,9 @@ public class ConfigFetcher {
         String configStr;
         try {
             // 重新刷新从挂载目录读取
-            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/init.json"), "utf-8");
-//            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/init.json").toPath()), "utf-8");
+//            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+//            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/init.json"), "utf-8");
+            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/init.json").toPath()), "utf-8");
 //            if (fistLoad) {
 //                // 第一次从resource资源读取
 //                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -84,9 +102,9 @@ public class ConfigFetcher {
         String configStr;
         try {
             // 重新刷新从挂载目录读取
-            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/streamer.json"), "utf-8");
-//            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/streamer.json").toPath()), "utf-8");
+//            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+//            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/streamer.json"), "utf-8");
+            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/streamer.json").toPath()), "utf-8");
 //            if (fistLoad) {
 //                // 第一次从resource资源读取
 //                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();

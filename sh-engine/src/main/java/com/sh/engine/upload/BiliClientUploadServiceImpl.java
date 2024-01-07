@@ -112,7 +112,7 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
     }
 
     @Override
-    public boolean finishChunks(String finishUrl, int totalChunks, String videoName, LocalVideo localVideo) throws Exception {
+    public boolean finishChunks(String finishUrl, int totalChunks, String videoName, LocalVideo localVideo, Map<String, String> extension) throws Exception {
         HttpEntity completeEntity = MultipartEntityBuilder.create()
                 .addPart(FormBodyPartBuilder.create()
                         .setName("version")
