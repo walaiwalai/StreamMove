@@ -9,7 +9,6 @@ import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.config.utils.VideoFileUtils;
-import com.sh.engine.model.bili.body.BlockStreamBody;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.CollectionUtils;
@@ -18,6 +17,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.FormBodyPartBuilder;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.springframework.stereotype.Service;
 
@@ -55,7 +55,8 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
 
     @Override
     public boolean uploadChunk(String uploadUrl, File targetFile, Integer chunkNo, Integer totalChunks, Integer curChunkSize, Long curChunkStart, Map<String, String> extension) {
-        log.info("start to upload {}th video chunk, curChunkSize: {}M.", chunkNo + 1, curChunkSize / 1024 / 1024);
+        int chunkShowNo = chunkNo + 1;
+        log.info("start to upload {}th video chunk, curChunkSize: {}M.", chunkShowNo, curChunkSize / 1024 / 1024);
         long startTime = System.currentTimeMillis();
 
         byte[] bytes = null;
@@ -63,8 +64,10 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
             bytes = VideoFileUtils.fetchBlock(targetFile, curChunkStart, curChunkSize);
         } catch (IOException e) {
             log.error("fetch chunk error", e);
+            return false;
         }
         String md5Str = DigestUtils.md5Hex(bytes);
+//        BlockStreamBody blockBody = new BlockStreamBody(curChunkStart, curChunkSize, targetFile);
         HttpEntity requestEntity = MultipartEntityBuilder.create()
                 .addPart(FormBodyPartBuilder.create()
                         .setName("version")
@@ -88,7 +91,7 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
                         .build())
                 .addPart(FormBodyPartBuilder.create()
                         .setName("file")
-                        .setBody(new BlockStreamBody(curChunkStart, curChunkSize, targetFile))
+                        .setBody(new ByteArrayBody(bytes, ContentType.APPLICATION_OCTET_STREAM, targetFile.getName()))
                         .build())
                 .build();
 
@@ -98,14 +101,14 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
                 String respStr = HttpClientUtil.sendPost(uploadUrl, null, requestEntity);
                 JSONObject respObj = JSONObject.parseObject(respStr);
                 if (Objects.equals(respObj.getString("info"), "Successful.")) {
-                    log.info("chunk upload success, progress: {}/{}, time cost: {}s.", chunkNo, totalChunks,
+                    log.info("chunk upload success, progress: {}/{}, time cost: {}s.", chunkShowNo, totalChunks,
                             (System.currentTimeMillis() - startTime) / 1000);
                     return true;
                 } else {
-                    log.error("{}th chunk upload fail, ret: {}, will retry...", chunkNo, respStr);
+                    log.error("{}th chunk upload fail, ret: {}, will retry...", chunkShowNo, respStr);
                 }
             } catch (Exception e) {
-                log.error("{}th chunk upload error, will retry...", chunkNo, e);
+                log.error("{}th chunk upload error, will retry...", chunkShowNo, e);
             }
         }
         return false;

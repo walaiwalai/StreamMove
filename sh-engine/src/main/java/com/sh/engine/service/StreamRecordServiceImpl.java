@@ -183,7 +183,7 @@ public class StreamRecordServiceImpl implements StreamRecordService {
         // 2. 使用FFmpeg合并视频
         String targetPath = targetVideo.getAbsolutePath();
 //        String command = "-f concat -safe 0 -i " + mergeListFile.getAbsolutePath() + " -c:v libx264 -c:a libfdk_aac " + targetPath;
-        String command = "-f concat -safe 0 -i " + mergeListFile.getAbsolutePath() + " -c:v libx264 -crf 25 -preset superfast -c:a libfdk_aac -r 30 " + targetPath;
+        String command = "-f concat -safe 0 -i " + mergeListFile.getAbsolutePath() + " -c:v libx264 -crf 24 -preset superfast -c:a libfdk_aac -r 30 " + targetPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
 
         msgSendService.send("开始压缩视频... 路径为：" + targetVideo.getAbsolutePath());

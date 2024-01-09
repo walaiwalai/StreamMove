@@ -37,14 +37,17 @@ public class BiliWebUploadServiceImpl implements PlatformWorkUploadService {
 
     @Override
     public boolean uploadChunk(String uploadUrl, File targetFile, Integer chunkNo, Integer totalChunks, Integer curChunkSize, Long curChunkStart, Map<String, String> extension) {
-        log.info("start to upload {}th video chunk, curChunkSize: {}M.", chunkNo + 1, curChunkSize / 1024 / 1024);
+        int chunkShowNo = chunkNo + 1;
+        log.info("start to upload {}th video chunk, start: {}, curSize: {}, curChunkSize: {}M.", chunkShowNo,
+                curChunkStart, curChunkSize, curChunkSize / 1024 / 1024);
         long startTime = System.currentTimeMillis();
 
         byte[] bytes = null;
         try {
             bytes = VideoFileUtils.fetchBlock(targetFile, curChunkStart, curChunkSize);
         } catch (IOException e) {
-            log.error("fetch chunk error", e);
+            log.error("fetch chunk error, file: {}, chunkNo: {}, start: {}, curSize: {}", targetFile.getAbsolutePath(),
+                    chunkShowNo, curChunkStart, curChunkSize, e);
         }
 
         RequestBody chunkRequestBody = RequestBody
@@ -67,16 +70,16 @@ public class BiliWebUploadServiceImpl implements PlatformWorkUploadService {
             try (Response response = CLIENT.newCall(request).execute()) {
                 Thread.sleep(CHUNK_RETRY_DELAY);
                 if (response.isSuccessful()) {
-                    log.info("chunk upload success, progress: {}/{}, time cost: {}s.", chunkNo, totalChunks,
+                    log.info("chunk upload success, progress: {}/{}, time cost: {}s.", chunkShowNo, totalChunks,
                             (System.currentTimeMillis() - startTime) / 1000);
                     return true;
                 } else {
                     String message = response.message();
                     String bodyStr = response.body() != null ? response.body().string() : null;
-                    log.error("the {}th chunk upload failed, will retry... message: {}, bodyStr: {}", chunkNo, message, bodyStr);
+                    log.error("the {}th chunk upload failed, will retry... message: {}, bodyStr: {}", chunkShowNo, message, bodyStr);
                 }
             } catch (Exception e) {
-                log.error("th {}th chunk upload error, will retry...", chunkNo, e);
+                log.error("th {}th chunk upload error, will retry...", chunkShowNo, e);
             }
         }
         return false;

@@ -279,7 +279,7 @@ public class VideoUploadServiceImpl implements VideoUploadService {
         CountDownLatch countDownLatch = new CountDownLatch(partCount);
         List<FailUploadVideoChunk> failUploadVideoChunks = Lists.newCopyOnWriteArrayList();
         for (int i = 0; i < partCount; i++) {
-            long curChunkStart = i * chunkSize;
+            long curChunkStart = (long) i * chunkSize;
             long curChunkSize = (i + 1 == partCount) ? (fileSize - curChunkStart) : chunkSize;
             long curChunkEnd = curChunkStart + curChunkSize;
 
@@ -382,7 +382,7 @@ public class VideoUploadServiceImpl implements VideoUploadService {
         List<FailUploadVideoChunk> failUploadVideoChunks = Lists.newCopyOnWriteArrayList();
         for (int i = 0; i < partCount; i++) {
             //当前分段起始位置
-            long curChunkStart = i * CHUNK_SIZE;
+            long curChunkStart = (long) i * CHUNK_SIZE;
             // 当前分段大小  如果为最后一个大小为fileSize-curChunkStart  其他为partSize
             long curChunkSize = (i + 1 == partCount) ? (fileSize - curChunkStart) : CHUNK_SIZE;
 
