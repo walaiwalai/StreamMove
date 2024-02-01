@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
@@ -84,7 +83,6 @@ public class StreamRecordServiceImpl implements StreamRecordService {
 
     private void downloadTs(Recorder recorder) throws Exception {
         TsUrl tsUrl = recorder.getRecordTask().getTsUrl();
-        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(recorder.getRecordTask().getRecorderName());
         String dirName = recorder.getSavePath();
 
         Integer total = tsUrl.getCount();
@@ -94,7 +92,6 @@ public class StreamRecordServiceImpl implements StreamRecordService {
         }
 
         int videoIndex = 1;
-//        boolean openHighLight = BooleanUtils.isTrue(streamerConfig.isOpenHighlightCut());
         for (List<Integer> batchIndexes : Lists.partition(segIndexes, BATCH_RECORD_TS_COUNT)) {
             File targetMergedVideo = new File(dirName, "P" + videoIndex + ".mp4");
             if (targetMergedVideo.exists()) {
@@ -118,10 +115,6 @@ public class StreamRecordServiceImpl implements StreamRecordService {
             }
             videoIndex++;
         }
-
-//        if (openHighLight) {
-//            reDownloadAndMerge(tsUrl, dirName, total);
-//        }
 
     }
 

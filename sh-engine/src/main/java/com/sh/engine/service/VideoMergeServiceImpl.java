@@ -22,7 +22,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     MsgSendService msgSendService;
 
     @Override
-    public boolean mergeVideos(List<String> mergedFileNames, File targetVideo) {
+    public boolean merge(List<String> mergedFileNames, File targetVideo) {
         File mergeListFile = new File(targetVideo.getParent(), "merge.txt");
         List<String> lines = mergedFileNames.stream()
                 .map(name -> {

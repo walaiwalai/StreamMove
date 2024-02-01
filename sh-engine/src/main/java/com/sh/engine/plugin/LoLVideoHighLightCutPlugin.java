@@ -1,7 +1,6 @@
 package com.sh.engine.plugin;
 
 import com.google.common.collect.Lists;
-import com.sh.config.manager.ConfigFetcher;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.plugin.lol.LoLPicData;
@@ -9,7 +8,6 @@ import com.sh.engine.plugin.lol.LolSequenceStatistic;
 import com.sh.engine.service.VideoMergeService;
 import com.sh.engine.util.CommandUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -17,8 +15,10 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.File;
-import java.util.*;
-import java.util.function.Function;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -59,7 +59,7 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
         // 4. 过滤中间视频文件缺失掉片段
 
         // 5. 进行合并视频
-        return videoMergeService.mergeVideos(buildMergeFileNames(potentialIntervals, videos), new File(recordPath, "highlight.mp4"));
+        return videoMergeService.merge(buildMergeFileNames(potentialIntervals, videos), new File(recordPath, "highlight.mp4"));
     }
 
     private File snapShot(File segFile) {
