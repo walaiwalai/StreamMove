@@ -96,7 +96,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
             if (isLastRecording) {
                 // 之前认为不在线，但存在 Recorder，这种情况不应该出现，可能未退出，应该将Record对应的线程杀死
                 log.info("kill recorder for {}", name);
-                curRecorder.kill();
+//                curRecorder.kill();
             } else {
                 // 创建一个新的Recorder
                 recordLiving(Recorder.initRecorder(task));
@@ -128,7 +128,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
             // 房间不在线，但仍在录制，先停止录制
             msgSendService.send("主播" + name + "下线了，停止录制..");
             log.info("stop recording for {}", name);
-            curRecorder.manualStopRecord();
+//            curRecorder.manualStopRecord();
             statusManager.deleteRoomPathStatus(curRecorder.getSavePath());
         }
 

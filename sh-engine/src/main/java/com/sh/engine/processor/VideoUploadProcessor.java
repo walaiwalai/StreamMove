@@ -112,7 +112,7 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor{
 
     @Override
     public RecordTaskStateEnum acceptState() {
-        return RecordTaskStateEnum.STREAM_RECORD_FINISH;
+        return RecordTaskStateEnum.VIDEO_PROCESS_FINISH;
     }
 
 

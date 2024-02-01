@@ -70,7 +70,7 @@ public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
 
     @Override
     public RecordStageEnum getStage() {
-        return RecordStageEnum.CHECK_ROOM;
+        return RecordStageEnum.ROOM_CHECK;
     }
 
     @Override

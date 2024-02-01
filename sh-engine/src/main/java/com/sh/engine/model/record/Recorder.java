@@ -1,9 +1,11 @@
 package com.sh.engine.model.record;
 
 import com.sh.config.model.stauts.FileStatusModel;
-import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.util.RecordConverter;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -37,24 +39,14 @@ public class Recorder {
     private boolean ffmpegProcessEnd = false;
 
     /**
-     * 流是否被用户手动终止
-     */
-    private boolean ffmpegProcessEndByUser = false;
-
-    /**
      * 视频后缀
      */
     private String videoExt = "mp4";
 
-    /**
-     * 录播的录像是否被上传
-     */
-    private boolean isPost;
-
-    /**
-     * 执行Ffmpeg命令的对象
-     */
-    private FfmpegCmd ffmpegCmd;
+//    /**
+//     * 执行Ffmpeg命令的对象
+//     */
+//    private FfmpegCmd ffmpegCmd;
 
     /**
      * 当前是否在录制
@@ -74,49 +66,28 @@ public class Recorder {
     public static Recorder initRecorder(RecordTask recordTask) {
         return Recorder.builder()
                 .videoExt("mp4")
-                .ffmpegProcessEnd(false)
-                .ffmpegProcessEndByUser(false)
-                .isPost(false)
                 .recordTask(recordTask)
                 .build();
     }
 
-    /**
-     * 手动终止录制
-     */
-    public void manualStopRecord() {
-        ffmpegProcessEndByUser = true;
-        if (!ffmpegProcessEnd) {
-            ffmpegCmd.destroy();
-            log.info("stop recoding recordName: {}", recordTask.getRecorderName());
-            // 同步文件状态
-            writeInfoToFileStatus();
-        }
-    }
-
-    /**
-     * 杀死拉流进程
-     */
-    public void kill() {
-        ffmpegCmd.destroy();
-    }
-
 //    /**
-//     * 从fileStatus.json同步文件状态
-//     *
-//     * @param dirName
-//     * @throws Exception
+//     * 手动终止录制
 //     */
-//    @SneakyThrows
-//    public void syncFileStatus(String dirName) {
-//        File file = new File(dirName, "fileStatus.json");
-//        if (file.exists()) {
-//            String statusStr = IOUtils.toString(new FileInputStream(file), "utf-8");
-//            JSONObject statusObj = JSON.parseObject(statusStr);
-//            this.isPost = BooleanUtils.isTrue(statusObj.getBoolean("isPost"));
+//    public void manualStopRecord() {
+//        if (!ffmpegProcessEnd) {
+//            ffmpegCmd.destroy();
+//            log.info("stop recoding recordName: {}", recordTask.getRecorderName());
+//            // 同步文件状态
+//            writeInfoToFileStatus();
 //        }
 //    }
 
+//    /**
+//     * 杀死拉流进程
+//     */
+//    public void kill() {
+//        ffmpegCmd.destroy();
+//    }
 
     /**
      * 写当前状态到fileStatus.json文件

@@ -11,11 +11,13 @@ public enum RecordTaskStateEnum {
 
     STREAM_RECORD_FINISH(2),
 
-    VIDEO_UPLOAD_FINISH(3),
+    VIDEO_PROCESS_FINISH(3),
 
-    ERROR(4),
+    VIDEO_UPLOAD_FINISH(4),
 
-    END(5),
+    ERROR(5),
+
+    END(6),
     ;
 
     private int code;

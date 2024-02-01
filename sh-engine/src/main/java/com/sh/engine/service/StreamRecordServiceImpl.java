@@ -4,10 +4,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.StreamerInfo;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
 import com.sh.engine.model.record.TsUrl;
+import com.sh.engine.plugin.VideoHighlightsCutPlugin;
+import com.sh.engine.plugin.base.ScreenshotPic;
 import com.sh.engine.util.CommandUtil;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
@@ -15,7 +18,9 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -24,8 +29,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * @Author caiwen
@@ -36,7 +43,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class StreamRecordServiceImpl implements StreamRecordService {
     @Resource
     private MsgSendService msgSendService;
-
+    @Resource
+    private VideoHighlightsCutPlugin videoHighlightsCutPlugin;
     private static Map<String, String> fakeHeaderMap = Maps.newHashMap();
     ExecutorService TS_DOWNLOAD_POOL = new ThreadPoolExecutor(
             4,
@@ -66,14 +74,13 @@ public class StreamRecordServiceImpl implements StreamRecordService {
         String streamerName = recordTask.getRecorderName();
         log.info("begin living download: {}, stream: {}", streamerName, recordTask.getStreamUrl());
 
-        livingRecordWithFfmpeg(recorder, recordTask);
+        livingRecordWithFfmpeg(recorder);
     }
 
     @Override
     public void startDownload(Recorder recorder) {
-        RecordTask recordTask = recorder.getRecordTask();
-        String streamerName = recordTask.getRecorderName();
-        log.info("begin new video download: {}, stream: {}", streamerName, recordTask.getTsUrl().getTsFormatUrl());
+        String streamerName = recorder.getRecordTask().getRecorderName();
+        log.info("begin new video download: {}", streamerName);
 
         try {
             downloadTs(recorder);
@@ -84,8 +91,8 @@ public class StreamRecordServiceImpl implements StreamRecordService {
     }
 
     private void downloadTs(Recorder recorder) throws Exception {
-        RecordTask task = recorder.getRecordTask();
-        TsUrl tsUrl = task.getTsUrl();
+        TsUrl tsUrl = recorder.getRecordTask().getTsUrl();
+        StreamerInfo streamerInfo = ConfigFetcher.getStreamerInfoByName(recorder.getRecordTask().getRecorderName());
         String dirName = recorder.getSavePath();
 
         Integer total = tsUrl.getCount();
@@ -95,47 +102,111 @@ public class StreamRecordServiceImpl implements StreamRecordService {
         }
 
         int videoIndex = 1;
-        AtomicInteger finishCount = new AtomicInteger();
+        boolean openHighLight = BooleanUtils.isTrue(streamerInfo.isOpenHighlightCut());
         for (List<Integer> batchIndexes : Lists.partition(segIndexes, BATCH_RECORD_TS_COUNT)) {
             File targetMergedVideo = new File(dirName, "P" + videoIndex + ".mp4");
             if (targetMergedVideo.exists()) {
                 log.info("merge video: {} existed, skip this batch", targetMergedVideo.getAbsolutePath());
-                finishCount.addAndGet(Math.min(total - BATCH_RECORD_TS_COUNT, BATCH_RECORD_TS_COUNT));
                 videoIndex++;
                 continue;
             }
 
-            CountDownLatch downloadLatch = new CountDownLatch(Math.min(total - finishCount.get(), BATCH_RECORD_TS_COUNT));
-            // 每一个BATCH_RECORD_TS_COUNT去下载
-            for (Integer i : batchIndexes) {
-                String segTsUrl = tsUrl.genTsUrl(i);
-                int finalI1 = i;
-                CountDownLatch finalDownloadLatch = downloadLatch;
-                CompletableFuture.supplyAsync(() -> {
-                            File targetFile = new File(dirName, "seg-" + finalI1 + ".ts");
-                            if (targetFile.exists()) {
-                                log.info("ts file existed, path: {}", targetFile.getAbsolutePath());
-                                return true;
-                            }
-                            return downloadTsSeg(segTsUrl, targetFile);
-                        }, TS_DOWNLOAD_POOL)
-                        .whenComplete((isSuccess, throwable) -> {
-                            finalDownloadLatch.countDown();
-                            finishCount.getAndIncrement();
-                        });
+            // 下载视频（阻塞）
+            downloadBatchTs(tsUrl, dirName, batchIndexes);
+
+            // 对视频进行合并
+            if (openHighLight) {
+                doScreenShot(batchIndexes, dirName);
             }
 
-            // 等待一批视频下载完成，对视频进行合并并删除
-            downloadLatch.await();
-            int s = (videoIndex - 1) * BATCH_RECORD_TS_COUNT + 1;
-            int e = Math.min(videoIndex * BATCH_RECORD_TS_COUNT, total);
-            boolean mergedSuccess = mergeVideos(s, e, targetMergedVideo);
+            // 合并视频
+            boolean mergedSuccess = mergeVideos(batchIndexes, targetMergedVideo);
             if (mergedSuccess) {
-                deleteDownloadedVideos(s, e, dirName);
+                deleteDownloadedVideos(batchIndexes, dirName);
             }
             videoIndex++;
         }
+
+        if (openHighLight) {
+            reDownloadAndMerge(tsUrl, dirName, total);
+        }
+
     }
+
+    private void doScreenShot(List<Integer> batchIndexes, String dirName) {
+        List<File> segVideos = Lists.newArrayList();
+        for (Integer i : batchIndexes) {
+            File segFile = new File(dirName, "seg-" + i + ".ts");
+            if (segFile.exists() && FileUtils.sizeOf(segFile) > 0) {
+                // 判断一些文件是否存在，如果不存在不合并
+                segVideos.add(segFile);
+            }
+        }
+
+        videoHighlightsCutPlugin.doScreenshot(segVideos);
+    }
+
+    private void reDownloadAndMerge(TsUrl tsUrl, String dirName, Integer total) throws Exception {
+        List<ScreenshotPic> files = Lists.newArrayList();
+        File snapShotFile = new File(dirName, "snapshot");
+
+        // 1. 找到对应截图
+        for (int i = 1; i <= total; i++) {
+            File picFile = new File(snapShotFile, "seg-" + i + ".jpg");
+            if (picFile.exists()) {
+                // 判断一些文件是否存在
+                files.add(new ScreenshotPic(picFile, i));
+            }
+
+        }
+
+        // 2. 根据截图找到精彩区间
+        List<Pair<Integer, Integer>> pairs = videoHighlightsCutPlugin.filterTs(files, 20);
+
+        // 3. 根据区间重新下载视频
+        List<Integer> batchIndexes = Lists.newArrayList();
+        for (Pair<Integer, Integer> pair : pairs) {
+            Integer start = pair.getLeft();
+            Integer end = pair.getRight();
+            for (int i = start; i < end + 1; i++) {
+                batchIndexes.add(i);
+            }
+        }
+        downloadBatchTs(tsUrl, dirName, batchIndexes);
+
+        // 4.合并视频
+        boolean mergedSuccess = mergeVideos(batchIndexes, new File(dirName, "highlight.mp4"));
+
+        // 5.删除视频
+        if (mergedSuccess) {
+            List<Integer> indexes = IntStream.rangeClosed(1, total).boxed().collect(Collectors.toList());
+            deleteDownloadedVideos(indexes, dirName);
+        }
+
+    }
+
+    private void downloadBatchTs(TsUrl tsUrl, String dirName, List<Integer> batchSegIndexes) throws InterruptedException {
+        CountDownLatch downloadLatch = new CountDownLatch(batchSegIndexes.size());
+        for (Integer i : batchSegIndexes) {
+            String segTsUrl = tsUrl.genTsUrl(i);
+            int finalI1 = i;
+            CompletableFuture.supplyAsync(() -> {
+                        File targetFile = new File(dirName, "seg-" + finalI1 + ".ts");
+                        if (targetFile.exists()) {
+                            log.info("ts file existed, path: {}", targetFile.getAbsolutePath());
+                            return true;
+                        }
+                        return downloadTsSeg(segTsUrl, targetFile);
+                    }, TS_DOWNLOAD_POOL)
+                    .whenComplete((isSuccess, throwable) -> {
+                        downloadLatch.countDown();
+                    });
+        }
+
+        // 等待视频下载完成
+        downloadLatch.await();
+    }
+
 
     private boolean downloadTsSeg(String targetUrl, File targetFile) {
         for (int i = 0; i < SEG_DOWNLOAD_RETRY; i++) {
@@ -162,27 +233,27 @@ public class StreamRecordServiceImpl implements StreamRecordService {
         return false;
     }
 
-    private boolean mergeVideos(int start, int end, File targetVideo) {
-        // 1. 写入代合并的文件路径
-        List<String> mergeTsPaths = Lists.newArrayList();
-        for (int i = start; i <= end; i++) {
-            File segFile = new File(targetVideo.getParent(), "seg-" + i + ".ts");
-            if (segFile.exists() && FileUtils.sizeOf(segFile) > 0) {
-                // 判断一些文件是否存在，如果不存在不合并
-                mergeTsPaths.add("file " + segFile.getAbsolutePath());
-            }
-        }
-
+    private boolean mergeVideos(List<Integer> batchIndexes, File targetVideo) {
         File mergeListFile = new File(targetVideo.getParent(), "merge.txt");
+        List<String> lines = batchIndexes.stream()
+                .map(index -> {
+                    File segFile = new File(targetVideo.getParent(), "seg-" + index + ".ts");
+                    if (!segFile.exists()) {
+                        return null;
+                    }
+                    return "file " + segFile.getAbsolutePath();
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
         try {
-            IOUtils.write(StringUtils.join(mergeTsPaths, "\n"), new FileOutputStream(mergeListFile), "utf-8");
+            IOUtils.write(StringUtils.join(lines, "\n"), new FileOutputStream(mergeListFile), "utf-8");
         } catch (IOException e) {
             log.error("write merge list file fail, savePath: {}", mergeListFile.getAbsolutePath(), e);
         }
 
         // 2. 使用FFmpeg合并视频
         String targetPath = targetVideo.getAbsolutePath();
-//        String command = "-f concat -safe 0 -i " + mergeListFile.getAbsolutePath() + " -c:v libx264 -c:a libfdk_aac " + targetPath;
         String command = "-f concat -safe 0 -i " + mergeListFile.getAbsolutePath() + " -c:v libx264 -crf 24 -preset superfast -c:a libfdk_aac -r 30 " + targetPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
 
@@ -199,9 +270,9 @@ public class StreamRecordServiceImpl implements StreamRecordService {
         }
     }
 
-    private static void deleteDownloadedVideos(int start, int send, String dirName) {
+    private static void deleteDownloadedVideos(List<Integer> indexes, String dirName) {
         // 删除下载的视频文件
-        for (int i = start; i <= send; i++) {
+        for (Integer i : indexes) {
             File file = new File(dirName, "seg-" + i + ".ts");
             file.delete();
         }
@@ -212,18 +283,18 @@ public class StreamRecordServiceImpl implements StreamRecordService {
      * 使用ffmpeg开始拉流
      *
      * @param recorder
-     * @param recordTask
      */
-    private boolean livingRecordWithFfmpeg(Recorder recorder, RecordTask recordTask) {
-        File fileToDownload = new File(recorder.getSavePath(),
-                recordTask.getRecorderName() + "-part-%03d." + recorder.getVideoExt());
+    private boolean livingRecordWithFfmpeg(Recorder recorder) {
+        String streamName = recorder.getRecordTask().getRecorderName();
+        File fileToDownload = new File(recorder.getSavePath(), streamName + "-part-%03d." + recorder.getVideoExt());
 
         // 1. 生成拉流命令
-//        String command = genFfmpegCmd(recordTask.getStreamUrl(), fileToDownload.getAbsolutePath());
-        String command = buildFfmpegCmd(recordTask.getStreamUrl(), fileToDownload.getAbsolutePath());
+        String command = buildFfmpegCmd(recorder.getRecordTask().getStreamUrl(), fileToDownload.getAbsolutePath());
 
         // 2. ffmpegCmd命令放到线程池中
-        return doFfmpegCmd(new FfmpegCmd(command), recorder);
+        FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
+
+        return doFfmpegCmd(ffmpegCmd, recorder);
     }
 
     private String buildFfmpegCmd(String streamUrl, String downloadFileName) {

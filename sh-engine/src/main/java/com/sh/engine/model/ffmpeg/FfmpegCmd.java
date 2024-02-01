@@ -42,7 +42,13 @@ public class FfmpegCmd {
      */
     private String ffmpegCommand;
 
-    public FfmpegCmd() {}
+    /**
+     * ffmpeg命令是否结束
+     */
+    private boolean ffmpegProcessEnd = false;
+
+    public FfmpegCmd() {
+    }
 
     public FfmpegCmd(String ffmpegCommand) {
         this.ffmpegCommand = ffmpegCommand;
@@ -70,8 +76,8 @@ public class FfmpegCmd {
 
         Runtime runtime = Runtime.getRuntime();
         try {
-            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
-//            ffmpeg = runtime.exec(cmd);
+//            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
+            ffmpeg = runtime.exec(cmd);
 
 //            if (destroyOnRuntimeShutdown) {
 //                ffmpegKiller = new ProcessKiller(ffmpeg);
@@ -178,7 +184,11 @@ public class FfmpegCmd {
      * close
      **/
     public void close() {
+        ffmpegProcessEnd = true;
         destroy();
     }
 
+    public boolean isFfmpegProcessEnd() {
+        return ffmpegProcessEnd;
+    }
 }
