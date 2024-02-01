@@ -2,7 +2,7 @@ package com.sh.engine.website;
 
 import com.alibaba.fastjson.JSONObject;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerInfo;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.constant.RecordConstant;
@@ -43,11 +43,11 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     private static final String RECORD_HISTORY_URL = "https://bjapi.afreecatv.com/api/%s/vods/review?page=1&per_page=20&orderby=reg_date";
 
     @Override
-    public LivingStreamer isRoomOnline(StreamerInfo streamerInfo) {
-        if (BooleanUtils.isTrue(streamerInfo.isRecordWhenOnline())) {
-            return fetchOnlineLivingInfo(streamerInfo);
+    public LivingStreamer isRoomOnline(StreamerConfig streamerConfig) {
+        if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
+            return fetchOnlineLivingInfo(streamerConfig);
         } else {
-            return fetchTsUploadInfo(streamerInfo);
+            return fetchTsUploadInfo(streamerConfig);
         }
     }
 
@@ -56,19 +56,19 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         return StreamChannelTypeEnum.AFREECA_TV;
     }
 
-    private LivingStreamer fetchTsUploadInfo(StreamerInfo streamerInfo) {
-        String roomUrl = streamerInfo.getRoomUrl();
+    private LivingStreamer fetchTsUploadInfo(StreamerConfig streamerConfig) {
+        String roomUrl = streamerConfig.getRoomUrl();
         String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
 
         // 1. 获取历史直播列表
         JSONObject lastedRecord = fetchLastedRecord(bid);
         String regDate = lastedRecord.getString("reg_date");
-        boolean isNewTs = checkIsNew(streamerInfo, regDate);
+        boolean isNewTs = checkIsNew(streamerConfig, regDate);
         if (!isNewTs) {
             return null;
         }
 
-        log.info("new ts record upload for {}", streamerInfo.getName());
+        log.info("new ts record upload for {}", streamerConfig.getName());
         // 2. 解析切片成链接格式
         String thumb = lastedRecord.getJSONObject("ucc").getString("thumb");
         String rowKey = thumb.substring(thumb.indexOf("rowKey=") + 7);
@@ -93,11 +93,11 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
 
     }
 
-    private boolean checkIsNew(StreamerInfo streamerInfo, String tsRegDate) {
-        if (StringUtils.isBlank(streamerInfo.getLastRecordTime())) {
+    private boolean checkIsNew(StreamerConfig streamerConfig, String tsRegDate) {
+        if (StringUtils.isBlank(streamerConfig.getLastRecordTime())) {
             return true;
         }
-        String lastRecordTime = streamerInfo.getLastRecordTime();
+        String lastRecordTime = streamerConfig.getLastRecordTime();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         try {
             Date date1 = dateFormat.parse(lastRecordTime);
@@ -170,8 +170,8 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     }
 
 
-    private LivingStreamer fetchOnlineLivingInfo(StreamerInfo streamerInfo) {
-        String roomUrl = streamerInfo.getRoomUrl();
+    private LivingStreamer fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
+        String roomUrl = streamerConfig.getRoomUrl();
         String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
 
         JSONObject userRespObj = fetchUserInfo(bid);
@@ -278,7 +278,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         System.setProperty("http.proxyHost", "127.0.0.1");
         System.setProperty("http.proxyPort", "10809");
         AfreecatvStreamerServiceImpl service = new AfreecatvStreamerServiceImpl();
-        LivingStreamer s = service.isRoomOnline(StreamerInfo.builder().recordWhenOnline(false).roomUrl("https://play.afreecatv.com/leesh2148").build());
+        LivingStreamer s = service.isRoomOnline(StreamerConfig.builder().recordWhenOnline(false).roomUrl("https://play.afreecatv.com/leesh2148").build());
         System.out.println(s.getStreamUrl());
     }
 }

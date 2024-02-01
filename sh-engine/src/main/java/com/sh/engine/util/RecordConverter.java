@@ -1,16 +1,14 @@
 package com.sh.engine.util;
-import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerInfo;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.model.video.UploadVideoPair;
 import com.sh.engine.model.bili.BiliVideoUploadTask;
-import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
@@ -51,10 +49,10 @@ public class RecordConverter {
         paramsMap.put("time", timeV);
         paramsMap.put("name", name);
 
-        StreamerInfo streamerInfo = ConfigFetcher.getStreamerInfoByName(name);
-        if (StringUtils.isNotBlank(streamerInfo.getTemplateTitle())) {
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(name);
+        if (StringUtils.isNotBlank(streamerConfig.getTemplateTitle())) {
             StringSubstitutor sub = new StringSubstitutor(paramsMap);
-            return sub.replace(streamerInfo.getTemplateTitle());
+            return sub.replace(streamerConfig.getTemplateTitle());
         } else {
             return name + " " + timeV + " " + "录播";
         }

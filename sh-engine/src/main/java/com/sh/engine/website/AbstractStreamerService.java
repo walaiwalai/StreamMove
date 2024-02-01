@@ -1,6 +1,6 @@
 package com.sh.engine.website;
 
-import com.sh.config.model.config.StreamerInfo;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.model.record.LivingStreamer;
 import okhttp3.OkHttpClient;
@@ -14,10 +14,10 @@ public abstract class AbstractStreamerService {
 
     /**
      * 房间是否在线, 又返回对应的streamUrl
-     * @param streamerInfo
+     * @param streamerConfig
      * @return
      */
-    public abstract LivingStreamer isRoomOnline(StreamerInfo streamerInfo);
+    public abstract LivingStreamer isRoomOnline(StreamerConfig streamerConfig);
 
     /**
      * 流接受平台类型

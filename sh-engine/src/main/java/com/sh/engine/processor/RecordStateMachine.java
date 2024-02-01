@@ -1,7 +1,8 @@
 package com.sh.engine.processor;
 
-import cn.hutool.core.util.RandomUtil;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.sh.config.model.config.StreamerConfig;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +13,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -45,17 +45,27 @@ public class RecordStateMachine {
         processorMap = processors.stream()
                 .collect(Collectors.toMap(AbstractRecordTaskProcessor::acceptState, Function.identity(), (a, b) -> b));
     }
-    public void start(RecordContext context) {
+    public void start(StreamerConfig config) {
         Map<String, String> contextMap = MDC.getCopyOfContextMap();
+        RecordContext context = new RecordContext();
+        context.setState(RecordTaskStateEnum.INIT);
+
         POOL.submit(() -> {
-//            int i = RandomUtil.randomInt(1, 30);
-//            try {
-//                Thread.sleep(i * 1000);
-//            } catch (InterruptedException e) {
-//            }
             MDC.setContextMap(contextMap);
-            process(context);
+            initStreamer(config);
+
+            try {
+                process(context);
+            } catch (Exception e) {
+                log.error("stateMachine error");
+            } finally {
+                StreamerInfoHolder.clear();
+            }
         });
+    }
+
+    private void initStreamer(StreamerConfig config) {
+        StreamerInfoHolder.addName(config.getName());
     }
 
     private void process(RecordContext context) {
@@ -74,6 +84,6 @@ public class RecordStateMachine {
         if (loop == 100) {
             throw new RuntimeException("internal reach to max loop");
         }
-        log.info("process internal finish, name: {}", context.getName());
+        log.info("process internal finish, name: {}", StreamerInfoHolder.getCurStreamerName());
     }
 }

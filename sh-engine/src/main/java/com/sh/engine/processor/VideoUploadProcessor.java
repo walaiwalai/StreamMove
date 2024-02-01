@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.engine.RecordStageEnum;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
@@ -39,7 +40,7 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor{
     @Override
     public void processInternal(RecordContext context) {
         // 1. 搜索当前streamer下的所有文件夹中的fileStatus.json文件
-        File streamerFile = new File(ConfigFetcher.getInitConfig().getVideoSavePath(), context.getName());
+        File streamerFile = new File(ConfigFetcher.getInitConfig().getVideoSavePath(), StreamerInfoHolder.getCurStreamerName());
         if (!streamerFile.exists()) {
             return;
         }

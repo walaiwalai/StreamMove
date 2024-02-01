@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerInfo;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.VideoFileUtils;
@@ -132,13 +132,13 @@ public class BiliWebUploadServiceImpl implements PlatformWorkUploadService {
 
     @Override
     public boolean postWork(String streamerName, List<RemoteSeverVideo> remoteSeverVideos, Map<String, String> extension) {
-        StreamerInfo streamerInfo = ConfigFetcher.getStreamerInfoByName(streamerName);
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
 
         String postWorkUrl = RecordConstant.BILI_POST_WORK
                 .replace("{t}", String.valueOf(System.currentTimeMillis()))
                 .replace("{csrf}", fetchCsrf(ConfigFetcher.getInitConfig().getBiliCookies()));
 
-        JSONObject params = buildPostWorkParam(streamerInfo, remoteSeverVideos, extension);
+        JSONObject params = buildPostWorkParam(streamerConfig, remoteSeverVideos, extension);
         MediaType mediaType = MediaType.parse("application/json");
         RequestBody requestBody = RequestBody.create(mediaType, JSON.toJSONString(params));
 
@@ -184,17 +184,17 @@ public class BiliWebUploadServiceImpl implements PlatformWorkUploadService {
         return StringUtils.substringBetween(biliCookies, "bili_jct=", ";");
     }
 
-    private JSONObject buildPostWorkParam(StreamerInfo streamerInfo, List<RemoteSeverVideo> remoteSeverVideos,
+    private JSONObject buildPostWorkParam(StreamerConfig streamerConfig, List<RemoteSeverVideo> remoteSeverVideos,
                                           Map<String, String> extension) {
         JSONObject params = new JSONObject();
-        params.put("cover", streamerInfo.getCover());
+        params.put("cover", streamerConfig.getCover());
         params.put("title", extension.get(BILI_VIDEO_TILE));
-        params.put("tid", streamerInfo.getTid());
-        params.put("tag", StringUtils.join(streamerInfo.getTags(), ","));
-        params.put("desc", streamerInfo.getDesc());
-        params.put("dynamic", streamerInfo.getDynamic());
+        params.put("tid", streamerConfig.getTid());
+        params.put("tag", StringUtils.join(streamerConfig.getTags(), ","));
+        params.put("desc", streamerConfig.getDesc());
+        params.put("dynamic", streamerConfig.getDynamic());
         params.put("copyright", 1);
-        params.put("source", streamerInfo.getSource());
+        params.put("source", streamerConfig.getSource());
         params.put("videos", remoteSeverVideos);
         params.put("no_reprint", 0);
         params.put("open_elec", 0);

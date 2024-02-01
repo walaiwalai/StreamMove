@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerInfo;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.HttpClientUtil;
@@ -159,8 +159,8 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
             return false;
         }
 
-        StreamerInfo streamerInfo = ConfigFetcher.getStreamerInfoByName(streamerName);
-        if (streamerInfo == null) {
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
+        if (streamerConfig == null) {
             log.error("has no streamer info to post work, streamerName: {}", streamerName);
             return false;
         }
@@ -168,7 +168,7 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
         String accessToken = ConfigFetcher.getInitConfig().getAccessToken();
         String postWorkUrl = String.format(CLIENT_POST_VIDEO_URL, accessToken);
         String resp = HttpClientUtil.sendPost(postWorkUrl, CLIENT_HEADERS,
-                buildPostWorkParamOnClient(streamerInfo, remoteSeverVideos, extension));
+                buildPostWorkParamOnClient(streamerConfig, remoteSeverVideos, extension));
         JSONObject respObj = JSONObject.parseObject(resp);
         if (Objects.equals(respObj.getString("code"), "0")) {
             log.info("postWork success, video is uploaded, remoteSeverVideos: {}",
@@ -180,18 +180,18 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
         }
     }
 
-    private JSONObject buildPostWorkParamOnClient(StreamerInfo streamerInfo, List<RemoteSeverVideo> remoteSeverVideos,
+    private JSONObject buildPostWorkParamOnClient(StreamerConfig streamerConfig, List<RemoteSeverVideo> remoteSeverVideos,
                                                   Map<String, String> extension) {
         JSONObject params = new JSONObject();
-        params.put("cover", streamerInfo.getCover());
+        params.put("cover", streamerConfig.getCover());
         params.put("build", 1088);
         params.put("title", extension.get(BILI_VIDEO_TILE));
-        params.put("tid", streamerInfo.getTid());
-        params.put("tag", StringUtils.join(streamerInfo.getTags(), ","));
-        params.put("desc", streamerInfo.getDesc());
-        params.put("dynamic", streamerInfo.getDynamic());
+        params.put("tid", streamerConfig.getTid());
+        params.put("tag", StringUtils.join(streamerConfig.getTags(), ","));
+        params.put("desc", streamerConfig.getDesc());
+        params.put("dynamic", streamerConfig.getDynamic());
         params.put("copyright", 1);
-        params.put("source", streamerInfo.getSource());
+        params.put("source", streamerConfig.getSource());
         params.put("videos", remoteSeverVideos);
         params.put("no_reprint", 0);
         params.put("open_elec", 1);

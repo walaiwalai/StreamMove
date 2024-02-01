@@ -2,15 +2,15 @@ package com.sh.engine.processor;
 
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerInfo;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.RecordStageEnum;
 import com.sh.engine.StreamChannelTypeEnum;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
 import com.sh.engine.model.record.LivingStreamer;
 import com.sh.engine.website.AbstractStreamerService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -23,8 +23,8 @@ import java.util.Map;
  * @Date 2023 12 18 23 29
  **/
 @Component
+@Slf4j
 public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
-    private static final Logger log = LoggerFactory.getLogger(RoomCheckStageProcessor.class);
     @Resource
     ApplicationContext applicationContext;
 
@@ -37,8 +37,8 @@ public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
 
     @Override
     public void processInternal(RecordContext context) {
-        String name = context.getName();
-        StreamerInfo streamInfo = ConfigFetcher.getStreamerInfoByName(name);
+        String name = StreamerInfoHolder.getCurStreamerName();
+        StreamerConfig streamInfo = ConfigFetcher.getStreamerInfoByName(name);
 
         // 1. 检查直播间是否开播
         context.setLivingStreamer(fetchStreamer(streamInfo));
@@ -46,13 +46,13 @@ public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
 
     /**
      * 获取直播间的视频推送刘
-     * @param streamerInfo
+     * @param streamerConfig
      * @return
      */
-    private LivingStreamer fetchStreamer(StreamerInfo streamerInfo) {
-        StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(streamerInfo.getRoomUrl());
+    private LivingStreamer fetchStreamer(StreamerConfig streamerConfig) {
+        StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(streamerConfig.getRoomUrl());
         if (channelEnum == null) {
-            log.error("roomUrl not match any platform, roomUrl: {}", streamerInfo.getRoomUrl());
+            log.error("roomUrl not match any platform, roomUrl: {}", streamerConfig.getRoomUrl());
             return null;
         }
         AbstractStreamerService streamerService = streamerServiceMap.get(channelEnum);
@@ -60,7 +60,7 @@ public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
             log.error("streamerService is null, type: {}", channelEnum.getDesc());
             return null;
         }
-        return streamerService.isRoomOnline(streamerInfo);
+        return streamerService.isRoomOnline(streamerConfig);
     }
 
     @Override

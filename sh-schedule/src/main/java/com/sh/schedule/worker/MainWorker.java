@@ -1,9 +1,7 @@
 package com.sh.schedule.worker;
 
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerInfo;
-import com.sh.engine.model.RecordContext;
-import com.sh.engine.model.RecordTaskStateEnum;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.processor.RecordStateMachine;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,12 +18,9 @@ public class MainWorker extends ProcessWorker {
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {
-        List<StreamerInfo> streamerInfos = ConfigFetcher.getStreamerInfoList();
-        for (StreamerInfo streamerInfo : streamerInfos) {
-            RecordContext context = new RecordContext();
-            context.setName(streamerInfo.getName());
-            context.setState(RecordTaskStateEnum.INIT);
-            recordStateMachine.start(context);
+        List<StreamerConfig> streamerConfigs = ConfigFetcher.getStreamerInfoList();
+        for (StreamerConfig streamerConfig : streamerConfigs) {
+            recordStateMachine.start(streamerConfig);
         }
     }
 }

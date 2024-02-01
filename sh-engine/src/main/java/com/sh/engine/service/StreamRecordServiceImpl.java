@@ -4,23 +4,18 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerInfo;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.record.RecordTask;
 import com.sh.engine.model.record.Recorder;
 import com.sh.engine.model.record.TsUrl;
-import com.sh.engine.plugin.VideoHighlightsCutPlugin;
-import com.sh.engine.plugin.base.ScreenshotPic;
 import com.sh.engine.util.CommandUtil;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -32,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * @Author caiwen
@@ -43,8 +37,6 @@ import java.util.stream.IntStream;
 public class StreamRecordServiceImpl implements StreamRecordService {
     @Resource
     private MsgSendService msgSendService;
-    @Resource
-    private VideoHighlightsCutPlugin videoHighlightsCutPlugin;
     private static Map<String, String> fakeHeaderMap = Maps.newHashMap();
     ExecutorService TS_DOWNLOAD_POOL = new ThreadPoolExecutor(
             4,
@@ -92,7 +84,7 @@ public class StreamRecordServiceImpl implements StreamRecordService {
 
     private void downloadTs(Recorder recorder) throws Exception {
         TsUrl tsUrl = recorder.getRecordTask().getTsUrl();
-        StreamerInfo streamerInfo = ConfigFetcher.getStreamerInfoByName(recorder.getRecordTask().getRecorderName());
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(recorder.getRecordTask().getRecorderName());
         String dirName = recorder.getSavePath();
 
         Integer total = tsUrl.getCount();
@@ -102,7 +94,7 @@ public class StreamRecordServiceImpl implements StreamRecordService {
         }
 
         int videoIndex = 1;
-        boolean openHighLight = BooleanUtils.isTrue(streamerInfo.isOpenHighlightCut());
+//        boolean openHighLight = BooleanUtils.isTrue(streamerConfig.isOpenHighlightCut());
         for (List<Integer> batchIndexes : Lists.partition(segIndexes, BATCH_RECORD_TS_COUNT)) {
             File targetMergedVideo = new File(dirName, "P" + videoIndex + ".mp4");
             if (targetMergedVideo.exists()) {
@@ -114,10 +106,10 @@ public class StreamRecordServiceImpl implements StreamRecordService {
             // 下载视频（阻塞）
             downloadBatchTs(tsUrl, dirName, batchIndexes);
 
-            // 对视频进行合并
-            if (openHighLight) {
-                doScreenShot(batchIndexes, dirName);
-            }
+//            // 对视频进行合并
+//            if (openHighLight) {
+//                doScreenShot(batchIndexes, dirName);
+//            }
 
             // 合并视频
             boolean mergedSuccess = mergeVideos(batchIndexes, targetMergedVideo);
@@ -127,61 +119,9 @@ public class StreamRecordServiceImpl implements StreamRecordService {
             videoIndex++;
         }
 
-        if (openHighLight) {
-            reDownloadAndMerge(tsUrl, dirName, total);
-        }
-
-    }
-
-    private void doScreenShot(List<Integer> batchIndexes, String dirName) {
-        List<File> segVideos = Lists.newArrayList();
-        for (Integer i : batchIndexes) {
-            File segFile = new File(dirName, "seg-" + i + ".ts");
-            if (segFile.exists() && FileUtils.sizeOf(segFile) > 0) {
-                // 判断一些文件是否存在，如果不存在不合并
-                segVideos.add(segFile);
-            }
-        }
-
-        videoHighlightsCutPlugin.doScreenshot(segVideos);
-    }
-
-    private void reDownloadAndMerge(TsUrl tsUrl, String dirName, Integer total) throws Exception {
-        List<ScreenshotPic> files = Lists.newArrayList();
-        File snapShotFile = new File(dirName, "snapshot");
-
-        // 1. 找到对应截图
-        for (int i = 1; i <= total; i++) {
-            File picFile = new File(snapShotFile, "seg-" + i + ".jpg");
-            if (picFile.exists()) {
-                // 判断一些文件是否存在
-                files.add(new ScreenshotPic(picFile, i));
-            }
-
-        }
-
-        // 2. 根据截图找到精彩区间
-        List<Pair<Integer, Integer>> pairs = videoHighlightsCutPlugin.filterTs(files, 20);
-
-        // 3. 根据区间重新下载视频
-        List<Integer> batchIndexes = Lists.newArrayList();
-        for (Pair<Integer, Integer> pair : pairs) {
-            Integer start = pair.getLeft();
-            Integer end = pair.getRight();
-            for (int i = start; i < end + 1; i++) {
-                batchIndexes.add(i);
-            }
-        }
-        downloadBatchTs(tsUrl, dirName, batchIndexes);
-
-        // 4.合并视频
-        boolean mergedSuccess = mergeVideos(batchIndexes, new File(dirName, "highlight.mp4"));
-
-        // 5.删除视频
-        if (mergedSuccess) {
-            List<Integer> indexes = IntStream.rangeClosed(1, total).boxed().collect(Collectors.toList());
-            deleteDownloadedVideos(indexes, dirName);
-        }
+//        if (openHighLight) {
+//            reDownloadAndMerge(tsUrl, dirName, total);
+//        }
 
     }
 

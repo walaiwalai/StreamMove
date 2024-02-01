@@ -1,6 +1,5 @@
 package com.sh.engine.model.record;
 
-import com.sh.config.model.config.StreamerInfo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

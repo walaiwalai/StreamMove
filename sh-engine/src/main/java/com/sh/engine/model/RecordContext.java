@@ -1,5 +1,6 @@
 package com.sh.engine.model;
 
+import com.sh.engine.model.plugin.RecordPostProcessInfo;
 import com.sh.engine.model.record.LivingStreamer;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,10 +17,14 @@ import lombok.NoArgsConstructor;
 @Builder
 public class RecordContext {
     private RecordTaskStateEnum state;
-    private String name;
 
     /**
      * 正在直播的主播
      */
     private LivingStreamer livingStreamer;
+
+    /**
+     * 视频后置处理
+     */
+    private RecordPostProcessInfo recordPostProcessInfo;
 }

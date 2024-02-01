@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.ImmutableMap;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerInfo;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.model.record.LivingStreamer;
@@ -40,13 +40,13 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
     }
 
     @Override
-    public LivingStreamer isRoomOnline(StreamerInfo streamerInfo) {
-        String rid = RegexUtil.fetchMatchedOne(streamerInfo.getRoomUrl(), RID_REGEX);
+    public LivingStreamer isRoomOnline(StreamerConfig streamerConfig) {
+        String rid = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), RID_REGEX);
         if (StringUtils.isBlank(rid)) {
-            rid = RegexUtil.fetchMatchedOne(streamerInfo.getRoomUrl(), DIGIT_REGEX);
+            rid = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), DIGIT_REGEX);
         }
         if (StringUtils.isBlank(rid)) {
-            log.error("roomUrl is illegal for douyu, roomUrl: {}", streamerInfo.getRoomUrl());
+            log.error("roomUrl is illegal for douyu, roomUrl: {}", streamerConfig.getRoomUrl());
             return null;
         }
 
@@ -126,7 +126,7 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
 
     public static void main(String[] args) {
         DouyuStreamerServiceImpl douyuStreamerService = new DouyuStreamerServiceImpl();
-        LivingStreamer res = douyuStreamerService.isRoomOnline(StreamerInfo.builder()
+        LivingStreamer res = douyuStreamerService.isRoomOnline(StreamerConfig.builder()
                 .roomUrl("https://www.douyu.com/8925391")
                 .build());
         System.out.println(res);

@@ -1,17 +1,25 @@
 package com.sh.engine.plugin;
 
 import com.google.common.collect.Lists;
+import com.sh.config.manager.ConfigFetcher;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.plugin.lol.LoLPicData;
 import com.sh.engine.plugin.lol.LolSequenceStatistic;
+import com.sh.engine.service.VideoMergeService;
 import com.sh.engine.util.CommandUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.io.File;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @Author caiwen
@@ -20,15 +28,21 @@ import java.util.Optional;
 @Component
 @Slf4j
 public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
+    @Resource
+    private VideoMergeService videoMergeService;
+
     private static final int MAX_HIGH_LIGHT_COUNT = 20;
 
     @Override
     public String getPluginName() {
-        return "lol_highlight_cut";
+        return "LOL_HL_TCUT";
     }
 
     @Override
-    public void process(List<File> videos) {
+    public boolean process() {
+        String recordPath = StreamerInfoHolder.getCurStreamer().getRecordPath();
+        Collection<File> videos = FileUtils.listFiles(new File(recordPath), new String[]{"ts"}, false);
+
         // 1. 截图
         List<File> pics = Lists.newArrayList();
         for (File video : videos) {
@@ -36,17 +50,16 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
         }
 
         // 2. 筛选精彩区间
-        List<LoLPicData> datas = Lists.newArrayList();
-        for (File pic : pics) {
-            int index = pic.getName().split("-")[]
-            datas.add(parse(pic));
-        }
+        List<LoLPicData> datas = pics.stream().map(this::parse).collect(Collectors.toList());
 
         // 3. 分析KDA找出精彩片段
-        LolSequenceStatistic statistic = new LolSequenceStatistic(datas, maxInterval);
-        return statistic.getPotentialIntervals();
+        LolSequenceStatistic statistic = new LolSequenceStatistic(datas, MAX_HIGH_LIGHT_COUNT);
+        List<Pair<Integer, Integer>> potentialIntervals = statistic.getPotentialIntervals();
 
-        // 4. 合并视频
+        // 4. 过滤中间视频文件缺失掉片段
+
+        // 5. 进行合并视频
+        return videoMergeService.mergeVideos(buildMergeFileNames(potentialIntervals, videos), new File(recordPath, "highlight.mp4"));
     }
 
     private File snapShot(File segFile) {
@@ -76,5 +89,36 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
             log.info("get pic fail, path: {}", segFile.getAbsolutePath());
             return null;
         }
+    }
+
+    private LoLPicData parse(File snapShotFile) {
+        // todo 调用python进行识别
+        LoLPicData data = new LoLPicData(0, 0, 0);
+        data.setTargetIndex(getIndexFromFileName(snapShotFile));
+        return data;
+    }
+
+    private static Integer getIndexFromFileName(File file) {
+        if (!file.exists()) {
+            return null;
+        }
+        String fileName = file.getName();
+        int start = fileName.lastIndexOf("-");
+        int end = fileName.lastIndexOf(".");
+        return Integer.valueOf(fileName.substring(start + 1, end));
+    }
+
+    private List<String> buildMergeFileNames(List<Pair<Integer, Integer>> intervals, Collection<File> files) {
+        Set<String> nameSet = files.stream().map(File::getName).collect(Collectors.toSet());
+        List<String> res = Lists.newArrayList();
+        for (Pair<Integer, Integer> interval : intervals) {
+            for (int i = interval.getLeft(); i < interval.getRight() + 1; i++) {
+                String fileName = "seg-" + i + ".ts";
+                if (nameSet.contains(fileName)) {
+                    res.add(fileName);
+                }
+            }
+        }
+        return res;
     }
 }

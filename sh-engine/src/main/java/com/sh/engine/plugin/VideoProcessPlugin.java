@@ -10,5 +10,5 @@ import java.util.List;
 public interface VideoProcessPlugin {
     String getPluginName();
 
-    void process(List<File> videos);
+    boolean process();
 }

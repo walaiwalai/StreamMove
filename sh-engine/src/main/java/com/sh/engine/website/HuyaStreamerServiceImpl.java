@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerInfo;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.model.record.LivingStreamer;
 import com.sh.engine.util.RegexUtil;
@@ -26,8 +26,8 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
     private static final String STREAM_REGEX = "(?<=(\"gameStreamInfoList\":)).*?](?=(}]))";
     private static final String QUALITY_REGEX = "(?<=264_)\\d+";
     @Override
-    public LivingStreamer isRoomOnline(StreamerInfo streamerInfo) {
-        String resp = HttpUtil.get(streamerInfo.getRoomUrl());
+    public LivingStreamer isRoomOnline(StreamerConfig streamerConfig) {
+        String resp = HttpUtil.get(streamerConfig.getRoomUrl());
         List<String> matchList = RegexUtil.getMatchList(resp, STREAM_REGEX, false);
         if (matchList.size() >= 1) {
             String gameStreamInfo = matchList.get(0);
@@ -36,7 +36,7 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
                 return null;
             }
 
-            log.info("{} is online", streamerInfo.getName());
+            log.info("{} is online", streamerConfig.getName());
             JSONObject selectCdn = streamInfoObj.getJSONObject(1);
             String sFlvUrl = selectCdn.getString("sFlvUrl");
             String sStreamName = selectCdn.getString("sStreamName");

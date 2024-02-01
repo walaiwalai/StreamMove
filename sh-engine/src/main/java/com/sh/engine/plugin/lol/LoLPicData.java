@@ -14,7 +14,6 @@ public class LoLPicData {
     private int D;
     private int A;
 
-    private File targetVideo;
     private Integer targetIndex;
 
     public LoLPicData(int k, int d, int a) {

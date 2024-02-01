@@ -1,5 +1,6 @@
 package com.sh.config.model.config;
 
+import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,7 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class StreamerInfo {
+public class StreamerConfig {
     private String name;
     private String roomUrl;
     private String templateTitle;
@@ -29,5 +30,5 @@ public class StreamerInfo {
     private boolean recordWhenOnline;
     private String lastRecordTime;
 
-    private boolean openHighlightCut;
+    private List<String> videoPlugins;
 }

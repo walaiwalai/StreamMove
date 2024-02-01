@@ -2,8 +2,9 @@ package com.sh.engine.processor;
 
 import com.alibaba.fastjson.JSON;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerInfo;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.RecordStageEnum;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
@@ -42,7 +43,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
 
     @Override
     public void processInternal(RecordContext context) {
-        String name = context.getName();
+        String name = StreamerInfoHolder.getCurStreamerName();
         if (context.getLivingStreamer() == null) {
             processWhenRoomOffline(name);
             return;
@@ -191,7 +192,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
         streamRecordService.startDownload(recorder);
         // 修改streamer.json
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        ConfigFetcher.refreshStreamer(StreamerInfo.builder()
+        ConfigFetcher.refreshStreamer(StreamerConfig.builder()
                 .name(streamerName)
                 .lastRecordTime(dateFormat.format(Optional.ofNullable(tsUrl.getRegDate()).orElse(new Date())))
                 .build());
