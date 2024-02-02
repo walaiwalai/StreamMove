@@ -11,7 +11,7 @@ import java.util.Date;
  **/
 @Builder
 @Data
-public class TsUrl {
+public class TsRecordInfo {
     private Integer count;
     private String tsFormatUrl;
 
@@ -20,6 +20,9 @@ public class TsUrl {
      */
     private Integer tsDuration;
 
+    /**
+     * 记录时间
+     */
     private Date regDate;
 
     public String genTsUrl(int tsNo) {

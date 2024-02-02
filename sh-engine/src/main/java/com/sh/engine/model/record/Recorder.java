@@ -23,9 +23,10 @@ import java.util.Date;
 @Slf4j
 public class Recorder {
     /**
-     * 录播任务
+     * 当前录像的时间
+     * 如：2023-02-12晚上
      */
-    private RecordTask recordTask;
+    private String timeV;
 
     /**
      * 录播视频保存路径
@@ -34,60 +35,14 @@ public class Recorder {
     private String savePath;
 
     /**
-     * 流拉取是否结束
+     * 拉视频流的地址(不是roomUrl)
      */
-    private boolean ffmpegProcessEnd = false;
+    private String streamUrl;
 
     /**
-     * 视频后缀
+     * 视频切片地址
      */
-    private String videoExt = "mp4";
-
-//    /**
-//     * 执行Ffmpeg命令的对象
-//     */
-//    private FfmpegCmd ffmpegCmd;
-
-    /**
-     * 当前是否在录制
-     *
-     * @return
-     */
-    public boolean getRecorderStat() {
-        return !this.ffmpegProcessEnd;
-    }
-
-    /**
-     * 初始化一个新的recorder
-     *
-     * @param recordTask
-     * @return
-     */
-    public static Recorder initRecorder(RecordTask recordTask) {
-        return Recorder.builder()
-                .videoExt("mp4")
-                .recordTask(recordTask)
-                .build();
-    }
-
-//    /**
-//     * 手动终止录制
-//     */
-//    public void manualStopRecord() {
-//        if (!ffmpegProcessEnd) {
-//            ffmpegCmd.destroy();
-//            log.info("stop recoding recordName: {}", recordTask.getRecorderName());
-//            // 同步文件状态
-//            writeInfoToFileStatus();
-//        }
-//    }
-
-//    /**
-//     * 杀死拉流进程
-//     */
-//    public void kill() {
-//        ffmpegCmd.destroy();
-//    }
+    private TsRecordInfo tsRecordInfo;
 
     /**
      * 写当前状态到fileStatus.json文件

@@ -1,6 +1,5 @@
 package com.sh.schedule;
 
-import com.google.common.util.concurrent.RateLimiter;
 import com.sh.schedule.config.CustomJobFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobDetail;
@@ -30,8 +29,6 @@ public class StreamerRecordProcessScheduler implements ProcessScheduler {
     @PostConstruct
     public void init() {
         // 初始化调度器
-        RateLimiter rateLimiter = RateLimiter.create(1);
-        rateLimiter.tryAcquire()
         try {
             schedulerFactory = new StdSchedulerFactory();
             Properties props = new Properties();

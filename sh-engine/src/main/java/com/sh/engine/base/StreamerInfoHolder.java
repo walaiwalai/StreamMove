@@ -21,10 +21,11 @@ public class StreamerInfoHolder {
      * 获取录播人名称
      */
     public static String getCurStreamerName() {
-        if (streamer.get() == null) {
-            return "";
-        }
         return streamer.get().getName();
+    }
+
+    public static String getCurRecordPath() {
+        return streamer.get().getRecordPath();
     }
 
     public static Streamer getCurStreamer() {
@@ -34,7 +35,7 @@ public class StreamerInfoHolder {
     /**
      * 移除当前用户对象
      */
-    public static void clear(){
+    public static void clear() {
         streamer.remove();
     }
 }

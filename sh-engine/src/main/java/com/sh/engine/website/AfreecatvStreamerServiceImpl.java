@@ -5,9 +5,8 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
-import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.record.LivingStreamer;
-import com.sh.engine.model.record.TsUrl;
+import com.sh.engine.model.record.TsRecordInfo;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
@@ -41,6 +40,8 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     private static final String BID_REGEX = "(?<=com/)([^/]+)$";
     private static final String TS_COUNT_REGEX = "seg-(\\d+)\\.ts";
     private static final String RECORD_HISTORY_URL = "https://bjapi.afreecatv.com/api/%s/vods/review?page=1&per_page=20&orderby=reg_date";
+
+    private static final String USER_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0";
 
     @Override
     public LivingStreamer isRoomOnline(StreamerConfig streamerConfig) {
@@ -78,17 +79,16 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
                 + infos[2].substring(infos[2].length() - 3) + "/"
                 + infos[2] + "/"
                 + "REGL_" + infos[1] + "_" + infos[2] + "_" + infos[3] + ".smil";
-        TsUrl tsUrl = fetchTsInfo(tsPrefix);
-        if (tsUrl != null) {
+        TsRecordInfo tsRecordInfo = fetchTsInfo(tsPrefix);
+        if (tsRecordInfo != null) {
             try {
-                tsUrl.setRegDate(DateUtils.parseDate(regDate, "yyyy-MM-dd HH:mm:ss"));
+                tsRecordInfo.setRegDate(DateUtils.parseDate(regDate, "yyyy-MM-dd HH:mm:ss"));
             } catch (ParseException e) {
             }
         }
 
         return LivingStreamer.builder()
-                .type(RecordConstant.RECORD_STREAM_TYPE)
-                .tsUrl(tsUrl)
+                .tsRecordInfo(tsRecordInfo)
                 .build();
 
     }
@@ -112,7 +112,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         Request.Builder requestBuilder = new Request.Builder()
                 .url(String.format(RECORD_HISTORY_URL, bid))
                 .get()
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
+                .addHeader("User-Agent", USER_HEADER)
                 .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
         if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
             requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
@@ -135,7 +135,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         }
     }
 
-    private TsUrl fetchTsInfo(String tsPrefix) {
+    private TsRecordInfo fetchTsInfo(String tsPrefix) {
         String playlistUrl = tsPrefix + "/hd/both/playlist.m3u8";
         Request.Builder requestBuilder = new Request.Builder()
                 .url(playlistUrl)
@@ -153,7 +153,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
                 String[] lines = StringUtils.split(resp, "\n");
                 String lastSegFile = lines[lines.length - 2];
                 String s = RegexUtil.fetchMatchedOne(lastSegFile, TS_COUNT_REGEX);
-                return TsUrl.builder()
+                return TsRecordInfo.builder()
                         .tsFormatUrl(tsPrefix + "/original/both/seg-%s.ts")
                         .count(Integer.valueOf(s))
                         .build();
@@ -189,7 +189,6 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         String viewUrl = fetchCdnUrl(boardNo);
         String m3u8Url = StringUtils.isNotBlank(viewUrl) ? viewUrl + "?aid=" + hlsAuthenticationKey : null;
         return LivingStreamer.builder()
-                .type(RecordConstant.LIVING_STREAM_TYPE)
                 .streamUrl(m3u8Url)
                 .anchorName(anchorName)
                 .build();

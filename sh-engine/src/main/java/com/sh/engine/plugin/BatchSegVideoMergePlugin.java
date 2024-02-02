@@ -1,10 +1,13 @@
 package com.sh.engine.plugin;
 
 import com.google.common.collect.Lists;
-import com.sh.engine.base.Streamer;
+import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.base.StreamerInfoHolder;
+import com.sh.engine.model.RecordContext;
 import com.sh.engine.service.VideoMergeService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -17,7 +20,6 @@ import java.util.stream.IntStream;
 @Slf4j
 public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
     private static final int BATCH_RECORD_TS_COUNT = 1200;
-    public static final String SEG_INDEX_REGEX = "seg-(\\d+)\\.ts";
     @Resource
     private VideoMergeService videoMergeService;
 
@@ -27,11 +29,17 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
     }
 
     @Override
-    public boolean process() {
+    public boolean process(RecordContext context) {
+        // 只有录像才能进行合并
+        String name = StreamerInfoHolder.getCurStreamerName();
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(name);
+        if (BooleanUtils.isNotTrue(streamerConfig.isRecordWhenOnline())) {
+            return false;
+        }
+
         int videoIndex = 1;
-        Streamer curStreamer = StreamerInfoHolder.getCurStreamer();
-        String dirName = curStreamer.getRecordPath();
-        List<Integer> segIndexes = IntStream.rangeClosed(1, curStreamer.getSegCount())
+        String dirName = StreamerInfoHolder.getCurRecordPath();
+        List<Integer> segIndexes = IntStream.rangeClosed(1, context.getLivingStreamer().getTsRecordInfo().getCount())
                 .boxed()
                 .collect(Collectors.toList());
 

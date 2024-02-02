@@ -3,9 +3,9 @@ package com.sh.config.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.sh.config.model.config.InitConfig;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.EnvUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 
@@ -25,38 +25,55 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class ConfigFetcher {
-    private static Map<String, StreamerConfig> name2StreamerMap = Maps.newLinkedHashMap();
-    private static InitConfig initConfig;
-
-    static {
-        loadStreamConfig(true);
-        loadInitConfig(true);
-        log.info("init config success");
-    }
+    private static volatile Map<String, StreamerConfig> name2StreamerMap;
+    private static volatile InitConfig initConfig;
 
     /**
      * 根据名称获取直播人的相关信息
+     *
      * @param name
      * @return
      */
     public static StreamerConfig getStreamerInfoByName(String name) {
+        if (name2StreamerMap == null) {
+            synchronized (ConfigFetcher.class) {
+                if (name2StreamerMap == null) {
+                    loadStreamConfig();
+                }
+            }
+        }
         return name2StreamerMap.get(name);
     }
 
     /**
      * 获取streamer的列表
+     *
      * @return
      */
     public static List<StreamerConfig> getStreamerInfoList() {
+        if (name2StreamerMap == null) {
+            synchronized (ConfigFetcher.class) {
+                if (name2StreamerMap == null) {
+                    loadStreamConfig();
+                }
+            }
+        }
         return Lists.newArrayList(name2StreamerMap.values());
     }
 
     public static InitConfig getInitConfig() {
+        if (initConfig == null) {
+            synchronized (ConfigFetcher.class) {
+                if (initConfig == null) {
+                    loadInitConfig();
+                }
+            }
+        }
         return initConfig;
     }
 
     public static void refresh() {
-        loadStreamConfig(false);
+        loadStreamConfig();
         log.info("refresh config success");
     }
 
@@ -78,39 +95,30 @@ public class ConfigFetcher {
     }
 
 
-    private static void loadInitConfig(boolean fistLoad) {
-
+    private static void loadInitConfig() {
         String configStr;
         try {
-            // 重新刷新从挂载目录读取
-//            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-//            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/init.json"), "utf-8");
-            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/init.json").toPath()), "utf-8");
-//            if (fistLoad) {
-//                // 第一次从resource资源读取
-//                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-//                configStr = IOUtils.toString(classLoader.getResourceAsStream("config/init.json"), "utf-8");
-//            } else {
-//            }
+            if (EnvUtil.isProd()) {
+                configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/init.json").toPath()), "utf-8");
+            } else {
+                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+                configStr = IOUtils.toString(classLoader.getResourceAsStream("config/init.json"), "utf-8");
+            }
             initConfig = JSONObject.parseObject(configStr, InitConfig.class);
         } catch (Exception e) {
             log.error("error load init.json, please check it!", e);
         }
     }
 
-    private static void loadStreamConfig(boolean fistLoad) {
+    private static void loadStreamConfig() {
         String configStr;
         try {
-            // 重新刷新从挂载目录读取
-//            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-//            configStr = IOUtils.toString(classLoader.getResourceAsStream("config/streamer.json"), "utf-8");
-            configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/streamer.json").toPath()), "utf-8");
-//            if (fistLoad) {
-//                // 第一次从resource资源读取
-//                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-//                configStr = IOUtils.toString(classLoader.getResourceAsStream("config/streamer.json"), "utf-8");
-//            } else {
-//            }
+            if (EnvUtil.isProd()) {
+                configStr = IOUtils.toString(Files.newInputStream(new File("/home/admin/stream/streamer.json").toPath()), "utf-8");
+            } else {
+                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+                configStr = IOUtils.toString(classLoader.getResourceAsStream("config/streamer.json"), "utf-8");
+            }
             name2StreamerMap = JSONObject.parseArray(configStr).toJavaList(StreamerConfig.class).stream()
                     .peek(ConfigFetcher::fillDefaultValueForStreamerInfo)
                     .collect(Collectors.toMap(StreamerConfig::getName, Function.identity(), (a, b) -> b));

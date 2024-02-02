@@ -1,6 +1,4 @@
 package com.sh.engine.util;
-import java.util.Map;
-import java.util.Optional;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -8,10 +6,14 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.model.video.UploadVideoPair;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.bili.BiliVideoUploadTask;
 import com.sh.engine.model.record.Recorder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
+
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author caiWen
@@ -19,14 +21,14 @@ import org.apache.commons.text.StringSubstitutor;
  */
 public class RecordConverter {
     public static FileStatusModel convertToFileStatusModel(Recorder recorder) {
-        String recorderName = recorder.getRecordTask().getRecorderName();
+        String recorderName = StreamerInfoHolder.getCurStreamerName();
 
         FileStatusModel fileStatusModel = new FileStatusModel();
         fileStatusModel.setPath(recorder.getSavePath());
         fileStatusModel.setRecorderName(recorderName);
         fileStatusModel.setIsPost(false);
         fileStatusModel.setIsFailed(false);
-        fileStatusModel.setTimeV(recorder.getRecordTask().getTimeV());
+        fileStatusModel.setTimeV(recorder.getTimeV());
         return fileStatusModel;
     }
 

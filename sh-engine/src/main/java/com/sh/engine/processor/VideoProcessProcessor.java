@@ -49,7 +49,7 @@ public class VideoProcessProcessor extends AbstractRecordTaskProcessor {
                 log.info("no certain video plugin for name: {}, will skip.", pluginName);
                 continue;
             }
-            boolean success = plugins.get(pluginName).process();
+            boolean success = plugins.get(pluginName).process(context);
             if (success) {
                 log.info("process plugin: {} success!", pluginName);
             } else {

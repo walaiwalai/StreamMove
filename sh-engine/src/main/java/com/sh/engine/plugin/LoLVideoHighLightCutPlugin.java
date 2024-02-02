@@ -2,6 +2,7 @@ package com.sh.engine.plugin;
 
 import com.google.common.collect.Lists;
 import com.sh.engine.base.StreamerInfoHolder;
+import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.plugin.lol.LoLPicData;
 import com.sh.engine.plugin.lol.LolSequenceStatistic;
@@ -39,7 +40,7 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
     }
 
     @Override
-    public boolean process() {
+    public boolean process(RecordContext context) {
         String recordPath = StreamerInfoHolder.getCurStreamer().getRecordPath();
         Collection<File> videos = FileUtils.listFiles(new File(recordPath), new String[]{"ts"}, false);
 

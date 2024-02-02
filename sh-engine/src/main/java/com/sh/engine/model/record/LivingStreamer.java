@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.Date;
-
 /**
  * @Author caiwen
  * @Date 2023 12 17 17 47
@@ -20,11 +18,6 @@ public class LivingStreamer {
     private String anchorName;
 
     /**
-     * living/ts
-     */
-    private String type;
-
-    /**
      * 录播的url
      */
     private String streamUrl;
@@ -32,5 +25,5 @@ public class LivingStreamer {
     /**
      * 切片详情
      */
-    private TsUrl tsUrl;
+    private TsRecordInfo tsRecordInfo;
 }
