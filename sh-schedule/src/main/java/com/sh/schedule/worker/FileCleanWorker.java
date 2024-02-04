@@ -3,12 +3,12 @@ package com.sh.schedule.worker;
 import com.alibaba.fastjson.JSON;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.stauts.FileStatusModel;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.manager.StatusManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -34,17 +34,14 @@ public class FileCleanWorker extends ProcessWorker {
             return;
         }
 
+
         for (File file : files) {
+
             try {
                 FileStatusModel fileStatusModel = JSON.parseObject(IOUtils.toString(file.toURI(), "utf-8"),
                         FileStatusModel.class);
-                if (StringUtils.isBlank(fileStatusModel.getPath())) {
-                    continue;
-                }
-                if (statusManager.isRecordOnSubmission(fileStatusModel.getPath())) {
-                    continue;
-                }
-                if (statusManager.isRoomPathFetchStream(file.getPath())) {
+                initStreamer(fileStatusModel);
+                if (statusManager.isPathOccupied()) {
                     continue;
                 }
                 if (fileStatusModel.getIsPost() == null || !fileStatusModel.getIsPost()) {
@@ -57,5 +54,10 @@ public class FileCleanWorker extends ProcessWorker {
                 log.error("fuck!", e);
             }
         }
+    }
+
+    private void initStreamer(FileStatusModel fileStatusModel) {
+        StreamerInfoHolder.addName(fileStatusModel.getRecorderName());
+        StreamerInfoHolder.addRecordPath(fileStatusModel.getPath());
     }
 }

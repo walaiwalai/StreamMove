@@ -5,6 +5,7 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.RecordStageEnum;
 import com.sh.engine.base.StreamerInfoHolder;
+import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
 import com.sh.engine.plugin.VideoProcessPlugin;
@@ -28,8 +29,11 @@ import java.util.Map;
 public class VideoProcessProcessor extends AbstractRecordTaskProcessor {
     @Resource
     ApplicationContext applicationContext;
+    @Resource
+    StatusManager statusManager;
 
     Map<String, VideoProcessPlugin> plugins = Maps.newHashMap();
+
     @PostConstruct
     private void init() {
         Map<String, VideoProcessPlugin> beansOfType = applicationContext.getBeansOfType(VideoProcessPlugin.class);
@@ -43,19 +47,33 @@ public class VideoProcessProcessor extends AbstractRecordTaskProcessor {
         if (CollectionUtils.isEmpty(streamerConfig.getVideoPlugins())) {
             return;
         }
+
+        if (statusManager.isDoPostProcess(streamerName)) {
+            log.info("{} is doing post process, plugin: {}.", streamerName, statusManager.getCurPostProcessType(streamerName));
+            return;
+        }
+
         // 1. 解析处理对应插件，并处理
         for (String pluginName : streamerConfig.getVideoPlugins()) {
             if (plugins.get(pluginName) == null) {
                 log.info("no certain video plugin for name: {}, will skip.", pluginName);
                 continue;
             }
+
+            // 加入当前处理的插件类型
+            log.info("begin running {}'s {} plugin.", streamerName, pluginName);
+            statusManager.doPostProcess(streamerName, pluginName);
+
             boolean success = plugins.get(pluginName).process(context);
             if (success) {
-                log.info("process plugin: {} success!", pluginName);
+                log.info("{}'s {} plugin process success!", streamerName, pluginName);
             } else {
-                log.error("process plugin: {} failed!", pluginName);
+                log.error("{}'s {} plugin process failed!", streamerName, pluginName);
             }
         }
+
+        // 2. 移除后置处理标志位
+        statusManager.finishPostProcess(streamerName);
     }
 
     @Override

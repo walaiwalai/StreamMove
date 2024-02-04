@@ -106,6 +106,8 @@ stream.json
   }
 ]
 ```
+安装ffmpeg
+安装python，并且安装torch
 
 ## 关于视频上传和录制
 

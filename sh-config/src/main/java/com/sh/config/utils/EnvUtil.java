@@ -9,6 +9,9 @@ import org.apache.commons.lang3.StringUtils;
  **/
 public class EnvUtil {
     public static boolean isProd() {
+        if (SpringUtil.getApplicationContext() == null) {
+            return false;
+        }
         String activeProfile = SpringUtil.getActiveProfile();
         return activeProfile != null && StringUtils.equals(activeProfile, "prod");
     }

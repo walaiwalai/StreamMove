@@ -96,14 +96,7 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor{
         if (StringUtils.isBlank(recordSavePath)) {
             return false;
         }
-        if (statusManager.isRoomPathFetchStream(recordSavePath)) {
-            // 还在拉流
-            log.info("videos in {} is on stream fetching..., skip", recordSavePath);
-            return false;
-        }
-        if (statusManager.isRecordOnSubmission(recordSavePath)) {
-            // 已经在上传了
-            log.info("videos in {} is on submission..., skip", recordSavePath);
+        if (statusManager.isPathOccupied()) {
             return false;
         }
 

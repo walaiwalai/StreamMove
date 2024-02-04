@@ -113,7 +113,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
         }
 
         statusManager.deleteRecorder(name);
-        statusManager.offlineRoom(name);
+//        statusManager.offlineRoom(name);
     }
 
     private void recordLiving(Recorder recorder) {

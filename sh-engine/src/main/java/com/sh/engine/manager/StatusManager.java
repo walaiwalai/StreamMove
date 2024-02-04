@@ -2,8 +2,10 @@ package com.sh.engine.manager;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.record.Recorder;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -39,6 +41,10 @@ public class StatusManager {
      */
     private static Map<String, Integer> uploadStatusMap = Maps.newConcurrentMap();
 
+    /**
+     * 当前录完的录像是否在被处理，key为录像文件，0表示在处理，1上传完成
+     */
+    private static Map<String, String> postProcessMap = Maps.newConcurrentMap();
 
 
     public void printInfo() {
@@ -148,20 +154,48 @@ public class StatusManager {
     }
 
 
-    /**
-     * 主播房间相关操作：是否在线，上线，下线
-     * @param streamerName
-     * @return
-     */
-    public boolean isRoomOnline(String streamerName) {
-        return roomStatusMap.containsKey(streamerName);
+//    /**
+//     * 主播房间相关操作：是否在线，上线，下线
+//     * @param streamerName
+//     * @return
+//     */
+//    public boolean isRoomOnline(String streamerName) {
+//        return roomStatusMap.containsKey(streamerName);
+//    }
+//
+//    public void onlineRoom(String streamerName) {
+//        roomStatusMap.put(streamerName, 1);
+//    }
+//
+//    public void offlineRoom(String streamerName) {
+//        roomStatusMap.remove(streamerName);
+//    }
+
+    public void doPostProcess(String streamerName, String type) {
+        postProcessMap.put(streamerName, type);
     }
 
-    public void onlineRoom(String streamerName) {
-        roomStatusMap.put(streamerName, 1);
+    public String getCurPostProcessType(String streamerName) {
+        return postProcessMap.get(streamerName);
     }
 
-    public void offlineRoom(String streamerName) {
-        roomStatusMap.remove(streamerName);
+    public boolean isDoPostProcess(String streamerName) {
+        return postProcessMap.containsKey(streamerName);
+    }
+
+    public void finishPostProcess(String streamerName) {
+        postProcessMap.remove(streamerName);
+    }
+
+
+    public boolean isPathOccupied() {
+        String curRecordPath = StreamerInfoHolder.getCurRecordPath();
+        return StringUtils.isNotBlank(curRecordPath) && (
+                isRecordOnSubmission(curRecordPath) ||
+                        isRoomPathFetchStream(curRecordPath) ||
+                        isDoPostProcess(curRecordPath)
+        );
+
+
     }
 }
