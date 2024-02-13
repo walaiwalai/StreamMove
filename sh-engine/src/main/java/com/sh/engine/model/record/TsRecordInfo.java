@@ -16,11 +16,6 @@ public class TsRecordInfo {
     private String tsFormatUrl;
 
     /**
-     * 每个切片的时长（ms）
-     */
-    private Integer tsDuration;
-
-    /**
      * 记录时间
      */
     private Date regDate;

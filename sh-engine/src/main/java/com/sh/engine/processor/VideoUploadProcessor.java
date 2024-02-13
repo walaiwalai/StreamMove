@@ -17,7 +17,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -39,21 +38,8 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor{
 
     @Override
     public void processInternal(RecordContext context) {
-        // 1. 搜索当前streamer下的所有文件夹中的fileStatus.json文件
-        File streamerFile = new File(ConfigFetcher.getInitConfig().getVideoSavePath(), StreamerInfoHolder.getCurStreamerName());
-        if (!streamerFile.exists()) {
-            return;
-        }
-
-        Collection<File> files = FileUtils.listFiles(streamerFile, new NameFileFilter("fileStatus.json"),
-                DirectoryFileFilter.INSTANCE);
-        if (CollectionUtils.isEmpty(files)) {
-            return;
-        }
-
-        // 2. 查找已经录播完成，但还未上传的文件
-        for (File file : files) {
-            FileStatusModel fileStatusModel = readFromInfo(file);
+        for (String curRecordPath : StreamerInfoHolder.getCurRecordPaths()) {
+            FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
             if (checkNeedDoUpload(fileStatusModel)) {
                 String path = fileStatusModel.getPath();
                 log.info("begin upload, dirName: {}", path);
@@ -74,15 +60,6 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor{
         }
     }
 
-    private FileStatusModel readFromInfo(File file) {
-        try {
-            return JSON.parseObject(IOUtils.toString(file.toURI(), "utf-8"), FileStatusModel.class);
-        } catch (IOException e) {
-            log.error("read from file error, fileName: {}", file.getName(), e);
-            return null;
-        }
-    }
-
     private boolean checkNeedDoUpload(FileStatusModel fileStatus) {
         if (fileStatus == null) {
             return false;
@@ -93,10 +70,7 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor{
             log.info("videos in {} already posted, skip", recordSavePath);
             return false;
         }
-        if (StringUtils.isBlank(recordSavePath)) {
-            return false;
-        }
-        if (statusManager.isPathOccupied()) {
+        if (statusManager.isPathOccupied(fileStatus.getPath())) {
             return false;
         }
 

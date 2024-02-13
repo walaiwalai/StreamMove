@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * @Author caiwen
  * @Date 2023 12 17 17 47
@@ -25,5 +27,5 @@ public class LivingStreamer {
     /**
      * 切片详情
      */
-    private TsRecordInfo tsRecordInfo;
+    private List<TsRecordInfo> tsViews;
 }

@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.record.Recorder;
@@ -13,15 +14,19 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @Author caiwen
@@ -31,15 +36,15 @@ import java.util.concurrent.*;
 @Slf4j
 public class StreamRecordServiceImpl implements StreamRecordService {
     private static Map<String, String> fakeHeaderMap = Maps.newHashMap();
-    ExecutorService TS_DOWNLOAD_POOL = new ThreadPoolExecutor(
-            4,
-            4,
-            600,
-            TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(20480),
-            new ThreadFactoryBuilder().setNameFormat("seg-download-%d").build(),
-            new ThreadPoolExecutor.CallerRunsPolicy()
-    );
+//    ExecutorService TS_DOWNLOAD_POOL = new ThreadPoolExecutor(
+//            4,
+//            4,
+//            600,
+//            TimeUnit.SECONDS,
+//            new ArrayBlockingQueue<>(20480),
+//            new ThreadFactoryBuilder().setNameFormat("seg-download-%d").build(),
+//            new ThreadPoolExecutor.CallerRunsPolicy()
+//    );
     OkHttpClient CLIENT = new OkHttpClient();
     private static final int SEG_DOWNLOAD_RETRY = 3;
 
@@ -74,29 +79,48 @@ public class StreamRecordServiceImpl implements StreamRecordService {
     }
 
     private void downloadTs(Recorder recorder) throws Exception {
-        TsRecordInfo tsRecordInfo = recorder.getTsRecordInfo();
+        List<TsRecordInfo> tsViews = recorder.getTsViews();
         String dirName = recorder.getSavePath();
-        Integer total = tsRecordInfo.getCount();
+        int total = tsViews.stream().mapToInt(TsRecordInfo::getCount).sum();
+
+        // 每个streamer单独起一个线程池进行下载
+        ExecutorService downloadPool = createDownloadPool();
 
         CountDownLatch downloadLatch = new CountDownLatch(total);
-        for (int i = 1; i < total; i++) {
-            String segTsUrl = tsRecordInfo.genTsUrl(i);
-            int finalI1 = i;
-            CompletableFuture.supplyAsync(() -> {
-                        File targetFile = new File(dirName, "seg-" + finalI1 + ".ts");
-                        if (targetFile.exists()) {
-                            log.info("ts file existed, path: {}", targetFile.getAbsolutePath());
-                            return true;
-                        }
-                        return downloadTsSeg(segTsUrl, targetFile);
-                    }, TS_DOWNLOAD_POOL)
-                    .whenComplete((isSuccess, throwable) -> {
-                        downloadLatch.countDown();
-                    });
+        log.info("total ts count is: {}, begin download...", total);
+        AtomicInteger index = new AtomicInteger(1);
+        for (TsRecordInfo tsView : tsViews) {
+            log.info("download ts record, url: {}, size: {}", tsView.getTsFormatUrl(), tsView.getCount());
+            for (int i = 1; i < tsView.getCount() + 1; i++) {
+                String segTsUrl = tsView.genTsUrl(i);
+                CompletableFuture.supplyAsync(() -> {
+                            File targetFile = new File(dirName, "seg-" + index.getAndIncrement() + ".ts");
+                            if (targetFile.exists()) {
+                                log.info("ts file existed, path: {}", targetFile.getAbsolutePath());
+                                return true;
+                            }
+                            return downloadTsSeg(segTsUrl, targetFile);
+                        }, downloadPool)
+                        .whenComplete((isSuccess, throwable) -> {
+                            downloadLatch.countDown();
+                        });
+            }
         }
 
         // 等待视频下载完成
         downloadLatch.await();
+    }
+
+    private static ExecutorService createDownloadPool() {
+        return new ThreadPoolExecutor(
+                4,
+                4,
+                600,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(20480),
+                new ThreadFactoryBuilder().setNameFormat(StreamerInfoHolder.getCurStreamerName() + "-seg-download-%d").build(),
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
     }
 
 
@@ -166,7 +190,7 @@ public class StreamRecordServiceImpl implements StreamRecordService {
                 "-correct_ts_overflow", "1",
                 "-r", "30",
                 "-c:v", "copy",
-                "-c:a", "libfdk_aac",
+                "-c:a", "copy",
                 "-map", "0",
                 "-f", "segment",
                 "-segment_time", ConfigFetcher.getInitConfig().getSegmentDuration() + "",
@@ -191,19 +215,5 @@ public class StreamRecordServiceImpl implements StreamRecordService {
             log.error("download stream fail, recordName: {}, savePath: {}, code: {}", recorderName, recorder.getSavePath(), resCode);
             return false;
         }
-    }
-
-    public static void main(String[] args) {
-        System.setProperty("http.proxySet", "true");
-        System.setProperty("http.proxyHost", "127.0.0.1");
-        System.setProperty("http.proxyPort", "10809");
-        StreamRecordServiceImpl streamRecordService = new StreamRecordServiceImpl();
-        streamRecordService.startDownload(Recorder.builder()
-                .tsRecordInfo(TsRecordInfo.builder()
-                        .tsFormatUrl("https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/vod/20231228/585/250550585/REGL_E8F3995E_250550585_1.smil/original/both/seg-%s.ts")
-                        .count(61)
-                        .build())
-                .timeV("2023-12-30 10:10:00")
-                .build());
     }
 }

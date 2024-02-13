@@ -1,6 +1,9 @@
 package com.sh.engine.website;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.HttpClientUtil;
@@ -23,6 +26,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -71,26 +75,69 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
 
         log.info("new ts record upload for {}", streamerConfig.getName());
         // 2. 解析切片成链接格式
-        String thumb = lastedRecord.getJSONObject("ucc").getString("thumb");
-        String rowKey = thumb.substring(thumb.indexOf("rowKey=") + 7);
-        String[] infos = StringUtils.split(rowKey, "_");
-        String tsPrefix = "https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/vod/"
-                + infos[0] + "/"
-                + infos[2].substring(infos[2].length() - 3) + "/"
-                + infos[2] + "/"
-                + "REGL_" + infos[1] + "_" + infos[2] + "_" + infos[3] + ".smil";
-        TsRecordInfo tsRecordInfo = fetchTsInfo(tsPrefix);
-        if (tsRecordInfo != null) {
-            try {
-                tsRecordInfo.setRegDate(DateUtils.parseDate(regDate, "yyyy-MM-dd HH:mm:ss"));
-            } catch (ParseException e) {
+        Long titleNo = lastedRecord.getLong("title_no");
+        List<TsRecordInfo> tsRecordInfos = fetchTsViews(titleNo);
+        if (tsRecordInfos != null) {
+            for (TsRecordInfo tsRecordInfo : tsRecordInfos) {
+                try {
+                    tsRecordInfo.setRegDate(DateUtils.parseDate(regDate, "yyyy-MM-dd HH:mm:ss"));
+                } catch (ParseException e) {
+                }
             }
         }
 
         return LivingStreamer.builder()
-                .tsRecordInfo(tsRecordInfo)
+                .tsViews(tsRecordInfos)
                 .build();
 
+    }
+
+    private List<TsRecordInfo> fetchTsViews(Long nTitleNo) {
+        String playlistUrl = "https://api.m.afreecatv.com/station/video/a/view";
+        RequestBody body = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("nTitleNo", nTitleNo + "")
+                .addFormDataPart("nApiLevel", "10")
+                .addFormDataPart("nPlaylistIdx", "0")
+                .build();
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(playlistUrl)
+                .post(body)
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
+                .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
+        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
+            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
+        }
+
+        List<TsRecordInfo> views = Lists.newArrayList();
+        Response response = null;
+        try {
+            response = CLIENT.newCall(requestBuilder.build()).execute();
+            if (response.isSuccessful()) {
+                String resp = response.body().string();
+                JSONArray files = JSONObject.parseObject(resp).getJSONObject("data").getJSONArray("files");
+                for (int i = 0; i < files.size(); i++) {
+                    views.add(covertSingleView(files.getJSONObject(i)));
+                }
+            } else {
+                String message = response.message();
+                String bodyStr = response.body() != null ? response.body().string() : null;
+                log.error("query user info failed, message: {}, body: {}", message, bodyStr);
+                return null;
+            }
+        } catch (IOException e) {
+            log.error("query playlist success, playlistUrl: {}", playlistUrl, e);
+            return null;
+        }
+        return views;
+    }
+
+    private TsRecordInfo covertSingleView(JSONObject fileObj) {
+        String file = fileObj.getJSONArray("quality_info").getJSONObject(0).getString("file");
+        int index1 = file.lastIndexOf(":");
+        int index2 = file.indexOf("/playlist.m3u8");
+        String tsPrefix = "https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/" + file.substring(index1 + 1, index2);
+        return fetchTsInfo(tsPrefix);
     }
 
     private boolean checkIsNew(StreamerConfig streamerConfig, String tsRegDate) {
@@ -136,7 +183,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     }
 
     private TsRecordInfo fetchTsInfo(String tsPrefix) {
-        String playlistUrl = tsPrefix + "/hd/both/playlist.m3u8";
+        String playlistUrl = tsPrefix + "/original/both/playlist.m3u8";
         Request.Builder requestBuilder = new Request.Builder()
                 .url(playlistUrl)
                 .get()
@@ -273,11 +320,9 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     }
 
     public static void main(String[] args) {
-        System.setProperty("http.proxySet", "true");
-        System.setProperty("http.proxyHost", "127.0.0.1");
-        System.setProperty("http.proxyPort", "10809");
         AfreecatvStreamerServiceImpl service = new AfreecatvStreamerServiceImpl();
-        LivingStreamer s = service.isRoomOnline(StreamerConfig.builder().recordWhenOnline(false).roomUrl("https://play.afreecatv.com/leesh2148").build());
-        System.out.println(s.getStreamUrl());
+        LivingStreamer s = service.isRoomOnline(StreamerConfig.builder().recordWhenOnline(false).roomUrl("https://play.afreecatv.com/tldn031").build());
+        System.out.println(JSON.toJSONString(s));
+
     }
 }

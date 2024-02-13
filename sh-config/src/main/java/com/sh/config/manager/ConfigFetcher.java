@@ -80,10 +80,11 @@ public class ConfigFetcher {
     public static void refreshStreamer(StreamerConfig updated) {
         String name = updated.getName();
         StreamerConfig existed = getStreamerInfoByName(name);
-        JSONObject streamerInfo = JSONObject.parseObject(JSON.toJSONString(existed));
-        streamerInfo.putAll(JSONObject.parseObject(JSON.toJSONString(updated)));
+        if (updated.getLastRecordTime() != null) {
+            existed.setLastRecordTime(updated.getLastRecordTime());
+        }
 
-        name2StreamerMap.put(name, streamerInfo.toJavaObject(StreamerConfig.class));
+        name2StreamerMap.put(name, existed);
 
         // 写入streamer.json
         try {
@@ -122,6 +123,7 @@ public class ConfigFetcher {
             name2StreamerMap = JSONObject.parseArray(configStr).toJavaList(StreamerConfig.class).stream()
                     .peek(ConfigFetcher::fillDefaultValueForStreamerInfo)
                     .collect(Collectors.toMap(StreamerConfig::getName, Function.identity(), (a, b) -> b));
+            log.info("load {} streamers success!", name2StreamerMap.keySet().size());
         } catch (Exception e) {
             log.error("error load streamer.json, please check it!", e);
         }

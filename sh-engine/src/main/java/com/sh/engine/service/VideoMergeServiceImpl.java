@@ -44,7 +44,9 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
         // 2. 使用FFmpeg合并视频
         String targetPath = targetVideo.getAbsolutePath();
-        String command = "-f concat -safe 0 -i " + mergeListFile.getAbsolutePath() + " -c:v libx264 -crf 24 -preset superfast -c:a libfdk_aac -r 30 " + targetPath;
+        String command = "-f concat -safe 0 -i " + mergeListFile.getAbsolutePath() +
+//                " -c:v libx264 -crf 24 -preset superfast -c:a libfdk_aac -r 30 " + targetPath;
+                " -c:v copy -c:a copy -r 30 " + targetPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
 
         msgSendService.send("开始合并压缩视频... 路径为：" + targetVideo.getAbsolutePath());

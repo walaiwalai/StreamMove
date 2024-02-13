@@ -21,6 +21,16 @@ public enum StreamChannelTypeEnum {
      * afreecatv
      */
     AFREECA_TV(3, "afreecatv", "play.afreecatv.com"),
+
+    /**
+     * bilibili
+     */
+    BILI(4, "b站", "live.bilibili.com"),
+
+    /**
+     * twitch
+     */
+    TWITCH(5, "twitch", "twitch.tv"),
     ;
 
     private int type;

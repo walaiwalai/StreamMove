@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * 直播，投稿，录播的状态统一在这维护
@@ -32,54 +31,47 @@ public class StatusManager {
 
     /**
      * 直播间录像存放文件夹地址记录，按进行时间分段（当天日期）
-     * key存放视频文件夹地址，0为未有视频流往该文件夹写，1为有视频正在往当前文件夹写
+     * key为streamer，value当前上传的所在目录文件
      */
-    private static Map<String, Integer> roomPathStatusMap = Maps.newHashMap();
+    private static Map<String, String> roomPathStatusMap = Maps.newConcurrentMap();
 
     /**
-     * 录播完的录像上传状态（文件按时间粒度划分），key为时间分段，0或null未被上传，1上传完成
+     * 录播完的录像上传状态（文件按时间粒度划分），key为streamer，value录播文件地址
      */
-    private static Map<String, Integer> uploadStatusMap = Maps.newConcurrentMap();
+    private static Map<String, String> uploadStatusMap = Maps.newConcurrentMap();
 
     /**
-     * 当前录完的录像是否在被处理，key为录像文件，0表示在处理，1上传完成
+     * 当前录完的录像是否在被处理，key为录播文件地址，value当前处理的阶段
      */
     private static Map<String, String> postProcessMap = Maps.newConcurrentMap();
 
 
     public void printInfo() {
-        log.info("There are {} streamers are recoding, they are: ", recorderMap.keySet().size());
-        for (Map.Entry<String, Recorder> entry : recorderMap.entrySet()) {
-            log.info("name: {}，path: {}", entry.getKey(), entry.getValue().getSavePath());
+        log.info("There are {} streamers recoding, they are: ", roomPathStatusMap.keySet().size());
+        for (Map.Entry<String, String> entry : roomPathStatusMap.entrySet()) {
+            log.info("name: {}，path: {}", entry.getKey(), entry.getValue());
         }
 
-        long onLineCount = roomStatusMap.values().stream().filter(v -> v == 1).count();
-        log.info("There are {} streamers online, they are: ", onLineCount);
-        for (Map.Entry<String, Integer> entry : roomStatusMap.entrySet()) {
-            if (entry.getValue() == 1) {
-                log.info("name: {}", entry.getKey());
-            }
+        long postProcessCount = postProcessMap.keySet().size();
+        log.info("There are {} streamers processing, they are: ", postProcessCount);
+        for (Map.Entry<String, String> entry : postProcessMap.entrySet()) {
+            log.info("path: {}, plugin: {}.", entry.getKey(), entry.getValue());
         }
 
-        long uploadCount = uploadStatusMap.values().stream().filter(v -> v == 1).count();
-        log.info("There are {} streamers are uploading, they are: ", uploadCount);
-        for (Map.Entry<String, Integer> entry : uploadStatusMap.entrySet()) {
-            if (entry.getValue() == 1) {
-                log.info("name: {}", entry.getKey());
-            }
+        long uploadCount = uploadStatusMap.keySet().size();
+        log.info("There are {} streamers uploading, they are: ", uploadCount);
+        for (Map.Entry<String, String> entry : uploadStatusMap.entrySet()) {
+            log.info("name: {}, path: {}", entry.getKey(), entry.getValue());
         }
     }
 
 
-
-
     /**
      * 录像是否在投稿中(某个主播某段时间维度)
-     * @param pathWithTimeV
      * @return
      */
-    public boolean isRecordOnSubmission(String pathWithTimeV) {
-        return Objects.equals(uploadStatusMap.get(pathWithTimeV), 1);
+    public boolean isRecordOnSubmission(String recordPath) {
+        return uploadStatusMap.containsKey(recordPath);
     }
 
     /**
@@ -87,70 +79,55 @@ public class StatusManager {
      * @param pathWithTimeV
      */
     public void lockRecordForSubmission(String pathWithTimeV) {
-        uploadStatusMap.put(pathWithTimeV, 1);
+        uploadStatusMap.put(pathWithTimeV, "1");
     }
 
     /**
      * 解锁当前时间段多个视频（001,002...）投稿状态
-     * @param pathWithTimeV
      */
     public void releaseRecordForSubmission(String pathWithTimeV) {
         uploadStatusMap.remove(pathWithTimeV);
     }
 
 
-    /**
-     * 当前主播是否在被录制
-     *
-     * @return
-     */
-    public boolean isOnRecord(String streamerName) {
-        return recorderMap.containsKey(streamerName);
-    }
-
-    public Integer countOnRecord() {
-        return recorderMap.keySet().size();
-    }
-
-    public List<String> listOnRecordName() {
-        return Lists.newArrayList(recorderMap.keySet());
-    }
-
-    /**
-     * 根据当前主播名称获得recorder
-     *
-     * @param streamerName
-     * @return
-     */
-    public Recorder getRecorderByStreamerName(String streamerName) {
-        return recorderMap.get(streamerName);
-    }
-
-    public void addRecorder(String streamerName, Recorder recorder) {
-        recorderMap.put(streamerName, recorder);
-    }
-
-    public void deleteRecorder(String streamerName) {
-        recorderMap.remove(streamerName);
-    }
-
-
-
+//    /**
+//     * 当前主播是否在被录制
+//     *
+//     * @return
+//     */
+//    public boolean isOnRecord() {
+//        return recorderMap.containsKey(StreamerInfoHolder.getCurStreamerName());
+//    }
+//
+//    public void addRecorder(String streamerName, Recorder recorder) {
+//        recorderMap.put(streamerName, recorder);
+//    }
+//
+//    public void deleteRecorder(String streamerName) {
+//        recorderMap.remove(streamerName);
+//    }
 
     /**
-     * 该文件下直播间录像是否正在被下载
-     * @param pathWithTimeV
+     * 直播间录像是否正在被下载
      */
-    public boolean isRoomPathFetchStream(String pathWithTimeV) {
-        return Objects.equals(roomPathStatusMap.get(pathWithTimeV), 1);
+    public boolean isRoomPathFetchStream() {
+        return roomPathStatusMap.containsKey(StreamerInfoHolder.getCurStreamerName());
     }
 
     public void addRoomPathStatus(String pathWithTimeV) {
-        roomPathStatusMap.put(pathWithTimeV, 1);
+        roomPathStatusMap.put(StreamerInfoHolder.getCurStreamerName(), pathWithTimeV);
     }
 
-    public void deleteRoomPathStatus(String pathWithTimeV) {
-        roomPathStatusMap.remove(pathWithTimeV);
+    public String getCurRecordPath() {
+        return roomPathStatusMap.get(StreamerInfoHolder.getCurStreamerName());
+    }
+
+    public void deleteRoomPathStatus() {
+        roomPathStatusMap.remove(StreamerInfoHolder.getCurStreamerName());
+    }
+
+    public Integer countOnRecord() {
+        return roomPathStatusMap.keySet().size();
     }
 
 
@@ -171,31 +148,27 @@ public class StatusManager {
 //        roomStatusMap.remove(streamerName);
 //    }
 
-    public void doPostProcess(String streamerName, String type) {
-        postProcessMap.put(streamerName, type);
+    public void doPostProcess(String recordPath, String type) {
+        postProcessMap.put(recordPath, type);
     }
 
-    public String getCurPostProcessType(String streamerName) {
-        return postProcessMap.get(streamerName);
+    public String getCurPostProcessType(String recordPath) {
+        return postProcessMap.get(recordPath);
     }
 
-    public boolean isDoPostProcess(String streamerName) {
-        return postProcessMap.containsKey(streamerName);
+    public boolean isDoPostProcess(String recordPath) {
+        return postProcessMap.containsKey(recordPath);
     }
 
-    public void finishPostProcess(String streamerName) {
-        postProcessMap.remove(streamerName);
+    public void finishPostProcess(String recordPath) {
+        postProcessMap.remove(recordPath);
     }
 
 
-    public boolean isPathOccupied() {
-        String curRecordPath = StreamerInfoHolder.getCurRecordPath();
-        return StringUtils.isNotBlank(curRecordPath) && (
-                isRecordOnSubmission(curRecordPath) ||
-                        isRoomPathFetchStream(curRecordPath) ||
-                        isDoPostProcess(curRecordPath)
-        );
+    public boolean isPathOccupied(String recordPath) {
+        String onRecordPath = roomPathStatusMap.get(StreamerInfoHolder.getCurStreamerName());
+        boolean isPathOnRecording = StringUtils.equals(recordPath, onRecordPath);
 
-
+        return isRecordOnSubmission(recordPath) || isPathOnRecording || isDoPostProcess(recordPath);
     }
 }

@@ -1,20 +1,27 @@
 package com.sh.schedule.worker;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
+import com.sh.engine.base.Streamer;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.manager.StatusManager;
+import com.sh.engine.util.CommandUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.NameFileFilter;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 
 /**
@@ -29,35 +36,48 @@ public class FileCleanWorker extends ProcessWorker {
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {
-        Collection<File> files = FileUtils.listFiles(new File(ConfigFetcher.getInitConfig().getVideoSavePath()), new String[]{"json"}, true);
-        if (CollectionUtils.isEmpty(files)) {
-            return;
-        }
-
-
-        for (File file : files) {
-
-            try {
-                FileStatusModel fileStatusModel = JSON.parseObject(IOUtils.toString(file.toURI(), "utf-8"),
-                        FileStatusModel.class);
-                initStreamer(fileStatusModel);
-                if (statusManager.isPathOccupied()) {
+        List<StreamerConfig> streamerConfigs = ConfigFetcher.getStreamerInfoList();
+        for (StreamerConfig streamerConfig : streamerConfigs) {
+            init(streamerConfig);
+            for (String curRecordPath : StreamerInfoHolder.getCurRecordPaths()) {
+                FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
+                if (fileStatusModel.getIsPost() == null || !fileStatusModel.getIsPost()) {
+                    // 没有上传的
                     continue;
                 }
-                if (fileStatusModel.getIsPost() == null || !fileStatusModel.getIsPost()) {
+
+                if (statusManager.isPathOccupied(curRecordPath)) {
                     continue;
                 }
 
                 log.info("Begin to delete file {}", fileStatusModel.getPath());
-                FileUtils.deleteDirectory(new File(fileStatusModel.getPath()));
-            } catch (IOException e) {
-                log.error("fuck!", e);
+                try {
+                    FileUtils.deleteDirectory(new File(curRecordPath));
+                } catch (IOException e) {
+                    log.error("fuck!", e);
+                } finally {
+                    StreamerInfoHolder.clear();
+                }
             }
         }
     }
 
-    private void initStreamer(FileStatusModel fileStatusModel) {
-        StreamerInfoHolder.addName(fileStatusModel.getRecorderName());
-        StreamerInfoHolder.addRecordPath(fileStatusModel.getPath());
+    private void init(StreamerConfig streamerConfig) {
+        String name = streamerConfig.getName();
+        List<String> recordPaths = Lists.newArrayList();
+        File streamerFile = new File(streamerConfig.fetchSavePath(), name);
+        if (streamerFile.exists()) {
+            Collection<File> statusFiles = FileUtils.listFiles(streamerFile, new NameFileFilter("fileStatus.json"),
+                    DirectoryFileFilter.INSTANCE);
+            for (File statusFile : statusFiles) {
+                recordPaths.add(statusFile.getParent());
+            }
+        }
+
+        // threadLocal
+        Streamer streamer = new Streamer();
+        streamer.setName(name);
+        streamer.setRecordPaths(recordPaths);
+        StreamerInfoHolder.addStreamer(streamer);
     }
 }

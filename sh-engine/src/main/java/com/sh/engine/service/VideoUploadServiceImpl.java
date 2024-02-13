@@ -61,11 +61,11 @@ public class VideoUploadServiceImpl implements VideoUploadService {
      * 上传视频线程池
      */
     private static final ExecutorService UPLOAD_POOL = new ThreadPoolExecutor(
-            4,
-            4,
+            8,
+            8,
             600,
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(2048),
+            new ArrayBlockingQueue<>(20480),
             new ThreadFactoryBuilder().setNameFormat("bili-upload-thread-%d").build(),
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
@@ -76,27 +76,28 @@ public class VideoUploadServiceImpl implements VideoUploadService {
 
         // 3. 获取本地视频文件
         List<LocalVideo> localVideoParts = fetchLocalVideos(uploadModel);
-        if (CollectionUtils.isEmpty(localVideoParts)) {
-            log.info("no videos cab be upload, will return, dirName: {}", dirName);
-            return;
-        }
 
         // 4.预上传视频
-        log.info("start to upload videoParts...");
+        List<RemoteSeverVideo> remoteVideos = Lists.newArrayList();
+        if (CollectionUtils.isNotEmpty(uploadModel.getSucceedUploaded())) {
+            // 4.1 上次上传成功的
+            log.info("Found succeed uploaded videos ... Concat ...");
+            remoteVideos.addAll(uploadModel.getSucceedUploaded());
+        }
+
+        // 4.2 需要上传的
         List<RemoteSeverVideo> remoteVideoParts = doUpload(localVideoParts, uploadModel);
         log.info("upload videoParts end, remoteVideos: {}", JSON.toJSONString(remoteVideoParts));
-        if (CollectionUtils.isNotEmpty(uploadModel.getSucceedUploaded())) {
-            log.info("Found succeed uploaded videos ... Concat ...");
-            remoteVideoParts.addAll(uploadModel.getSucceedUploaded());
-        }
-        // 4.1 给需要上传的视频文件命名
-        for (int i = 0; i < remoteVideoParts.size(); i++) {
-            remoteVideoParts.get(i).setTitle("P" + (i + 1));
+        remoteVideos.addAll(remoteVideoParts);
+
+        // 4.2 给需要上传的视频文件命名
+        for (int i = 0; i < remoteVideos.size(); i++) {
+            remoteVideos.get(i).setTitle("P" + (i + 1));
         }
 
         // 5.post视频
-        log.info("Try to post Videos: {}", JSON.toJSONString(remoteVideoParts));
-        boolean isPostSuccess = doPost(uploadModel.getStreamerName(), remoteVideoParts, uploadModel);
+        log.info("Try to post Videos: {}", JSON.toJSONString(remoteVideos));
+        boolean isPostSuccess = doPost(uploadModel.getStreamerName(), remoteVideos, uploadModel);
         if (!isPostSuccess) {
             throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
         }
@@ -403,7 +404,7 @@ public class VideoUploadServiceImpl implements VideoUploadService {
                     });
         }
 
-        countDownLatch.await(3, TimeUnit.HOURS);
+        countDownLatch.await();
 
         if (CollectionUtils.isEmpty(failUploadVideoChunks)) {
             log.info("video chunks upload success, videoPath: {}", localVideo.getLocalFileFullPath());

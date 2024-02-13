@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -48,32 +49,35 @@ public class VideoProcessProcessor extends AbstractRecordTaskProcessor {
             return;
         }
 
-        if (statusManager.isDoPostProcess(streamerName)) {
-            log.info("{} is doing post process, plugin: {}.", streamerName, statusManager.getCurPostProcessType(streamerName));
-            return;
-        }
-
-        // 1. 解析处理对应插件，并处理
-        for (String pluginName : streamerConfig.getVideoPlugins()) {
-            if (plugins.get(pluginName) == null) {
-                log.info("no certain video plugin for name: {}, will skip.", pluginName);
+        List<String> curRecordPaths = StreamerInfoHolder.getCurRecordPaths();
+        for (String curRecordPath : curRecordPaths) {
+            if (statusManager.isPathOccupied(curRecordPath)) {
+                log.info("{} is doing other process, plugin: {}.", streamerName, statusManager.getCurPostProcessType(streamerName));
                 continue;
             }
 
-            // 加入当前处理的插件类型
-            log.info("begin running {}'s {} plugin.", streamerName, pluginName);
-            statusManager.doPostProcess(streamerName, pluginName);
+            // 1. 解析处理对应插件，并处理
+            for (String pluginName : streamerConfig.getVideoPlugins()) {
+                if (plugins.get(pluginName) == null) {
+                    log.info("no certain video plugin for name: {}, will skip.", pluginName);
+                    continue;
+                }
 
-            boolean success = plugins.get(pluginName).process(context);
-            if (success) {
-                log.info("{}'s {} plugin process success!", streamerName, pluginName);
-            } else {
-                log.error("{}'s {} plugin process failed!", streamerName, pluginName);
+                // 加入当前处理的插件类型
+                log.info("begin running {}'s {} plugin.", streamerName, pluginName);
+                statusManager.doPostProcess(curRecordPath, pluginName);
+
+                boolean success = plugins.get(pluginName).process(curRecordPath);
+                if (success) {
+                    log.info("{}'s {} plugin process success, path: {}. ", streamerName, pluginName, curRecordPath);
+                } else {
+                    log.error("{}'s {} plugin process failed, path: {}.", streamerName, pluginName, curRecordPath);
+                }
             }
-        }
 
-        // 2. 移除后置处理标志位
-        statusManager.finishPostProcess(streamerName);
+            // 2. 移除后置处理标志位
+            statusManager.finishPostProcess(curRecordPath);
+        }
     }
 
     @Override

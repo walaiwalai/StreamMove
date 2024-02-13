@@ -5,6 +5,7 @@
 - 虎牙
 - 斗鱼
 - Afreecatv
+- Bilibili
 
 ## 容器部署
 - 配置sh-config中的init.json和streamer.json
@@ -112,11 +113,6 @@ stream.json
 ## 关于视频上传和录制
 
 - 视频录制去掉了ffmpeg的依赖，需要自行安装ffmpeg并支持libx264和libfdk_aac编码。
-    - B站大体积视频会上传失败，所以增加了ffmpeg的转码压缩（目前仅在recordWhenOnline为false会压缩转码），默认参数是：
-  ```text
-  -c:v libx264 -crf 25 -preset superfast -c:a libfdk_aac -r 30
-  ```
-  如果需要改参数，请修改StreamRecordServiceImpl.java代码
 - B站Web端视频仅支持单视频上传，客户端支持多P上传
 - 支持“哔哩哔哩投稿工具”客户端（版本2.3.0.1089）分P上传视频，其中init.json中的accessToken和mid抓包“member.bilibili.com/preupload”这个请求。
 

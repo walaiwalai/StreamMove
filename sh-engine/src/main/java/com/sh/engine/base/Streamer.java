@@ -2,13 +2,14 @@ package com.sh.engine.base;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class Streamer {
     private String name;
-    private String recordPath;
 
     /**
-     * 针对下载的分片总量
+     * 当前streamer的录像文件，可能有多个
      */
-    private Integer segCount;
+    private List<String> recordPaths;
 }

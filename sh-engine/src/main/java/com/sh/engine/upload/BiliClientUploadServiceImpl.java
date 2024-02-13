@@ -8,8 +8,10 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.HttpClientUtil;
+import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.VideoFileUtils;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.*;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -24,6 +26,8 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -48,15 +52,15 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
     }
 
     /**
-     * chunk上传失败重试次数
+     * 失败重试次数
      */
-    public static final Integer CHUNK_RETRY = 3;
+    public static final Integer RETRY_COUNT = 3;
     public static final Integer CHUNK_RETRY_DELAY = 1000;
 
     @Override
-    public boolean uploadChunk(String uploadUrl, File targetFile, Integer chunkNo, Integer totalChunks, Integer curChunkSize, Long curChunkStart, Map<String, String> extension) {
+    public boolean uploadChunk(String uploadUrl, File targetFile, Integer chunkNo, Integer totalChunks, Integer curChunkSize,
+                               Long curChunkStart, Map<String, String> extension) {
         int chunkShowNo = chunkNo + 1;
-        log.info("start to upload {}th video chunk, curChunkSize: {}M.", chunkShowNo, curChunkSize / 1024 / 1024);
         long startTime = System.currentTimeMillis();
 
         byte[] bytes = null;
@@ -67,7 +71,6 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
             return false;
         }
         String md5Str = DigestUtils.md5Hex(bytes);
-//        BlockStreamBody blockBody = new BlockStreamBody(curChunkStart, curChunkSize, targetFile);
         HttpEntity requestEntity = MultipartEntityBuilder.create()
                 .addPart(FormBodyPartBuilder.create()
                         .setName("version")
@@ -95,7 +98,7 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
                         .build())
                 .build();
 
-        for (int i = 0; i < CHUNK_RETRY; i++) {
+        for (int i = 0; i < RETRY_COUNT; i++) {
             try {
                 Thread.sleep(CHUNK_RETRY_DELAY);
                 String respStr = HttpClientUtil.sendPost(uploadUrl, null, requestEntity);
@@ -105,10 +108,10 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
                             (System.currentTimeMillis() - startTime) / 1000);
                     return true;
                 } else {
-                    log.error("{}th chunk upload fail, ret: {}, will retry...", chunkShowNo, respStr);
+                    log.error("{}th chunk upload fail, ret: {}, retry: {}/{}", chunkShowNo, respStr, i + 1, RETRY_COUNT);
                 }
             } catch (Exception e) {
-                log.error("{}th chunk upload error, will retry...", chunkShowNo, e);
+                log.error("{}th chunk upload error, retry: {}/{}", chunkShowNo, i + 1, RETRY_COUNT, e);
             }
         }
         return false;
@@ -141,15 +144,23 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
                         .setBody(new StringBody(videoName, ContentType.APPLICATION_FORM_URLENCODED))
                         .build())
                 .build();
-        String completeResp = HttpClientUtil.sendPost(finishUrl, null, completeEntity);
-        JSONObject respObj = JSONObject.parseObject(completeResp);
-        if (Objects.equals(respObj.getString("OK"), "1")) {
-            log.info("complete upload success, videoName: {}", videoName);
-            return true;
-        } else {
-            log.error("complete upload fail, videoName: {}", videoName);
-            return false;
+
+        for (int i = 0; i < RETRY_COUNT; i++) {
+            try {
+                Thread.sleep(CHUNK_RETRY_DELAY);
+                String completeResp = HttpClientUtil.sendPost(finishUrl, null, completeEntity);
+                JSONObject respObj = JSONObject.parseObject(completeResp);
+                if (Objects.equals(respObj.getString("OK"), "1")) {
+                    log.info("complete upload success, videoName: {}", videoName);
+                    return true;
+                } else {
+                    log.error("complete upload fail, videoName: {}, retry: {}/{}.", videoName, i + 1, RETRY_COUNT);
+                }
+            } catch (Exception e) {
+                log.error("complete upload error, retry: {}/{}", i + 1, RETRY_COUNT, e);
+            }
         }
+        return false;
     }
 
     @Override
@@ -167,17 +178,24 @@ public class BiliClientUploadServiceImpl implements PlatformWorkUploadService{
 
         String accessToken = ConfigFetcher.getInitConfig().getAccessToken();
         String postWorkUrl = String.format(CLIENT_POST_VIDEO_URL, accessToken);
-        String resp = HttpClientUtil.sendPost(postWorkUrl, CLIENT_HEADERS,
-                buildPostWorkParamOnClient(streamerConfig, remoteSeverVideos, extension));
-        JSONObject respObj = JSONObject.parseObject(resp);
-        if (Objects.equals(respObj.getString("code"), "0")) {
-            log.info("postWork success, video is uploaded, remoteSeverVideos: {}",
-                    JSON.toJSONString(remoteSeverVideos));
-            return true;
-        } else {
-            log.error("postWork failed, res: {}, title: {}", resp, JSON.toJSONString(remoteSeverVideos));
-            return false;
+        for (int i = 0; i < RETRY_COUNT; i++) {
+            try {
+                Thread.sleep(CHUNK_RETRY_DELAY);
+                String resp = HttpClientUtil.sendPost(postWorkUrl, CLIENT_HEADERS,
+                        buildPostWorkParamOnClient(streamerConfig, remoteSeverVideos, extension));
+                JSONObject respObj = JSONObject.parseObject(resp);
+                if (Objects.equals(respObj.getString("code"), "0")) {
+                    log.info("postWork success, video is uploaded, remoteSeverVideos: {}",
+                            JSON.toJSONString(remoteSeverVideos));
+                    return true;
+                } else {
+                    log.error("postWork failed, res: {}, title: {}, retry: {}/{}.", resp, JSON.toJSONString(remoteSeverVideos), i + 1, RETRY_COUNT);
+                }
+            } catch (Exception e) {
+                log.error("postWork error, retry: {}/{}", i + 1, RETRY_COUNT, e);
+            }
         }
+        return false;
     }
 
     private JSONObject buildPostWorkParamOnClient(StreamerConfig streamerConfig, List<RemoteSeverVideo> remoteSeverVideos,

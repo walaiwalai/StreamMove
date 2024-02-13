@@ -1,7 +1,5 @@
 package com.sh.engine.plugin;
 
-import com.sh.engine.model.RecordContext;
-
 
 /**
  * @Author caiwen
@@ -10,5 +8,5 @@ import com.sh.engine.model.RecordContext;
 public interface VideoProcessPlugin {
     String getPluginName();
 
-    boolean process(RecordContext context);
+    boolean process(String recordPath);
 }

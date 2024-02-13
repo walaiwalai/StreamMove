@@ -20,17 +20,17 @@ import java.util.Optional;
  * @date 2023/1/26 9:47
  */
 public class RecordConverter {
-    public static FileStatusModel convertToFileStatusModel(Recorder recorder) {
-        String recorderName = StreamerInfoHolder.getCurStreamerName();
-
-        FileStatusModel fileStatusModel = new FileStatusModel();
-        fileStatusModel.setPath(recorder.getSavePath());
-        fileStatusModel.setRecorderName(recorderName);
-        fileStatusModel.setIsPost(false);
-        fileStatusModel.setIsFailed(false);
-        fileStatusModel.setTimeV(recorder.getTimeV());
-        return fileStatusModel;
-    }
+//    public static FileStatusModel convertToFileStatusModel(Recorder recorder) {
+//        String recorderName = StreamerInfoHolder.getCurStreamerName();
+//
+//        FileStatusModel fileStatusModel = new FileStatusModel();
+//        fileStatusModel.setPath(recorder.getSavePath());
+//        fileStatusModel.setRecorderName(recorderName);
+//        fileStatusModel.setIsPost(false);
+//        fileStatusModel.setIsFailed(false);
+//        fileStatusModel.setTimeV(recorder.getTimeV());
+//        return fileStatusModel;
+//    }
 
     public static BiliVideoUploadTask initUploadModel(FileStatusModel fileStatus) {
         UploadVideoPair videoParts = fileStatus.getVideoParts();

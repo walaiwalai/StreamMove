@@ -1,10 +1,5 @@
 package com.sh.config.utils;
 
-/**
- * @author caiWen
- * @date 2023/1/26 18:40
- */
-
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
@@ -16,11 +11,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.entity.mime.FormBodyPartBuilder;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -29,23 +20,27 @@ import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
 
 @Slf4j
-public class HttpClientUtil {
+public class HttpUtil {
     private static final int MAX_TOTAL_CONN = 600;
     private static final int MAX_CONN_PER_HOST = 300;
+
+    /**
+     * 请求获取数据的超时时间，单位毫秒
+     */
     private static final int SOCKET_TIMEOUT = 18000000;
+    /**
+     * 设置连接超时时间，单位毫秒。
+     */
     private static final int CONNECTION_TIMEOUT = 200;
+    /**
+     * 设置从连接池获取连接超时时间，单位毫秒
+     */
     private static final int CONNECTION_MANAGER_TIMEOUT = 100;
 
-
     private static CloseableHttpClient httpclient;
-    private static PoolingHttpClientConnectionManager connMrg;
     // 默认字符集
     private static String encoding = "utf-8";
 
@@ -68,29 +63,23 @@ public class HttpClientUtil {
     }
 
     private static void init() {
-        connMrg = new PoolingHttpClientConnectionManager();
-        // 最大连接数
+        PoolingHttpClientConnectionManager connMrg = new PoolingHttpClientConnectionManager();
         connMrg.setMaxTotal(MAX_TOTAL_CONN);
-        //每个路由基础的连接
         connMrg.setDefaultMaxPerRoute(MAX_CONN_PER_HOST);
 
         RequestConfig defaultRequestConfig = RequestConfig.custom()
-                //设置连接超时时间，单位毫秒。
                 .setConnectTimeout(CONNECTION_TIMEOUT)
-                //请求获取数据的超时时间，单位毫秒
                 .setSocketTimeout(SOCKET_TIMEOUT)
-                //设置从连接池获取连接超时时间，单位毫秒
                 .setConnectionRequestTimeout(CONNECTION_MANAGER_TIMEOUT)
                 .build();
+
         httpclient = HttpClients.custom()
                 .setConnectionManager(connMrg)
                 .setDefaultRequestConfig(defaultRequestConfig)
                 .build();
     }
 
-    public static CloseableHttpClient getClient() {
-        return httpclient;
-    }
+
 
     /**
      * @param url      请求地址
@@ -272,4 +261,3 @@ public class HttpClientUtil {
         return null;
     }
 }
-

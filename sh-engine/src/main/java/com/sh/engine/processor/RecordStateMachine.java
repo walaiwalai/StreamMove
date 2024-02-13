@@ -1,16 +1,25 @@
 package com.sh.engine.processor;
 
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.engine.base.Streamer;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.NameFileFilter;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.io.File;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -34,7 +43,7 @@ public class RecordStateMachine {
             4,
             600,
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(10),
+            new ArrayBlockingQueue<>(100),
             new ThreadFactoryBuilder().setNameFormat("record-state-machine").build(),
             new ThreadPoolExecutor.AbortPolicy()
     );
@@ -52,8 +61,9 @@ public class RecordStateMachine {
 
         POOL.submit(() -> {
             MDC.setContextMap(contextMap);
-            initStreamer(config);
+            Thread.currentThread().setName("record-state-machine-" + config.getName());
 
+            init(config);
             try {
                 process(context);
             } catch (Exception e) {
@@ -64,8 +74,26 @@ public class RecordStateMachine {
         });
     }
 
-    private void initStreamer(StreamerConfig config) {
-        StreamerInfoHolder.addName(config.getName());
+    private void init(StreamerConfig config) {
+        String name = config.getName();
+        List<String> recordPaths = Lists.newArrayList();
+        String savePath = config.fetchSavePath();
+
+        // 搜索当前streamer下的所有文件夹中的fileStatus.json文件
+        File streamerFile = new File(savePath, name);
+        if (streamerFile.exists()) {
+            Collection<File> statusFiles = FileUtils.listFiles(streamerFile, new NameFileFilter("fileStatus.json"),
+                    DirectoryFileFilter.INSTANCE);
+            for (File statusFile : statusFiles) {
+                recordPaths.add(statusFile.getParent());
+            }
+        }
+
+        // threadLocal
+        Streamer streamer = new Streamer();
+        streamer.setName(name);
+        streamer.setRecordPaths(recordPaths);
+        StreamerInfoHolder.addStreamer(streamer);
     }
 
     private void process(RecordContext context) {
