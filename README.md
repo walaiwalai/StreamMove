@@ -107,12 +107,10 @@ stream.json
   }
 ]
 ```
-安装ffmpeg
-安装python，并且安装torch
 
 ## 关于视频上传和录制
 
-- 视频录制去掉了ffmpeg的依赖，需要自行安装ffmpeg并支持libx264和libfdk_aac编码。
+- 需要自行安装ffmpeg
 - B站Web端视频仅支持单视频上传，客户端支持多P上传
 - 支持“哔哩哔哩投稿工具”客户端（版本2.3.0.1089）分P上传视频，其中init.json中的accessToken和mid抓包“member.bilibili.com/preupload”这个请求。
 

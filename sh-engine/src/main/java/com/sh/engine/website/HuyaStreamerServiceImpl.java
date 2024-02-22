@@ -58,8 +58,8 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
                     });
 
             // sFlvAntiCode中只要wsSecret和wsTime
-            String aliFlv = sFlvUrl + "/" + sStreamName + "." + sFlvUrlSuffix + "?" + "wsSecret=" + paramMap.get("wsSecret") + "&wsTime=" + paramMap.get("wsTime") + "&ratio=";
-//            String aliFlv = sFlvUrl + "/" + sStreamName + "." + sFlvUrlSuffix + "?" + sFlvAntiCode + "&ratio=";
+//            String aliFlv = sFlvUrl + "/" + sStreamName + "." + sFlvUrlSuffix + "?" + "wsSecret=" + paramMap.get("wsSecret") + "&wsTime=" + paramMap.get("wsTime") + "&ratio=";
+            String aliFlv = sFlvUrl + "/" + sStreamName + "." + sFlvUrlSuffix + "?" + sFlvAntiCode + "&ratio=";
             if (qualityChoices.length > 0) {
                 List<String> qualities = RegexUtil.getMatchList(qualityChoices[qualityChoices.length - 1], QUALITY_REGEX, false);
                 String quality = ConfigFetcher.getInitConfig().getQuality();
