@@ -2,7 +2,6 @@ package com.sh.engine.model.ffmpeg;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -61,14 +60,10 @@ public class FfmpegCmd {
     /**
      * Executes the ffmpeg process with the previous given arguments.
      *
-     * @param destroyOnRuntimeShutdown destroy process if the runtime VM is shutdown
-     * @param openIOStreams            Open IO streams for input/output and errorout, should be false when
-     *                                 destroyOnRuntimeShutdown is false too
-     *                                 " -i C:\\Users\\hsj\\AppData\\Local\\Temp\\jave\\honer.mp4 -c copy
-     *                                 C:\\Users\\hsj\\AppData\\Local\\Temp\\jave\\honer_test.mov "
-     * @throws IOException If the process call fails.
+     * @param openIOStreams Open IO streams for input/output and errorout, should be false when
+     *                      destroyOnRuntimeShutdown is false too
      */
-    public void execute(boolean destroyOnRuntimeShutdown, boolean openIOStreams) {
+    public void execute(boolean openIOStreams) {
 //        String cmd = defaultFFMPEGLocator.getExecutablePath() + " " + ffmpegCommand;
         String cmd = "ffmpeg" + " " + ffmpegCommand;
 //        String cmd = ffmpegCommand;
@@ -76,8 +71,8 @@ public class FfmpegCmd {
 
         Runtime runtime = Runtime.getRuntime();
         try {
-            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
-//            ffmpeg = runtime.exec(cmd);
+//            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
+            ffmpeg = runtime.exec(cmd);
 
 //            if (destroyOnRuntimeShutdown) {
 //                ffmpegKiller = new ProcessKiller(ffmpeg);
@@ -156,12 +151,6 @@ public class FfmpegCmd {
             ffmpeg.destroy();
             ffmpeg = null;
         }
-
-//        if (ffmpegKiller != null) {
-//            Runtime runtime = Runtime.getRuntime();
-//            runtime.removeShutdownHook(ffmpegKiller);
-//            ffmpegKiller = null;
-//        }
     }
 
     /**

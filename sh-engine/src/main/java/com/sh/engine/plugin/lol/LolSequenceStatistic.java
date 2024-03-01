@@ -1,5 +1,6 @@
 package com.sh.engine.plugin.lol;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -47,8 +48,7 @@ public class LolSequenceStatistic {
 
     private void findPotentialInterval() {
         // 1. 补充空值
-        List<LoLPicData> cur = fill();
-//        List<LoLPicData> cur = sequences;
+        List<LoLPicData> cur = fillNull();
         List<LoLPicData> shifted = Lists.newArrayList(new LoLPicData(-1, -1, -1));
         shifted.addAll(cur.subList(0, cur.size() - 1));
 
@@ -74,28 +74,38 @@ public class LolSequenceStatistic {
         this.potentialIntervals = merge(intervals, scoreGains);
     }
 
-    private List<LoLPicData> fill() {
+    private List<LoLPicData> fillNull() {
         LoLPicData last = new LoLPicData(-1, -1, -1);
         last.setTargetIndex(0);
 
         List<LoLPicData> cur = Lists.newArrayList();
         for (int i = 0; i < sequences.size(); i++) {
             LoLPicData loLPicData = sequences.get(i);
-            int curIndex;
-            if (loLPicData == null) {
-                curIndex = last.getTargetIndex() + 1;
-                loLPicData = new LoLPicData(last.getK(), last.getD(), last.getA());
+            if (needCorrect(loLPicData, last)) {
+                // 没有识别出来的数据, 填充山上一个
+                log.info("fill null for {}th image, last: {}", loLPicData.getTargetIndex(), JSON.toJSONString(last));
+                loLPicData = last;
+                loLPicData.setTargetIndex(loLPicData.getTargetIndex());
             } else {
-                curIndex = loLPicData.getTargetIndex();
-                last = new LoLPicData(loLPicData.getK(), loLPicData.getD(), loLPicData.getA());
+                // 正常数据
+                last = loLPicData;
             }
 
-            loLPicData.setTargetIndex(curIndex);
             cur.add(loLPicData);
-            last.setTargetIndex(curIndex);
         }
 
         return cur;
+    }
+
+    private boolean needCorrect(LoLPicData loLPicData, LoLPicData last) {
+        if (loLPicData == null || loLPicData.getK() == null) {
+            return true;
+        }
+        if (loLPicData.getK() - last.getK() > 5 || loLPicData.getD() - last.getD() > 2 || loLPicData.getA() - last.getA() > 5) {
+            log.info("invalid possile, cur: {}", JSON.toJSONString(loLPicData));
+            return true;
+        }
+        return false;
     }
 
     private float calGain(LoLPicData pre, LoLPicData cur) {

@@ -10,7 +10,6 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.model.record.LivingStreamer;
 import com.sh.engine.util.RegexUtil;
-import com.sh.engine.util.WebsiteStreamUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 参考：https://github.com/ihmily/DouyinLiveRecorder

@@ -1,14 +1,11 @@
 package com.sh.engine.util;
 
-import com.google.common.collect.Maps;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.ffmpeg.StreamGobbler;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 /**
  * @author caiWen
@@ -24,18 +21,14 @@ public class CommandUtil {
      * @return: Integer
      */
     public static Integer cmdExec(FfmpegCmd ffmpegCmd) {
-        // 错误流
         Integer code = 999;
         String errMsg = null;
         try {
-            // destroyOnRuntimeShutdown表示是否立即关闭Runtime, openIOStreams表示是不是需要打开输入输出流:
-            // 如果ffmpeg命令需要长时间执行，destroyOnRuntimeShutdown = false
             Thread.sleep(5000);
-//            ffmpegCmd.execute(false, true);
-            ffmpegCmd.execute(true, true);
+            ffmpegCmd.execute(true);
 
             // 打印输出信息
-            StreamGobbler errorGobbler = new StreamGobbler(ffmpegCmd.getErrorStream(),  "ERROR");
+            StreamGobbler errorGobbler = new StreamGobbler(ffmpegCmd.getErrorStream(), "ERROR");
             errorGobbler.start();
 
             StreamGobbler outGobbler = new StreamGobbler(ffmpegCmd.getInputStream(), "OUTPUT",
@@ -50,5 +43,47 @@ public class CommandUtil {
             ffmpegCmd.close();
         }
         return code;
+    }
+
+    public static Integer cmdExecWithoutLog(FfmpegCmd ffmpegCmd) {
+        Integer code = 999;
+        String errMsg = null;
+        try {
+            ffmpegCmd.execute(false);
+            code = ffmpegCmd.getProcessExitCode();
+        } catch (Exception e) {
+            log.error("exec cmd fail, cmdStr: {}, errMsg: {}", ffmpegCmd.getFfmpegCommand(), errMsg, e);
+        } finally {
+            // 关闭资源
+            ffmpegCmd.close();
+        }
+        return code;
+    }
+
+    public static String cmdExecWithRes(FfmpegCmd ffmpegCmd) {
+        StringBuilder output = new StringBuilder();
+        StringBuilder error = new StringBuilder();
+
+        try {
+            ffmpegCmd.execute(true);
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(ffmpegCmd.getInputStream()));
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(ffmpegCmd.getErrorStream()));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+
+            int code = ffmpegCmd.getProcessExitCode();
+            if (code == 0) {
+                return output.toString();
+            } else {
+                System.out.println("Command failed with error code " + code);
+            }
+        } catch (Exception e) {
+        }
+
+        return null;
     }
 }
