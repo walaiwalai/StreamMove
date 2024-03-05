@@ -102,7 +102,7 @@ public class LolSequenceStatistic {
             return true;
         }
         if (loLPicData.getK() - last.getK() > 5 || loLPicData.getD() - last.getD() > 2 || loLPicData.getA() - last.getA() > 5) {
-            log.info("invalid possile, cur: {}", JSON.toJSONString(loLPicData));
+            log.info("invalid KDA, cur: {}, last: {}", JSON.toJSONString(loLPicData), JSON.toJSONString(last));
             return true;
         }
         return false;

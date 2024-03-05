@@ -2,6 +2,8 @@ package com.sh.engine.plugin.lol;
 
 import lombok.Data;
 
+import java.util.Objects;
+
 /**
  * @Author caiwen
  * @Date 2024 01 13 23 26
@@ -27,5 +29,11 @@ public class LoLPicData {
         return new LoLPicData(-1, -1, -1);
     }
 
+    public boolean isSameKda(LoLPicData other) {
+        if (other == null) {
+            return false;
+        }
+        return Objects.equals(this.K, other.K) && Objects.equals(this.D, other.D) && Objects.equals(this.A, other.A);
+    }
 
 }
