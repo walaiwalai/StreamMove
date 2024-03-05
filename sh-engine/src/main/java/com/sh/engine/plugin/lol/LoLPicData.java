@@ -25,8 +25,16 @@ public class LoLPicData {
     }
 
 
-    public static LoLPicData genInvalid() {
+    public static LoLPicData genBlank() {
         return new LoLPicData(-1, -1, -1);
+    }
+
+    public static LoLPicData genInvalid() {
+        return new LoLPicData(-2, -2, -2);
+    }
+
+    public boolean isInvalid() {
+        return this.K == -2;
     }
 
     public boolean isSameKda(LoLPicData other) {

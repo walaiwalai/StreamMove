@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.BeanUtils;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -88,7 +89,7 @@ public class LolSequenceStatistic {
                 loLPicData.setTargetIndex(loLPicData.getTargetIndex());
             } else {
                 // 正常数据
-                last = loLPicData;
+                BeanUtils.copyProperties(loLPicData, last);
             }
 
             cur.add(loLPicData);
