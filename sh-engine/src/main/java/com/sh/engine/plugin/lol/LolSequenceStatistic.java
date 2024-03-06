@@ -53,6 +53,7 @@ public class LolSequenceStatistic {
     private void findPotentialInterval() {
         // 1. 补充空值
         List<LoLPicData> cur = correctSeqBySlideWindow();
+//        log.info("before kad seq: {}, after: {}", JSON.toJSONString(sequences), JSON.toJSONString(cur));
         List<LoLPicData> shifted = Lists.newArrayList(new LoLPicData(-1, -1, -1));
         shifted.addAll(cur.subList(0, cur.size() - 1));
 
@@ -74,27 +75,7 @@ public class LolSequenceStatistic {
 
         // 3. 对潜在区间进行合并
         this.potentialIntervals = merge(intervals, scoreGains);
-    }
-
-    private List<LoLPicData> fillNullAndCorrect() {
-        LoLPicData prev = LoLPicData.genBlank();
-        List<LoLPicData> corrected = Lists.newArrayList();
-        for (int i = 0; i < sequences.size(); i++) {
-            LoLPicData loLPicData = sequences.get(i);
-            if (needCorrect(loLPicData, prev)) {
-                // 没有识别出来的数据, 填充山上一个
-                log.info("fill invalid for {}th image, prev: {}", loLPicData.getTargetIndex(), JSON.toJSONString(prev));
-                loLPicData = prev;
-                loLPicData.setTargetIndex(loLPicData.getTargetIndex());
-            } else {
-                // 正常数据
-                BeanUtils.copyProperties(loLPicData, prev);
-            }
-
-            corrected.add(loLPicData);
-        }
-
-        return corrected;
+        log.info("potentialIntervals is {}", JSON.toJSONString(this.potentialIntervals));
     }
 
     private List<LoLPicData> correctSeqBySlideWindow() {
@@ -123,14 +104,16 @@ public class LolSequenceStatistic {
             return;
         }
 
-        boolean hBlank = window.getFirst().isBlank();
-        boolean tBlank = window.getLast().isBlank();
+        boolean hBlank = window.getFirst().beBlank();
+        boolean tBlank = window.getLast().beBlank();
         LoLPicData last = LoLPicData.genBlank();
         for (int i = 0; i < window.size(); i++) {
             LoLPicData cur = window.get(i);
             if (shouldCorrect(cur, last, hBlank, tBlank)) {
-                LoLPicData modify = last;
+                LoLPicData modify = new LoLPicData();
+                BeanUtils.copyProperties(last, modify);
                 modify.setTargetIndex(cur.getTargetIndex());
+
                 window.set(i, modify);
             }
             BeanUtils.copyProperties(window.get(i), last);
@@ -141,12 +124,16 @@ public class LolSequenceStatistic {
         if (cur == null) {
             return true;
         }
-        if (cur.isBlank() && !hBlank && !tBlank) {
-            // 窗口中存在空kda孤岛
+
+        // 窗口中存在空kda孤岛,如[(2,3,4),(-1,-1,-1), (2,3,4)]
+        if (cur.beBlank() && !hBlank && !tBlank) {
             log.info("blank KDA,, prev: {}", JSON.toJSONString(last));
             return true;
         }
 
+        // 非递增或者递增太多的kad序列，如
+        // [(2,3,4),(12,3,4), (2,3,4)]
+        // [(2,3,4),(1,3,4), (2,3,4)]
         if (last.getK() >= 0
                 && cur.getK() >= 0
                 && (
@@ -155,18 +142,6 @@ public class LolSequenceStatistic {
                         cur.getA() - last.getA() > 5 || cur.getA() < last.getA())
         ) {
             log.info("invalid KDA, cur: {}, prev: {}", JSON.toJSONString(cur), JSON.toJSONString(last));
-            return true;
-        }
-        return false;
-    }
-
-
-    private boolean needCorrect(LoLPicData cur, LoLPicData prev) {
-        if (cur == null) {
-            return true;
-        }
-        if (cur.getK() - prev.getK() > 5 || cur.getD() - prev.getD() > 2 || cur.getA() - prev.getA() > 5) {
-            log.info("invalid KDA, cur: {}, prev: {}", JSON.toJSONString(cur), JSON.toJSONString(prev));
             return true;
         }
         return false;
@@ -236,6 +211,7 @@ public class LolSequenceStatistic {
                 new LoLPicData(2, 0, 0),
                 new LoLPicData(-1, -1, -1),
                 new LoLPicData(3, 1, 1),
+                new LoLPicData(2, 1, 1),
                 new LoLPicData(14, 2, 1),
                 new LoLPicData(5, 2, 1),
                 new LoLPicData(-1, -1, -1),
@@ -245,6 +221,10 @@ public class LolSequenceStatistic {
                 new LoLPicData(-1, -1, -1),
                 new LoLPicData(-1, -1, -1)
         );
+        int index = 1;
+        for (LoLPicData d : data) {
+            d.setTargetIndex(index++);
+        }
 
         LolSequenceStatistic statistic = new LolSequenceStatistic(data, 20);
     }

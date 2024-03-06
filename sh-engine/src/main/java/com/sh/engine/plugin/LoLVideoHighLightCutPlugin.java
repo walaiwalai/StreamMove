@@ -47,10 +47,7 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
     private static final Map<String, Integer> LAST_OCR_A_MAP = Maps.newConcurrentMap();
     public static final List<Integer> BLANK_KADS = Lists.newArrayList(-1, -1, -1);
 
-    private static final ReentrantLock LOCK = new ReentrantLock();
-
     @Override
-
     public String getPluginName() {
         return "LOL_HL_VOD_CUT";
     }
@@ -148,8 +145,8 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
     }
 
     private boolean skipOcr(LoLPicData lastPic, LoLPicData cur) {
-        boolean sameKda = lastPic.isSameKda(cur);
-        boolean invalid = cur.isInvalid();
+        boolean sameKda = lastPic.compareKda(cur);
+        boolean invalid = cur.beInvalid();
         return sameKda && !invalid;
     }
 

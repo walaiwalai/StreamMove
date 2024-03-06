@@ -33,15 +33,15 @@ public class LoLPicData {
         return new LoLPicData(-2, -2, -2);
     }
 
-    public boolean isInvalid() {
+    public boolean beInvalid() {
         return this.K == -2;
     }
 
-    public boolean isBlank() {
+    public boolean beBlank() {
         return this.K == -1;
     }
 
-    public boolean isSameKda(LoLPicData other) {
+    public boolean compareKda(LoLPicData other) {
         if (other == null) {
             return false;
         }
