@@ -10,15 +10,15 @@ import java.util.Objects;
  **/
 @Data
 public class LoLPicData {
-    private Integer K;
-    private Integer D;
-    private Integer A;
+    private int K;
+    private int D;
+    private int A;
     private Integer targetIndex;
 
     public LoLPicData() {
     }
 
-    public LoLPicData(Integer k, Integer d, Integer a) {
+    public LoLPicData(int k, int d, int a) {
         K = k;
         D = d;
         A = a;
@@ -35,6 +35,10 @@ public class LoLPicData {
 
     public boolean isInvalid() {
         return this.K == -2;
+    }
+
+    public boolean isBlank() {
+        return this.K == -1;
     }
 
     public boolean isSameKda(LoLPicData other) {

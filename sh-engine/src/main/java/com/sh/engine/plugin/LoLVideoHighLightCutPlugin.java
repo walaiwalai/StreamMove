@@ -170,12 +170,6 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
         } else {
             data = parseFromKad(kad);
         }
-//        try {
-//
-//        } catch (Exception e) {
-//            log.error("parse error, file: {}", snapShotFile.getAbsolutePath(), e);
-//            data = LoLPicData.genInvalid();
-//        }
         return data;
     }
 

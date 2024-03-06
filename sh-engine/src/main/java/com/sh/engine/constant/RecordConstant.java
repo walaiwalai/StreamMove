@@ -32,9 +32,15 @@ public class RecordConstant {
     public static final String SERVER_FILE_NAME = "serverFileName";
 
 
-    public static final String LIVING_STREAM_TYPE = "living";
-    public static final String RECORD_STREAM_TYPE = "record";
+    /**
+     * 精彩区间前后视频端个数
+     */
+    public static final int POTENTIAL_INTERVAL_PRE_N = 6;
+    public static final int POTENTIAL_INTERVAL_POST_N = 6;
 
-
+    /**
+     * 接受空白KAD的阈值（可能存在ocr扫描误判导致kda为空值）
+     */
+    public static final int KDA_SEQ_WINDOW_SIZE = 5;
 
 }

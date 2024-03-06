@@ -10,8 +10,11 @@ import org.springframework.beans.BeanUtils;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.sh.engine.constant.RecordConstant.*;
 
 /**
  * @Author caiwen
@@ -49,7 +52,7 @@ public class LolSequenceStatistic {
 
     private void findPotentialInterval() {
         // 1. 补充空值
-        List<LoLPicData> cur = fillNull();
+        List<LoLPicData> cur = correctSeqBySlideWindow();
         List<LoLPicData> shifted = Lists.newArrayList(new LoLPicData(-1, -1, -1));
         shifted.addAll(cur.subList(0, cur.size() - 1));
 
@@ -64,46 +67,106 @@ public class LolSequenceStatistic {
         }
 
         // 2.找到潜在的区间, 往前找preN个，往后找postN个
-        Integer preN = 6;
-        Integer postN = 1;
         List<Pair<Integer, Integer>> intervals = Lists.newArrayList();
         for (Integer index : keyIndexes) {
-            intervals.add(Pair.of(Math.max(0, index - preN), Math.min(index + postN, sequences.size() - 1)));
+            intervals.add(Pair.of(Math.max(0, index - POTENTIAL_INTERVAL_PRE_N), Math.min(index + POTENTIAL_INTERVAL_POST_N, sequences.size() - 1)));
         }
 
         // 3. 对潜在区间进行合并
         this.potentialIntervals = merge(intervals, scoreGains);
     }
 
-    private List<LoLPicData> fillNull() {
-        LoLPicData last = new LoLPicData(-1, -1, -1);
-        last.setTargetIndex(0);
-
-        List<LoLPicData> cur = Lists.newArrayList();
+    private List<LoLPicData> fillNullAndCorrect() {
+        LoLPicData prev = LoLPicData.genBlank();
+        List<LoLPicData> corrected = Lists.newArrayList();
         for (int i = 0; i < sequences.size(); i++) {
             LoLPicData loLPicData = sequences.get(i);
-            if (needCorrect(loLPicData, last)) {
+            if (needCorrect(loLPicData, prev)) {
                 // 没有识别出来的数据, 填充山上一个
-                log.info("fill null for {}th image, last: {}", loLPicData.getTargetIndex(), JSON.toJSONString(last));
-                loLPicData = last;
+                log.info("fill invalid for {}th image, prev: {}", loLPicData.getTargetIndex(), JSON.toJSONString(prev));
+                loLPicData = prev;
                 loLPicData.setTargetIndex(loLPicData.getTargetIndex());
             } else {
                 // 正常数据
-                BeanUtils.copyProperties(loLPicData, last);
+                BeanUtils.copyProperties(loLPicData, prev);
             }
 
-            cur.add(loLPicData);
+            corrected.add(loLPicData);
         }
 
-        return cur;
+        return corrected;
     }
 
-    private boolean needCorrect(LoLPicData loLPicData, LoLPicData last) {
-        if (loLPicData == null || loLPicData.getK() == null) {
+    private List<LoLPicData> correctSeqBySlideWindow() {
+        List<LoLPicData> corrected = Lists.newArrayList();
+
+        LinkedList<LoLPicData> window = Lists.newLinkedList();
+        int left = 0, right = 0;
+        while (right < sequences.size()) {
+            LoLPicData cur = sequences.get(right);
+            window.add(cur);
+            right++;
+            correctInWindow(window);
+
+            while (left < right && window.size() > KDA_SEQ_WINDOW_SIZE) {
+                corrected.add(window.removeFirst());
+                left++;
+            }
+        }
+
+        corrected.addAll(window);
+        return corrected;
+    }
+
+    private void correctInWindow(LinkedList<LoLPicData> window) {
+        if (window.size() <= 2) {
+            return;
+        }
+
+        boolean hBlank = window.getFirst().isBlank();
+        boolean tBlank = window.getLast().isBlank();
+        LoLPicData last = LoLPicData.genBlank();
+        for (int i = 0; i < window.size(); i++) {
+            LoLPicData cur = window.get(i);
+            if (shouldCorrect(cur, last, hBlank, tBlank)) {
+                LoLPicData modify = last;
+                modify.setTargetIndex(cur.getTargetIndex());
+                window.set(i, modify);
+            }
+            BeanUtils.copyProperties(window.get(i), last);
+        }
+    }
+
+    private boolean shouldCorrect(LoLPicData cur, LoLPicData last, boolean hBlank, boolean tBlank) {
+        if (cur == null) {
             return true;
         }
-        if (loLPicData.getK() - last.getK() > 5 || loLPicData.getD() - last.getD() > 2 || loLPicData.getA() - last.getA() > 5) {
-            log.info("invalid KDA, cur: {}, last: {}", JSON.toJSONString(loLPicData), JSON.toJSONString(last));
+        if (cur.isBlank() && !hBlank && !tBlank) {
+            // 窗口中存在空kda孤岛
+            log.info("blank KDA,, prev: {}", JSON.toJSONString(last));
+            return true;
+        }
+
+        if (last.getK() >= 0
+                && cur.getK() >= 0
+                && (
+                cur.getK() - last.getK() > 5 || cur.getK() < last.getK() ||
+                        cur.getD() - last.getD() > 2 || cur.getD() < last.getD() ||
+                        cur.getA() - last.getA() > 5 || cur.getA() < last.getA())
+        ) {
+            log.info("invalid KDA, cur: {}, prev: {}", JSON.toJSONString(cur), JSON.toJSONString(last));
+            return true;
+        }
+        return false;
+    }
+
+
+    private boolean needCorrect(LoLPicData cur, LoLPicData prev) {
+        if (cur == null) {
+            return true;
+        }
+        if (cur.getK() - prev.getK() > 5 || cur.getD() - prev.getD() > 2 || cur.getA() - prev.getA() > 5) {
+            log.info("invalid KDA, cur: {}, prev: {}", JSON.toJSONString(cur), JSON.toJSONString(prev));
             return true;
         }
         return false;
@@ -159,5 +222,30 @@ public class LolSequenceStatistic {
         return targetIntervals.stream()
                 .sorted(Comparator.comparingInt(Pair::getLeft))
                 .collect(Collectors.toList());
+    }
+
+    public static void main(String[] args) {
+        ArrayList<LoLPicData> data = Lists.newArrayList(
+                new LoLPicData(-1, -1, -1),
+                new LoLPicData(-1, -1, -1),
+                new LoLPicData(-1, -1, -1),
+                new LoLPicData(-1, -1, -1),
+                new LoLPicData(-1, -1, -1),
+                new LoLPicData(0, 0, 0),
+                new LoLPicData(1, 0, 0),
+                new LoLPicData(2, 0, 0),
+                new LoLPicData(-1, -1, -1),
+                new LoLPicData(3, 1, 1),
+                new LoLPicData(14, 2, 1),
+                new LoLPicData(5, 2, 1),
+                new LoLPicData(-1, -1, -1),
+                new LoLPicData(-1, -1, -1),
+                new LoLPicData(-1, -1, -1),
+                new LoLPicData(-1, -1, -1),
+                new LoLPicData(-1, -1, -1),
+                new LoLPicData(-1, -1, -1)
+        );
+
+        LolSequenceStatistic statistic = new LolSequenceStatistic(data, 20);
     }
 }
