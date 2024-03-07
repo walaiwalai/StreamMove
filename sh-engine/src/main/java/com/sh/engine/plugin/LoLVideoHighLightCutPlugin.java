@@ -25,7 +25,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.io.File;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 /**
@@ -38,8 +37,11 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
     @Resource
     private VideoMergeService videoMergeService;
 
-    private static final int MAX_HIGH_LIGHT_COUNT = 20;
+    private static final int MAX_HIGH_LIGHT_COUNT = 10;
     private static final int OCR_INTERVAL_NUM = 5;
+    /**
+     * hub serving start -m ch_pp-ocrv3
+     */
     private static final String OCR_URL = "http://127.0.0.1:8866/predict/ch_pp-ocrv3";
 
     private static final Map<String, Integer> LAST_OCR_K_MAP = Maps.newConcurrentMap();
@@ -54,6 +56,12 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
 
     @Override
     public boolean process(String recordPath) {
+        File highlightFile = new File(recordPath, "highlight.mp4");
+        if (highlightFile.exists()) {
+            log.info("highlight file already existed, will skip, path: {}", recordPath);
+            return true;
+        }
+
         Collection<File> videos = FileUtils.listFiles(new File(recordPath), new String[]{"ts"}, false)
                 .stream()
                 .sorted(Comparator.comparingInt(v -> getIndexFromFileName(v)))
@@ -80,7 +88,7 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
         List<Pair<Integer, Integer>> potentialIntervals = statistic.getPotentialIntervals();
 
         // 4. 进行合并视频
-        return videoMergeService.merge(buildMergeFileNames(potentialIntervals, videos), new File(recordPath, "highlight.mp4"));
+        return videoMergeService.merge(buildMergeFileNames(potentialIntervals, videos), highlightFile);
     }
 
     private File snapShot(File segFile) {
@@ -97,7 +105,6 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
         List<String> params = Lists.newArrayList(
                 "-y",
                 "-i", segFile.getAbsolutePath(),
-//                "-vf", "crop=100:50:in_w*17/20:0",
                 "-vf", "crop=80:30:in_w*867/1000:0",
                 "-ss", "00:00:00",
                 "-frames:v", "1",

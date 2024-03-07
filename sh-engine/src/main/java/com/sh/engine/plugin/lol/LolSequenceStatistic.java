@@ -53,7 +53,6 @@ public class LolSequenceStatistic {
     private void findPotentialInterval() {
         // 1. 补充空值
         List<LoLPicData> cur = correctSeqBySlideWindow();
-//        log.info("before kad seq: {}, after: {}", JSON.toJSONString(sequences), JSON.toJSONString(cur));
         List<LoLPicData> shifted = Lists.newArrayList(new LoLPicData(-1, -1, -1));
         shifted.addAll(cur.subList(0, cur.size() - 1));
 
@@ -75,7 +74,6 @@ public class LolSequenceStatistic {
 
         // 3. 对潜在区间进行合并
         this.potentialIntervals = merge(intervals, scoreGains);
-        log.info("potentialIntervals is {}", JSON.toJSONString(this.potentialIntervals));
     }
 
     private List<LoLPicData> correctSeqBySlideWindow() {
@@ -151,10 +149,7 @@ public class LolSequenceStatistic {
         Float preScore = score(pre);
         Float curScore = score(cur);
         if (preScore >= 0f && curScore >= 0f) {
-            float scoreGain = curScore - preScore;
-            if (scoreGain > 0.2f) {
-                return scoreGain;
-            }
+            return curScore - preScore;
         }
         return 0f;
     }
@@ -164,7 +159,8 @@ public class LolSequenceStatistic {
             return -1f;
         }
 
-        return (float) (kad.getK() + kad.getA()) / (Math.max(1, kad.getD()));
+//        return (float) (kad.getK() + kad.getA()) / (Math.max(1, kad.getD()));
+        return (float) (2 * kad.getK() + kad.getA());
     }
 
     private List<Pair<Integer, Integer>> merge(List<Pair<Integer, Integer>> intervals, List<Float> scoreGains) {
@@ -179,12 +175,17 @@ public class LolSequenceStatistic {
                 merged.add(new HighLightInterval(l, r, scoreGains.get(i)));
             } else {
                 HighLightInterval interval = merged.get(merged.size() - 1);
+                float score1 = (interval.getEnd() - interval.getStart()) * interval.getScoreIncr();
+                float score2 = (r - l) * scoreGains.get(i);
+
                 int nextR = Math.max(merged.get(merged.size() - 1).getEnd(), r);
-                float nextScoreGain = interval.getScoreIncr() / (interval.getEnd() - interval.getStart()) * (nextR - interval.getStart());
+//                float nextScoreGain = interval.getScoreIncr() / (interval.getEnd() - interval.getStart()) * (nextR - interval.getStart());
+                float nextScoreGain = (score1 + score2) / (nextR - interval.getStart());
                 interval.setEnd(nextR);
                 interval.setScoreIncr(nextScoreGain);
             }
         }
+        log.info("merged intervals: {}", JSON.toJSONString(merged));
 
         // 找到时长最长
         List<Pair<Integer, Integer>> targetIntervals = merged.stream()
