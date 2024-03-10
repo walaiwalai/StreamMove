@@ -19,6 +19,7 @@ import okhttp3.Response;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -282,14 +283,19 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     }
 
     private String fetchCdnUrl(String boardNo) {
-        Map<String, String> params = new HashMap<>();
-        params.put("return_type", "gcp_cdn");
-        params.put("use_cors", "false");
-        params.put("cors_origin_url", "play.afreecatv.com");
-        params.put("broad_key", boardNo + "-common-master-hls");
-        params.put("time", "8361.086329376785");
+        String apiUrl;
+        try {
+            URIBuilder builder = new URIBuilder("http://livestream-manager.afreecatv.com/broad_stream_assign.html");
+            builder.addParameter("return_type", "gcp_cdn");
+            builder.addParameter("use_cors", "false");
+            builder.addParameter("cors_origin_url", "play.afreecatv.com");
+            builder.addParameter("broad_key", boardNo + "-common-master-hls");
+            builder.addParameter("time", "8361.086329376785");
+            apiUrl = builder.build().toString();
+        } catch (Exception e) {
+            return null;
+        }
 
-        String apiUrl = "http://livestream-manager.afreecatv.com/broad_stream_assign.html?" + HttpClientUtil.encodeParams(params);
         Request.Builder requestBuilder = new Request.Builder()
                 .url(apiUrl)
                 .get()

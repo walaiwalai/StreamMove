@@ -25,7 +25,9 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.FormBodyPartBuilder;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.ByteArrayBody;
@@ -36,6 +38,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -233,7 +236,7 @@ public class BiliClientWorkUploadService extends AbstractWorkUploadService {
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
                 Thread.sleep(CHUNK_RETRY_DELAY);
-                String respStr = HttpClientUtil.sendPost(uploadUrl, null, requestEntity);
+                String respStr = HttpClientUtil.sendPost(uploadUrl, null, requestEntity, false);
                 JSONObject respObj = JSONObject.parseObject(respStr);
                 if (Objects.equals(respObj.getString("info"), "Successful.")) {
                     log.info("chunk upload success, progress: {}/{}, time cost: {}s.", chunkShowNo, totalChunks,

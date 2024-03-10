@@ -7,6 +7,8 @@ package com.sh.config.utils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -15,6 +17,7 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -92,64 +95,21 @@ public class HttpClientUtil {
         return httpclient;
     }
 
-    /**
-     * @param url      请求地址
-     * @param headers  请求头
-     * @param encoding 字符集
-     * @return String
-     * @throws
-     */
-    private static String sendPost(String url, Map<String, String> headers, String entityStr, String encoding) {
-        log.info("send http post, encoding: {}, headers: {}, url: {}, data: {}", encoding, JSON.toJSONString(headers),
-                url, entityStr);
-        HttpPost httpPost = new HttpPost();
-        try {
-            // 设置请求地址
-            httpPost.setURI(new URI(url));
-            // 设置请求头
-            if (headers != null) {
-                Header[] allHeader = new BasicHeader[headers.size()];
-                int i = 0;
-                for (Map.Entry<String, String> entry : headers.entrySet()) {
-                    allHeader[i] = new BasicHeader(entry.getKey(), entry.getValue());
-                    i++;
-                }
-                httpPost.setHeaders(allHeader);
-            }
-            // 设置实体
-            httpPost.setEntity(new StringEntity(entityStr, encoding));
-            // 发送请求,返回响应对象
-            CloseableHttpResponse response = httpclient.execute(httpPost);
-            return parseData(response);
-
-        } catch (Exception e) {
-            log.error("发送post请求失败", e);
-        } finally {
-            httpPost.releaseConnection();
-        }
-        return null;
-    }
-
-    public static String encodeParams(Map<String, String> params) {
-        StringBuilder encodedParams = new StringBuilder();
-        for (Map.Entry<String, String> entry : params.entrySet()) {
-            if (encodedParams.length() > 0) {
-                encodedParams.append("&");
-            }
-            encodedParams.append(entry.getKey()).append("=").append(entry.getValue());
-        }
-        return encodedParams.toString();
-    }
-
-    /**
-     * @param url      请求地址
-     * @param headers  请求头
-     * @param httpEntity     请求实体
-     * @return
-     */
     public static String sendPost(String url, Map<String, String> headers, HttpEntity httpEntity) {
-//        log.info("send http post, encoding: {}, headers: {}, url: {}", encoding, JSON.toJSONString(headers),url);
+        return sendPost(url, headers, httpEntity, true);
+    }
+
+    public static String sendPost(String url, Map<String, String> headers, JSONObject data) {
+        return sendPost(url, headers, new StringEntity(JSON.toJSONString(data), encoding));
+    }
+
+    public static String sendPost(String url, Map<String, String> headers, Map<String, String> params) {
+        return sendPost(url, headers, new StringEntity(JSON.toJSONString(params), encoding));
+    }
+
+    public static String sendPost(String url, Map<String, String> headers, HttpEntity httpEntity, boolean printInfo) {
         HttpPost httpPost = new HttpPost();
+        String resp = null;
         try {
             // 设置请求地址
             httpPost.setURI(new URI(url));
@@ -165,50 +125,36 @@ public class HttpClientUtil {
             }
             // 设置实体
             httpPost.setEntity(httpEntity);
-            // 发送请求,返回响应对象
             CloseableHttpResponse response = httpclient.execute(httpPost);
-            return parseData(response);
+            resp = parseData(response);
         } catch (Exception e) {
             log.error("do post request fail", e);
+            throw new StreamerRecordException(ErrorEnum.HTTP_REQUEST_ERROR);
         } finally {
             httpPost.releaseConnection();
         }
-        return null;
-    }
 
-    /**
-     * @param url     请求地址
-     * @param headers 请求头
-     * @param data    请求实体
-     * @return
-     */
-    public static String sendPost(String url, Map<String, String> headers, JSONObject data) {
-        return sendPost(url, headers, JSON.toJSONString(data), encoding);
-    }
-
-    /**
-     * @param url     请求地址
-     * @param headers 请求头
-     * @param params  请求实体
-     * @return
-     */
-    public static String sendPost(String url, Map<String, String> headers, Map<String, String> params) {
-        return sendPost(url, headers, JSON.toJSONString(params), encoding);
-    }
-
-    /**
-     * @param url     请求地址
-     * @param headers 请求头
-     * @param entityStr  请求实体
-     * @return
-     */
-    public static String sendPost(String url, Map<String, String> headers, String entityStr) {
-        return sendPost(url, headers, entityStr, encoding);
+        if (printInfo) {
+            log.info("Receive http post response. url: {}, response: {}", httpPost.getURI().toString(), resp);
+        }
+        return resp;
     }
 
     public static String sendGet(String url, Map<String, String> headers, Map<String, String> params) {
-        log.info("HttpClientUtil>sendGet：URL={}, params={}", url, JSON.toJSON(params));
+        return sendGet(url, headers, params, true);
+    }
+
+    public static String sendGet(String url, Map<String, String> params) {
+        return sendGet(url, null, params, true);
+    }
+
+    public static String sendGet(String url) {
+        return sendGet(url, null, null, true);
+    }
+
+    public static String sendGet(String url, Map<String, String> headers, Map<String, String> params, boolean printInfo) {
         HttpGet httpGet = new HttpGet();
+        String resp = null;
         try {
             URIBuilder builder = new URIBuilder(url);
             if (headers != null) {
@@ -216,7 +162,6 @@ public class HttpClientUtil {
                     httpGet.addHeader(key, headers.get(key));
                 }
             }
-
             if (params != null) {
                 for (String key : params.keySet()) {
                     builder.addParameter(key, params.get(key));
@@ -225,47 +170,28 @@ public class HttpClientUtil {
             URI uri = builder.build();
             httpGet.setURI(uri);
             CloseableHttpResponse response = httpclient.execute(httpGet);
-            return parseData(response);
+            resp = parseData(response);
         } catch (Exception e) {
             log.error("HttpClientUtil>sendGet error", e);
+            throw new StreamerRecordException(ErrorEnum.HTTP_REQUEST_ERROR);
         } finally {
             httpGet.releaseConnection();
         }
-        return null;
+
+        if (printInfo) {
+            log.info("Receive get response. url: {}, response: {}", httpGet.getURI().toString(), resp);
+        }
+
+        return resp;
     }
 
-    /**
-     * @param url    请求地址
-     * @param params 请求参数
-     * @return
-     */
-    public static String sendGet(String url, Map<String, String> params) {
-        return sendGet(url, null, params);
-    }
 
-    /**
-     * @param url 请求地址
-     * @return
-     */
-    public static String sendGet(String url) {
-        return sendGet(url, null);
-    }
-
-    /**
-     * 解析response
-     *
-     * @param response
-     * @return
-     * @throws Exception
-     */
-    public static String parseData(CloseableHttpResponse response) throws Exception {
+    private static String parseData(CloseableHttpResponse response) throws Exception {
         // 获取响应状态
         int status = response.getStatusLine().getStatusCode();
         if (status == HttpStatus.SC_OK) {
             // 获取响应数据
-            String res = EntityUtils.toString(response.getEntity(), encoding);
-            log.info("HttpClientUtil receive response: {}", res);
-            return res;
+            return EntityUtils.toString(response.getEntity(), encoding);
         } else {
             log.error("response fail, code: {}", status);
         }

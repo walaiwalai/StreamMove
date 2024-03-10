@@ -20,6 +20,11 @@ public enum ErrorEnum {
      */
     PRE_UPLOAD_ERROR(3, "pre upload error"),
 
+    /**
+     * http请求失败
+     */
+    HTTP_REQUEST_ERROR(3, "http request error"),
+
     ;
     private int errorCode;
     private String message;
