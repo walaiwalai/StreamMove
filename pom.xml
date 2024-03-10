@@ -111,6 +111,13 @@
                 <version>${commons-codec.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.bitcoinj</groupId>
+                <artifactId>bitcoinj-core</artifactId>
+                <version>0.15.10</version>
+            </dependency>
+
+
             <!-- http-->
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>

@@ -6,9 +6,7 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.model.video.UploadVideoPair;
-import com.sh.engine.base.StreamerInfoHolder;
-import com.sh.engine.model.bili.BiliVideoUploadTask;
-import com.sh.engine.model.record.Recorder;
+import com.sh.engine.model.upload.BaseUploadTask;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
 
@@ -20,29 +18,14 @@ import java.util.Optional;
  * @date 2023/1/26 9:47
  */
 public class RecordConverter {
-//    public static FileStatusModel convertToFileStatusModel(Recorder recorder) {
-//        String recorderName = StreamerInfoHolder.getCurStreamerName();
-//
-//        FileStatusModel fileStatusModel = new FileStatusModel();
-//        fileStatusModel.setPath(recorder.getSavePath());
-//        fileStatusModel.setRecorderName(recorderName);
-//        fileStatusModel.setIsPost(false);
-//        fileStatusModel.setIsFailed(false);
-//        fileStatusModel.setTimeV(recorder.getTimeV());
-//        return fileStatusModel;
-//    }
+    public static BaseUploadTask initTask(FileStatusModel fileStatus, String platform) {
+        UploadVideoPair videoParts = fileStatus.fetchVideoPartByPlatform(platform);
+        return BaseUploadTask.builder()
 
-    public static BiliVideoUploadTask initUploadModel(FileStatusModel fileStatus) {
-        UploadVideoPair videoParts = fileStatus.getVideoParts();
-        return BiliVideoUploadTask.builder()
-                .streamerName(fileStatus.getRecorderName())
                 .dirName(fileStatus.getPath())
                 .title(genVideoTitle(fileStatus.getTimeV(), fileStatus.getRecorderName()))
                 .succeedUploaded(Optional.ofNullable(videoParts).map(UploadVideoPair::getSucceedUploadedVideos)
                         .orElse(Lists.newArrayList()))
-                .isUploadFail(fileStatus.getIsFailed())
-                .failUpload(Optional.ofNullable(videoParts)
-                        .map(UploadVideoPair::getFailedUploadVideo).orElse(null))
                 .build();
     }
 

@@ -14,9 +14,15 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class LocalVideo {
-    private boolean isFailed=false;
+    /**
+     * 单个视频是否上传成功，如果成功会出现在BaseUploadTask的succeedUploaded中
+     */
+    private boolean isUpload;
     private String localFileFullPath;
+
+    /**
+     * 文件前缀，不带mp4字样
+     */
     private String title;
-    private String desc;
     private Long fileSize;
 }

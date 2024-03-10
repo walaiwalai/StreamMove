@@ -1,5 +1,6 @@
 package com.sh.config.model.video;
 
+import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,7 +21,7 @@ public class UploadVideoPair {
     /**
      * 成功上传视频
      */
-    private List<SucceedUploadSeverVideo> succeedUploadedVideos;
+    private List<SucceedUploadSeverVideo> succeedUploadedVideos = Lists.newArrayList();
 
     /**
      * 上传失败的视频

@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * b站针对一个视频上传结果
+ * 针对一个视频上传结果
  *
  * @author caiWen
  * @date 2023/1/30 23:13
@@ -20,7 +20,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class BiliVideoUploadResultModel {
+public class VideoUploadResultModel {
 
     /**
      * 上传失败的chunk

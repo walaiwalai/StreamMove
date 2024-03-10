@@ -9,11 +9,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * @author caiWen
@@ -27,11 +29,18 @@ import java.io.IOException;
 public class FileStatusModel {
     private String path;
     private String recorderName;
-    private Boolean isPost;
-    private Boolean isFailed;
     private String timeV;
     private String updateTime;
-    private UploadVideoPair videoParts;
+
+    /**
+     * 各平台上传情况
+     */
+    private List<String> platforms;
+    private UploadVideoPair bili;
+    private UploadVideoPair aliDriver;
+
+    private boolean biliPost;
+    private boolean aliDriverPost;
 
     /**
      * 写到fileStatus.json，没有值不覆盖
@@ -52,6 +61,47 @@ public class FileStatusModel {
         }
     }
 
+    public UploadVideoPair fetchVideoPartByPlatform(String name) {
+        if (StringUtils.equals(name, "BILI_CLIENT") || StringUtils.equals(name, "BILI_WEB")) {
+            return bili;
+        } else if (StringUtils.equals(name, "ALI_DRIVER")) {
+            return aliDriver;
+        }
+        return null;
+    }
+
+    public boolean fetchPostByPlatform(String name) {
+        if (StringUtils.equals(name, "BILI_CLIENT") || StringUtils.equals(name, "BILI_WEB")) {
+            return biliPost;
+        } else if (StringUtils.equals(name, "ALI_DRIVER")) {
+            return aliDriverPost;
+        }
+        return false;
+    }
+
+    public void updateVideoPartByPlatform(String name, UploadVideoPair updated) {
+        if (StringUtils.equals(name, "BILI_CLIENT") || StringUtils.equals(name, "BILI_WEB")) {
+            this.bili = updated;
+        } else if (StringUtils.equals(name, "ALI_DRIVER")) {
+            this.aliDriver = updated;
+        }
+    }
+
+    public void updatePostByPlatform(String name, boolean updated) {
+        if (StringUtils.equals(name, "BILI_CLIENT") || StringUtils.equals(name, "BILI_WEB")) {
+            this.biliPost = updated;
+        } else if (StringUtils.equals(name, "ALI_DRIVER")) {
+            this.aliDriverPost = updated;
+        }
+    }
+
+    public boolean allPost() {
+        boolean allPost = true;
+        for (String platform : platforms) {
+            allPost = allPost && fetchPostByPlatform(platform);
+        }
+        return allPost;
+    }
 
     /**
      * 只进行覆盖操作

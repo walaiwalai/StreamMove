@@ -1,6 +1,5 @@
 package com.sh.engine.processor;
 
-import com.alibaba.fastjson.JSON;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
@@ -14,15 +13,12 @@ import com.sh.engine.service.MsgSendService;
 import com.sh.engine.service.StreamRecordService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * @Author caiwen
@@ -96,9 +92,8 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
         FileStatusModel fileStatusModel = new FileStatusModel();
         fileStatusModel.setPath(recordPath);
         fileStatusModel.setRecorderName(streamerConfig.getName());
-        fileStatusModel.setIsPost(false);
-        fileStatusModel.setIsFailed(false);
         fileStatusModel.setTimeV(timeV);
+        fileStatusModel.setPlatforms(streamerConfig.getUploadPlatforms());
         fileStatusModel.writeSelfToFile(recordPath);
 
         // 3.将录像文件加到threadLocal

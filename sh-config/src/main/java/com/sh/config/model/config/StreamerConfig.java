@@ -24,6 +24,7 @@ public class StreamerConfig {
     private boolean recordWhenOnline;
     private String lastRecordTime;
     private List<String> videoPlugins;
+    private List<String> uploadPlatforms = Lists.newArrayList();
 
     /**
      * 优先以这个为主，没有以init.json的videoSavePath为值

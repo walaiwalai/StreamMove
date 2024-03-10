@@ -1,6 +1,5 @@
 package com.sh.schedule.worker;
 
-import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
@@ -8,11 +7,8 @@ import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.engine.base.Streamer;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.manager.StatusManager;
-import com.sh.engine.util.CommandUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.quartz.JobExecutionContext;
@@ -41,7 +37,7 @@ public class FileCleanWorker extends ProcessWorker {
             init(streamerConfig);
             for (String curRecordPath : StreamerInfoHolder.getCurRecordPaths()) {
                 FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
-                if (fileStatusModel.getIsPost() == null || !fileStatusModel.getIsPost()) {
+                if (!fileStatusModel.allPost()) {
                     // 没有上传的
                     continue;
                 }
