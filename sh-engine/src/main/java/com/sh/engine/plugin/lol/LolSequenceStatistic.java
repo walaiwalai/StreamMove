@@ -187,7 +187,7 @@ public class LolSequenceStatistic {
         }
         log.info("merged intervals: {}", JSON.toJSONString(merged));
 
-        // 找到时长最长
+        // 找到分数最高的前N个
         List<Pair<Integer, Integer>> targetIntervals = merged.stream()
                 .sorted(Comparator.comparingInt(pair -> (int) (pair.getScoreIncr() * (-100f))))
                 .limit(maxInterval)

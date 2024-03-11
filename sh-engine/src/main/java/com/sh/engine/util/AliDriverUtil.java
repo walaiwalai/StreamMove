@@ -4,18 +4,30 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.commons.io.IOUtils;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.params.ECDomainParameters;
+import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
+import org.bouncycastle.crypto.params.ECPublicKeyParameters;
+import org.bouncycastle.crypto.signers.ECDSASigner;
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.math.ec.ECPoint;
 
+import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.*;
-import java.util.Base64;
 
 /**
  * 阿里云工具类
  */
 public class AliDriverUtil {
     private static final byte[] hexChar = "0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+    private static final String APP_ID = "5dde4e1bdf9e4966b387ba58f4b3fdc3";
     private static OkHttpClient okHttpClient;
     private static final Object okHttpClientLock = new Object();
 
@@ -76,29 +88,55 @@ public class AliDriverUtil {
         return response.body().bytes();
     }
 
-    public static String genSignature(String appId, String deviceId, String userId) {
-        int nonce = 0;
-        SecureRandom random = new SecureRandom();
-        byte[] privateKeyBytes = new byte[32];
-        random.nextBytes(privateKeyBytes);
+    public static String genSignature(String deviceId, String userId) {
+        String nonce = "6";
+
+        // Generate private key
+        SecureRandom secureRandom = new SecureRandom();
+        BigInteger privateKey = new BigInteger(256, secureRandom);
+
+        // Create ECDSA signer
+        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256k1");
+        ECDomainParameters domain = new ECDomainParameters(spec.getCurve(), spec.getG(), spec.getN(), spec.getH());
+        ECPrivateKeyParameters privateKeyParameters = new ECPrivateKeyParameters(privateKey, domain);
+        ECDSASigner signer = new ECDSASigner();
+        signer.init(true, privateKeyParameters);
+
+        // Calculate signature
+        byte[] message = new byte[0];
         try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC");
-            keyGen.initialize(256);
-            KeyPair keyPair = keyGen.generateKeyPair();
-            PrivateKey privateKey = keyPair.getPrivate();
-            String data = appId + ":" + deviceId + ":" + userId + ":" + nonce;
-            Signature ecdsaSign = Signature.getInstance("SHA256withECDSA");
-            ecdsaSign.initSign(privateKey);
-            ecdsaSign.update(data.getBytes());
-            byte[] signatureBytes = ecdsaSign.sign();
-            return Base64.getEncoder().encodeToString(signatureBytes);
-        } catch (Exception e) {
+            message = (APP_ID + ":" + deviceId + ":" + userId + ":" + nonce).getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
         }
-        return null;
+        BigInteger[] signature = signer.generateSignature(message);
+
+        // Convert to DER format
+        byte[] derSignature = new byte[64];
+        byte[] rBytes = signature[0].toByteArray();
+        byte[] sBytes = signature[1].toByteArray();
+        int rOffset = rBytes.length > 32 ? 0 : 32 - rBytes.length;
+        int sOffset = sBytes.length > 32 ? 0 : 32 - sBytes.length;
+        System.arraycopy(rBytes, 0, derSignature, rOffset, Math.min(rBytes.length, 32));
+        System.arraycopy(sBytes, 0, derSignature, 32 + sOffset, Math.min(sBytes.length, 32));
+
+        // Print signature
+        return bytesToHex(derSignature) + "01";
     }
 
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder result = new StringBuilder();
+        for (byte b : bytes) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
+    }
+
+
     public static void main(String[] args) {
-        genSignature("6a4b0091fcf6461fa08b7920a9b3039b", "e4163fc4e00541c7a9ffebd539735258")
+        String s = genSignature("Im5gHoG6blMCAQAAAAAZ/Oy/", "e4163fc4e00541c7a9ffebd539735258");
+//        String s = genSignature("53db046c-9289-4e75-9dd9-efce615959bf", "e4163fc4e00541c7a9ffebd539735258");
+        System.out.println(s);
     }
 
 }

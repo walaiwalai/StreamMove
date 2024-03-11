@@ -14,10 +14,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
+import java.util.*;
 
 /**
  * 实现阿里云盘的爬虫
@@ -194,7 +191,7 @@ public class AliDiverStoreClient {
     private String getAccessToken() throws IOException {
         //accessToken 有效期是7200秒
         if (aliStoreBucket.getAccessTokenTime() + 7000 * 1000 < System.currentTimeMillis()) {
-            refreshToken();
+            aliStoreBucket.refreshToken();
         }
         return aliStoreBucket.getAccessToken();
     }
@@ -217,11 +214,7 @@ public class AliDiverStoreClient {
      * 获取根目录的id
      */
     public String getRootId() {
-        if (aliStoreBucket == null) {
-            return null;
-        } else {
-            return aliStoreBucket.getRootId();
-        }
+        return aliStoreBucket.getRootId();
     }
 
     /**
@@ -242,46 +235,6 @@ public class AliDiverStoreClient {
         int end = Math.min(start + 8, content.length);
         return Base64.getEncoder().encodeToString(Arrays.copyOfRange(content, start, end));
     }
-
-    /**
-     * 刷新token
-     *
-     * @throws IOException
-     */
-    private void refreshToken() throws IOException {
-        final String api = "https://api.aliyundrive.com/token/refresh";
-        String data = "{\"refresh_token\":\"" + aliStoreBucket.getRefreshToken() + "\"}";
-        HttpsURLConnection connection;
-        try {
-            connection = (HttpsURLConnection) new URL(api).openConnection();
-            connection.setDoOutput(true);
-            connection.addRequestProperty("Content-Type", "application/json;charset=UTF-8");
-            OutputStream outputStream = connection.getOutputStream();
-            outputStream.write(data.getBytes(StandardCharsets.UTF_8));
-            outputStream.flush();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        String s = "";
-        try {
-            s = new String(IOUtils.toByteArray(connection.getInputStream()));
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage() + ":\n" + new String(IOUtils.toByteArray(connection.getErrorStream())));
-        }
-        JSONObject object = JSONObject.parseObject(s);
-        String token = object.getString("access_token");
-        if (token == null || token.equals("")) {
-            throw new RuntimeException("refresh token failed");
-        }
-        aliStoreBucket.setAccessToken(token);
-        token = object.getString("refresh_token");
-        if (token == null || token.equals("")) {
-            throw new RuntimeException("refresh token failed");
-        }
-        aliStoreBucket.setRefreshToken(token);
-        aliStoreBucket.setAccessTokenTime(System.currentTimeMillis());
-    }
-
 
     /**
      * 列出目录的文件。只返回前50个
@@ -416,8 +369,8 @@ public class AliDiverStoreClient {
             connection.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36");
             connection.addRequestProperty("Referer", "https://www.aliyundrive.com/");
             connection.addRequestProperty("authorization", "Bearer " + getAccessToken());
-            connection.addRequestProperty("X-Device-Id", ConfigFetcher.getInitConfig().getXDeviceId());
-            connection.addRequestProperty("Content-Type", "application/json;charset=UTF-8");
+//            connection.addRequestProperty("X-Device-Id", xDeviceId);
+//            connection.addRequestProperty("X-Signature", AliDriverUtil.genSignature(xDeviceId, aliStoreBucket.getUserId()));
             connection.setDoOutput(true);
             OutputStream outputStream = connection.getOutputStream();
             outputStream.write(data.getBytes(StandardCharsets.UTF_8));

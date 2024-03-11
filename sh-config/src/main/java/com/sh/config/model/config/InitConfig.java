@@ -48,9 +48,9 @@ public class InitConfig {
     private String accessToken;
     private Long mid;
     // *********************阿里云云盘上传**********************
-    private String diverId;
     private String refreshToken;
-    private String xDeviceId;
+    private String targetFileId = "root";
+
     /**
      * 投稿时忽略小于此大小的文件(M)
      */

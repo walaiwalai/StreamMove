@@ -1,9 +1,11 @@
 package com.sh.engine.upload;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.video.LocalVideo;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.alidriver.AliDiverStoreClient;
 import com.sh.engine.model.alidriver.AliFileDTO;
 import com.sh.engine.model.alidriver.AliStoreBucket;
@@ -30,19 +32,18 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
 
     @Override
     public boolean upload(List<LocalVideo> localVideos, BaseUploadTask task) throws Exception {
-        String diverId = ConfigFetcher.getInitConfig().getDiverId();
         String refreshToken = ConfigFetcher.getInitConfig().getRefreshToken();
+        String targetFileId = ConfigFetcher.getInitConfig().getTargetFileId();
 
-        AliDiverStoreClient client = new AliDiverStoreClient(new AliStoreBucket(refreshToken, diverId));
+        AliDiverStoreClient client = new AliDiverStoreClient(new AliStoreBucket(refreshToken));
         String rootId = client.getRootId();
-        List<AliFileDTO> aliFileDTOS = client.listAllObject(rootId);
-
 
         for (LocalVideo localVideo : localVideos) {
             if (!StringUtils.equals("highlight", localVideo.getTitle())) {
                 continue;
             }
-            JSONObject res = client.putFile("642ae96aff4988c15a254418ad88883b21b9a5ca", "test1.mp4", FileUtils.readFileToByteArray(new File(localVideo.getLocalFileFullPath())));
+            String fileName = StreamerInfoHolder.getCurStreamerName() + "_" + localVideo.getTitle() + "_" + System.currentTimeMillis() + ".mp4";
+            JSONObject res = client.putBigFile(targetFileId, fileName, new File(localVideo.getLocalFileFullPath()));
         }
         return true;
     }
@@ -51,7 +52,7 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
     public static void main(String[] args) throws Exception {
         AliDriverUploadServiceImpl service = new AliDriverUploadServiceImpl();
         service.upload(Lists.newArrayList(LocalVideo.builder()
-                .localFileFullPath("F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\highlight.mp4")
+                .localFileFullPath("/Users/caiwen/Desktop/download/TheShy/2024-01-31-03-31-43/seg-1.ts")
                 .title("highlight")
                 .build()), BaseUploadTask.builder().build());
     }
