@@ -2,7 +2,12 @@ package com.sh.config.utils;
 
 import org.springframework.util.CollectionUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -52,4 +57,26 @@ public class VideoFileUtils {
         return b;
     }
 
+    public static String calculateSHA1ByChunk(File file, int chunkSize) {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-1");
+            try (InputStream fis = Files.newInputStream(file.toPath())) {
+                byte[] buffer = new byte[chunkSize];
+                int n = 0;
+                while ((n = fis.read(buffer)) != -1) {
+                    digest.update(buffer, 0, n);
+                }
+            }
+        } catch (Exception e) {
+            return null;
+        }
+
+        byte[] hashBytes = digest.digest();
+        StringBuilder hashString = new StringBuilder();
+        for (byte b : hashBytes) {
+            hashString.append(String.format("%02X", b));
+        }
+        return hashString.toString();
+    }
 }

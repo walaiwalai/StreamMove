@@ -12,18 +12,13 @@ import com.sh.config.exception.StreamerRecordException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpStatus;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.entity.mime.FormBodyPartBuilder;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -32,10 +27,7 @@ import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 
 @Slf4j
@@ -111,9 +103,7 @@ public class HttpClientUtil {
         HttpPost httpPost = new HttpPost();
         String resp = null;
         try {
-            // 设置请求地址
             httpPost.setURI(new URI(url));
-            // 设置请求头
             if (headers != null) {
                 Header[] allHeader = new BasicHeader[headers.size()];
                 int i = 0;
@@ -123,7 +113,6 @@ public class HttpClientUtil {
                 }
                 httpPost.setHeaders(allHeader);
             }
-            // 设置实体
             httpPost.setEntity(httpEntity);
             CloseableHttpResponse response = httpclient.execute(httpPost);
             resp = parseData(response);
@@ -136,6 +125,36 @@ public class HttpClientUtil {
 
         if (printInfo) {
             log.info("Receive http post response. url: {}, response: {}", httpPost.getURI().toString(), resp);
+        }
+        return resp;
+    }
+
+    public static String sendPut(String url, Map<String, String> headers, HttpEntity httpEntity, boolean printInfo) {
+        HttpPut httpPut = new HttpPut();
+        String resp = null;
+        try {
+            httpPut.setURI(new URI(url));
+            if (headers != null) {
+                Header[] allHeader = new BasicHeader[headers.size()];
+                int i = 0;
+                for (Map.Entry<String, String> entry : headers.entrySet()) {
+                    allHeader[i] = new BasicHeader(entry.getKey(), entry.getValue());
+                    i++;
+                }
+                httpPut.setHeaders(allHeader);
+            }
+            httpPut.setEntity(httpEntity);
+            CloseableHttpResponse response = httpclient.execute(httpPut);
+            resp = parseData(response);
+        } catch (Exception e) {
+            log.error("do put request fail", e);
+            throw new StreamerRecordException(ErrorEnum.HTTP_REQUEST_ERROR);
+        } finally {
+            httpPut.releaseConnection();
+        }
+
+        if (printInfo) {
+            log.info("Receive http put response. url: {}, response: {}", httpPut.getURI().toString(), resp);
         }
         return resp;
     }
@@ -189,13 +208,13 @@ public class HttpClientUtil {
     private static String parseData(CloseableHttpResponse response) throws Exception {
         // 获取响应状态
         int status = response.getStatusLine().getStatusCode();
-        if (status == HttpStatus.SC_OK) {
-            // 获取响应数据
-            return EntityUtils.toString(response.getEntity(), encoding);
-        } else {
-            log.error("response fail, code: {}", status);
-        }
-        return null;
+//        if (status == HttpStatus.SC_OK) {
+//            // 获取响应数据
+//            return EntityUtils.toString(response.getEntity(), encoding);
+//        } else {
+//            log.error("response fail, code: {}", status);
+//        }
+        return EntityUtils.toString(response.getEntity(), encoding);
     }
 }
 

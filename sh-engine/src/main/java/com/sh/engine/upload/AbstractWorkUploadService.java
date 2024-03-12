@@ -30,8 +30,8 @@ public abstract class AbstractWorkUploadService {
             4,
             600,
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(20480),
-            new ThreadFactoryBuilder().setNameFormat("bili-upload-thread-%d").build(),
+            new ArrayBlockingQueue<>(40960),
+            new ThreadFactoryBuilder().setNameFormat("upload-thread-%d").build(),
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
 

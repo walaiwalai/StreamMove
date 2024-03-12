@@ -1,20 +1,27 @@
 package com.sh.engine.model.alidriver;
 
 import cn.hutool.core.lang.Assert;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.sh.config.manager.ConfigFetcher;
+import com.google.common.collect.Lists;
+import com.sh.config.utils.VideoFileUtils;
 import com.sh.engine.util.AliDriverUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 
 import javax.net.ssl.HttpsURLConnection;
-import java.io.*;
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
 
 /**
  * 实现阿里云盘的爬虫
@@ -27,9 +34,16 @@ public class AliDiverStoreClient {
      */
     private AliStoreBucket aliStoreBucket;
 
+    /**
+     * 分块上传大小为10M
+     */
+    private static final long UPLOAD_CHUNK_SIZE = 1024 * 1024 * 10;
+    private static final String FILE_CREATE_WITH_FOLDERS_URL = "https://api.aliyundrive.com/adrive/v2/file/createWithFolders";
+
     public AliDiverStoreClient(AliStoreBucket aliStoreBucket) {
         Assert.notNull(aliStoreBucket, "bucket can not be null");
         this.aliStoreBucket = aliStoreBucket;
+        this.getAccessToken();
     }
 
     /**
@@ -95,6 +109,37 @@ public class AliDiverStoreClient {
         return putObject(parentId, fileName, content, "file");
     }
 
+    public boolean uploadFile(String parentId, String fileName, File file) throws Exception {
+        long fileSize = file.length();
+
+        // 1. 进行pre_hash
+        JSONObject preHashRet = preHash(file, fileName, parentId);
+        String uploadId = preHashRet.getString("upload_id");
+        String fileId = preHashRet.getString("file_id");
+
+        // 2. 进行content_hash
+        CreateFileResponse response = contentHash(file, fileName, parentId).toJavaObject(CreateFileResponse.class);
+        if (response.isRapidUpload() || response.isExist()) {
+            // 极速上传或文件已经存在，跳过
+            log.info("rapid upload file or file existed, file: {}", file.getAbsolutePath());
+            return true;
+        }
+
+        // 3.分块进行上传
+
+        return false;
+    }
+
+
+    private List<UploadPartInfo> buildPartInfoList(long fileSize) {
+        int chunkNum = (int) Math.ceil(fileSize * 1.0 / UPLOAD_CHUNK_SIZE);
+        List<UploadPartInfo> res = Lists.newArrayList();
+        for (int i = 1; i <= chunkNum; i++) {
+            res.add(new UploadPartInfo(i));
+        }
+        return res;
+    }
+
     /**
      * 上传超大文件
      *
@@ -105,80 +150,95 @@ public class AliDiverStoreClient {
      * @throws Exception
      */
     public JSONObject putBigFile(String parentId, String fileName, File file) throws Exception {
-        final String api = "https://api.aliyundrive.com/adrive/v2/file/createWithFolders";
-        int blockLen = 1024 * 1024 * 100;
-        if (file.length() < blockLen) {
-            throw new Exception("file size must large than 1G");
-        }
-
-        InputStream inputStream = new FileInputStream(file);
-        byte[] buff = new byte[blockLen];
-        int n = inputStream.read(buff);
-        String preHash = AliDriverUtil.sha1(buff, 0, 1024);
-        //创建上传
-        String data = "{" +
-                "  \"check_name_mode\": \"auto_rename\"," +
-                "  \"drive_id\": \"" + aliStoreBucket.getDriveId() + "\"," +
-                "\"create_scene\": \"file_upload\"," +
-                "  \"name\": \"" + fileName + "\"," +
-                "  \"parent_file_id\": \"" + parentId + "\"," +
-                "  \"part_info_list\": " + buildPartInfoList(1, 10) + "," +
-                " \"pre_hash\":\"" + preHash + "\" ," +
-                "  \"size\": " + file.length() + "," +
-                "  \"type\": \"file\"" +
-                "}";
-        JSONObject ret = getAuthRequestBody(api, data);
-        //上传数据
+        // 1.进行pre_hash
+        JSONObject ret = preHash(file, fileName, parentId);
         String uploadId = ret.getString("upload_id");
         String fileId = ret.getString("file_id");
-        List<AliUploadPartInfo> partInfoList = ret.getJSONArray("part_info_list").toJavaList(AliUploadPartInfo.class);
+        List<UploadPartInfo> partInfoList = ret.getJSONArray("part_info_list").toJavaList(UploadPartInfo.class);
 
-        int end = (int) (file.length() / blockLen);
-        if (file.length() % blockLen > 0) {
-            end = end + 1;
-        }
-        boolean readNext = false;
-        for (int i = 1; i <= end; ) {
-            for (AliUploadPartInfo item : partInfoList) {
-                if (item.getPartNumber() != i) {
-                    throw new RuntimeException("序号异常");
-                }
-                if (readNext) {
-                    n = inputStream.read(buff);
-                    readNext = false;
-                }
-                try {
-                    writeData(item.getUploadUrl(), buff, 0, n);
-                    readNext = true;
-                } catch (Exception e) {
-                    log.error("网络异常：5秒后重试");
-                    Thread.sleep(5000);
-                    break;
-                }
-                i++;
-            }
-            if (i <= end) {
-                for (int j = 0; j < 3; j++) {
-                    try {
-                        partInfoList = getUploadUrl(uploadId, fileId, i, Math.min(i + 9, end));
-                        break;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        if (j == 2) {
-                            return null;
-                        }
-                        System.out.println("网络异常," + (20 * j) + "秒后重试");
-                        Thread.sleep(20000 * j);
-                    }
-                }
-            }
-        }
 
-        inputStream.close();
         String completeData = "{\"drive_id\":\"" + aliStoreBucket.getDriveId() + "\",\"upload_id\":\"" + uploadId + "\",\"file_id\":\"" + fileId + "\"}";
         ret = getAuthRequestBody("https://api.aliyundrive.com/v2/file/complete", completeData);
         return ret;
     }
+
+
+    private JSONObject preHash(File uploadFile, String fileName, String targetParentFileId) throws Exception {
+        byte[] buff = VideoFileUtils.fetchBlock(uploadFile, 0, 1024);
+        String preHash = AliDriverUtil.sha1(buff, 0, 1024);
+
+        long size = uploadFile.length();
+        CreateFileRequest createFileRequest = new CreateFileRequest();
+        createFileRequest.setCheckNameMode("auto_rename");
+        createFileRequest.setDriverId(aliStoreBucket.getDriveId());
+        createFileRequest.setCreateScene("file_upload");
+        createFileRequest.setName(fileName);
+        createFileRequest.setParentFileId(targetParentFileId);
+        createFileRequest.setPartInfoList(buildPartInfoList(size));
+        createFileRequest.setPreHash(preHash);
+        createFileRequest.setSize(size + "");
+        createFileRequest.setType("file");
+        JSONObject resp = getAuthRequestBody(FILE_CREATE_WITH_FOLDERS_URL, JSON.toJSONString(createFileRequest));
+        return resp;
+    }
+
+    private JSONObject contentHash(File file, String fileName, String targetParentFileId) throws Exception {
+        String cHash = VideoFileUtils.calculateSHA1ByChunk(file, (int) UPLOAD_CHUNK_SIZE);
+        String proof = calculateProof(file);
+
+        long size = file.length();
+        CreateFileRequest createFileRequest = new CreateFileRequest();
+        createFileRequest.setCheckNameMode("auto_rename");
+        createFileRequest.setDriverId(aliStoreBucket.getDriveId());
+        createFileRequest.setName(fileName);
+        createFileRequest.setParentFileId(targetParentFileId);
+        createFileRequest.setPartInfoList(buildPartInfoList(size));
+        createFileRequest.setContentHash(cHash);
+        createFileRequest.setContentHashName("sha1");
+        createFileRequest.setSize(size + "");
+        createFileRequest.setType("file");
+        createFileRequest.setProofCode(proof);
+        createFileRequest.setProofVersion("v1");
+        return getAuthRequestBody(FILE_CREATE_WITH_FOLDERS_URL, JSON.toJSONString(createFileRequest));
+
+//        boolean readNext = false;
+//        for (int i = 1; i <= end; ) {
+//            for (AliUploadPartInfo item : partInfoList) {
+//                if (item.getPartNumber() != i) {
+//                    throw new RuntimeException("序号异常");
+//                }
+//                if (readNext) {
+//                    n = inputStream.read(buff);
+//                    readNext = false;
+//                }
+//                try {
+//                    writeData(item.getUploadUrl(), buff, 0, n);
+//                    readNext = true;
+//                } catch (Exception e) {
+//                    log.error("网络异常：5秒后重试");
+//                    Thread.sleep(5000);
+//                    break;
+//                }
+//                i++;
+//            }
+//            if (i <= end) {
+//                for (int j = 0; j < 3; j++) {
+//                    try {
+//                        partInfoList = getUploadUrl(uploadId, fileId, i, Math.min(i + 9, end));
+//                        break;
+//                    } catch (Exception e) {
+//                        if (j == 2) {
+//                            return null;
+//                        }
+//                        System.out.println("网络异常," + (20 * j) + "秒后重试");
+//                        Thread.sleep(20000 * j);
+//                    }
+//                }
+//            }
+//        }
+//        inputStream.close();
+    }
+
 
     public byte[] getFileContent(String fileId) throws Exception {
         String url = generateUrl(fileId);
@@ -188,7 +248,7 @@ public class AliDiverStoreClient {
     }
 
 
-    private String getAccessToken() throws IOException {
+    private String getAccessToken() {
         //accessToken 有效期是7200秒
         if (aliStoreBucket.getAccessTokenTime() + 7000 * 1000 < System.currentTimeMillis()) {
             aliStoreBucket.refreshToken();
@@ -236,6 +296,18 @@ public class AliDiverStoreClient {
         return Base64.getEncoder().encodeToString(Arrays.copyOfRange(content, start, end));
     }
 
+    private String calculateProof(File file) throws Exception {
+        if (!file.exists()) {
+            return "";
+        }
+        String md5 = AliDriverUtil.md5(getAccessToken().getBytes(StandardCharsets.UTF_8));
+        BigInteger preMd5 = new BigInteger(md5.substring(0, 16), 16);
+        BigInteger length = new BigInteger(String.valueOf(file.length()));
+        long start = preMd5.mod(length).intValue();
+        long end = Math.min(start + 8, file.length());
+        return Base64.getEncoder().encodeToString(VideoFileUtils.fetchBlock(file, start, (int) (end - start)));
+    }
+
     /**
      * 列出目录的文件。只返回前50个
      *
@@ -273,13 +345,13 @@ public class AliDiverStoreClient {
     }
 
 
-    private List<AliUploadPartInfo> getUploadUrl(String uploadId, String fileId, int start, int end) throws Exception {
+    private List<UploadPartInfo> getUploadUrl(String uploadId, String fileId, int start, int end) throws Exception {
         final String api = "https://api.aliyundrive.com/v2/file/get_upload_url";
         String data = "{\"drive_id\":\"" + aliStoreBucket.getDriveId() + "\",\"upload_id\":\"" + uploadId + "\",\"file_id\":\"" + fileId + "\",\"part_info_list\":" + buildPartInfoList(start, end) + "}";
         JSONObject ret = getAuthRequestBody(api, data);
-        List<AliUploadPartInfo> partInfoList = ret
+        List<UploadPartInfo> partInfoList = ret
                 .getJSONArray("part_info_list")
-                .toJavaList(AliUploadPartInfo.class);
+                .toJavaList(UploadPartInfo.class);
         return partInfoList;
     }
 
@@ -362,28 +434,29 @@ public class AliDiverStoreClient {
         return url;
     }
 
-    private JSONObject getAuthRequestBody(String url, String data) throws IOException {
-        HttpsURLConnection connection = null;
-        try {
-            connection = (HttpsURLConnection) new URL(url).openConnection();
-            connection.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36");
-            connection.addRequestProperty("Referer", "https://www.aliyundrive.com/");
-            connection.addRequestProperty("authorization", "Bearer " + getAccessToken());
-//            connection.addRequestProperty("X-Device-Id", xDeviceId);
-//            connection.addRequestProperty("X-Signature", AliDriverUtil.genSignature(xDeviceId, aliStoreBucket.getUserId()));
-            connection.setDoOutput(true);
-            OutputStream outputStream = connection.getOutputStream();
-            outputStream.write(data.getBytes(StandardCharsets.UTF_8));
-            outputStream.flush();
-            String s = new String(IOUtils.toByteArray(connection.getInputStream()));
-            return JSONObject.parseObject(s);
-        } catch (IOException e) {
-            if (connection == null) {
-                throw new RuntimeException("connect 出错");
-            }
-            InputStream errorStream = connection.getErrorStream();
-            String s = new String(IOUtils.toByteArray(errorStream));
-            throw new RuntimeException(s);
-        }
+    private JSONObject getAuthRequestBody(String url, String data) {
+//        HttpsURLConnection connection = null;
+//        try {
+//            connection = (HttpsURLConnection) new URL(url).openConnection();
+//            connection.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36");
+//            connection.addRequestProperty("Referer", "https://www.aliyundrive.com/");
+//            connection.addRequestProperty("authorization", "Bearer " + getAccessToken());
+////            connection.addRequestProperty("X-Device-Id", xDeviceId);
+////            connection.addRequestProperty("X-Signature", AliDriverUtil.genSignature(xDeviceId, aliStoreBucket.getUserId()));
+//            connection.setDoOutput(true);
+//            OutputStream outputStream = connection.getOutputStream();
+//            outputStream.write(data.getBytes(StandardCharsets.UTF_8));
+//            outputStream.flush();
+//            String s = new String(IOUtils.toByteArray(connection.getInputStream()));
+//            return JSONObject.parseObject(s);
+//        } catch (IOException e) {
+//            if (connection == null) {
+//                throw new RuntimeException("connect 出错");
+//            }
+//            InputStream errorStream = connection.getErrorStream();
+//            String s = new String(IOUtils.toByteArray(errorStream));
+//            throw new RuntimeException(s);
+//        }
+        return null;
     }
 }

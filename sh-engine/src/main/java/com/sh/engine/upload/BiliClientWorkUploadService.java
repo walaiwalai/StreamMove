@@ -25,9 +25,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.FormBodyPartBuilder;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.ByteArrayBody;
@@ -38,7 +36,6 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,7 +58,7 @@ public class BiliClientWorkUploadService extends AbstractWorkUploadService {
      * 失败重试次数
      */
     public static final Integer RETRY_COUNT = 3;
-    public static final Integer CHUNK_RETRY_DELAY = 1000;
+    public static final Integer CHUNK_RETRY_DELAY = 500;
 
     private static final String CLIENT_POST_VIDEO_URL
             = "https://member.bilibili.com/x/vu/client/add?access_key=%s";
