@@ -63,6 +63,8 @@ public class InitConfig {
     // *********************直播cookies**********************
     private String afreecaTvCookies;
 
+    private String huyaCookies;
+
     // *********************其他配置**********************
     /**
      * 回收文件cron表达式

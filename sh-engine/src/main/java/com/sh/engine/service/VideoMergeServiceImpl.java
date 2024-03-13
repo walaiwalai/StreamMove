@@ -29,7 +29,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     MsgSendService msgSendService;
 
     /**
-     * 淡出时间
+     * 淡出时间（s）
      */
     private static final int FADE_DURATION = 1;
 
@@ -102,11 +102,11 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         FfmpegCmd ffmpegCmd = new FfmpegCmd(buildMergeVideoCommand(videoFilePaths, targetVideo));
         Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
         if (resCode == 0) {
-//            msgSendService.send("制作精彩剪辑成功！路径为：" + targetPath);
+            msgSendService.send("制作精彩剪辑成功！路径为：" + targetPath);
             log.info("merge highlight video success, path: {}", targetPath);
             return true;
         } else {
-//            msgSendService.send("制作精彩剪辑失败！路径为：" + targetPath);
+            msgSendService.send("制作精彩剪辑失败！路径为：" + targetPath);
             log.info("merge highlight video fail, path: {}", targetPath);
             return false;
         }
