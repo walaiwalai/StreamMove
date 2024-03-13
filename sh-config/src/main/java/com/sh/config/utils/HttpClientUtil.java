@@ -35,8 +35,8 @@ public class HttpClientUtil {
     private static final int MAX_TOTAL_CONN = 600;
     private static final int MAX_CONN_PER_HOST = 300;
     private static final int SOCKET_TIMEOUT = 18000000;
-    private static final int CONNECTION_TIMEOUT = 200;
-    private static final int CONNECTION_MANAGER_TIMEOUT = 100;
+    private static final int CONNECTION_TIMEOUT = 5000;
+    private static final int CONNECTION_MANAGER_TIMEOUT = 1000;
 
 
     private static CloseableHttpClient httpclient;

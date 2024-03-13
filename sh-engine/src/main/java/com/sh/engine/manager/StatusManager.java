@@ -1,6 +1,5 @@
 package com.sh.engine.manager;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.record.Recorder;
@@ -8,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -76,10 +74,11 @@ public class StatusManager {
 
     /**
      * 锁住当前时间段多个视频（001,002...）投稿状态
+     *
      * @param pathWithTimeV
      */
-    public void lockRecordForSubmission(String pathWithTimeV) {
-        uploadStatusMap.put(pathWithTimeV, "1");
+    public void lockRecordForSubmission(String pathWithTimeV, String platform) {
+        uploadStatusMap.put(pathWithTimeV, platform);
     }
 
     /**
@@ -87,6 +86,10 @@ public class StatusManager {
      */
     public void releaseRecordForSubmission(String pathWithTimeV) {
         uploadStatusMap.remove(pathWithTimeV);
+    }
+
+    public String getCurPlatform(String pathWithTimeV) {
+        return uploadStatusMap.get(pathWithTimeV);
     }
 
 

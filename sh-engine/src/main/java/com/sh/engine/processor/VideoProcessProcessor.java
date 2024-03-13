@@ -52,7 +52,7 @@ public class VideoProcessProcessor extends AbstractRecordTaskProcessor {
         List<String> curRecordPaths = StreamerInfoHolder.getCurRecordPaths();
         for (String curRecordPath : curRecordPaths) {
             if (statusManager.isPathOccupied(curRecordPath)) {
-                log.info("{} is doing other process, plugin: {}.", streamerName, statusManager.getCurPostProcessType(streamerName));
+                log.info("{} is doing other process, plugin: {}.", streamerName, statusManager.getCurPostProcessType(curRecordPath));
                 continue;
             }
 

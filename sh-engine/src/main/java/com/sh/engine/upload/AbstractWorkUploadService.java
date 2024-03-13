@@ -39,7 +39,6 @@ public abstract class AbstractWorkUploadService {
 
     public abstract boolean upload(List<LocalVideo> localVideos, BaseUploadTask task) throws Exception;
 
-
     protected void syncStatus(String dirName, LocalVideo localVideo, VideoUploadResultModel uploadResult) {
         String platName = getName();
 

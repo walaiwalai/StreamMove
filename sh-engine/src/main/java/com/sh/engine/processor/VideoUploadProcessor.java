@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.SucceedUploadSeverVideo;
@@ -19,9 +20,9 @@ import com.sh.engine.model.RecordTaskStateEnum;
 import com.sh.engine.upload.AbstractWorkUploadService;
 import com.sh.engine.util.RecordConverter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -56,66 +57,50 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor {
 
     @Override
     public void processInternal(RecordContext context) {
+        String streamerName = StreamerInfoHolder.getCurStreamerName();
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
+        if (CollectionUtils.isEmpty(streamerConfig.getUploadPlatforms())) {
+            return;
+        }
+
         for (String curRecordPath : StreamerInfoHolder.getCurRecordPaths()) {
             FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
-            if (checkNeedDoUpload(fileStatusModel)) {
-                String path = fileStatusModel.getPath();
-                log.info("begin upload, dirName: {}", path);
+            if (statusManager.isPathOccupied(curRecordPath)) {
+                log.info("{} is doing other process, platform: {}.", streamerName, statusManager.getCurPlatform(curRecordPath));
+                continue;
+            }
 
-                // 1. 锁住上传视频
-                statusManager.lockRecordForSubmission(path);
-
-                try {
-                    // 2.上传视频
-                    upload(fileStatusModel);
-                } catch (Exception e) {
-                    log.error("upload video fail, dirName: {}", path, e);
-                } finally {
-                    // 3. 上传完成或报错解除占用
-                    statusManager.releaseRecordForSubmission(path);
+            for (String platform : streamerConfig.getUploadPlatforms()) {
+                AbstractWorkUploadService service = uploadServiceMap.get(platform);
+                if (service == null) {
+                    log.info("no available platform for uploading, will skip, platform: {}", platform);
+                    continue;
                 }
-            }
-        }
-    }
 
-    private boolean checkNeedDoUpload(FileStatusModel fileStatus) {
-        if (fileStatus == null) {
-            return false;
-        }
-        String recordSavePath = fileStatus.getPath();
-        if (BooleanUtils.isTrue(fileStatus.allPost())) {
-            // 已经上传的
-            log.info("videos in {} already posted, skip", recordSavePath);
-            return false;
-        }
-        if (statusManager.isPathOccupied(fileStatus.getPath())) {
-            return false;
-        }
+                boolean isPost = fileStatusModel.fetchPostByPlatform(platform);
+                if (isPost) {
+                    log.info("video has been uploaded, will skip, platform: {}", platform);
+                    continue;
+                }
 
-        // todo 限制最大上传个数
-        return true;
-    }
+                // 2.需要上传的地址
+                statusManager.lockRecordForSubmission(curRecordPath, platform);
+                List<LocalVideo> localVideoParts = fetchLocalVideos(fileStatusModel, platform);
+                boolean success = false;
+                try {
+                    success = service.upload(localVideoParts, RecordConverter.initTask(fileStatusModel, platform));
+                } catch (Exception e) {
+                    log.error("upload error, platform: {}", platform, e);
+                } finally {
+                    statusManager.releaseRecordForSubmission(curRecordPath);
+                }
 
-    private void upload(FileStatusModel fileStatus) {
-        List<String> platforms = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName()).getUploadPlatforms();
-        for (String platform : platforms) {
-            AbstractWorkUploadService service = uploadServiceMap.get(platform);
-            if (service == null) {
-                log.info("no available platform for uploading, will skip, platform: {}", platform);
-                continue;
-            }
-            boolean isPost = fileStatus.fetchPostByPlatform(platform);
-            if (isPost) {
-                log.info("video has been uploaded, will skip, platform: {}", platform);
-                continue;
-            }
+                if (success) {
+                    log.info("{}'s {} platform upload success, path: {}. ", streamerName, platform, curRecordPath);
+                } else {
+                    log.info("{}'s {} platform upload fail, path: {}. ", streamerName, platform, curRecordPath);
+                }
 
-            // 2.需要上传的地址
-            List<LocalVideo> localVideoParts = fetchLocalVideos(fileStatus, platform);
-            try {
-                service.upload(localVideoParts, RecordConverter.initTask(fileStatus, platform));
-            } catch (Exception e) {
-                log.error("upload error, platform: {}", platform, e);
             }
         }
     }

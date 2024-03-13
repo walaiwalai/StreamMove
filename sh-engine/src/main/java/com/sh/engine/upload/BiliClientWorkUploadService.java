@@ -106,7 +106,7 @@ public class BiliClientWorkUploadService extends AbstractWorkUploadService {
             remoteVideos.add(biliVideoUploadResult.getRemoteSeverVideo());
 
             // 1.2 发消息
-            msgSendService.send(localVideo.getLocalFileFullPath() + "路径下的视频上传成功！");
+            msgSendService.send(localVideo.getLocalFileFullPath() + "路径下的视频上传B站成功！");
         }
 
         // 2. 给需要上传的视频文件命名
@@ -118,8 +118,6 @@ public class BiliClientWorkUploadService extends AbstractWorkUploadService {
         if (!isPostSuccess) {
             throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
         }
-
-        log.info("upload video success.");
 
         // 6.更新文件属性
         FileStatusModel.updateToFile(dirName, FileStatusModel.builder().biliPost(true).build());

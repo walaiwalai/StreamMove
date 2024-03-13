@@ -39,8 +39,8 @@ public class FileStatusModel {
     private UploadVideoPair bili;
     private UploadVideoPair aliDriver;
 
-    private boolean biliPost;
-    private boolean aliDriverPost;
+    private Boolean biliPost;
+    private Boolean aliDriverPost;
 
     /**
      * 写到fileStatus.json，没有值不覆盖
