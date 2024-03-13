@@ -28,6 +28,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
+ * todo
+ * 1. 召唤师技能、血量的ocr
+ *
  * @Author caiwen
  * @Date 2024 01 26 22 18
  **/
@@ -88,7 +91,7 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
         List<Pair<Integer, Integer>> potentialIntervals = statistic.getPotentialIntervals();
 
         // 4. 进行合并视频
-        return videoMergeService.merge(buildMergeFileNames(potentialIntervals, videos), highlightFile);
+        return videoMergeService.mergeMulti(buildMergeFileNames(potentialIntervals, videos), highlightFile);
     }
 
     private File snapShot(File segFile) {
@@ -204,16 +207,18 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
         return Integer.valueOf(fileName.substring(start + 1, end));
     }
 
-    private List<String> buildMergeFileNames(List<Pair<Integer, Integer>> intervals, Collection<File> files) {
-        Set<String> nameSet = files.stream().map(File::getName).collect(Collectors.toSet());
-        List<String> res = Lists.newArrayList();
+    private List<List<String>> buildMergeFileNames(List<Pair<Integer, Integer>> intervals, Collection<File> files) {
+        Map<String, String> name2PathMap = files.stream().collect(Collectors.toMap(File::getName, File::getAbsolutePath, (a, b) -> b));
+        List<List<String>> res = Lists.newArrayList();
         for (Pair<Integer, Integer> interval : intervals) {
+            List<String> tmp = Lists.newArrayList();
             for (int i = interval.getLeft(); i < interval.getRight() + 1; i++) {
                 String fileName = "seg-" + i + ".ts";
-                if (nameSet.contains(fileName)) {
-                    res.add(fileName);
+                if (name2PathMap.containsKey(fileName)) {
+                    tmp.add(name2PathMap.get(fileName));
                 }
             }
+            res.add(tmp);
         }
         return res;
     }

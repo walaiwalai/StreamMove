@@ -53,7 +53,10 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
 
         for (List<Integer> batchIndexes : Lists.partition(segIndexes, BATCH_RECORD_TS_COUNT)) {
             File targetMergedVideo = new File(recordPath, "P" + videoIndex + ".mp4");
-            List<String> segNames = batchIndexes.stream().map(i -> "seg-" + i + ".ts").collect(Collectors.toList());
+            List<String> segNames = batchIndexes.stream()
+                    .map(i -> new File(recordPath, "seg-" + i + ".ts"))
+                    .map(File::getAbsolutePath)
+                    .collect(Collectors.toList());
             boolean success;
             if (targetMergedVideo.exists()) {
                 log.info("merge video: {} existed, skip this batch", targetMergedVideo.getAbsolutePath());
@@ -64,7 +67,7 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
             }
 
             if (success) {
-                deleteSegs(segNames, recordPath);
+                deleteSegs(segNames);
             }
             videoIndex++;
         }
@@ -72,9 +75,9 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
         return true;
     }
 
-    private void deleteSegs(List<String> segNames, String dirName) {
+    private void deleteSegs(List<String> segNames) {
         for (String segName : segNames) {
-            File file = new File(dirName, segName);
+            File file = new File(segName);
             FileUtils.deleteQuietly(file);
         }
     }
