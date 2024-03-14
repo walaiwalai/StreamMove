@@ -24,7 +24,7 @@ public class CommandUtil {
         Integer code = 999;
         String errMsg = null;
         try {
-            Thread.sleep(5000);
+            Thread.sleep(200);
             ffmpegCmd.execute(true);
 
             // 打印输出信息

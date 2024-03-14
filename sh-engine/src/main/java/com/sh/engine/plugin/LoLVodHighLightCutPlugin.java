@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.OkHttpClientUtil;
+import com.sh.config.utils.VideoFileUtils;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.plugin.lol.LoLPicData;
@@ -36,7 +37,7 @@ import java.util.stream.Collectors;
  **/
 @Component
 @Slf4j
-public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
+public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
     @Resource
     private VideoMergeService videoMergeService;
 
@@ -114,7 +115,7 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
                 picFile.getAbsolutePath()
         );
         FfmpegCmd ffmpegCmd = new FfmpegCmd(StringUtils.join(params, " "));
-        Integer resCode = CommandUtil.cmdExecWithoutLog(ffmpegCmd);
+        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
         if (resCode == 0) {
             log.info("get pic success, path: {}", segFile.getAbsolutePath());
             return picFile;
@@ -182,9 +183,9 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
 
     private LoLPicData parseFromCache() {
         String streamerName = StreamerInfoHolder.getCurStreamerName();
-        Integer lastK = LAST_OCR_K_MAP.get(streamerName);
-        Integer lastD = LAST_OCR_D_MAP.get(streamerName);
-        Integer lastA = LAST_OCR_A_MAP.get(streamerName);
+        Integer lastK = LAST_OCR_K_MAP.getOrDefault(streamerName, -1);
+        Integer lastD = LAST_OCR_D_MAP.getOrDefault(streamerName, -1);
+        Integer lastA = LAST_OCR_A_MAP.getOrDefault(streamerName, -1);
         log.info("ocr error, will use last cache., last kda: {}/{}/{}.", lastK, lastD, lastA);
         return new LoLPicData(lastK, lastD, lastA);
     }
@@ -213,9 +214,9 @@ public class LoLVideoHighLightCutPlugin implements VideoProcessPlugin {
         for (Pair<Integer, Integer> interval : intervals) {
             List<String> tmp = Lists.newArrayList();
             for (int i = interval.getLeft(); i < interval.getRight() + 1; i++) {
-                String fileName = "seg-" + i + ".ts";
-                if (name2PathMap.containsKey(fileName)) {
-                    tmp.add(name2PathMap.get(fileName));
+                String fileName2 = VideoFileUtils.genSegName(i);
+                if (name2PathMap.containsKey(fileName2)) {
+                    tmp.add(name2PathMap.get(fileName2));
                 }
             }
             res.add(tmp);

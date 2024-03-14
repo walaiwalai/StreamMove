@@ -15,9 +15,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
-
-import static cn.hutool.core.util.StrUtil.str;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author caiWen
@@ -52,7 +53,7 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
 
         String url = "https://m.douyu.com/" + rid;
         Map<String, String> headers = ImmutableMap.of("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0");
-        String resp1 = HttpClientUtil.sendGet(url, headers, null);
+        String resp1 = HttpClientUtil.sendGet(url, headers, null, false);
 
         String jsonStr = RegexUtil.fetchMatchedOne(resp1, "<script id=\"vike_pageContext\" type=\"application/json\">(.*?)</script>");
         JSONObject roomInfoObj = JSON.parseObject(jsonStr);
@@ -91,7 +92,7 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
     private String fetchStreamData(String rid, String rate) {
         String did = "10000000000000000000000000003306";
         String url = "https://www.douyu.com/" + rid;
-        String resp = HttpClientUtil.sendGet(url, null, null);
+        String resp = HttpClientUtil.sendGet(url, null, null, false);
         String jsStr = RegexUtil.fetchMatchedOne(resp, "(vdwdae325w_64we[\\s\\S]*function ub98484234[\\s\\S]*?)function");
         String func = jsStr.replaceAll("eval.*?;}", "strc;}");
         String funcStr = JavaScriptUtil.execJs(func, "ub98484234");

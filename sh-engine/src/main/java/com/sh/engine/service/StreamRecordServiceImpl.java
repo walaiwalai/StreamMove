@@ -1,9 +1,8 @@
 package com.sh.engine.service;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.utils.VideoFileUtils;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.record.Recorder;
@@ -20,7 +19,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,27 +29,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 @Slf4j
 public class StreamRecordServiceImpl implements StreamRecordService {
-    private static Map<String, String> fakeHeaderMap = Maps.newHashMap();
-//    ExecutorService TS_DOWNLOAD_POOL = new ThreadPoolExecutor(
-//            4,
-//            4,
-//            600,
-//            TimeUnit.SECONDS,
-//            new ArrayBlockingQueue<>(20480),
-//            new ThreadFactoryBuilder().setNameFormat("seg-download-%d").build(),
-//            new ThreadPoolExecutor.CallerRunsPolicy()
-//    );
+    private static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 11; SAMSUNG SM-G973U) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/14.2 Chrome/87.0.4280.141 Mobile Safari/537.36";
     OkHttpClient CLIENT = new OkHttpClient();
     private static final int SEG_DOWNLOAD_RETRY = 3;
-
-    static {
-        fakeHeaderMap.put("Accept", "*/*");
-        fakeHeaderMap.put("Accept-Encoding", "gzip, deflate, br");
-        fakeHeaderMap.put("Accept-Language", "zh,zh-TW;q=0.9,en-US;q=0.8,en;q=0.7,zh-CN;q=0.6,ru;q=0.5");
-        fakeHeaderMap.put("Origin", "https://www.huya.com");
-        fakeHeaderMap.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like " +
-                "Gecko) Chrome/83.0.4103.106 Safari/537.36");
-    }
 
     @Override
     public void startRecord(Recorder recorder) {
@@ -90,7 +70,7 @@ public class StreamRecordServiceImpl implements StreamRecordService {
             for (int i = 1; i < tsView.getCount() + 1; i++) {
                 String segTsUrl = tsView.genTsUrl(i);
                 CompletableFuture.supplyAsync(() -> {
-                            File targetFile = new File(dirName, "seg-" + index.getAndIncrement() + ".ts");
+                            File targetFile = new File(dirName, VideoFileUtils.genSegName(index.getAndIncrement()));
                             if (targetFile.exists()) {
                                 log.info("ts file existed, path: {}", targetFile.getAbsolutePath());
                                 return true;
@@ -151,27 +131,29 @@ public class StreamRecordServiceImpl implements StreamRecordService {
      * @param recorder
      */
     private boolean livingRecordWithFfmpeg(Recorder recorder) {
-        String streamName = StreamerInfoHolder.getCurStreamerName();
-        File fileToDownload = new File(recorder.getSavePath(), streamName + "-part-%03d.mp4");
-
-        // 1. 生成拉流命令
-        String command = buildFfmpegCmd(recorder.getStreamUrl(), fileToDownload.getAbsolutePath());
-
-        // 2. ffmpegCmd命令放到线程池中
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
-
-        return doFfmpegCmd(ffmpegCmd, recorder);
+        FfmpegCmd ffmpegCmd = new FfmpegCmd(buildFfmpegCmd(recorder));
+        // 进行拉流，长时间阻塞在这
+        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
+        if (resCode == 0) {
+            log.info("download stream completed, savePath: {}, code: {}", recorder.getSavePath(), resCode);
+            return true;
+        } else {
+            log.error("download stream fail, savePath: {}, code: {}", recorder.getSavePath(), resCode);
+            return false;
+        }
     }
 
-    private String buildFfmpegCmd(String streamUrl, String downloadFileName) {
-        String userAgent = "Mozilla/5.0 (Linux; Android 11; SAMSUNG SM-G973U) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/14.2 Chrome/87.0.4280.141 Mobile Safari/537.36";
+    private String buildFfmpegCmd(Recorder recorder) {
+        String streamUrl = recorder.getStreamUrl();
+        File segFile = new File(recorder.getSavePath(), "seg-%04d.ts");
+        // 5s一个片段，跟录像方式统一
         List<String> commands = Lists.newArrayList(
-                 "-y",
+                "-y",
                 "-v", "verbose",
                 "-rw_timeout", "15000000",
                 "-loglevel", "error",
                 "-hide_banner",
-                "-user_agent", "\"" + userAgent + "\"",
+                "-user_agent", "\"" + USER_AGENT + "\"",
                 "-protocol_whitelist", "rtmp,crypto,file,http,https,tcp,tls,udp,rtp",
                 "-thread_queue_size", "1024",
                 "-analyzeduration", "2147483647",
@@ -184,32 +166,19 @@ public class StreamRecordServiceImpl implements StreamRecordService {
                 "-reconnect_streamed", "-reconnect_at_eof",
                 "-max_muxing_queue_size", "64",
                 "-correct_ts_overflow", "1",
-                "-r", "30",
+//                "-r", "60",
                 "-c:v", "copy",
                 "-c:a", "copy",
                 "-map", "0",
                 "-f", "segment",
-                "-segment_time", ConfigFetcher.getInitConfig().getSegmentDuration() + "",
+                "-segment_time", "5",
                 "-segment_start_number", "1",
                 "-segment_format", "mp4",
                 "-movflags", "+faststart",
                 "-reset_timestamps", "1",
-                "\"" + downloadFileName + "\""
+                "\"" + segFile.getAbsolutePath() + "\""
         );
         return StringUtils.join(commands, " ");
 
-    }
-
-    private boolean doFfmpegCmd(FfmpegCmd ffmpegCmd, Recorder recorder) {
-        String recorderName = StreamerInfoHolder.getCurStreamerName();
-        // 进行拉流，长时间阻塞在这
-        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-        if (resCode == 0) {
-            log.info("download stream completed, recordName: {}, savePath: {}, code: {}", recorderName, recorder.getSavePath(), resCode);
-            return true;
-        } else {
-            log.error("download stream fail, recordName: {}, savePath: {}, code: {}", recorderName, recorder.getSavePath(), resCode);
-            return false;
-        }
     }
 }

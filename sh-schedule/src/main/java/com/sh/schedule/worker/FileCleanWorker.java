@@ -1,5 +1,6 @@
 package com.sh.schedule.worker;
 
+import cn.hutool.extra.spring.SpringUtil;
 import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
@@ -12,7 +13,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.quartz.JobExecutionContext;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,9 +26,7 @@ import java.util.List;
  */
 @Slf4j
 public class FileCleanWorker extends ProcessWorker {
-    @Autowired
-    StatusManager statusManager;
-
+    private final StatusManager statusManager = SpringUtil.getBean(StatusManager.class);
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {

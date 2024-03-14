@@ -40,6 +40,17 @@ public class VideoFileUtils {
         return files;
     }
 
+    public static Integer getIndexOnLivingVideo(File file) {
+        String segFileName = file.getName();
+        int tail = segFileName.lastIndexOf(".");
+        int head = segFileName.lastIndexOf("-");
+        return Integer.valueOf(segFileName.substring(head + 1, tail));
+    }
+
+    public static String genSegName(int i) {
+        return "seg-" + String.format("%04d", i) + ".ts";
+    }
+
     public static byte[] fetchBlock(File targetFile, long start, int blockSize) throws IOException {
         byte[] b = new byte[blockSize];
         RandomAccessFile raf = null;
@@ -78,5 +89,9 @@ public class VideoFileUtils {
             hashString.append(String.format("%02X", b));
         }
         return hashString.toString();
+    }
+
+    public static void main(String[] args) {
+        System.out.println(getIndexOnLivingVideo(new File("TheShy-part-001.mp4")));
     }
 }

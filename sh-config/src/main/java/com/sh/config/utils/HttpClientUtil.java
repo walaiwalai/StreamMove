@@ -163,8 +163,8 @@ public class HttpClientUtil {
         return sendGet(url, headers, params, true);
     }
 
-    public static String sendGet(String url, Map<String, String> params) {
-        return sendGet(url, null, params, true);
+    public static String sendGet(String url, Map<String, String> headers) {
+        return sendGet(url, headers, null, true);
     }
 
     public static String sendGet(String url) {

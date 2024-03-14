@@ -1,10 +1,10 @@
 package com.sh.schedule.worker;
 
+import cn.hutool.extra.spring.SpringUtil;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.processor.RecordStateMachine;
 import org.quartz.JobExecutionContext;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
@@ -13,8 +13,7 @@ import java.util.List;
  * @date 2023/1/25 11:40
  */
 public class MainWorker extends ProcessWorker {
-    @Autowired
-    RecordStateMachine recordStateMachine;
+    private final RecordStateMachine recordStateMachine = SpringUtil.getBean(RecordStateMachine.class);
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {

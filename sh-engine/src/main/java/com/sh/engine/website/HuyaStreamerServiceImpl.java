@@ -45,7 +45,7 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
         }
 
         // 获取直播地址中的流信息
-        String resp = HttpClientUtil.sendGet(streamerConfig.getRoomUrl(), headers);
+        String resp = HttpClientUtil.sendGet(streamerConfig.getRoomUrl(), headers, null, false);
         String jsonStr = RegexUtil.fetchMatchedOne(resp, STREAM_DATA_REGEX);
         if (StringUtils.isBlank(jsonStr)) {
             return null;
@@ -95,7 +95,7 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
     public static void main(String[] args) {
         HuyaStreamerServiceImpl huyaStreamerService = new HuyaStreamerServiceImpl();
         LivingStreamer res = huyaStreamerService.isRoomOnline(StreamerConfig.builder()
-                .roomUrl("https://www.huya.com/fukua")
+                .roomUrl("https://www.huya.com/991111")
                 .build());
         System.out.println(res.getStreamUrl());
     }

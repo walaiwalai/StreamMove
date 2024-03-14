@@ -21,7 +21,11 @@ public abstract class ProcessWorker implements Job {
         MDC.put("tranceId", UUID.randomUUID().toString());
 
         log.info("[ProcessWorker] {} start to work...", PROCESS_WORK_NAME);
-        executeJob(jobExecutionContext);
+        try {
+            executeJob(jobExecutionContext);
+        } catch (Exception e) {
+            log.error("execute job error", e);
+        }
         log.info("[ProcessWorker] {} finish work.", PROCESS_WORK_NAME);
 
         MDC.clear();
