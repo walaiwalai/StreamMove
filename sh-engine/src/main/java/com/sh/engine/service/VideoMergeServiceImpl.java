@@ -107,7 +107,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
             return true;
         } else {
             msgSendService.send("制作精彩剪辑失败！路径为：" + targetPath);
-            log.info("merge highlight video fail, path: {}", targetPath);
+            log.info("merge highlight video fail, path: {}, resCode: {}", targetPath, resCode);
             return false;
         }
     }
@@ -154,7 +154,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         ffmpegCommand.append("-map \"[outa]\" ");
 
         // 编码参数设置
-        ffmpegCommand.append("-c:v libx264 -crf 23 -preset superfast ");
+        ffmpegCommand.append("-c:v libx264 -crf 24 -preset superfast ");
         ffmpegCommand.append("-c:a aac ");
 
         // 输出文件路径

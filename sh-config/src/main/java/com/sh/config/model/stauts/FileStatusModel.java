@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
@@ -72,9 +73,9 @@ public class FileStatusModel {
 
     public boolean fetchPostByPlatform(String name) {
         if (StringUtils.equals(name, "BILI_CLIENT") || StringUtils.equals(name, "BILI_WEB")) {
-            return biliPost;
+            return BooleanUtils.isTrue(biliPost);
         } else if (StringUtils.equals(name, "ALI_DRIVER")) {
-            return aliDriverPost;
+            return BooleanUtils.isTrue(aliDriverPost);
         }
         return false;
     }
