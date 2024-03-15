@@ -7,6 +7,7 @@ import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.util.CommandUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 
 
 /***
+ * https://trac.ffmpeg.org/wiki/Concatenate#demuxer
  * todo 代做事项
  * 2. 背景音乐
  * 3. 视频开场和结尾加上动画
@@ -37,7 +39,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     private static final int FADE_DURATION = 1;
 
     @Override
-    public boolean concat(List<String> mergedFileNames, File targetVideo) {
+    public boolean concatByDemuxer(List<String> mergedFileNames, File targetVideo) {
         File mergeListFile = new File(targetVideo.getParent(), "merge.txt");
         List<String> lines = mergedFileNames.stream()
                 .map(name -> {
@@ -68,15 +70,15 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         String targetPath = targetVideo.getAbsolutePath();
         String command = "-f concat -safe 0 -i " + mergeListFile.getAbsolutePath() +
 //                " -c:v libx264 -crf 24 -preset superfast -c:a libfdk_aac -r 30 " + targetPath;
-                " -c:v copy -c:a copy -r 60 " + targetPath;
+                " -c:v copy -c:a copy " + targetPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
 
         Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
         if (resCode == 0) {
-            msgSendService.send("合并压缩视频完成！路径为：" + targetVideo.getAbsolutePath());
+//            msgSendService.send("合并压缩视频完成！路径为：" + targetVideo.getAbsolutePath());
             return true;
         } else {
-            msgSendService.send("压缩视频失败！路径为：" + targetVideo.getAbsolutePath());
+//            msgSendService.send("压缩视频失败！路径为：" + targetVideo.getAbsolutePath());
             return false;
         }
     }
@@ -100,10 +102,10 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     }
 
     @Override
-    public boolean mergeMulti(List<List<String>> intervals, File targetVideo) {
+    public boolean mergeMultiWithFade(List<List<String>> intervals, File targetVideo) {
         // 单独一个不处理
         if (intervals.size() == 1) {
-            return concat(intervals.get(0), targetVideo);
+            return concatByDemuxer(intervals.get(0), targetVideo);
         }
 
         // 先合并小的seg文件
@@ -125,6 +127,40 @@ public class VideoMergeServiceImpl implements VideoMergeService {
             }
         }
         return concatByProtocol(segVideoPaths, targetVideo);
+    }
+
+    @Override
+    public boolean mergeMultiWithFadeV2(List<List<String>> intervals, File targetVideo) {
+        // 单独一个不处理
+        if (intervals.size() == 1) {
+            return concatByDemuxer(intervals.get(0), targetVideo);
+        }
+        File tmpSaveDir = new File(targetVideo.getParent(), "tmp");
+        if (!tmpSaveDir.exists()) {
+            tmpSaveDir.mkdir();
+        }
+
+        List<String> mergedPaths = Lists.newArrayList();
+        for (int i = 0; i < intervals.size(); i++) {
+            File tmpFile = new File((tmpSaveDir), "tmp-" + (i + 1) + ".ts");
+            boolean success = concatByDemuxer(intervals.get(i), tmpFile);
+            if (success) {
+                mergedPaths.add(tmpFile.getAbsolutePath());
+            }
+        }
+
+        String targetPath = targetVideo.getAbsolutePath();
+        String cmd = genFadeConcatFilterCmd(mergedPaths, targetVideo);
+        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
+        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
+        if (resCode == 0) {
+            FileUtils.deleteQuietly(tmpSaveDir);
+            msgSendService.send("按照concat filter合并视频完成！路径为：" + targetPath);
+            return true;
+        } else {
+            msgSendService.send("按照concat filter协议合并视频失败！路径为：" + targetPath);
+            return false;
+        }
     }
 
     /**
@@ -155,7 +191,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
      * @param videoFilePaths
      * @return
      */
-    private static String buildMergeVideoCommand(List<String> videoFilePaths, File targetVideo) {
+    private static String genFadeConcatFilterCmd(List<String> videoFilePaths, File targetVideo) {
         StringBuilder ffmpegCommand = new StringBuilder("-y ");
         // 添加输入文件路径
         for (int i = 0; i < videoFilePaths.size(); i++) {
@@ -231,7 +267,8 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         );
         String outputFilePath = "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\aaa.mp4";
         VideoMergeServiceImpl videoMergeService = new VideoMergeServiceImpl();
-        videoMergeService.mergeMulti(Lists.newArrayList(segs1, segs2, segs3), new File(outputFilePath));
+//        videoMergeService.mergeMultiWithFadeV2(Lists.newArrayList(segs1, segs2, segs3), new File(outputFilePath));
+        FileUtils.deleteQuietly(new File("F:\\video\\download\\TheShy\\2024-03-14-23-06-15\\tmp"));
     }
 }
 

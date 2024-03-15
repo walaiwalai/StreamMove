@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,14 +73,20 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
         String newAntiCode = WebsiteStreamUtil.getHuyaAntiCode(sFlvAntiCode, sStreamName);
         String aliFlv = sFlvUrl + "/" + sStreamName + "." + sFlvUrlSuffix + "?" + newAntiCode + "&ratio=";
         String[] qualityChoices = StringUtils.split(sFlvAntiCode, "&exsphd=");
-        if (qualityChoices.length > 0) {
+        if (qualityChoices.length > 1) {
             List<String> qualities = RegexUtil.getMatchList(qualityChoices[qualityChoices.length - 1], QUALITY_REGEX, false);
-            String quality = ConfigFetcher.getInitConfig().getQuality();
-            if (StringUtils.equals(quality, "原画")) {
-                aliFlv += qualities.get(qualities.size() - 1);
-            } else {
-                aliFlv += qualities.get(qualities.size() - 2);
+            Collections.reverse(qualities);
+            while (qualities.size() < 4) {
+                qualities.add(qualities.get(qualities.size() - 1));
             }
+
+            String quality = ConfigFetcher.getInitConfig().getQuality();
+            Map<String, String> qualityMap = new HashMap<>();
+            qualityMap.put("原画", qualities.get(0));
+            qualityMap.put("超清", qualities.get(1));
+            qualityMap.put("高清", qualities.get(2));
+            qualityMap.put("标清", qualities.get(3));
+            aliFlv += qualityMap.getOrDefault(quality, "原画");
         }
         return LivingStreamer.builder()
                 .anchorName(anchorName)
