@@ -171,7 +171,7 @@ public class StreamRecordServiceImpl implements StreamRecordService {
                 "-c:a", "copy",
                 "-map", "0",
                 "-f", "segment",
-                "-segment_time", "5",
+                "-segment_time", "4",
                 "-segment_start_number", "1",
                 "-segment_format", "mp4",
                 "-movflags", "+faststart",

@@ -72,12 +72,8 @@ public class FfmpegCmd {
 
         Runtime runtime = Runtime.getRuntime();
         try {
-            if (EnvUtil.isProd()) {
-                ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
-            } else {
-                ffmpeg = runtime.exec(cmd);
-            }
-
+            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
+//            ffmpeg = runtime.exec(cmd);
             if (openIOStreams) {
                 inputStream = ffmpeg.getInputStream();
                 outputStream = ffmpeg.getOutputStream();

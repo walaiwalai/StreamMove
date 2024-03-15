@@ -19,6 +19,14 @@ public class InitConfig {
      * 房间检查时间cron表达式
      */
     private String roomCheckCron;
+    /**
+     * 回收文件cron表达式
+     */
+    private String fileCleanCron;
+    /**
+     * 刷新配置cron
+     */
+    private String configRefreshCron;
 
     /**
      * 直播保存路径
@@ -29,12 +37,6 @@ public class InitConfig {
      * 视频保存格式ts|mkv|flv|mp4|ts音频|mkv音频
      */
     private String videFormat = "mp4";
-
-
-    /**
-     * 分多端拉流的每段大小
-     */
-    private Integer segmentDuration;
 
     /**
      * 原画|超清|高清|标清 = 原画
@@ -50,7 +52,11 @@ public class InitConfig {
     // *********************阿里云云盘上传**********************
     private String refreshToken;
     private String targetFileId = "root";
-
+    // *********************直播cookies**********************
+    private String afreecaTvCookies;
+    // *********************直播cookies**********************
+    private String huyaCookies;
+    // *********************其他配置**********************
     /**
      * 投稿时忽略小于此大小的文件(M)
      */
@@ -58,17 +64,4 @@ public class InitConfig {
 
     // *********************消息通知**********************
     private String weComSecret;
-
-
-    // *********************直播cookies**********************
-    private String afreecaTvCookies;
-
-    private String huyaCookies;
-
-    // *********************其他配置**********************
-    /**
-     * 回收文件cron表达式
-     */
-    private String fileCleanCron;
-    private String configRefreshCron;
 }

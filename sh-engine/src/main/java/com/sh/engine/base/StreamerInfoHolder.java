@@ -1,5 +1,7 @@
 package com.sh.engine.base;
 
+import com.sh.engine.StreamChannelTypeEnum;
+
 import java.util.List;
 
 public class StreamerInfoHolder {
@@ -18,6 +20,9 @@ public class StreamerInfoHolder {
     public static String getCurStreamerName() {
         return streamerLocal.get().getName();
     }
+    public static StreamChannelTypeEnum getCurChannel() {
+        return streamerLocal.get().getChannel();
+    }
 
     public static List<String> getCurRecordPaths() {
         return streamerLocal.get().getRecordPaths();
@@ -29,6 +34,10 @@ public class StreamerInfoHolder {
             return;
         }
         streamerLocal.get().getRecordPaths().add(recordPath);
+    }
+
+    public void addChannel( StreamChannelTypeEnum channel ) {
+        streamerLocal.get().setChannel(channel);
     }
 
     /**

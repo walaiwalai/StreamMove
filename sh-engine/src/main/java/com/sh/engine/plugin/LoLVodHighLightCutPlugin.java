@@ -92,7 +92,9 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         List<Pair<Integer, Integer>> potentialIntervals = statistic.getPotentialIntervals();
 
         // 4. 进行合并视频
-        return videoMergeService.mergeMultiWithFadeV2(buildMergeFileNames(potentialIntervals, videos), highlightFile);
+        List<List<String>> intervals = buildMergeFileNames(potentialIntervals, videos);
+
+        return videoMergeService.mergeMultiWithFadeV2(intervals, highlightFile);
     }
 
     private File snapShot(File segFile) {
