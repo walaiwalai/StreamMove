@@ -80,6 +80,19 @@ public class TwitchStreamerServiceImpl extends AbstractStreamerService {
         return respObj;
     }
 
+    /**
+     * curl -X POST \
+     * 'https://gql.twitch.tv/gql' \
+     * -H 'Content-Type: text/plain;charset=UTF-8' \
+     * -H 'Client-ID: kimne78kx3ncx6brgo4mv6wki5h1ko' \
+     * -H 'Authorization: OAuth lkr3unq6wyvlti1tf1husoevb8uq20' \
+     * -d '{
+     * "query": "query query($channel_name:String!) { user(login: $channel_name) { stream { id title type previewImageURL(width: 0,height: 0) playbackAccessToken(params: { platform: \"web\", playerBackend: \"mediaplayer\", playerType: \"site\" }) { signature value } } } }",
+     * "variables": {"channel_name": "your_channel_name"}
+     * }'
+     *
+     * @param args
+     */
     public static void main(String[] args) {
 //        System.setProperty("http.proxyHost", "127.0.0.1"); // 代理服务器地址，这里是本地主机
 //        System.setProperty("http.proxyPort", "10809"); // 代理服务器端口号
@@ -92,4 +105,3 @@ public class TwitchStreamerServiceImpl extends AbstractStreamerService {
         System.out.println(s);
     }
 }
-;
