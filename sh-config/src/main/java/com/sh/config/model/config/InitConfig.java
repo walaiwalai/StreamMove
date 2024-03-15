@@ -56,6 +56,8 @@ public class InitConfig {
     private String afreecaTvCookies;
     // *********************直播cookies**********************
     private String huyaCookies;
+    // *********************twitchcookies**********************
+    private String twitchCookies;
     // *********************其他配置**********************
     /**
      * 投稿时忽略小于此大小的文件(M)

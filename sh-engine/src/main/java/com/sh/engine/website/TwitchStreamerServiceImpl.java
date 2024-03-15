@@ -1,16 +1,43 @@
 package com.sh.engine.website;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Maps;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.HttpClientUtil;
+import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.model.record.LivingStreamer;
+import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Headers;
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 @Component
 @Slf4j
 public class TwitchStreamerServiceImpl extends AbstractStreamerService {
+    private static final String GQL_ENDPOINT = "https://gql.twitch.tv/gql";
+    private static final String VALID_URL_BASE = "(?:https?://)?(?:(?:www|go|m)\\.)?twitch\\.tv/([0-9_a-zA-Z]+)";
+    private static volatile boolean AUTH_EXPIRE_STATUS = false;
+    private static final int RETRY_COUNT = 2;
+    private static final String USER_QUERY = "query query($channel_name:String!) { user(login: $channel_name) { stream { id title type previewImageURL(width: 0,height: 0) playbackAccessToken(params: { platform: \\\"web\\\", playerBackend: \\\"mediaplayer\\\", playerType: \\\"site\\\" }) { signature value } } } }";
+
     @Override
     public LivingStreamer isRoomOnline(StreamerConfig streamerConfig) {
+        String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), VALID_URL_BASE);
+        JSONObject params = new JSONObject();
+        params.put("query", USER_QUERY);
+        params.put("variables", new JSONObject().put("channel_name", channelName));
+        JSONObject respObj = doRequest(params);
+        JSONObject userObj = respObj.getJSONObject("data").getJSONObject("user");
+
         return null;
     }
 
@@ -18,4 +45,51 @@ public class TwitchStreamerServiceImpl extends AbstractStreamerService {
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.TWITCH;
     }
+
+    private JSONObject doRequest(JSONObject params) {
+        Map<String, String> headers = Maps.newHashMap();
+        headers.put("Content-Type", "text/plain;charset=UTF-8");
+        headers.put("Client-ID", "kimne78kx3ncx6brgo4mv6wki5h1ko");
+        String twitchCookie = ConfigFetcher.getInitConfig().getTwitchCookies();
+        if (!AUTH_EXPIRE_STATUS && StringUtils.isNotBlank(twitchCookie)) {
+            headers.put("Authorization", "OAuth " + twitchCookie);
+        }
+
+
+        RequestBody requestBody = RequestBody.create(
+                MediaType.parse("application/json; charset=utf-8"), params.toString());
+        Request request = new Request.Builder()
+                .url(GQL_ENDPOINT)
+                .post(requestBody)
+                .headers(Headers.of(headers))
+                .build();
+
+
+        String responseBody = OkHttpClientUtil.execute(request);
+//        String responseBody = HttpClientUtil.sendPost(GQL_ENDPOINT, headers, new JSONObject(params));
+        JSONObject respObj = JSON.parseObject(responseBody);
+        if (respObj.containsKey("error")) {
+            String error = respObj.getString("error");
+            if ("Unauthorized".equals(error)) {
+                AUTH_EXPIRE_STATUS = true;
+                log.error("twitch cookies has expired, error: {}", error);
+                // 递归调用以重新尝试请求
+                return doRequest(params);
+            }
+        }
+        return respObj;
+    }
+
+    public static void main(String[] args) {
+//        System.setProperty("http.proxyHost", "127.0.0.1"); // 代理服务器地址，这里是本地主机
+//        System.setProperty("http.proxyPort", "10809"); // 代理服务器端口号
+
+        TwitchStreamerServiceImpl service = new TwitchStreamerServiceImpl();
+//        service.isRoomOnline(StreamerConfig.builder()
+//                .roomUrl("https://www.twitch.tv/uzra")
+//                .build());
+        String s = HttpClientUtil.sendGet("https://www.twitch.tv/rdulive");
+        System.out.println(s);
+    }
 }
+;
