@@ -19,6 +19,8 @@ public class LivingStreamer {
      */
     private String anchorName;
 
+    private String roomTitle;
+
     /**
      * 录播的url
      */

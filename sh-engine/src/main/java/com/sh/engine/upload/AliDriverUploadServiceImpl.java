@@ -258,7 +258,7 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
             String uploadUrl = fileInfo.getPartInfoList().get(index).getUploadUrl();
             try {
                 HttpClientUtil.sendPut(uploadUrl, null, requestEntity, false);
-                log.info("chunk upload success, progress: {}/{}, time cost: {}s.", index + 1, totalChunks,
+                log.info("{} chunk upload success, progress: {}/{}, time cost: {}s.", getName(), index + 1, totalChunks,
                         (System.currentTimeMillis() - startTime) / 1000);
                 return true;
             } catch (Exception e) {
