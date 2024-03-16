@@ -57,16 +57,6 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
     private static final int RETRY_COUNT = 3;
     public static final int CHUNK_RETRY_DELAY = 500;
 
-//    @PostConstruct
-//    private void init() {
-//        // 根据refreshToken拿到信息阿里云盘基本信息
-//        String refreshToken = ConfigFetcher.getInitConfig().getRefreshToken();
-//        if (StringUtils.isNotBlank(refreshToken)) {
-//            STORE_BUCKET = new AliStoreBucket(refreshToken);
-//            STORE_BUCKET.refreshToken();
-//            log.info("init aliDriver param success, dirverId: {}, userId: {}", STORE_BUCKET.getDriveId(), STORE_BUCKET.getUserId());
-//        }
-//    }
 
     @Override
     public String getName() {
@@ -117,12 +107,15 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
 
 
     public static void main(String[] args) throws Exception {
-        AliDriverUploadServiceImpl service = new AliDriverUploadServiceImpl();
-        service.upload(Lists.newArrayList(LocalVideo.builder()
-//                .localFileFullPath("/Users/caiwen/Desktop/download/TheShy/2024-01-31-03-31-43/seg-1.ts")
-                .localFileFullPath("G:\\graduate\\process\\pro_nj020.csv")
-                .title("highlight")
-                .build()), BaseUploadTask.builder().build());
+        String s = "{\"code\":\"InvalidResource.PartInfoList\",\"message\":\"The resource part_info_list is not valid. part 13 is not exist\"}";
+        AliFileDTO javaObject = JSON.parseObject(s).toJavaObject(AliFileDTO.class);
+        System.out.println(javaObject);
+//        AliDriverUploadServiceImpl service = new AliDriverUploadServiceImpl();
+//        service.upload(Lists.newArrayList(LocalVideo.builder()
+////                .localFileFullPath("/Users/caiwen/Desktop/download/TheShy/2024-01-31-03-31-43/seg-1.ts")
+//                .localFileFullPath("G:\\graduate\\process\\pro_load023frequency10.csv")
+//                .title("highlight")
+//                .build()), BaseUploadTask.builder().build());
     }
 
     private boolean uploadFile(String parentId, String fileName, File file) throws Exception {
@@ -193,7 +186,7 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
      * @return
      * @throws Exception
      */
-    private VideoUploadResultModel uploadByChunk(File localVideo, long fileSize, CreateFileResponse fileInfo) throws Exception {
+    private VideoUploadResultModel uploadByChunk(File localVideo, long fileSize, CreateFileResponse fileInfo) {
         VideoUploadResultModel uploadResult = new VideoUploadResultModel();
 
         int partCount = (int) Math.ceil(fileSize * 1.0 / UPLOAD_CHUNK_SIZE);
@@ -236,11 +229,12 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
         completeFileRequest.setUploadId(fileInfo.getUploadId());
         completeFileRequest.setPartInfoList(fileInfo.getPartInfoList());
 
-        AliFileDTO aliFile = getAuthRequestBody(FILE_COMPLETE_URL, JSONObject.parseObject(JSON.toJSONString(completeFileRequest))).toJavaObject(AliFileDTO.class);
-        uploadResult.setComplete(aliFile != null);
+        JSONObject competeFileObj = getAuthRequestBody(FILE_COMPLETE_URL, JSONObject.parseObject(JSON.toJSONString(completeFileRequest)));
+        AliFileDTO aliFile = competeFileObj.toJavaObject(AliFileDTO.class);
+        uploadResult.setComplete(aliFile != null && StringUtils.isNotBlank(aliFile.getFileId()));
 
-        if (aliFile == null) {
-            log.error("file upload to aliDriver failed, localFile: {}", JSON.toJSONString(localVideo));
+        if (aliFile == null || StringUtils.isBlank(aliFile.getFileId())) {
+            log.error("file upload to aliDriver failed, resp: {}", competeFileObj.toJSONString());
             return uploadResult;
         }
 
@@ -257,10 +251,14 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
         for (int i = 0; i < RETRY_COUNT; i++) {
             String uploadUrl = fileInfo.getPartInfoList().get(index).getUploadUrl();
             try {
-                HttpClientUtil.sendPut(uploadUrl, null, requestEntity, false);
-                log.info("{} chunk upload success, progress: {}/{}, time cost: {}s.", getName(), index + 1, totalChunks,
-                        (System.currentTimeMillis() - startTime) / 1000);
-                return true;
+                String resp = HttpClientUtil.sendPut(uploadUrl, null, requestEntity, false);
+                if (StringUtils.isBlank(resp)) {
+                    log.info("{} chunk upload success, progress: {}/{}, time cost: {}s.", getName(), index + 1, totalChunks,
+                            (System.currentTimeMillis() - startTime) / 1000);
+                    return true;
+                } else {
+                    log.error("{}th chunk upload error, retry: {}/{}, resp: {}", index + 1, i + 1, RETRY_COUNT, resp);
+                }
             } catch (Exception e) {
                 try {
                     Thread.sleep(CHUNK_RETRY_DELAY);
@@ -276,7 +274,6 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
 
                 fileInfo = getAuthRequestBody(FILE_GET_UPLOAD_URL, JSONObject.parseObject(JSON.toJSONString(uploadUrlRequest)))
                         .toJavaObject(CreateFileResponse.class);
-                log.error("{}th chunk upload error, retry: {}/{}", index + 1, i + 1, RETRY_COUNT, e);
             }
         }
         return false;

@@ -6,15 +6,10 @@ import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.HttpClientUtil;
-import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.model.record.LivingStreamer;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.Headers;
-import okhttp3.MediaType;
-import okhttp3.Request;
-import okhttp3.RequestBody;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -119,15 +114,19 @@ public class TwitchStreamerServiceImpl extends AbstractStreamerService {
      * @param args
      */
     public static void main(String[] args) {
-        System.setProperty("http.proxyHost", "127.0.0.1"); // 代理服务器地址，这里是本地主机
-        System.setProperty("http.proxyPort", "7899"); // 代理服务器端口号
+//        System.setProperty("proxyHost", "127.0.0.1"); // 代理服务器地址，这里是本地主机
+//        System.setProperty("http.proxyHost", "127.0.0.1"); // 代理服务器地址，这里是本地主机
+//        System.setProperty("https.proxyHost", "127.0.0.1"); // 代理服务器地址，这里是本地主机
+//        System.setProperty("proxyPort", "10809"); // 代理服务器端口号
+//        System.setProperty("http.proxyPort", "10809"); // 代理服务器端口号
+//        System.setProperty("https.proxyPort", "10809"); // 代理服务器端口号
 
-        TwitchStreamerServiceImpl service = new TwitchStreamerServiceImpl();
-        LivingStreamer livingStreamer = service.isRoomOnline(StreamerConfig.builder()
-                .roomUrl("https://www.twitch.tv/rdulive")
-                .build());
-        System.out.println(livingStreamer.getStreamUrl());
-//        String s = HttpClientUtil.sendGet("https://www.twitch.tv/rdulive");
+//        TwitchStreamerServiceImpl service = new TwitchStreamerServiceImpl();
+//        LivingStreamer livingStreamer = service.isRoomOnline(StreamerConfig.builder()
+//                .roomUrl("https://www.twitch.tv/tommy181933")
+//                .build());
+//        System.out.println(livingStreamer.getStreamUrl());
+        String s = HttpClientUtil.sendGet("https://www.twitch.tv/thijs");
 //        System.out.println(s);
     }
 }
