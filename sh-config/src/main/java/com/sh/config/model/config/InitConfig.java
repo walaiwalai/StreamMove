@@ -58,6 +58,8 @@ public class InitConfig {
     private String huyaCookies;
     // *********************twitchcookies**********************
     private String twitchCookies;
+    // *********************chzzkCookies**********************
+    private String chzzkCookies;
     // *********************其他配置**********************
     /**
      * 投稿时忽略小于此大小的文件(M)

@@ -50,7 +50,7 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
     /**
      * 分块上传大小为10M
      */
-    private static final long UPLOAD_CHUNK_SIZE = 1024 * 1024 * 10;
+    private static final long UPLOAD_CHUNK_SIZE = 1024 * 1024 * 5;
     private static final String FILE_CREATE_WITH_FOLDERS_URL = "https://api.aliyundrive.com/adrive/v2/file/createWithFolders";
     private static final String FILE_GET_UPLOAD_URL = "https://api.aliyundrive.com/v2/file/get_upload_url";
     private static final String FILE_COMPLETE_URL = "https://api.aliyundrive.com/v2/file/complete";

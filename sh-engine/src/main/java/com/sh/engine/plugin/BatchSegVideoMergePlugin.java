@@ -3,6 +3,7 @@ package com.sh.engine.plugin;
 import com.google.common.collect.Lists;
 import com.sh.config.utils.EnvUtil;
 import com.sh.config.utils.VideoFileUtils;
+import com.sh.engine.service.MsgSendService;
 import com.sh.engine.service.VideoMergeService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -23,6 +24,8 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
     private static final int BATCH_RECORD_TS_COUNT = 1200;
     @Resource
     private VideoMergeService videoMergeService;
+    @Resource
+    MsgSendService msgSendService;
 
     @Override
     public String getPluginName() {
@@ -58,8 +61,13 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
                 success = videoMergeService.concatByDemuxer(segNames, targetMergedVideo);
             }
 
-            if (success && EnvUtil.isProd()) {
-                deleteSegs(segNames);
+            if (success) {
+                msgSendService.send("合并视频完成！路径为：" + targetMergedVideo.getAbsolutePath());
+                if (EnvUtil.isProd()) {
+                    deleteSegs(segNames);
+                }
+            } else {
+                msgSendService.send("合并视频失败！路径为：" + targetMergedVideo.getAbsolutePath());
             }
             videoIndex++;
         }

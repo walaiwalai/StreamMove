@@ -1,6 +1,5 @@
 package com.sh.engine.service;
 
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import com.google.common.collect.Lists;
 import com.sh.config.utils.EnvUtil;
@@ -74,18 +73,11 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         // 2. 使用FFmpeg合并视频
         String targetPath = targetVideo.getAbsolutePath();
         String command = "-y -f concat -safe 0 -i " + mergeListFile.getAbsolutePath() +
-//                " -c:v libx264 -crf 24 -preset superfast -c:a libfdk_aac -r 30 " + targetPath;
                 " -c:v copy -c:a copy " + targetPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
 
         Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-        if (resCode == 0) {
-            msgSendService.send("合并压缩视频完成！路径为：" + targetVideo.getAbsolutePath());
-            return true;
-        } else {
-            msgSendService.send("压缩视频失败！路径为：" + targetVideo.getAbsolutePath());
-            return false;
-        }
+        return resCode == 0;
     }
 
     @Override

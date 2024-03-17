@@ -10,17 +10,17 @@ public enum StreamChannelTypeEnum {
     /**
      * 虎牙
      */
-    HUYA(1, "虎牙", "www.huya.com"),
+    HUYA(1, "虎牙", "huya.com"),
 
     /**
      * 斗鱼
      */
-    DOUYU(2, "斗鱼", "www.douyu.com"),
+    DOUYU(2, "斗鱼", "douyu.com"),
 
     /**
      * afreecatv
      */
-    AFREECA_TV(3, "afreecatv", "play.afreecatv.com"),
+    AFREECA_TV(3, "afreecatv", "afreecatv.com"),
 
     /**
      * bilibili
@@ -31,6 +31,11 @@ public enum StreamChannelTypeEnum {
      * twitch
      */
     TWITCH(5, "twitch", "twitch.tv"),
+
+    /**
+     * chzzk
+     */
+    CHZZK(6, "chzzk", "chzzk.naver.com"),
     ;
 
     private int type;

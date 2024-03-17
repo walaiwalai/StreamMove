@@ -10,6 +10,7 @@ import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.plugin.lol.LoLPicData;
 import com.sh.engine.plugin.lol.LolSequenceStatistic;
+import com.sh.engine.service.MsgSendService;
 import com.sh.engine.service.VideoMergeService;
 import com.sh.engine.util.CommandUtil;
 import com.sh.engine.util.ImageUtil;
@@ -40,6 +41,8 @@ import java.util.stream.Collectors;
 public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
     @Resource
     private VideoMergeService videoMergeService;
+    @Resource
+    MsgSendService msgSendService;
 
     private static final int MAX_HIGH_LIGHT_COUNT = 10;
     private static final int OCR_INTERVAL_NUM = 5;
@@ -92,9 +95,13 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         List<Pair<Integer, Integer>> potentialIntervals = statistic.getPotentialIntervals();
 
         // 4. 进行合并视频
-        List<List<String>> intervals = buildMergeFileNames(potentialIntervals, videos);
-
-        return videoMergeService.mergeMultiWithFadeV2(intervals, highlightFile);
+        boolean success = videoMergeService.mergeMultiWithFadeV2(buildMergeFileNames(potentialIntervals, videos), highlightFile);
+        if (success) {
+            msgSendService.send("合并highlight视频完成！路径为：" + highlightFile.getAbsolutePath());
+        } else {
+            msgSendService.send("合并highlight视频完成！路径为：" + highlightFile.getAbsolutePath());
+        }
+        return success;
     }
 
     private File snapShot(File segFile) {
@@ -117,7 +124,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
                 picFile.getAbsolutePath()
         );
         FfmpegCmd ffmpegCmd = new FfmpegCmd(StringUtils.join(params, " "));
-        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
+        Integer resCode = CommandUtil.cmdExecWithoutLog(ffmpegCmd);
         if (resCode == 0) {
             log.info("get pic success, path: {}", segFile.getAbsolutePath());
             return picFile;

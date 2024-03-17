@@ -1,5 +1,6 @@
 package com.sh.engine.website;
 
+import cn.hutool.core.net.url.UrlBuilder;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
@@ -13,8 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import java.net.URLEncoder;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
@@ -46,26 +45,22 @@ public class TwitchStreamerServiceImpl extends AbstractStreamerService {
             return null;
         }
 
-        Map<String, String> query = new HashMap<>();
-        query.put("player", "twitchweb");
-        query.put("p", String.valueOf(new Random().nextInt(9000000) + 1000000));
-        query.put("allow_source", "true");
-        query.put("allow_audio_only", "true");
-        query.put("allow_spectre", "false");
-        query.put("fast_bread", "true");
-        query.put("sig", streamObj.getJSONObject("playbackAccessToken").getString("signature"));
-        query.put("token", streamObj.getJSONObject("playbackAccessToken").getString("value"));
-
-        String rawStreamUrl = null;
-        try {
-            rawStreamUrl = String.format("https://usher.ttvnw.net/api/channel/hls/%s.m3u8?%s",
-                    URLEncoder.encode(channelName, "UTF-8"),
-                    URLEncoder.encode(query.toString(), "UTF-8"));
-        } catch (Exception e) {
-            log.error("gen twitch stream url error, query: {}", JSON.toJSONString(query), e);
-            return null;
-        }
-
+        String rawStreamUrl = UrlBuilder.create()
+                .setScheme("https")
+                .setHost("usher.ttvnw.net")
+                .addPath("/api")
+                .addPath("/channel")
+                .addPath("/hls")
+                .addPath(channelName + ".m3u8")
+                .addQuery("player", "twitchweb")
+                .addQuery("p", String.valueOf(new Random().nextInt(9000000) + 1000000))
+                .addQuery("allow_source", "true")
+                .addQuery("allow_audio_only", "true")
+                .addQuery("allow_spectre", "false")
+                .addQuery("fast_bread", "true")
+                .addQuery("sig", streamObj.getJSONObject("playbackAccessToken").getString("signature"))
+                .addQuery("token", streamObj.getJSONObject("playbackAccessToken").getString("value"))
+                .build();
         return LivingStreamer.builder()
                 .roomTitle(streamObj.getString("title"))
                 .streamUrl(rawStreamUrl)
@@ -126,7 +121,6 @@ public class TwitchStreamerServiceImpl extends AbstractStreamerService {
 //                .roomUrl("https://www.twitch.tv/tommy181933")
 //                .build());
 //        System.out.println(livingStreamer.getStreamUrl());
-        String s = HttpClientUtil.sendGet("https://www.twitch.tv/thijs");
-//        System.out.println(s);
+//        String s = HttpClientUtil.sendGet("https://www.twitch.tv/ayellol");
     }
 }
