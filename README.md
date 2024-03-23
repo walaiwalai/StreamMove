@@ -7,6 +7,8 @@
 - 斗鱼
 - Afreecatv
 - Bilibili
+- Twitch
+- Chzzk
 
 **支持上传平台**：
 

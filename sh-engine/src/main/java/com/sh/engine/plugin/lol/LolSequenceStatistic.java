@@ -200,6 +200,15 @@ public class LolSequenceStatistic {
                 .collect(Collectors.toList());
     }
 
+
+    private List<Integer> listAssistCountWhenMyKill() {
+        return null;
+    }
+
+    private List<Integer> listAssistCountWhenMyAssist() {
+        return null;
+    }
+
     public static void main(String[] args) {
         ArrayList<LoLPicData> data = Lists.newArrayList(
                 new LoLPicData(-1, -1, -1),
