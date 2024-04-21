@@ -72,7 +72,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
         // 2. 使用FFmpeg合并视频
         String targetPath = targetVideo.getAbsolutePath();
-        String command = "-y -f concat -safe 0 -i " + mergeListFile.getAbsolutePath() +
+        String command = "-y -loglevel error -f concat -safe 0 -i " + mergeListFile.getAbsolutePath() +
                 " -c:v copy -c:a copy " + targetPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
 
@@ -86,7 +86,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
             return false;
         }
         String targetPath = targetVideo.getAbsolutePath();
-        String cmd = "-i " + "concat:" + StringUtils.join(mergedFileNames, "|") + " -c copy " + targetPath;
+        String cmd = "-loglevel error -i " + "concat:" + StringUtils.join(mergedFileNames, "|") + " -c copy " + targetPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
         Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
         if (resCode == 0) {
@@ -160,7 +160,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     private String doFade(File oldVideoFile) {
         File fadedSeg = new File(oldVideoFile.getParent(), FileNameUtil.getPrefix(oldVideoFile) + "-fade.ts");
         String fadedPath = fadedSeg.getAbsolutePath();
-        String cmd = "-y -i " + oldVideoFile.getAbsolutePath() + " -vf fade=t=in:st=0:d=" + FADE_DURATION + " -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
+        String cmd = "-y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf fade=t=in:st=0:d=" + FADE_DURATION + " -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
         Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
         if (resCode == 0) {

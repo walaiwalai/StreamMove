@@ -154,6 +154,13 @@
                 <version>${quartz.version}</version>
             </dependency>
 
+            <!--            &lt;!&ndash; tess4j &ndash;&gt;-->
+            <!--            <dependency>-->
+            <!--                <groupId>net.sourceforge.tess4j</groupId>-->
+            <!--                <artifactId>tess4j</artifactId>-->
+            <!--                <version>4.5.4</version>-->
+            <!--            </dependency>-->
+
 
             <!--ffmpeg工具类<-->
             <!--            <dependency>-->

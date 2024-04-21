@@ -45,6 +45,9 @@ public class InitConfig {
 
     private Integer maxRecordingCount = 2;
 
+    // *********************OCR识别服务部署ip**********************
+    private String ocrIp = "127.0.0.1";
+
     // *********************B站视频上传**********************
     private String biliCookies;
     private String accessToken;

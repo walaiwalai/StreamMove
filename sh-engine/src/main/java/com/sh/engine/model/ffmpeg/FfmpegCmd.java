@@ -66,13 +66,12 @@ public class FfmpegCmd {
     public void execute(boolean openIOStreams) {
 //        String cmd = defaultFFMPEGLocator.getExecutablePath() + " " + ffmpegCommand;
         String cmd = "ffmpeg" + " " + ffmpegCommand;
-//        String cmd = ffmpegCommand;
         log.info("ffmpegCmd final is: {}", cmd);
 
         Runtime runtime = Runtime.getRuntime();
         try {
-//            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
-            ffmpeg = runtime.exec(cmd);
+            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
+//            ffmpeg = runtime.exec(cmd);
             if (openIOStreams) {
                 inputStream = ffmpeg.getInputStream();
                 outputStream = ffmpeg.getOutputStream();

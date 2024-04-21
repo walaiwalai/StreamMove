@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.VideoFileUtils;
 import com.sh.engine.base.StreamerInfoHolder;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -47,6 +49,8 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
     private static final int MAX_HIGH_LIGHT_COUNT = 10;
     private static final int OCR_INTERVAL_NUM = 5;
     /**
+     * docker run -it -d --name ppocr -p 8866:8866 paddlepaddle/paddle:2.6.0
+     * hub install ch_pp-ocrv3==1.2.0
      * hub serving start -m ch_pp-ocrv3
      */
     private static final String OCR_URL = "http://127.0.0.1:8866/predict/ch_pp-ocrv3";
@@ -73,6 +77,10 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
                 .stream()
                 .sorted(Comparator.comparingInt(v -> getIndexFromFileName(v)))
                 .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(videos)) {
+            log.info("empty ts video file, will skip, path: {}", recordPath);
+            return true;
+        }
 
         // 1. 截图
         File snapShotFile = new File(recordPath, "snapshot");
@@ -239,11 +247,12 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
             return BLANK_KADS;
         }
 
+        String ocrUrl = String.format("http://%s:8866/predict/ch_pp-ocrv3", ConfigFetcher.getInitConfig().getOcrIp());
         MediaType mediaType = MediaType.parse("application/json");
         String params = "{\"images\":[\"" + base64Str + "\"]}";
         RequestBody body = RequestBody.create(mediaType, params);
         Request request = new Request.Builder()
-                .url(OCR_URL)
+                .url(ocrUrl)
                 .post(body)
                 .addHeader("Content-Type", "application/json")
                 .build();
@@ -264,50 +273,5 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         return RegexUtil.getMatchList(ocrStr, "\\d+", false).stream()
                 .map(Integer::valueOf)
                 .collect(Collectors.toList());
-    }
-
-    public static void main( String[] args ) {
-        Collection<File> jpgFiles = FileUtils.listFiles(new File("C:\\Users\\caiwen\\Desktop\\lolkill\\lolkill\\image"), new String[]{"jpg"}, false)
-                .stream()
-                .collect(Collectors.toList());
-        for (File jpgFile : jpgFiles) {
-            System.out.println(jpgFile.getName());
-        }
-//        for (File jpgFile : jpgFiles) {
-//            int index1 = jpgFile.getName().lastIndexOf("-");
-//            int index2 = jpgFile.getName().lastIndexOf(".");
-//            String index = jpgFile.getName().substring(index1 + 1, index2);
-//            File file = new File("/Users/caiwen/Desktop/download/TheShy/2024-01-31-03-31-43", "seg-" + index + ".ts");
-//            File tFile1 = new File("/Users/caiwen/Desktop/killMsg", "faker-" + index + "-1.jpg");
-//            File tFile2 = new File("/Users/caiwen/Desktop/killMsg", "faker-" + index + "-2.jpg");
-//            File tFile3 = new File("/Users/caiwen/Desktop/killMsg", "faker-" + index + "-3.jpg");
-//            File tFile4 = new File("/Users/caiwen/Desktop/killMsg", "faker-" + index + "-4.jpg");
-//            String fCmd1 = "-y  -i " + file.getAbsolutePath() + " -vf \"crop=270:60:in_w*86/100:in_h*64/288\" -ss 00:00:01 -frames:v 1 " + tFile1.getAbsolutePath();
-//            String fCmd2 = "-y  -i " + file.getAbsolutePath() + " -vf \"crop=270:60:in_w*86/100:in_h*81/288\" -ss 00:00:01 -frames:v 1 " + tFile2.getAbsolutePath();
-//            String fCmd3 = "-y  -i " + file.getAbsolutePath() + " -vf \"crop=270:60:in_w*86/100:in_h*97/288\" -ss 00:00:01 -frames:v 1 " + tFile3.getAbsolutePath();
-//            String fCmd4 = "-y  -i " + file.getAbsolutePath() + " -vf \"crop=270:60:in_w*86/100:in_h*113/288\" -ss 00:00:01 -frames:v 1 " + tFile4.getAbsolutePath();
-//
-//            FfmpegCmd ffmpegCmd1 = new FfmpegCmd(fCmd1);
-//            Integer code1 = CommandUtil.cmdExec(ffmpegCmd1);
-//            if (code1 == 0) {
-//                System.out.println(index + "-1 success");
-//            }
-//            FfmpegCmd ffmpegCmd2 = new FfmpegCmd(fCmd2);
-//            Integer code2 = CommandUtil.cmdExec(ffmpegCmd2);
-//            if (code2 == 0) {
-//                System.out.println(index + "-2 success");
-//            }
-//            FfmpegCmd ffmpegCmd3 = new FfmpegCmd(fCmd3);
-//            Integer code3 = CommandUtil.cmdExec(ffmpegCmd3);
-//            if (code3 == 0) {
-//                System.out.println(index + "-3 success");
-//            }
-//            FfmpegCmd ffmpegCmd4 = new FfmpegCmd(fCmd4);
-//            Integer code4 = CommandUtil.cmdExec(ffmpegCmd4);
-//            if (code4 == 0) {
-//                System.out.println(index + "-4 success");
-//            }
-//        }
-
     }
 }

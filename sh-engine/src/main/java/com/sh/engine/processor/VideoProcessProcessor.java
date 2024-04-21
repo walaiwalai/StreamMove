@@ -67,16 +67,16 @@ public class VideoProcessProcessor extends AbstractRecordTaskProcessor {
                 log.info("begin running {}'s {} plugin.", streamerName, pluginName);
                 statusManager.doPostProcess(curRecordPath, pluginName);
 
-                boolean success = plugins.get(pluginName).process(curRecordPath);
-                if (success) {
+                try {
+                    plugins.get(pluginName).process(curRecordPath);
                     log.info("{}'s {} plugin process success, path: {}. ", streamerName, pluginName, curRecordPath);
-                } else {
+                } catch (Exception e) {
                     log.error("{}'s {} plugin process failed, path: {}.", streamerName, pluginName, curRecordPath);
+                } finally {
+                    // 移除后置处理标志位
+                    statusManager.finishPostProcess(curRecordPath);
                 }
             }
-
-            // 2. 移除后置处理标志位
-            statusManager.finishPostProcess(curRecordPath);
         }
     }
 

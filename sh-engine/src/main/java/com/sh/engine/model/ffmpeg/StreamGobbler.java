@@ -10,7 +10,7 @@ import java.io.*;
 @Slf4j
 public class StreamGobbler extends  Thread {
     public static final int LINE_LOG_INTERVAL = 50;
-    public static final int MAX_LINE = 50;
+    public static final int MAX_LINE = 5000;
     InputStream is;
     String type;
     OutputStream os;
@@ -42,7 +42,7 @@ public class StreamGobbler extends  Thread {
                 if (pw != null) {
                     pw.println(line);
                 }
-                if (lineNo % LINE_LOG_INTERVAL == 0 || lineNo < MAX_LINE) {
+                if (lineNo < MAX_LINE) {
                     log.info(type + ">>>>" + line);
                 }
             }
