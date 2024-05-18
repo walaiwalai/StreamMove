@@ -40,13 +40,11 @@ public class LoLPicData {
         for (int i = 0; i < heroKADetail.getBoxes().size(); i++) {
             HeroProfile heroProfile = new HeroProfile();
             heroProfile.setPosition(heroKADetail.getBoxes().get(i));
-            heroProfile.setScore(heroKADetail.getScores().get(i));
             heroProfile.setLabelId(heroKADetail.getLabelIds().get(i));
             profiles.add(heroProfile);
         }
 
         List<HeroProfile> sortedProfiles = profiles.stream()
-                .filter(o -> o != null && o.getScore() > 0.5f)
                 .sorted(Comparator.comparing(p -> p.getPosition().get(3)))
                 .collect(Collectors.toList());
         List<List<Integer>> labelIdPerKills = Lists.newArrayList();
@@ -128,7 +126,6 @@ public class LoLPicData {
     static class HeroProfile {
         private List<Float> position;
         private int labelId;
-        private float score;
 
         public List<Float> getPosition() {
             return position;
@@ -144,14 +141,6 @@ public class LoLPicData {
 
         public void setLabelId(int labelId) {
             this.labelId = labelId;
-        }
-
-        public float getScore() {
-            return score;
-        }
-
-        public void setScore(float score) {
-            this.score = score;
         }
     }
 

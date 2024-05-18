@@ -159,7 +159,6 @@ public class LolSequenceStatistic {
             return -1f;
         }
 
-//        return (float) (kad.getK() + kad.getA()) / (Math.max(1, kad.getD()));
         return (float) (2 * kad.getK() + kad.getA());
     }
 

@@ -1,10 +1,8 @@
 package com.sh.engine.plugin;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.VideoFileUtils;
 import com.sh.engine.base.StreamerInfoHolder;
@@ -14,7 +12,6 @@ import com.sh.engine.plugin.lol.LolSequenceStatistic;
 import com.sh.engine.service.MsgSendService;
 import com.sh.engine.service.VideoMergeService;
 import com.sh.engine.util.CommandUtil;
-import com.sh.engine.util.ImageUtil;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
@@ -53,12 +50,19 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
      * hub install ch_pp-ocrv3==1.2.0
      * hub serving start -m ch_pp-ocrv3
      */
-    private static final String OCR_URL = "http://127.0.0.1:8866/predict/ch_pp-ocrv3";
+    private static final String OCR_URL = "http://127.0.0.1:5000/ocr";
 
     private static final Map<String, Integer> LAST_OCR_K_MAP = Maps.newConcurrentMap();
     private static final Map<String, Integer> LAST_OCR_D_MAP = Maps.newConcurrentMap();
     private static final Map<String, Integer> LAST_OCR_A_MAP = Maps.newConcurrentMap();
     public static final List<Integer> BLANK_KADS = Lists.newArrayList(-1, -1, -1);
+
+    /**
+     * kda + 击杀细节 截图位置参数
+     */
+    private static final String KAD_CORP_EXP = "crop=80:30:in_w*867/1000:0";
+    private static final String KILL_DETAIL_CORP_EXP = "crop=270:290:in_w*86/100:in_h*3/16";
+
 
     @Override
     public String getPluginName() {
@@ -82,23 +86,24 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
             return true;
         }
 
-        // 1. 截图
+        // 1. 筛选精彩区间
         File snapShotFile = new File(recordPath, "snapshot");
         if (!snapShotFile.exists()) {
             snapShotFile.mkdir();
         }
 
+        // 1.1 kda的截图
         List<File> pics = Lists.newArrayList();
         for (File video : videos) {
-            Optional.ofNullable(snapShot(video)).ifPresent(pics::add);
+            Optional.ofNullable(snapKdaShot(video, KAD_CORP_EXP)).ifPresent(pics::add);
         }
-
-        // 2. 筛选精彩区间
         List<LoLPicData> datas = ocrSeqPics(pics).stream()
                 .filter(d -> d.getTargetIndex() != null)
                 .collect(Collectors.toList());
 
-        // 3. 分析KDA找出精彩片段
+        // 1.2 根据kda增长区间堆击杀框进行截图
+
+        // 3. 找出精彩片段
         LolSequenceStatistic statistic = new LolSequenceStatistic(datas, MAX_HIGH_LIGHT_COUNT);
         List<Pair<Integer, Integer>> potentialIntervals = statistic.getPotentialIntervals();
 
@@ -112,7 +117,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         return success;
     }
 
-    private File snapShot(File segFile) {
+    private File snapKdaShot(File segFile, String corpExp) {
         String segFileName = segFile.getName();
         String filePrefix = segFileName.substring(0, segFileName.lastIndexOf("."));
 
@@ -126,7 +131,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         List<String> params = Lists.newArrayList(
                 "-y",
                 "-i", segFile.getAbsolutePath(),
-                "-vf", "crop=80:30:in_w*867/1000:0",
+                "-vf", corpExp,
                 "-ss", "00:00:00",
                 "-frames:v", "1",
                 picFile.getAbsolutePath()
@@ -150,7 +155,12 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         for (List<File> gPics : picGroups) {
             int batchSize = gPics.size();
             LoLPicData gLastPic = testParse(gPics.get(batchSize - 1));
+
+            // 前后kda是否一样，一样就可以跳过了
             boolean isSkip = skipOcr(lastPic, gLastPic);
+
+            // kda增加，说明有精彩镜头，需要堆击杀细节进行截图识别
+            boolean isHighOccur = highlightOccur(lastPic, gLastPic);
 
             for (int i = 0; i < batchSize; i++) {
                 File gPic = gPics.get(i);
@@ -161,6 +171,9 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
                 } else {
                     // 不一样，这个区间内的每个都进行ocr
                     cur = parse(gPic);
+                    if (highlightOccur(lastPic, cur)) {
+
+                    }
                 }
                 cur.setTargetIndex(getIndexFromFileName(gPic));
                 res.add(cur);
@@ -176,6 +189,14 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         boolean sameKda = lastPic.compareKda(cur);
         boolean invalid = cur.beInvalid();
         return sameKda && !invalid;
+    }
+
+    private boolean highlightOccur(LoLPicData lastPic, LoLPicData cur) {
+        boolean invalid = cur.beInvalid();
+        if (invalid) {
+            return false;
+        }
+        return cur.getK() > lastPic.getK() || cur.getA() > lastPic.getA();
     }
 
     private LoLPicData testParse(File snapShotFile) {
@@ -242,33 +263,23 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
     }
 
     private List<Integer> parseKDAByOCR(File snapShotFile) {
-        String base64Str = ImageUtil.imageToBase64Str(snapShotFile);
-        if (StringUtils.isBlank(base64Str)) {
+        if (!snapShotFile.exists()) {
             return BLANK_KADS;
         }
 
-        String ocrUrl = String.format("http://%s:8866/predict/ch_pp-ocrv3", ConfigFetcher.getInitConfig().getOcrIp());
         MediaType mediaType = MediaType.parse("application/json");
-        String params = "{\"images\":[\"" + base64Str + "\"]}";
+        String params = "{\"path\":\"" + snapShotFile.getAbsolutePath() + "\"}";
         RequestBody body = RequestBody.create(mediaType, params);
         Request request = new Request.Builder()
-                .url(ocrUrl)
+                .url(OCR_URL)
                 .post(body)
                 .addHeader("Content-Type", "application/json")
                 .build();
         String resp = OkHttpClientUtil.execute(request);
-        JSONArray dataArrayObj = JSON.parseObject(resp).getJSONArray("results")
-                .getJSONObject(0).getJSONArray("data");
-        if (dataArrayObj.isEmpty()) {
-            // 空字符传说明没有kda
-            log.info("parse no kad, file: {}.", snapShotFile.getAbsolutePath());
-            return BLANK_KADS;
-        }
-
-        String ocrStr = dataArrayObj.getJSONObject(0).getString("text");
-        float confidence = dataArrayObj.getJSONObject(0).getFloat("confidence");
+        String ocrStr = JSON.parseObject(resp).getString("text");
+        String score = JSON.parseObject(resp).getString("score");
         log.info("parse image success, file: {}, res: {}, confidence: {}.", snapShotFile.getAbsolutePath(),
-                ocrStr, confidence);
+                ocrStr, score);
 
         return RegexUtil.getMatchList(ocrStr, "\\d+", false).stream()
                 .map(Integer::valueOf)
