@@ -1,0 +1,38 @@
+shapely==2.04
+flask
+
+
+from flask import Flask, jsonify, request
+import paddlehub as hub
+import cv2
+import fastdeploy as fd
+import os
+import numpy as np
+
+app = Flask(__name__)
+ocr = hub.Module(name="ch_pp-ocrv3", enable_mkldnn=True)       # mkldnn加速仅在CPU下有效
+model_path = "F:/video/model"
+model_file = os.path.join(model_path, "inference.pdmodel")
+params_file = os.path.join(model_path, "inference.pdiparams")
+config_file = os.path.join(model_path, "inference.yml")
+visDetModel = fd.vision.detection.PaddleDetectionModel(model_file, params_file, config_file)
+
+@app.route('/ocr', methods=['POST'])
+def predict():
+    path = request.get_json()['path']
+    result = ocr.recognize_text(images=[cv2.imread(path)])
+    return jsonify(result)
+
+@app.route('/lolKillVisDet', methods=['POST'])
+def predict():
+    path = request.get_json()['path']
+    im = cv2.imread(path)
+    result = visDetModel.predict(im)
+    print(result)
+    # 预测结果可视化
+    # vis_im = fd.vision.vis_detection(im, result,score_threshold=0.5)
+
+    return jsonify(result)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
