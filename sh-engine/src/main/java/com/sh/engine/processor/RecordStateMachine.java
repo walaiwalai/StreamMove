@@ -100,7 +100,6 @@ public class RecordStateMachine {
         int loop = 0;
         while (!context.getState().isFinishedState() && loop++ < 100) {
             AbstractRecordTaskProcessor processor = processorMap.get(context.getState());
-//            log.info("use {} to do record", processor.getClass().getSimpleName());
             try {
                 processor.process(context);
             } catch (Throwable e) {

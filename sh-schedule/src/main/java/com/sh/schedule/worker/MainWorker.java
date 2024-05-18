@@ -3,6 +3,7 @@ package com.sh.schedule.worker;
 import cn.hutool.extra.spring.SpringUtil;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.engine.manager.StatusManager;
 import com.sh.engine.processor.RecordStateMachine;
 import org.quartz.JobExecutionContext;
 
@@ -14,6 +15,7 @@ import java.util.List;
  */
 public class MainWorker extends ProcessWorker {
     private final RecordStateMachine recordStateMachine = SpringUtil.getBean(RecordStateMachine.class);
+    private final StatusManager statusManager = SpringUtil.getBean(StatusManager.class);
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {
@@ -21,5 +23,7 @@ public class MainWorker extends ProcessWorker {
         for (StreamerConfig streamerConfig : streamerConfigs) {
             recordStateMachine.start(streamerConfig);
         }
+
+        statusManager.printInfo();
     }
 }

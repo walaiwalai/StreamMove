@@ -228,20 +228,21 @@ public class BiliClientWorkUploadService extends AbstractWorkUploadService {
                         .build())
                 .build();
 
+        String path = targetFile.getAbsolutePath();
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
                 Thread.sleep(CHUNK_RETRY_DELAY);
                 String respStr = HttpClientUtil.sendPost(uploadUrl, null, requestEntity, false);
                 JSONObject respObj = JSONObject.parseObject(respStr);
                 if (Objects.equals(respObj.getString("info"), "Successful.")) {
-                    log.info("chunk upload success, progress: {}/{}, time cost: {}s.", chunkShowNo, totalChunks,
+                    log.info("chunk upload success, file: {}, progress: {}/{}, time cost: {}s.", path, chunkShowNo, totalChunks,
                             (System.currentTimeMillis() - startTime) / 1000);
                     return true;
                 } else {
-                    log.error("{}th chunk upload fail, ret: {}, retry: {}/{}", chunkShowNo, respStr, i + 1, RETRY_COUNT);
+                    log.error("{}th chunk upload fail, file: {}, ret: {}, retry: {}/{}", chunkShowNo, targetFile.getAbsoluteFile(), respStr, i + 1, RETRY_COUNT);
                 }
             } catch (Exception e) {
-                log.error("{}th chunk upload error, retry: {}/{}", chunkShowNo, i + 1, RETRY_COUNT, e);
+                log.error("{}th chunk upload error, file: {}, retry: {}/{}", chunkShowNo, path, i + 1, RETRY_COUNT, e);
             }
         }
         return false;

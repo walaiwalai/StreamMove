@@ -18,7 +18,6 @@ public class EndStageProcessor extends AbstractRecordTaskProcessor{
     StatusManager statusManager;
     @Override
     public void processInternal(RecordContext context) {
-        statusManager.printInfo();
     }
 
     @Override

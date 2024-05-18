@@ -71,7 +71,7 @@ public class VideoProcessProcessor extends AbstractRecordTaskProcessor {
                     plugins.get(pluginName).process(curRecordPath);
                     log.info("{}'s {} plugin process success, path: {}. ", streamerName, pluginName, curRecordPath);
                 } catch (Exception e) {
-                    log.error("{}'s {} plugin process failed, path: {}.", streamerName, pluginName, curRecordPath);
+                    log.error("{}'s {} plugin process failed, path: {}.", streamerName, pluginName, curRecordPath, e);
                 } finally {
                     // 移除后置处理标志位
                     statusManager.finishPostProcess(curRecordPath);
