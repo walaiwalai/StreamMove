@@ -54,8 +54,8 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                     if (EnvUtil.isProd()) {
                         return s;
                     } else {
-//                        return s.replace("\\", "\\\\");
-                        return s;
+                        return s.replace("\\", "\\\\");
+//                        return s;
                     }
                 })
                 .collect(Collectors.toList());

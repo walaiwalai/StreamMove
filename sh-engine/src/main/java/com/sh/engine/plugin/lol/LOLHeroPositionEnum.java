@@ -5,20 +5,61 @@ import com.google.common.collect.Lists;
 import java.util.List;
 
 /**
+ * 在击杀细节中，扮演的角色
+ *
  * @Author caiwen
  * @Date 2024 03 23 22 06
  **/
 public enum LOLHeroPositionEnum {
-    E_ASSIST(0, "E-ASSIST"),
+    /**
+     * 敌方助攻
+     */
+    E_ASSIST(0, "E_ASSIST"),
+
+    /**
+     * 敌方击杀我方
+     */
     E_KILL(1, "E-KILL"),
+
+    /**
+     * 队友被击杀
+     */
     T_KILLED(2, "T-KILLED"),
+
+    /**
+     * 队友助攻
+     */
     T_ASSIST(3, "T-ASSIST"),
+
+    /**
+     * 我击杀敌方
+     */
     MYSELF_KILL(4, "MYSELF_KILL"),
+
+    /**
+     * 地方被杀
+     */
     E_KILLED(5, "E-KILLED"),
+
+    /**
+     * 我助攻
+     */
     MYSELF_ASSIST(6, "MYSELF_ASSIST"),
+
+    /**
+     * 队友击杀
+     */
     T_KILL(7, "T-KILL"),
+
+    /**
+     * 我被击杀
+     */
     MYSELF_KILLED(8, "MYSELF_KILLED"),
-    MONSITER(9, "MONSITER"),
+
+    /**
+     * 怪物被击杀
+     */
+    MONSITER(10, "MONSITER"),
     ;
 
     private LOLHeroPositionEnum(int id, String name) {
@@ -54,24 +95,11 @@ public enum LOLHeroPositionEnum {
         return null;
     }
 
-    private static List<Integer> findTKillPair() {
-        return Lists.newArrayList(
-                LOLHeroPositionEnum.T_ASSIST.getLabelId(),
-                LOLHeroPositionEnum.E_KILLED.getLabelId(),
-                LOLHeroPositionEnum.T_KILL.getLabelId(),
-                LOLHeroPositionEnum.MYSELF_ASSIST.getLabelId()
-        );
-    }
-
-    private static List<Integer> findEKillPair() {
-        return Lists.newArrayList(
-                LOLHeroPositionEnum.E_ASSIST.getLabelId(),
-                LOLHeroPositionEnum.T_KILLED.getLabelId(),
-                LOLHeroPositionEnum.E_KILL.getLabelId(),
-                LOLHeroPositionEnum.MYSELF_KILLED.getLabelId()
-        );
-    }
-
+    /**
+     * 我击杀敌方
+     *
+     * @return
+     */
     private static List<Integer> findMyselfKillPair() {
         return Lists.newArrayList(
                 LOLHeroPositionEnum.T_ASSIST.getLabelId(),
@@ -80,24 +108,42 @@ public enum LOLHeroPositionEnum {
         );
     }
 
-    public static List<LOLHeroPositionEnum> filter(List<Integer> labelIds) {
+    /**
+     * 队友击杀敌方，我助攻
+     *
+     * @return
+     */
+    private static List<Integer> findMyselfAssistPair() {
+        return Lists.newArrayList(
+                LOLHeroPositionEnum.T_KILL.getLabelId(),
+                LOLHeroPositionEnum.MYSELF_ASSIST.getLabelId(),
+                LOLHeroPositionEnum.E_KILLED.getLabelId()
+        );
+    }
+
+    /**
+     * yolo识别结果可能有误，做一下过滤
+     * 只要跟我相关的
+     *
+     * @param labelIds
+     * @return
+     */
+    public static List<Integer> filter(List<Integer> labelIds) {
         if (labelIds == null || labelIds.size() == 0) {
             return Lists.newArrayList();
         }
 
-        List<LOLHeroPositionEnum> res = Lists.newArrayList();
-        List<Integer> pairCodes;
-        if (labelIds.contains(T_KILL.getLabelId())) {
-            pairCodes = findTKillPair();
+        List<Integer> res = Lists.newArrayList();
+        List<Integer> pairCodes = Lists.newArrayList();
+        if (labelIds.contains(MYSELF_ASSIST.getLabelId())) {
+            pairCodes = findMyselfAssistPair();
         } else if (labelIds.contains(MYSELF_KILL.getLabelId())) {
             pairCodes = findMyselfKillPair();
-        } else {
-            pairCodes = findEKillPair();
         }
 
         for (Integer labelId : labelIds) {
             if (pairCodes.contains(labelId)) {
-                res.add(LOLHeroPositionEnum.of(labelId));
+                res.add(labelId);
             }
         }
         return res;

@@ -3,6 +3,7 @@ package com.sh.engine.plugin.lol;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import lombok.Data;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.Comparator;
 import java.util.List;
@@ -31,7 +32,7 @@ public class LoLPicData {
         A = a;
     }
 
-    public List<List<LOLHeroPositionEnum>> merge2PositionEnum() {
+    public List<List<Integer>> merge2PositionEnum() {
         if (heroKADetail == null) {
             return Lists.newArrayList();
         }
@@ -61,10 +62,10 @@ public class LoLPicData {
             lastMaxYPosition = heroProfile.getPosition().get(3);
         }
 
-        return labelIdPerKills.stream().map(LOLHeroPositionEnum::filter).collect(Collectors.toList());
+        return labelIdPerKills.stream().map(LOLHeroPositionEnum::filter).filter(CollectionUtils::isNotEmpty)
+                .collect(Collectors.toList());
 
     }
-
 
     public static LoLPicData genBlank() {
         return new LoLPicData(-1, -1, -1);
@@ -82,6 +83,10 @@ public class LoLPicData {
         return this.K == -1;
     }
 
+    public boolean beValid() {
+        return this.K >= 0;
+    }
+
     public boolean compareKda(LoLPicData other) {
         if (other == null) {
             return false;
@@ -89,17 +94,24 @@ public class LoLPicData {
         return Objects.equals(this.K, other.K) && Objects.equals(this.D, other.D) && Objects.equals(this.A, other.A);
     }
 
-    static class HeroKillOrAssistDetail {
+    public static class HeroKillOrAssistDetail {
         private List<List<Float>> boxes;
 
         /**
          * @see LOLHeroPositionEnum
          */
         private List<Integer> labelIds;
-        private List<Float> scores;
 
         public List<List<Float>> getBoxes() {
             return boxes;
+        }
+
+        public HeroKillOrAssistDetail() {
+        }
+
+        public HeroKillOrAssistDetail(List<List<Float>> boxes, List<Integer> labelIds) {
+            this.boxes = boxes;
+            this.labelIds = labelIds;
         }
 
         public void setBoxes(List<List<Float>> boxes) {
@@ -112,14 +124,6 @@ public class LoLPicData {
 
         public void setLabelIds(List<Integer> labelIds) {
             this.labelIds = labelIds;
-        }
-
-        public List<Float> getScores() {
-            return scores;
-        }
-
-        public void setScores(List<Float> scores) {
-            this.scores = scores;
         }
     }
 
@@ -151,7 +155,7 @@ public class LoLPicData {
         LoLPicData loLPicData = new LoLPicData(0, 0, 0);
         loLPicData.setHeroKADetail(detail);
 
-        List<List<LOLHeroPositionEnum>> res = loLPicData.merge2PositionEnum();
+        List<List<Integer>> res = loLPicData.merge2PositionEnum();
         System.out.println(res);
     }
 

@@ -1,10 +1,11 @@
 package com.sh.engine.plugin;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.OkHttpClientUtil;
-import com.sh.config.utils.VideoFileUtils;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.plugin.lol.LoLPicData;
@@ -25,7 +26,10 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.File;
-import java.util.*;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -43,7 +47,10 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
     @Resource
     MsgSendService msgSendService;
 
-    private static final int MAX_HIGH_LIGHT_COUNT = 10;
+    /**
+     * 精彩片段的视频片段总数
+     */
+    private static final int MAX_HIGH_LIGHT_SEG_COUNT = 100;
     private static final int OCR_INTERVAL_NUM = 5;
     /**
      * docker run -it -d --name ppocr -p 8866:8866 paddlepaddle/paddle:2.6.0
@@ -51,6 +58,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
      * hub serving start -m ch_pp-ocrv3
      */
     private static final String OCR_URL = "http://127.0.0.1:5000/ocr";
+    private static final String DETAIL_URL = "http://127.0.0.1:5000/lolKillVisDet";
 
     private static final Map<String, Integer> LAST_OCR_K_MAP = Maps.newConcurrentMap();
     private static final Map<String, Integer> LAST_OCR_D_MAP = Maps.newConcurrentMap();
@@ -62,6 +70,9 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
      */
     private static final String KAD_CORP_EXP = "crop=80:30:in_w*867/1000:0";
     private static final String KILL_DETAIL_CORP_EXP = "crop=270:290:in_w*86/100:in_h*3/16";
+
+    private static final String KAD_SNAPSHOT_FILE = "kda-snapshot";
+    private static final String DETAIL_SNAPSHOT_FILE = "detail-snapshot";
 
 
     @Override
@@ -86,25 +97,26 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
             return true;
         }
 
-        // 1. 筛选精彩区间
-        File snapShotFile = new File(recordPath, "snapshot");
-        if (!snapShotFile.exists()) {
-            snapShotFile.mkdir();
+        // 0. 创建文件夹
+        createSnapshotFiles(recordPath);
+
+        // 1. 截图
+        // 1.1 kda的截图 + detail的截图
+        for (File video : videos) {
+            String kadSnapshotPath = genSnapshotFilePath(video, KAD_SNAPSHOT_FILE);
+            String detailSnapshotPath = genSnapshotFilePath(video, DETAIL_SNAPSHOT_FILE);
+
+            doSnapshot(video, KAD_CORP_EXP, kadSnapshotPath);
+            doSnapshot(video, KILL_DETAIL_CORP_EXP, detailSnapshotPath);
         }
 
-        // 1.1 kda的截图
-        List<File> pics = Lists.newArrayList();
-        for (File video : videos) {
-            Optional.ofNullable(snapKdaShot(video, KAD_CORP_EXP)).ifPresent(pics::add);
-        }
-        List<LoLPicData> datas = ocrSeqPics(pics).stream()
+        // 1.2 ocr + 位置识别
+        List<LoLPicData> datas = parseSeqPicsV2(videos).stream()
                 .filter(d -> d.getTargetIndex() != null)
                 .collect(Collectors.toList());
 
-        // 1.2 根据kda增长区间堆击杀框进行截图
-
         // 3. 找出精彩片段
-        LolSequenceStatistic statistic = new LolSequenceStatistic(datas, MAX_HIGH_LIGHT_COUNT);
+        LolSequenceStatistic statistic = new LolSequenceStatistic(datas, MAX_HIGH_LIGHT_SEG_COUNT);
         List<Pair<Integer, Integer>> potentialIntervals = statistic.getPotentialIntervals();
 
         // 4. 进行合并视频
@@ -117,12 +129,28 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         return success;
     }
 
-    private File snapKdaShot(File segFile, String corpExp) {
+    private void createSnapshotFiles(String recordPath) {
+        File snapShotFile = new File(recordPath, KAD_SNAPSHOT_FILE);
+        if (!snapShotFile.exists()) {
+            snapShotFile.mkdir();
+        }
+
+        File detailSnapshotFile = new File(recordPath, DETAIL_SNAPSHOT_FILE);
+        if (!detailSnapshotFile.exists()) {
+            detailSnapshotFile.mkdir();
+        }
+    }
+
+    private String genSnapshotFilePath(File segFile, String snapshotFileName) {
         String segFileName = segFile.getName();
         String filePrefix = segFileName.substring(0, segFileName.lastIndexOf("."));
 
-        File snapShotFile = new File(segFile.getParent(), "snapshot");
-        File picFile = new File(snapShotFile, filePrefix + ".jpg");
+        File picFile = new File(new File(segFile.getParent(), snapshotFileName), filePrefix + ".jpg");
+        return picFile.getAbsolutePath();
+    }
+
+    private File doSnapshot(File sourceFile, String corpExp, String targetFilePath) {
+        File picFile = new File(targetFilePath);
         if (picFile.exists()) {
             log.info("snapshot pic already existed, file: {}", picFile.getAbsolutePath());
             return picFile;
@@ -130,7 +158,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
         List<String> params = Lists.newArrayList(
                 "-y",
-                "-i", segFile.getAbsolutePath(),
+                "-i", sourceFile.getAbsolutePath(),
                 "-vf", corpExp,
                 "-ss", "00:00:00",
                 "-frames:v", "1",
@@ -139,43 +167,55 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         FfmpegCmd ffmpegCmd = new FfmpegCmd(StringUtils.join(params, " "));
         Integer resCode = CommandUtil.cmdExecWithoutLog(ffmpegCmd);
         if (resCode == 0) {
-            log.info("get pic success, path: {}", segFile.getAbsolutePath());
+            log.info("get pic success, path: {}", sourceFile.getAbsolutePath());
             return picFile;
         } else {
-            log.info("get pic fail, path: {}", segFile.getAbsolutePath());
+            log.info("get pic fail, path: {}", sourceFile.getAbsolutePath());
             return null;
         }
     }
 
-    private List<LoLPicData> ocrSeqPics(List<File> pics) {
+    private List<LoLPicData> parseSeqPicsV2(Collection<File> videos) {
+        // 1.构建index到截图的映射
+        Map<Integer, String> index2KadShotPath = Maps.newHashMap();
+        Map<Integer, String> index2DetailShotPath = Maps.newHashMap();
+        List<Integer> indexes = Lists.newArrayList();
+        for (File video : videos) {
+            Integer index = getIndexFromFileName(video);
+            index2KadShotPath.put(index, genSnapshotFilePath(video, KAD_SNAPSHOT_FILE));
+            index2DetailShotPath.put(index, genSnapshotFilePath(video, DETAIL_SNAPSHOT_FILE));
+            indexes.add(index);
+        }
+
+        // 2. 遍历index列表，分析前后kad
         LoLPicData lastPic = LoLPicData.genBlank();
         List<LoLPicData> res = Lists.newArrayList();
 
-        List<List<File>> picGroups = Lists.partition(pics, OCR_INTERVAL_NUM);
-        for (List<File> gPics : picGroups) {
-            int batchSize = gPics.size();
-            LoLPicData gLastPic = testParse(gPics.get(batchSize - 1));
+        List<List<Integer>> batchIndexes = Lists.partition(indexes, OCR_INTERVAL_NUM);
+        for (List<Integer> idxes : batchIndexes) {
+            int batchSize = idxes.size();
+            Integer testIndex = idxes.get(idxes.size() - 1);
+
+            // 当前批的最后一个进行测试ocr
+            LoLPicData gLastPic = testParse(index2KadShotPath.get(testIndex));
 
             // 前后kda是否一样，一样就可以跳过了
             boolean isSkip = skipOcr(lastPic, gLastPic);
 
-            // kda增加，说明有精彩镜头，需要堆击杀细节进行截图识别
-            boolean isHighOccur = highlightOccur(lastPic, gLastPic);
-
             for (int i = 0; i < batchSize; i++) {
-                File gPic = gPics.get(i);
+                Integer curIndex = idxes.get(i);
                 LoLPicData cur;
                 if (isSkip) {
                     // 最后一个跟上一次结果一样，不需要进行额外的ocr，直接跟上次一样
                     cur = new LoLPicData(lastPic.getK(), lastPic.getD(), lastPic.getA());
                 } else {
                     // 不一样，这个区间内的每个都进行ocr
-                    cur = parse(gPic);
-                    if (highlightOccur(lastPic, cur)) {
-
+                    cur = parseKda(index2KadShotPath.get(curIndex));
+                    if (cur.beValid()) {
+                        cur.setHeroKADetail(doDetailSnapshotAndParse(lastPic, cur, index2DetailShotPath.get(curIndex)));
                     }
                 }
-                cur.setTargetIndex(getIndexFromFileName(gPic));
+                cur.setTargetIndex(curIndex);
                 res.add(cur);
             }
 
@@ -199,8 +239,16 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         return cur.getK() > lastPic.getK() || cur.getA() > lastPic.getA();
     }
 
-    private LoLPicData testParse(File snapShotFile) {
-        List<Integer> kad = parseKDAByOCR(snapShotFile);
+    private LoLPicData.HeroKillOrAssistDetail doDetailSnapshotAndParse(LoLPicData lastPic, LoLPicData cur, String path) {
+        if (!highlightOccur(lastPic, cur)) {
+            return null;
+        }
+        // kda增加，说明有精彩镜头，需要堆击杀细节进行截图识别
+        return parseDetailByVisDet(path);
+    }
+
+    private LoLPicData testParse(String path) {
+        List<Integer> kad = parseKDAByOCR(path);
         if (kad.size() < 3) {
             return LoLPicData.genInvalid();
         } else {
@@ -208,9 +256,9 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         }
     }
 
-    private LoLPicData parse(File snapShotFile) {
+    private LoLPicData parseKda(String path) {
         LoLPicData data;
-        List<Integer> kad = parseKDAByOCR(snapShotFile);
+        List<Integer> kad = parseKDAByOCR(path);
         if (kad.size() < 3) {
             data = parseFromCache();
         } else {
@@ -247,14 +295,15 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
     }
 
     private List<List<String>> buildMergeFileNames(List<Pair<Integer, Integer>> intervals, Collection<File> files) {
-        Map<String, String> name2PathMap = files.stream().collect(Collectors.toMap(File::getName, File::getAbsolutePath, (a, b) -> b));
+        Map<Integer, String> name2PathMap = files.stream().collect(
+                Collectors.toMap(LoLVodHighLightCutPlugin::getIndexFromFileName, File::getAbsolutePath, (a, b) -> b)
+        );
         List<List<String>> res = Lists.newArrayList();
         for (Pair<Integer, Integer> interval : intervals) {
             List<String> tmp = Lists.newArrayList();
             for (int i = interval.getLeft(); i < interval.getRight() + 1; i++) {
-                String fileName2 = VideoFileUtils.genSegName(i);
-                if (name2PathMap.containsKey(fileName2)) {
-                    tmp.add(name2PathMap.get(fileName2));
+                if (name2PathMap.containsKey(i)) {
+                    tmp.add(name2PathMap.get(i));
                 }
             }
             res.add(tmp);
@@ -262,14 +311,16 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         return res;
     }
 
-    private List<Integer> parseKDAByOCR(File snapShotFile) {
+    private List<Integer> parseKDAByOCR(String filePath) {
+        File snapShotFile = new File(filePath);
         if (!snapShotFile.exists()) {
             return BLANK_KADS;
         }
 
         MediaType mediaType = MediaType.parse("application/json");
-        String params = "{\"path\":\"" + snapShotFile.getAbsolutePath() + "\"}";
-        RequestBody body = RequestBody.create(mediaType, params);
+        Map<String, String> params = Maps.newHashMap();
+        params.put("path", filePath);
+        RequestBody body = RequestBody.create(mediaType, JSON.toJSONString(params));
         Request request = new Request.Builder()
                 .url(OCR_URL)
                 .post(body)
@@ -278,11 +329,44 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         String resp = OkHttpClientUtil.execute(request);
         String ocrStr = JSON.parseObject(resp).getString("text");
         String score = JSON.parseObject(resp).getString("score");
-        log.info("parse image success, file: {}, res: {}, confidence: {}.", snapShotFile.getAbsolutePath(),
-                ocrStr, score);
+        if (StringUtils.isBlank(ocrStr)) {
+            // 空字符传说明没有kda
+            log.info("parse no kad, file: {}.", snapShotFile.getAbsolutePath());
+            return BLANK_KADS;
+        }
 
+        log.info("parse image success, file: {}, res: {}, confidence: {}.", filePath, ocrStr, score);
         return RegexUtil.getMatchList(ocrStr, "\\d+", false).stream()
                 .map(Integer::valueOf)
                 .collect(Collectors.toList());
+    }
+
+    private LoLPicData.HeroKillOrAssistDetail parseDetailByVisDet(String detailPath) {
+        File snapShotFile = new File(detailPath);
+        if (!snapShotFile.exists()) {
+            return null;
+        }
+
+        MediaType mediaType = MediaType.parse("application/json");
+        Map<String, String> params = Maps.newHashMap();
+        params.put("path", detailPath);
+        RequestBody body = RequestBody.create(mediaType, JSON.toJSONString(params));
+        Request request = new Request.Builder()
+                .url(DETAIL_URL)
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .build();
+        String resp = OkHttpClientUtil.execute(request);
+        JSONObject respObj = JSON.parseObject(resp);
+        List<List<Float>> boxes = JSON.parseObject(respObj.getString("boxes"), new TypeReference<List<List<Float>>>() {
+        });
+        List<Integer> labelIds = JSON.parseObject(respObj.getString("labelIds"), new TypeReference<List<Integer>>() {
+        });
+        if (CollectionUtils.isEmpty(boxes)) {
+            return null;
+        }
+
+        log.info("parse detail image success, file: {}, labelIds: {}.", snapShotFile.getAbsolutePath(), JSON.toJSONString(labelIds));
+        return new LoLPicData.HeroKillOrAssistDetail(boxes, labelIds);
     }
 }

@@ -63,6 +63,10 @@ public class InitConfig {
     private String twitchCookies;
     // *********************chzzkCookies**********************
     private String chzzkCookies;
+
+    // *********************抖音cookiesPath**********************
+    private String douyinCookiesPath;
+
     // *********************其他配置**********************
     /**
      * 投稿时忽略小于此大小的文件(M)

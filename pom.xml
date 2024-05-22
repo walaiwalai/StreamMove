@@ -154,12 +154,11 @@
                 <version>${quartz.version}</version>
             </dependency>
 
-            <!--            &lt;!&ndash; tess4j &ndash;&gt;-->
-            <!--            <dependency>-->
-            <!--                <groupId>net.sourceforge.tess4j</groupId>-->
-            <!--                <artifactId>tess4j</artifactId>-->
-            <!--                <version>4.5.4</version>-->
-            <!--            </dependency>-->
+            <dependency>
+                <groupId>com.microsoft.playwright</groupId>
+                <artifactId>playwright</artifactId>
+                <version>1.25.0</version>
+            </dependency>
 
 
             <!--ffmpeg工具类<-->
