@@ -102,7 +102,7 @@ public class StatusManager {
     }
 
     public Integer count() {
-        return Math.max(roomPathStatusMap.keySet().size(), postProcessMap.keySet().size());
+        return roomPathStatusMap.keySet().size() + postProcessMap.keySet().size() + uploadStatusMap.keySet().size();
     }
 
 

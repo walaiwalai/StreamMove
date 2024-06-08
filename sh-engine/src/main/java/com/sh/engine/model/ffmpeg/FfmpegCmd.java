@@ -1,5 +1,6 @@
 package com.sh.engine.model.ffmpeg;
 
+import com.sh.config.utils.EnvUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
@@ -70,8 +71,11 @@ public class FfmpegCmd {
 
         Runtime runtime = Runtime.getRuntime();
         try {
-            ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
-//            ffmpeg = runtime.exec(cmd);
+            if (EnvUtil.isProd()) {
+                ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
+            } else {
+                ffmpeg = runtime.exec(cmd);
+            }
             if (openIOStreams) {
                 inputStream = ffmpeg.getInputStream();
                 outputStream = ffmpeg.getOutputStream();

@@ -73,7 +73,6 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
     private RecordStream fetchReplayStream(StreamerConfig streamerConfig) {
         // 1.获取最近的videoNo
         String videoNo = getLatestVideoNo(streamerConfig);
-        System.out.println(videoNo);
 
         // 2.获取视频详情
         String detailUrl = VIDEOS_URL.replace("{video_no}", videoNo);
@@ -95,6 +94,7 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
                 .replace("{in_key}", inKey);
         Map<String, String> headers = Maps.newHashMap();
         headers.put("Accept", "application/dash+xml");
+        System.out.println(playbackUrl);
         String replayXml = HttpClientUtil.sendGet(playbackUrl, headers, null, false);
 
         return RecordStream.builder()
@@ -121,6 +121,7 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
     }
 
     private String parseReplayStreamUrl(String xmlString) {
+        System.out.println(xmlString);
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         dbFactory.setNamespaceAware(true);
         DocumentBuilder dBuilder;
@@ -128,13 +129,19 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
             dBuilder = dbFactory.newDocumentBuilder();
             Document doc = dBuilder.parse(new java.io.ByteArrayInputStream(xmlString.getBytes()));
             NodeList mpdElements = doc.getElementsByTagNameNS("urn:mpeg:dash:schema:mpd:2011", "BaseURL");
-            if (mpdElements.getLength() > 0) {
-                return mpdElements.item(0).getTextContent();
+//            if (mpdElements.getLength() > 0) {
+//                return mpdElements.item(0).getTextContent();
+//            }
+            for (int i = 0; i < mpdElements.getLength(); i++) {
+                System.out.println(mpdElements.item(i).getTextContent());
             }
 
             NodeList nvodElements = doc.getElementsByTagNameNS("urn:naver:vod:2020", "BaseURL");
-            if (nvodElements.getLength() > 0) {
-                return nvodElements.item(0).getTextContent();
+//            if (nvodElements.getLength() > 0) {
+//                return nvodElements.item(0).getTextContent();
+//            }
+            for (int i = 0; i < nvodElements.getLength(); i++) {
+                System.out.println(nvodElements.item(i).getTextContent());
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse XML", e);

@@ -50,7 +50,8 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
             return;
         }
 
-        if (statusManager.count() >= ConfigFetcher.getInitConfig().getMaxRecordingCount()) {
+        if (!streamerConfig.isRecordWhenOnline() && statusManager.count() >= ConfigFetcher.getInitConfig().getMaxRecordingCount()) {
+            // 录像拦截，直播不拦截
             log.info("hit max recoding count, will return, name: {}.", name);
             return;
         }

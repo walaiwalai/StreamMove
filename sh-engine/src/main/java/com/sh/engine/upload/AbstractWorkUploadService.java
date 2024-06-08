@@ -26,8 +26,8 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public abstract class AbstractWorkUploadService {
     protected static final ExecutorService UPLOAD_POOL = new ThreadPoolExecutor(
-            4,
-            4,
+            8,
+            8,
             600,
             TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(40960),

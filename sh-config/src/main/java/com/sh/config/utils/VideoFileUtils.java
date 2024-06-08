@@ -51,6 +51,16 @@ public class VideoFileUtils {
         return "seg-" + String.format("%04d", i) + ".ts";
     }
 
+    public static String genSnapshotName(int i) {
+        return "seg-" + String.format("%04d", i) + ".jpg";
+    }
+
+    public static int genIndex(String segName) {
+        int start = segName.lastIndexOf("-");
+        int end = segName.lastIndexOf(".");
+        return Integer.parseInt(segName.substring(start + 1, end));
+    }
+
     public static byte[] fetchBlock(File targetFile, long start, int blockSize) throws IOException {
         byte[] b = new byte[blockSize];
         RandomAccessFile raf = null;

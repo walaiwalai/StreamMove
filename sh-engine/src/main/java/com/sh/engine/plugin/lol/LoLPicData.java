@@ -32,6 +32,10 @@ public class LoLPicData {
         A = a;
     }
 
+    public LoLPicData copy() {
+        return new LoLPicData(this.K, this.D, this.A);
+    }
+
     public List<List<Integer>> merge2PositionEnum() {
         if (heroKADetail == null) {
             return Lists.newArrayList();

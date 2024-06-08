@@ -41,8 +41,13 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
         }
 
         int videoIndex = 1;
-        int total = tsFiles.size();
-        List<Integer> segIndexes = IntStream.rangeClosed(1, total)
+        List<Integer> sortedIndexes = tsFiles.stream()
+                .map(file -> VideoFileUtils.genIndex(file.getName()))
+                .sorted()
+                .collect(Collectors.toList());
+        int endIndex = sortedIndexes.get(sortedIndexes.size() - 1);
+
+        List<Integer> segIndexes = IntStream.rangeClosed(1, endIndex)
                 .boxed()
                 .collect(Collectors.toList());
 
@@ -62,10 +67,10 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
             }
 
             if (success) {
-                msgSendService.send("合并视频完成！路径为：" + targetMergedVideo.getAbsolutePath());
                 if (EnvUtil.isProd()) {
                     deleteSegs(segNames);
                 }
+                msgSendService.send("合并视频完成！路径为：" + targetMergedVideo.getAbsolutePath());
             } else {
                 msgSendService.send("合并视频失败！路径为：" + targetMergedVideo.getAbsolutePath());
             }
