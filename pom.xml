@@ -153,12 +153,18 @@
                 <artifactId>quartz-jobs</artifactId>
                 <version>${quartz.version}</version>
             </dependency>
-
+            <!-- dom4j -->
             <dependency>
-                <groupId>com.microsoft.playwright</groupId>
-                <artifactId>playwright</artifactId>
-                <version>1.25.0</version>
+                <groupId>dom4j</groupId>
+                <artifactId>dom4j</artifactId>
+                <version>1.6.1</version>
             </dependency>
+
+            <!--            <dependency>-->
+            <!--                <groupId>com.microsoft.playwright</groupId>-->
+            <!--                <artifactId>playwright</artifactId>-->
+            <!--                <version>1.25.0</version>-->
+            <!--            </dependency>-->
 
 
             <!--ffmpeg工具类<-->

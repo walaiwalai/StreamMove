@@ -23,14 +23,14 @@ import java.util.Map;
 @Slf4j
 public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
     private static final String CHANNEL_REGEX = "/(\\p{XDigit}{32})$";
-    private static final String API_URL = "https://api.chzzk.naver.com/service/v2/channels/{}/live-detail";
+    private static final String API_URL = "https://api.chzzk.naver.com/service/v2/channels/{channel_name}/live-detail";
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Whale/3.23.214.17 Safari/537.36";
 
     @Override
     public LivingStreamer isRoomOnline(StreamerConfig streamerConfig) {
         String chzzkCookies = ConfigFetcher.getInitConfig().getChzzkCookies();
         String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), CHANNEL_REGEX);
-        String detailUrl = API_URL.replace("{}", channelName);
+        String detailUrl = API_URL.replace("{channel_name}", channelName);
 
         Map<String, String> headers = Maps.newHashMap();
         headers.put("User-Agent", USER_AGENT);
@@ -62,7 +62,7 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
     public static void main(String[] args) {
         ChzzkStreamerServiceImpl service = new ChzzkStreamerServiceImpl();
         LivingStreamer livingStreamer = service.isRoomOnline(StreamerConfig.builder()
-                .roomUrl("https://chzzk.naver.com/089185efc29a8fbe14ea294dc85f9661")
+                .roomUrl("https://chzzk.naver.com/b628d1039a84ecc703804e17acee2eb3")
                 .build());
         System.out.println(livingStreamer.getStreamUrl());
     }

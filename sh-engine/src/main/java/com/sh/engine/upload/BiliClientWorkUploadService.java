@@ -57,7 +57,7 @@ public class BiliClientWorkUploadService extends AbstractWorkUploadService {
     /**
      * 失败重试次数
      */
-    public static final Integer RETRY_COUNT = 3;
+    public static final Integer RETRY_COUNT = 10;
     public static final Integer CHUNK_RETRY_DELAY = 500;
 
     private static final String CLIENT_POST_VIDEO_URL
