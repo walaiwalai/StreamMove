@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class StreamRecordServiceImpl implements StreamRecordService {
     private static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 11; SAMSUNG SM-G973U) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/14.2 Chrome/87.0.4280.141 Mobile Safari/537.36";
     OkHttpClient CLIENT = new OkHttpClient();
-    private static final int SEG_DOWNLOAD_RETRY = 3;
+    private static final int SEG_DOWNLOAD_RETRY = 5;
 
     @Override
     public void startRecord(Recorder recorder) {

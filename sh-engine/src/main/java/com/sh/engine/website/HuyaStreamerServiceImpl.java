@@ -7,7 +7,7 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
-import com.sh.engine.model.record.LivingStreamer;
+import com.sh.engine.model.record.RecordStream;
 import com.sh.engine.util.RegexUtil;
 import com.sh.engine.util.WebsiteStreamUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
 
 
     @Override
-    public LivingStreamer isRoomOnline(StreamerConfig streamerConfig) {
+    public RecordStream isRoomOnline(StreamerConfig streamerConfig) {
         Map<String, String> headers = new HashMap<>();
         headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0");
         headers.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
@@ -88,9 +88,9 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
             qualityMap.put("标清", qualities.get(3));
             aliFlv += qualityMap.getOrDefault(quality, "原画");
         }
-        return LivingStreamer.builder()
+        return RecordStream.builder()
                 .anchorName(anchorName)
-                .streamUrl(aliFlv)
+                .livingStreamUrl(aliFlv)
                 .build();
     }
 
@@ -101,9 +101,9 @@ public class HuyaStreamerServiceImpl extends AbstractStreamerService {
 
     public static void main(String[] args) {
         HuyaStreamerServiceImpl huyaStreamerService = new HuyaStreamerServiceImpl();
-        LivingStreamer res = huyaStreamerService.isRoomOnline(StreamerConfig.builder()
+        RecordStream res = huyaStreamerService.isRoomOnline(StreamerConfig.builder()
                 .roomUrl("https://www.huya.com/991111")
                 .build());
-        System.out.println(res.getStreamUrl());
+        System.out.println(res.getLivingStreamUrl());
     }
 }

@@ -1,13 +1,12 @@
 package com.sh.engine.website;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.StreamChannelTypeEnum;
-import com.sh.engine.model.record.LivingStreamer;
+import com.sh.engine.model.record.RecordStream;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
@@ -19,8 +18,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Component
 @Slf4j
@@ -37,7 +34,7 @@ public class BiliStreamerServiceImpl extends AbstractStreamerService {
     }
 
     @Override
-    public LivingStreamer isRoomOnline(StreamerConfig streamerConfig) {
+    public RecordStream isRoomOnline(StreamerConfig streamerConfig) {
         JSONObject streamerObj = fetchStreamerInfo(streamerConfig.getRoomUrl());
         return fetchStream(streamerObj);
     }
@@ -90,7 +87,7 @@ public class BiliStreamerServiceImpl extends AbstractStreamerService {
         }
     }
 
-    private LivingStreamer fetchStream(JSONObject streamerObj) {
+    private RecordStream fetchStream(JSONObject streamerObj) {
         if (streamerObj == null) {
             return null;
         }
@@ -105,9 +102,9 @@ public class BiliStreamerServiceImpl extends AbstractStreamerService {
             return null;
         }
 
-        return LivingStreamer.builder()
+        return RecordStream.builder()
                 .anchorName(anchorName)
-                .streamUrl(fetchStreamUrl(playerUserInfo))
+                .livingStreamUrl(fetchStreamUrl(playerUserInfo))
                 .build();
 
     }
@@ -154,10 +151,10 @@ public class BiliStreamerServiceImpl extends AbstractStreamerService {
 
     public static void main(String[] args) {
         BiliStreamerServiceImpl service = new BiliStreamerServiceImpl();
-        LivingStreamer s = service.isRoomOnline(StreamerConfig.builder()
+        RecordStream s = service.isRoomOnline(StreamerConfig.builder()
                 .recordWhenOnline(true)
                 .roomUrl("https://live.bilibili.com/9216557")
                 .build());
-        System.out.println(s.getStreamUrl());
+        System.out.println(s.getLivingStreamUrl());
     }
 }

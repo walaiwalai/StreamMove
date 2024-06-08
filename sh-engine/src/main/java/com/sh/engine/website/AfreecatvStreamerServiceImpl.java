@@ -6,9 +6,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
-import com.sh.engine.model.record.LivingStreamer;
+import com.sh.engine.model.record.RecordStream;
 import com.sh.engine.model.record.TsRecordInfo;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -24,11 +23,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  *
@@ -49,7 +45,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     private static final String USER_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0";
 
     @Override
-    public LivingStreamer isRoomOnline(StreamerConfig streamerConfig) {
+    public RecordStream isRoomOnline(StreamerConfig streamerConfig) {
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             return fetchOnlineLivingInfo(streamerConfig);
         } else {
@@ -62,14 +58,14 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         return StreamChannelTypeEnum.AFREECA_TV;
     }
 
-    private LivingStreamer fetchTsUploadInfo(StreamerConfig streamerConfig) {
+    private RecordStream fetchTsUploadInfo(StreamerConfig streamerConfig) {
         String roomUrl = streamerConfig.getRoomUrl();
         String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
 
         // 1. 获取历史直播列表
         JSONObject lastedRecord = fetchLastedRecord(bid);
         String regDate = lastedRecord.getString("reg_date");
-        boolean isNewTs = checkIsNew(streamerConfig, regDate);
+        boolean isNewTs = checkVodIsNew(streamerConfig, regDate);
         if (!isNewTs) {
             return null;
         }
@@ -78,16 +74,16 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         // 2. 解析切片成链接格式
         Long titleNo = lastedRecord.getLong("title_no");
         List<TsRecordInfo> tsRecordInfos = fetchTsViews(titleNo);
-        if (tsRecordInfos != null) {
-            for (TsRecordInfo tsRecordInfo : tsRecordInfos) {
-                try {
-                    tsRecordInfo.setRegDate(DateUtils.parseDate(regDate, "yyyy-MM-dd HH:mm:ss"));
-                } catch (ParseException e) {
-                }
-            }
+
+        Date date;
+        try {
+            date = DateUtils.parseDate(regDate, "yyyy-MM-dd HH:mm:ss");
+        } catch (ParseException e) {
+            date = new Date();
         }
 
-        return LivingStreamer.builder()
+        return RecordStream.builder()
+                .regDate(date)
                 .tsViews(tsRecordInfos)
                 .build();
 
@@ -139,21 +135,6 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         int index2 = file.indexOf("/playlist.m3u8");
         String tsPrefix = "https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/" + file.substring(index1 + 1, index2);
         return fetchTsInfo(tsPrefix);
-    }
-
-    private boolean checkIsNew(StreamerConfig streamerConfig, String tsRegDate) {
-        if (StringUtils.isBlank(streamerConfig.getLastRecordTime())) {
-            return true;
-        }
-        String lastRecordTime = streamerConfig.getLastRecordTime();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        try {
-            Date date1 = dateFormat.parse(lastRecordTime);
-            Date date2 = dateFormat.parse(tsRegDate);
-            return date1.getTime() < date2.getTime();
-        } catch (Exception e) {
-        }
-        return false;
     }
 
     private JSONObject fetchLastedRecord(String bid) {
@@ -218,7 +199,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     }
 
 
-    private LivingStreamer fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
+    private RecordStream fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
         String roomUrl = streamerConfig.getRoomUrl();
         String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
 
@@ -236,8 +217,8 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         String hlsAuthenticationKey = userRespObj.getJSONObject("data").getString("hls_authentication_key");
         String viewUrl = fetchCdnUrl(boardNo);
         String m3u8Url = StringUtils.isNotBlank(viewUrl) ? viewUrl + "?aid=" + hlsAuthenticationKey : null;
-        return LivingStreamer.builder()
-                .streamUrl(m3u8Url)
+        return RecordStream.builder()
+                .livingStreamUrl(m3u8Url)
                 .anchorName(anchorName)
                 .build();
     }
@@ -327,7 +308,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
 
     public static void main(String[] args) {
         AfreecatvStreamerServiceImpl service = new AfreecatvStreamerServiceImpl();
-        LivingStreamer s = service.isRoomOnline(StreamerConfig.builder().recordWhenOnline(false).roomUrl("https://play.afreecatv.com/tldn031").build());
+        RecordStream s = service.isRoomOnline(StreamerConfig.builder().recordWhenOnline(false).roomUrl("https://play.afreecatv.com/tldn031").build());
         System.out.println(JSON.toJSONString(s));
 
     }

@@ -8,7 +8,7 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
-import com.sh.engine.model.record.LivingStreamer;
+import com.sh.engine.model.record.RecordStream;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -27,7 +27,7 @@ public class TwitchStreamerServiceImpl extends AbstractStreamerService {
     private static final String USER_QUERY = "query query($channel_name:String!) { user(login: $channel_name) { stream { id title type previewImageURL(width: 0,height: 0) playbackAccessToken(params: { platform: \"web\", playerBackend: \"mediaplayer\", playerType: \"site\" }) { signature value } } } }";
 
     @Override
-    public LivingStreamer isRoomOnline(StreamerConfig streamerConfig) {
+    public RecordStream isRoomOnline(StreamerConfig streamerConfig) {
         String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), VALID_URL_BASE);
         JSONObject params = new JSONObject();
         JSONObject channelObj = new JSONObject();
@@ -61,9 +61,9 @@ public class TwitchStreamerServiceImpl extends AbstractStreamerService {
                 .addQuery("sig", streamObj.getJSONObject("playbackAccessToken").getString("signature"))
                 .addQuery("token", streamObj.getJSONObject("playbackAccessToken").getString("value"))
                 .build();
-        return LivingStreamer.builder()
+        return RecordStream.builder()
                 .roomTitle(streamObj.getString("title"))
-                .streamUrl(rawStreamUrl)
+                .livingStreamUrl(rawStreamUrl)
                 .build();
     }
 

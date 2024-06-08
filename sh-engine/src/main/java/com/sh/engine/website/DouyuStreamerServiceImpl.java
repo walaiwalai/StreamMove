@@ -8,7 +8,7 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
-import com.sh.engine.model.record.LivingStreamer;
+import com.sh.engine.model.record.RecordStream;
 import com.sh.engine.util.JavaScriptUtil;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +41,7 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
     }
 
     @Override
-    public LivingStreamer isRoomOnline(StreamerConfig streamerConfig) {
+    public RecordStream isRoomOnline(StreamerConfig streamerConfig) {
         String rid = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), RID_REGEX);
         if (StringUtils.isBlank(rid)) {
             rid = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), DIGIT_REGEX);
@@ -74,7 +74,7 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
             String rate = "-1";
             String flvStr = fetchStreamData(rid, rate);
             JSONObject flvObj = JSONObject.parseObject(flvStr);
-            return LivingStreamer.builder().streamUrl(flvObj.getJSONObject("data").getString("url")).anchorName(anchorName).build();
+            return RecordStream.builder().livingStreamUrl(flvObj.getJSONObject("data").getString("url")).anchorName(anchorName).build();
         } else {
             // 没有直播
             return null;
@@ -127,7 +127,7 @@ public class DouyuStreamerServiceImpl extends AbstractStreamerService {
 
     public static void main(String[] args) {
         DouyuStreamerServiceImpl douyuStreamerService = new DouyuStreamerServiceImpl();
-        LivingStreamer res = douyuStreamerService.isRoomOnline(StreamerConfig.builder()
+        RecordStream res = douyuStreamerService.isRoomOnline(StreamerConfig.builder()
                 .roomUrl("https://www.douyu.com/8925391")
                 .build());
         System.out.println(res);

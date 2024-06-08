@@ -1,6 +1,6 @@
 package com.sh.engine.model;
 
-import com.sh.engine.model.record.LivingStreamer;
+import com.sh.engine.model.record.RecordStream;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,5 +20,5 @@ public class RecordContext {
     /**
      * 正在直播的主播
      */
-    private LivingStreamer livingStreamer;
+    private RecordStream recordStream;
 }

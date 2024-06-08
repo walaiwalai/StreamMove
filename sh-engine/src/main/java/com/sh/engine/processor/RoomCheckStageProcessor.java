@@ -8,7 +8,7 @@ import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
-import com.sh.engine.model.record.LivingStreamer;
+import com.sh.engine.model.record.RecordStream;
 import com.sh.engine.website.AbstractStreamerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
@@ -41,15 +41,16 @@ public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
         StreamerConfig streamInfo = ConfigFetcher.getStreamerInfoByName(name);
 
         // 1. 检查直播间是否开播
-        context.setLivingStreamer(fetchStreamer(streamInfo));
+        context.setRecordStream(fetchStreamer(streamInfo));
     }
 
     /**
      * 获取直播间的视频推送刘
+     *
      * @param streamerConfig
      * @return
      */
-    private LivingStreamer fetchStreamer(StreamerConfig streamerConfig) {
+    private RecordStream fetchStreamer(StreamerConfig streamerConfig) {
         StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(streamerConfig.getRoomUrl());
         if (channelEnum == null) {
             log.error("roomUrl not match any platform, roomUrl: {}", streamerConfig.getRoomUrl());

@@ -2,7 +2,6 @@ package com.sh.engine.manager;
 
 import com.google.common.collect.Maps;
 import com.sh.engine.base.StreamerInfoHolder;
-import com.sh.engine.model.record.Recorder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -17,16 +16,6 @@ import java.util.Map;
 @Slf4j
 @Component
 public class StatusManager {
-    /**
-     * 主播的直播是否在被录播，key直播人名字，0不在录播，1在录播
-     */
-    private static Map<String, Recorder> recorderMap = Maps.newConcurrentMap();
-
-    /**
-     * 主播直播间是否在线，key直播人名字，0不在线，1在线
-     */
-    private static Map<String, Integer> roomStatusMap = Maps.newHashMap();
-
     /**
      * 直播间录像存放文件夹地址记录，按进行时间分段（当天日期）
      * key为streamer，value当前上传的所在目录文件
@@ -93,23 +82,6 @@ public class StatusManager {
     }
 
 
-//    /**
-//     * 当前主播是否在被录制
-//     *
-//     * @return
-//     */
-//    public boolean isOnRecord() {
-//        return recorderMap.containsKey(StreamerInfoHolder.getCurStreamerName());
-//    }
-//
-//    public void addRecorder(String streamerName, Recorder recorder) {
-//        recorderMap.put(streamerName, recorder);
-//    }
-//
-//    public void deleteRecorder(String streamerName) {
-//        recorderMap.remove(streamerName);
-//    }
-
     /**
      * 直播间录像是否正在被下载
      */
@@ -129,27 +101,10 @@ public class StatusManager {
         roomPathStatusMap.remove(StreamerInfoHolder.getCurStreamerName());
     }
 
-    public Integer countOnRecord() {
-        return roomPathStatusMap.keySet().size();
+    public Integer count() {
+        return Math.max(roomPathStatusMap.keySet().size(), postProcessMap.keySet().size());
     }
 
-
-//    /**
-//     * 主播房间相关操作：是否在线，上线，下线
-//     * @param streamerName
-//     * @return
-//     */
-//    public boolean isRoomOnline(String streamerName) {
-//        return roomStatusMap.containsKey(streamerName);
-//    }
-//
-//    public void onlineRoom(String streamerName) {
-//        roomStatusMap.put(streamerName, 1);
-//    }
-//
-//    public void offlineRoom(String streamerName) {
-//        roomStatusMap.remove(streamerName);
-//    }
 
     public void doPostProcess(String recordPath, String type) {
         postProcessMap.put(recordPath, type);
