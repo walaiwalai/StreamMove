@@ -62,7 +62,16 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
             return null;
         }
         JSONObject playInfoObj = JSON.parseObject(contentObj.getString("livePlaybackJson"));
-        String streamUrl = playInfoObj.getJSONArray("media").getJSONObject(0).getString("path");
+        String streamUrl = playInfoObj.getJSONArray("media").stream()
+                .filter(item -> {
+                    JSONObject itemObj = (JSONObject) item;
+                    return StringUtils.equals(itemObj.getString("protocol"), "HLS") && StringUtils.equals(itemObj.getString("mediaId"), "HLS");
+                })
+                .map(item -> ((JSONObject) item).getString("path"))
+                .findFirst()
+                .orElse(null);
+
+//        String streamUrl = playInfoObj.getJSONArray("media").getJSONObject(0).getString("path");
         return RecordStream.builder()
                 .livingStreamUrl(streamUrl)
                 .anchorName(contentObj.getJSONObject("channel").getString("channelName"))
@@ -94,7 +103,6 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
                 .replace("{in_key}", inKey);
         Map<String, String> headers = Maps.newHashMap();
         headers.put("Accept", "application/dash+xml");
-        System.out.println(playbackUrl);
         String replayXml = HttpClientUtil.sendGet(playbackUrl, headers, null, false);
 
         return RecordStream.builder()
@@ -121,7 +129,6 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
     }
 
     private String parseReplayStreamUrl(String xmlString) {
-        System.out.println(xmlString);
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         dbFactory.setNamespaceAware(true);
         DocumentBuilder dBuilder;
@@ -129,19 +136,13 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
             dBuilder = dbFactory.newDocumentBuilder();
             Document doc = dBuilder.parse(new java.io.ByteArrayInputStream(xmlString.getBytes()));
             NodeList mpdElements = doc.getElementsByTagNameNS("urn:mpeg:dash:schema:mpd:2011", "BaseURL");
-//            if (mpdElements.getLength() > 0) {
-//                return mpdElements.item(0).getTextContent();
-//            }
-            for (int i = 0; i < mpdElements.getLength(); i++) {
-                System.out.println(mpdElements.item(i).getTextContent());
+            if (mpdElements.getLength() > 0) {
+                return mpdElements.item(0).getTextContent();
             }
 
             NodeList nvodElements = doc.getElementsByTagNameNS("urn:naver:vod:2020", "BaseURL");
-//            if (nvodElements.getLength() > 0) {
-//                return nvodElements.item(0).getTextContent();
-//            }
-            for (int i = 0; i < nvodElements.getLength(); i++) {
-                System.out.println(nvodElements.item(i).getTextContent());
+            if (nvodElements.getLength() > 0) {
+                return nvodElements.item(0).getTextContent();
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse XML", e);
@@ -161,8 +162,9 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
 
     public static void main(String[] args) {
         ChzzkStreamerServiceImpl service = new ChzzkStreamerServiceImpl();
-        RecordStream livingStreamer = service.fetchReplayStream(StreamerConfig.builder()
-                .roomUrl("https://chzzk.naver.com/f59a5b026c2e9ad339f9eca423a6af98")
+        RecordStream livingStreamer = service.isRoomOnline(StreamerConfig.builder()
+                .recordWhenOnline(false)
+                .roomUrl("https://chzzk.naver.com/a121dab6835c0613dd5f8ef5acd1f155")
                 .build());
         System.out.println(JSON.toJSONString(livingStreamer));
     }
