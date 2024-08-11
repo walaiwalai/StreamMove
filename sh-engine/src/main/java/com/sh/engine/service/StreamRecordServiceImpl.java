@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -154,6 +156,7 @@ public class StreamRecordServiceImpl implements StreamRecordService {
                 "-loglevel", "error",
                 "-hide_banner",
                 "-user_agent", "\"" + USER_AGENT + "\"",
+                "-headers", "\"" + buildHeaderStr(recorder.getStreamHeaders()) + "\"",
                 "-protocol_whitelist", "rtmp,crypto,file,http,https,tcp,tls,udp,rtp",
                 "-thread_queue_size", "1024",
                 "-analyzeduration", "2147483647",
@@ -180,5 +183,25 @@ public class StreamRecordServiceImpl implements StreamRecordService {
         );
         return StringUtils.join(commands, " ");
 
+    }
+
+    private String buildHeaderStr(Map<String, String> headers) {
+        if (MapUtils.isEmpty(headers)) {
+            return "";
+        }
+        StringBuilder headerPart = new StringBuilder();
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            headerPart.append(entry.getKey()).append(": ").append(entry.getValue());
+        }
+        return headerPart.toString();
+    }
+
+    public static void main(String[] args) {
+        StreamRecordServiceImpl streamRecordService = new StreamRecordServiceImpl();
+        System.out.println(streamRecordService.buildFfmpegCmd(Recorder.builder()
+//                .streamHeaders(ImmutableMap.of("Range", "bytes=0-"))
+                .streamUrl("https://b01-kr-naver-vod.pstatic.net/glive/c/read/v2/VOD_ALPHA/glive_2024_06_14_4/74f8d0e2-29a9-11ef-83de-a0369ffac078.mp4?_lsu_sa_=6bd577f851456ef6c0d0e50f6e2507b70e703f28e801ef3534a76ec1c7623eb54e27dad66bc5bc0df07937b29e303b590ec9a1365c57faebacee467ac2469c39c0a238574810856808d238a5e8e833af")
+                .savePath("F:\\video\\download\\TheShy")
+                .build()));
     }
 }

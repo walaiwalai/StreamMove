@@ -42,9 +42,9 @@
             <artifactId>dom4j</artifactId>
         </dependency>
 
-        <!--        <dependency>-->
-        <!--            <groupId>com.microsoft.playwright</groupId>-->
-        <!--            <artifactId>playwright</artifactId>-->
-        <!--        </dependency>-->
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+        </dependency>
     </dependencies>
 </project>

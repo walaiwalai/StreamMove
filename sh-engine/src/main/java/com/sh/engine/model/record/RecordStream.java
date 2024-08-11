@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Author caiwen
@@ -37,6 +38,11 @@ public class RecordStream {
      * 录播：最近的录播流url
      */
     private String latestReplayStreamUrl;
+
+    /**
+     * stream对应特殊header
+     */
+    private Map<String, String> latestReplayStreamHeaders;
 
     /**
      * 录播：切片详情

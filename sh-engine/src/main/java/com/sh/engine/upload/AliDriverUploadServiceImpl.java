@@ -7,13 +7,13 @@ import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.model.video.FailUploadVideoChunk;
 import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.FileChunkIterator;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.config.utils.VideoFileUtils;
+import com.sh.engine.UploadPlatformEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.alidriver.*;
 import com.sh.engine.model.bili.web.VideoUploadResultModel;
@@ -60,15 +60,13 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
 
     @Override
     public String getName() {
-        return "ALI_DRIVER";
+        return UploadPlatformEnum.ALI_DRIVER.getType();
     }
 
     @Override
     public boolean upload(List<LocalVideo> localVideos, BaseUploadTask task) throws Exception {
         // 初始化client
         initClient();
-
-        String dirName = task.getDirName();
 
         String targetFileId = ConfigFetcher.getInitConfig().getTargetFileId();
         for (LocalVideo localVideo : localVideos) {
@@ -86,7 +84,6 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
             }
         }
 
-        FileStatusModel.updateToFile(dirName, FileStatusModel.builder().aliDriverPost(true).build());
         return true;
     }
 

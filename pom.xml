@@ -160,11 +160,11 @@
                 <version>1.6.1</version>
             </dependency>
 
-            <!--            <dependency>-->
-            <!--                <groupId>com.microsoft.playwright</groupId>-->
-            <!--                <artifactId>playwright</artifactId>-->
-            <!--                <version>1.25.0</version>-->
-            <!--            </dependency>-->
+            <dependency>
+                <groupId>com.microsoft.playwright</groupId>
+                <artifactId>playwright</artifactId>
+                <version>1.44.0</version>
+            </dependency>
 
 
             <!--ffmpeg工具类<-->

@@ -12,8 +12,10 @@ import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.model.video.FailUploadVideoChunk;
 import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
+import com.sh.config.model.video.UploadVideoPair;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.config.utils.VideoFileUtils;
+import com.sh.engine.UploadPlatformEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.bili.BiliWebPreUploadCommand;
 import com.sh.engine.model.bili.web.BiliClientPreUploadParams;
@@ -39,6 +41,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
@@ -76,7 +79,7 @@ public class BiliClientWorkUploadService extends AbstractWorkUploadService {
 
     @Override
     public String getName() {
-        return "BILI_CLIENT";
+        return UploadPlatformEnum.BILI_CLIENT.getType();
     }
 
     @Override
@@ -84,7 +87,15 @@ public class BiliClientWorkUploadService extends AbstractWorkUploadService {
         String dirName = task.getDirName();
 
         // 1. 多个视频分P进行上传
-        List<RemoteSeverVideo> remoteVideos = Lists.newArrayList(task.getSucceedUploaded());
+        FileStatusModel fileStatus = FileStatusModel.loadFromFile(dirName);
+        UploadVideoPair videoParts = fileStatus.fetchVideoPartByPlatform(getName());
+        List<RemoteSeverVideo> remoteVideos = Optional.ofNullable(videoParts)
+                .map(UploadVideoPair::getSucceedUploadedVideos)
+                .orElse(Lists.newArrayList())
+                .stream()
+                .map(succeedUploadSeverVideo -> (RemoteSeverVideo) succeedUploadSeverVideo)
+                .collect(Collectors.toList());
+
         for (int i = 0; i < localVideos.size(); i++) {
             LocalVideo localVideo = localVideos.get(i);
             if (localVideo.isUpload()) {
@@ -119,8 +130,6 @@ public class BiliClientWorkUploadService extends AbstractWorkUploadService {
             throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
         }
 
-        // 6.更新文件属性
-        FileStatusModel.updateToFile(dirName, FileStatusModel.builder().biliPost(true).build());
         return true;
     }
 

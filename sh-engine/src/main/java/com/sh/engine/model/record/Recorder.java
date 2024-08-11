@@ -1,17 +1,13 @@
 package com.sh.engine.model.record;
 
-import com.sh.config.model.stauts.FileStatusModel;
-import com.sh.engine.util.RecordConverter;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author caiWen
@@ -33,6 +29,8 @@ public class Recorder {
      * 拉视频流的地址(不是roomUrl)
      */
     private String streamUrl;
+
+    private Map<String, String> streamHeaders;
 
     /**
      * 视频切片地址

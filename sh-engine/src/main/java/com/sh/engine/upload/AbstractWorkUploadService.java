@@ -75,6 +75,7 @@ public abstract class AbstractWorkUploadService {
         }
         fileStatusModel.updateVideoPartByPlatform(platName, videoPair);
 
-        FileStatusModel.updateToFile(dirName, fileStatusModel);
+        // 写入到文件
+        fileStatusModel.writeSelfToFile();
     }
 }

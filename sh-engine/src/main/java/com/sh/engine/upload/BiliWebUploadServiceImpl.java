@@ -12,7 +12,9 @@ import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.model.video.FailUploadVideoChunk;
 import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
+import com.sh.config.model.video.UploadVideoPair;
 import com.sh.config.utils.VideoFileUtils;
+import com.sh.engine.UploadPlatformEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.bili.BiliWebPreUploadCommand;
@@ -29,10 +31,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
@@ -52,7 +51,7 @@ public class BiliWebUploadServiceImpl extends AbstractWorkUploadService {
 
     @Override
     public String getName() {
-        return "BILI_WEB";
+        return UploadPlatformEnum.BILI_WEB.getType();
     }
 
     @Override
@@ -60,7 +59,15 @@ public class BiliWebUploadServiceImpl extends AbstractWorkUploadService {
         String dirName = task.getDirName();
 
         // 1. 多个视频分P进行上传
-        List<RemoteSeverVideo> remoteVideos = Lists.newArrayList(task.getSucceedUploaded());
+        FileStatusModel fileStatus = FileStatusModel.loadFromFile(dirName);
+        UploadVideoPair videoParts = fileStatus.fetchVideoPartByPlatform(getName());
+        List<RemoteSeverVideo> remoteVideos = Optional.ofNullable(videoParts)
+                .map(UploadVideoPair::getSucceedUploadedVideos)
+                .orElse(Lists.newArrayList())
+                .stream()
+                .map(succeedUploadSeverVideo -> (RemoteSeverVideo) succeedUploadSeverVideo)
+                .collect(Collectors.toList());
+
         BiliWebPreUploadParams biliPreUploadInfo = null;
         for (int i = 0; i < localVideos.size(); i++) {
             LocalVideo localVideo = localVideos.get(i);
@@ -103,8 +110,6 @@ public class BiliWebUploadServiceImpl extends AbstractWorkUploadService {
 
         log.info("upload video success.");
 
-        // 6.更新文件属性
-        FileStatusModel.updateToFile(dirName, FileStatusModel.builder().biliPost(true).build());
         return true;
     }
 

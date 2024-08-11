@@ -1,6 +1,5 @@
 package com.sh.engine.base;
 
-import com.sh.engine.RecordStageEnum;
 import com.sh.engine.StreamChannelTypeEnum;
 import lombok.Data;
 

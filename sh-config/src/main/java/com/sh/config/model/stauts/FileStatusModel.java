@@ -1,7 +1,8 @@
 package com.sh.config.model.stauts;
 
+import cn.hutool.core.lang.Assert;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Maps;
 import com.sh.config.model.video.UploadVideoPair;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,13 +11,13 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author caiWen
@@ -31,69 +32,50 @@ public class FileStatusModel {
     private String path;
     private String recorderName;
     private String timeV;
-    private String updateTime;
 
     /**
      * 各平台上传情况
      */
     private List<String> platforms;
-    private UploadVideoPair bili;
-    private UploadVideoPair aliDriver;
-
-    private Boolean biliPost;
-    private Boolean aliDriverPost;
 
     /**
-     * 写到fileStatus.json，没有值不覆盖
-     *
-     * @param dirName
+     * 各平台上传情况
      */
-    public void writeSelfToFile(String dirName) {
-        createFileIfNotExisted(dirName);
+    private Map<String, Boolean> postMap = Maps.newHashMap();
+    private Map<String, UploadVideoPair> uploadVidoPairMap = Maps.newHashMap();
+
+    /**
+     * 写到fileStatus.json
+     */
+    public void writeSelfToFile() {
+        Assert.notBlank(path, "path is blank");
+        createFileIfNotExisted();
 
         // 把自身写到文件
-        File file = new File(dirName, "fileStatus.json");
+        File file = new File(path, "fileStatus.json");
         String statusStr = JSON.toJSONString(this);
         try {
             IOUtils.write(statusStr, new FileOutputStream(file), "utf-8");
             log.info("Create fileStatus.json: {}", statusStr);
         } catch (IOException e) {
-            log.error("writeSelfToFile to file fail, savePath: {}", dirName, e);
+            log.error("writeSelfToFile to file fail, savePath: {}", path, e);
         }
     }
 
     public UploadVideoPair fetchVideoPartByPlatform(String name) {
-        if (StringUtils.equals(name, "BILI_CLIENT") || StringUtils.equals(name, "BILI_WEB")) {
-            return bili;
-        } else if (StringUtils.equals(name, "ALI_DRIVER")) {
-            return aliDriver;
-        }
-        return null;
+        return uploadVidoPairMap.get(name);
     }
 
     public boolean fetchPostByPlatform(String name) {
-        if (StringUtils.equals(name, "BILI_CLIENT") || StringUtils.equals(name, "BILI_WEB")) {
-            return BooleanUtils.isTrue(biliPost);
-        } else if (StringUtils.equals(name, "ALI_DRIVER")) {
-            return BooleanUtils.isTrue(aliDriverPost);
-        }
-        return false;
+        return BooleanUtils.isTrue(postMap.get(name));
+    }
+
+    public void updatePostSuccessByPlatform(String name) {
+        postMap.put(name, true);
     }
 
     public void updateVideoPartByPlatform(String name, UploadVideoPair updated) {
-        if (StringUtils.equals(name, "BILI_CLIENT") || StringUtils.equals(name, "BILI_WEB")) {
-            this.bili = updated;
-        } else if (StringUtils.equals(name, "ALI_DRIVER")) {
-            this.aliDriver = updated;
-        }
-    }
-
-    public void updatePostByPlatform(String name, boolean updated) {
-        if (StringUtils.equals(name, "BILI_CLIENT") || StringUtils.equals(name, "BILI_WEB")) {
-            this.biliPost = updated;
-        } else if (StringUtils.equals(name, "ALI_DRIVER")) {
-            this.aliDriverPost = updated;
-        }
+        uploadVidoPairMap.put(name, updated);
     }
 
     public boolean allPost() {
@@ -102,28 +84,6 @@ public class FileStatusModel {
             allPost = allPost && fetchPostByPlatform(platform);
         }
         return allPost;
-    }
-
-    /**
-     * 只进行覆盖操作
-     *
-     * @param dirName
-     * @param updated
-     */
-    public static void updateToFile(String dirName, FileStatusModel updated) {
-        createFileIfNotExisted(dirName);
-
-        File file = new File(dirName, "fileStatus.json");
-        try {
-            String oldStatusStr = IOUtils.toString(new FileInputStream(file), "utf-8");
-            JSONObject statusObj = JSON.parseObject(oldStatusStr);
-            statusObj.putAll(JSONObject.parseObject(JSON.toJSONString(updated)));
-            String finalStatus = statusObj.toJSONString();
-            IOUtils.write(finalStatus, new FileOutputStream(file), "utf-8");
-            log.info("fileStatus.json updated success, content: {}", finalStatus);
-        } catch (Exception e) {
-            log.error("update file fail, savePath: {}", dirName, e);
-        }
     }
 
     public static FileStatusModel loadFromFile(String dirName) {
@@ -137,18 +97,18 @@ public class FileStatusModel {
         return JSON.parseObject(statusStr, FileStatusModel.class);
     }
 
-    private static void createFileIfNotExisted(String dirName) {
-        File curFile = new File(dirName);
+    private void createFileIfNotExisted() {
+        File curFile = new File(path);
         if (!curFile.exists()) {
             curFile.mkdirs();
         }
 
-        File file = new File(dirName, "fileStatus.json");
+        File file = new File(path, "fileStatus.json");
         if (!file.exists()) {
             try {
                 file.createNewFile();
             } catch (IOException e) {
-                log.error("create file fail, savePath: {}", dirName, e);
+                log.error("create file fail, savePath: {}", path, e);
             }
         }
     }

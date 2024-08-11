@@ -11,6 +11,8 @@ import com.sh.engine.model.record.RecordStream;
 import com.sh.engine.util.DateUtil;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -19,6 +21,7 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -71,7 +74,6 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
                 .findFirst()
                 .orElse(null);
 
-//        String streamUrl = playInfoObj.getJSONArray("media").getJSONObject(0).getString("path");
         return RecordStream.builder()
                 .livingStreamUrl(streamUrl)
                 .anchorName(contentObj.getJSONObject("channel").getString("channelName"))
@@ -105,10 +107,12 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
         headers.put("Accept", "application/dash+xml");
         String replayXml = HttpClientUtil.sendGet(playbackUrl, headers, null, false);
 
+        String replayStreamUrl = parseReplayStreamUrl(replayXml);
         return RecordStream.builder()
                 .roomTitle(contentObj.getString("videoTitle"))
                 .regDate(DateUtil.covertStr2Date(regDate, DateUtil.YYYY_MM_DD_HH_MM_SS))
-                .latestReplayStreamUrl(parseReplayStreamUrl(replayXml))
+                .latestReplayStreamUrl(replayStreamUrl)
+                .latestReplayStreamHeaders(buildReplayHeader(replayStreamUrl))
                 .build();
     }
 
@@ -150,6 +154,32 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
         return null;
     }
 
+    private Map<String, String> buildReplayHeader(String replayStreamUrl) {
+        Map<String, String> header = Maps.newHashMap();
+        header.put("Range", "bytes=0-" + fetchTotalBytes(replayStreamUrl));
+        return header;
+    }
+
+    private long fetchTotalBytes(String replayStreamUrl) {
+        Request request = new Request.Builder()
+                .url(replayStreamUrl)
+                .addHeader("Range", "bytes=1-1024")
+                .build();
+
+        try (Response response = CLIENT.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                return 0L;
+            }
+
+            // 获取指定头部字段的值
+            String contentRange = response.headers().get("Content-Range");
+            String[] split = StringUtils.split(contentRange, "/");
+            return Long.valueOf(split[1]);
+        } catch (IOException e) {
+            return 0L;
+        }
+    }
+
     private Map<String, String> buildHeaders() {
         String chzzkCookies = ConfigFetcher.getInitConfig().getChzzkCookies();
         Map<String, String> headers = Maps.newHashMap();
@@ -164,7 +194,7 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
         ChzzkStreamerServiceImpl service = new ChzzkStreamerServiceImpl();
         RecordStream livingStreamer = service.isRoomOnline(StreamerConfig.builder()
                 .recordWhenOnline(false)
-                .roomUrl("https://chzzk.naver.com/a121dab6835c0613dd5f8ef5acd1f155")
+                .roomUrl("https://chzzk.naver.com/bd76a497a85cd894ac3179d4e1a8c48f")
                 .build());
         System.out.println(JSON.toJSONString(livingStreamer));
     }

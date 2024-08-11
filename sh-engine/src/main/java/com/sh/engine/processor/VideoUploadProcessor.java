@@ -88,7 +88,7 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor {
                 List<LocalVideo> localVideoParts = fetchLocalVideos(fileStatusModel, platform);
                 boolean success = false;
                 try {
-                    success = service.upload(localVideoParts, RecordConverter.initTask(fileStatusModel, platform));
+                    success = service.upload(localVideoParts, RecordConverter.initTask(fileStatusModel));
                 } catch (Exception e) {
                     log.error("upload error, platform: {}", platform, e);
                 } finally {
@@ -97,6 +97,8 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor {
 
                 if (success) {
                     log.info("{}'s {} platform upload success, path: {}. ", streamerName, platform, curRecordPath);
+                    fileStatusModel.updatePostSuccessByPlatform(platform);
+                    fileStatusModel.writeSelfToFile();
                 } else {
                     log.info("{}'s {} platform upload fail, path: {}. ", streamerName, platform, curRecordPath);
                 }

@@ -80,6 +80,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
             if (StringUtils.isNotBlank(context.getRecordStream().getLatestReplayStreamUrl())) {
                 Recorder recorder = Recorder.builder()
                         .streamUrl(context.getRecordStream().getLatestReplayStreamUrl())
+                        .streamHeaders(context.getRecordStream().getLatestReplayStreamHeaders())
                         .savePath(videoRecordPath)
                         .build();
                 // 录像开始(长时间)
@@ -114,7 +115,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
         fileStatusModel.setRecorderName(streamerConfig.getName());
         fileStatusModel.setTimeV(timeV);
         fileStatusModel.setPlatforms(streamerConfig.getUploadPlatforms());
-        fileStatusModel.writeSelfToFile(recordPath);
+        fileStatusModel.writeSelfToFile();
 
         // 3.将录像文件加到threadLocal
         StreamerInfoHolder.addRecordPath(recordPath);
