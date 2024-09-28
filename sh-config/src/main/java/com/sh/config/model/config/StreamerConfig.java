@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
@@ -27,12 +26,6 @@ public class StreamerConfig {
     private List<String> uploadPlatforms = Lists.newArrayList();
 
     /**
-     * 优先以这个为主，没有以init.json的videoSavePath为值
-     */
-    private String targetSavePath;
-
-
-    /**
      * b站投稿相关
      */
     private String templateTitle;
@@ -45,11 +38,7 @@ public class StreamerConfig {
 
 
     public String fetchSavePath() {
-        if (StringUtils.isNotBlank(targetSavePath)) {
-            return targetSavePath;
-        } else {
-            return ConfigFetcher.getInitConfig().getVideoSavePath();
-        }
+        return ConfigFetcher.getInitConfig().getVideoSavePath();
     }
 
 }

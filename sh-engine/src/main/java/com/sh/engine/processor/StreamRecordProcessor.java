@@ -10,16 +10,13 @@ import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
 import com.sh.engine.model.record.Recorder;
 import com.sh.engine.service.MsgSendService;
-import com.sh.engine.service.StreamRecordService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
  * @Author caiwen
@@ -31,15 +28,13 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
     @Autowired
     private StatusManager statusManager;
     @Autowired
-    private StreamRecordService streamRecordService;
-    @Autowired
     private MsgSendService msgSendService;
 
     @Override
     public void processInternal(RecordContext context) {
         String name = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(name);
-        if (context.getRecordStream() == null) {
+        if (context.getRecorder() == null) {
             processWhenRoomOffline(name);
             return;
         }
@@ -59,55 +54,37 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
         // 1. 前期准备
         recordPreProcess(context, streamerConfig);
 
-        // 2.录像
-        String videoRecordPath = statusManager.getCurRecordPath();
-
+        // 2.发消息
+        String streamerName = StreamerInfoHolder.getCurStreamerName();
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
-            String streamerName = StreamerInfoHolder.getCurStreamerName();
             msgSendService.send("主播" + streamerName + "开播了，即将开始录制..");
-
-            // 2.1 直播间开播
-            Recorder recorder = Recorder.builder()
-                    .streamUrl(context.getRecordStream().getLivingStreamUrl())
-                    .savePath(videoRecordPath)
-                    .build();
-            streamRecordService.startRecord(recorder);
         } else {
-            String streamerName = StreamerInfoHolder.getCurStreamerName();
             msgSendService.send("主播" + streamerName + "有新的视频上传，即将开始录制..");
-
-            // 2.2 是否有新的视频上传
-            if (StringUtils.isNotBlank(context.getRecordStream().getLatestReplayStreamUrl())) {
-                Recorder recorder = Recorder.builder()
-                        .streamUrl(context.getRecordStream().getLatestReplayStreamUrl())
-                        .streamHeaders(context.getRecordStream().getLatestReplayStreamHeaders())
-                        .savePath(videoRecordPath)
-                        .build();
-                // 录像开始(长时间)
-                streamRecordService.startRecord(recorder);
-            } else {
-                Recorder recorder = Recorder.builder()
-                        .tsViews(context.getRecordStream().getTsViews())
-                        .savePath(videoRecordPath)
-                        .build();
-
-                // 开始下载视频(长时间)
-                streamRecordService.startDownload(recorder);
-            }
         }
 
-        // 3.后置操作
+        // 3 录像(长时间)
+        Recorder recorder = context.getRecorder();
+        try {
+            recorder.doRecord();
+        } catch (Exception e) {
+            log.error("record error, savePath: {}", recorder.getSavePath());
+        }
+
+        // 4.后置操作
         recordPostProcess(context, streamerConfig);
     }
 
 
     private void recordPreProcess(RecordContext context, StreamerConfig streamerConfig) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        String timeV = context.getRecordStream().getRegDate() == null ? dateFormat.format(new Date()) :
-                dateFormat.format(context.getRecordStream().getRegDate());
+        String timeV = dateFormat.format(context.getRecorder().getRegDate());
 
         // 1. 创建录像文件
-        String recordPath = createVideoFile(timeV, streamerConfig).getAbsolutePath();
+        String recordPath = context.getRecorder().getSavePath();
+        File recordFile = new File(recordPath);
+        if (!recordFile.exists()) {
+            recordFile.mkdirs();
+        }
 
         // 2.写fileStatus.json
         FileStatusModel fileStatusModel = new FileStatusModel();
@@ -130,8 +107,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
 
         // 2.修改streamer.json
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String lastRecordTime = context.getRecordStream().getRegDate() == null ? dateFormat.format(new Date()) :
-                dateFormat.format(context.getRecordStream().getRegDate());
+        String lastRecordTime = dateFormat.format(context.getRecorder().getRegDate());
         ConfigFetcher.refreshStreamer(StreamerConfig.builder()
                 .name(streamerConfig.getName())
                 .lastRecordTime(lastRecordTime)
@@ -151,24 +127,6 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
             log.info("stop recording for {}", name);
             statusManager.deleteRoomPathStatus();
         }
-    }
-
-
-    private File createVideoFile(String timeV, StreamerConfig streamerConfig) {
-        String name = StreamerInfoHolder.getCurStreamerName();
-
-        // 一级直播者目录
-        File streamerFile = new File(streamerConfig.fetchSavePath(), name);
-        if (!streamerFile.exists()) {
-            streamerFile.mkdir();
-        }
-
-        // 二级时间目录
-        File timeVFile = new File(streamerFile.getAbsolutePath(), timeV);
-        if (!timeVFile.exists()) {
-            timeVFile.mkdir();
-        }
-        return timeVFile;
     }
 
     @Override

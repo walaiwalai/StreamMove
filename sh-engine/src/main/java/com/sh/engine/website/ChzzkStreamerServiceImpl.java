@@ -1,30 +1,26 @@
 package com.sh.engine.website;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.StreamChannelTypeEnum;
-import com.sh.engine.model.record.RecordStream;
+import com.sh.engine.model.record.Recorder;
+import com.sh.engine.model.record.StreamLinkRecorder;
 import com.sh.engine.util.DateUtil;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.IOException;
+import java.util.Date;
 import java.util.Map;
 
 /**
+ * 采用streamLink支持直播和录像
+ *
  * @Author caiwen
  * @Date 2024 03 17 14 18
  * https://github.com/streamlink/streamlink/blob/master/src/streamlink/plugins/chzzk.py#L101
@@ -40,7 +36,7 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Whale/3.23.214.17 Safari/537.36";
 
     @Override
-    public RecordStream isRoomOnline(StreamerConfig streamerConfig) {
+    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             return fetchOnlineStream(streamerConfig);
         } else {
@@ -53,70 +49,38 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
         return StreamChannelTypeEnum.CHZZK;
     }
 
-    private RecordStream fetchOnlineStream(StreamerConfig streamerConfig) {
+    private Recorder fetchOnlineStream(StreamerConfig streamerConfig) {
         String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), CHANNEL_REGEX);
-        String detailUrl = API_URL.replace("{channel_name}", channelName);
+        String roomUrl = "chzzk.naver.com/live/" + channelName;
+        boolean isLiving = checkIsLivingByStreamLink(roomUrl);
 
-        String resp = HttpClientUtil.sendGet(detailUrl, buildHeaders(), null, false);
-        JSONObject respObj = JSONObject.parseObject(resp);
-        JSONObject contentObj = respObj.getJSONObject("content");
-        if (!StringUtils.equals(contentObj.getString("status"), "OPEN")) {
-            // 没有直播
-            return null;
-        }
-        JSONObject playInfoObj = JSON.parseObject(contentObj.getString("livePlaybackJson"));
-        String streamUrl = playInfoObj.getJSONArray("media").stream()
-                .filter(item -> {
-                    JSONObject itemObj = (JSONObject) item;
-                    return StringUtils.equals(itemObj.getString("protocol"), "HLS") && StringUtils.equals(itemObj.getString("mediaId"), "HLS");
-                })
-                .map(item -> ((JSONObject) item).getString("path"))
-                .findFirst()
-                .orElse(null);
-
-        return RecordStream.builder()
-                .livingStreamUrl(streamUrl)
-                .anchorName(contentObj.getJSONObject("channel").getString("channelName"))
-                .roomTitle(contentObj.getString("liveTitle"))
-                .build();
+        Date date = new Date();
+        return isLiving ? new StreamLinkRecorder(genRegPathByRegDate(date), date, roomUrl) : null;
     }
 
-    private RecordStream fetchReplayStream(StreamerConfig streamerConfig) {
+    private Recorder fetchReplayStream(StreamerConfig streamerConfig) {
         // 1.获取最近的videoNo
-        String videoNo = getLatestVideoNo(streamerConfig);
+        JSONObject videoObj = getLatestVideoNo(streamerConfig);
+        if (videoObj == null) {
+            return null;
+        }
 
-        // 2.获取视频详情
-        String detailUrl = VIDEOS_URL.replace("{video_no}", videoNo);
-        String resp = HttpClientUtil.sendGet(detailUrl, buildHeaders(), null, false);
-        JSONObject respObj = JSONObject.parseObject(resp);
-
-        // 2.1 最新发布时间, 已经录过跳过
-        JSONObject contentObj = respObj.getJSONObject("content");
-        String regDate = contentObj.getString("publishDate");
+        // 2 最新发布时间, 已经录过跳过
+        String regDate = videoObj.getString("publishDate");
         boolean isNewTs = checkVodIsNew(streamerConfig, regDate);
         if (!isNewTs) {
             return null;
         }
 
-        // 2.2 获取录播流地址xml信息
-        String vid = contentObj.getString("videoId");
-        String inKey = contentObj.getString("inKey");
-        String playbackUrl = API_VOD_PLAYBACK_URL.replace("{video_id}", vid)
-                .replace("{in_key}", inKey);
-        Map<String, String> headers = Maps.newHashMap();
-        headers.put("Accept", "application/dash+xml");
-        String replayXml = HttpClientUtil.sendGet(playbackUrl, headers, null, false);
-
-        String replayStreamUrl = parseReplayStreamUrl(replayXml);
-        return RecordStream.builder()
-                .roomTitle(contentObj.getString("videoTitle"))
-                .regDate(DateUtil.covertStr2Date(regDate, DateUtil.YYYY_MM_DD_HH_MM_SS))
-                .latestReplayStreamUrl(replayStreamUrl)
-                .latestReplayStreamHeaders(buildReplayHeader(replayStreamUrl))
-                .build();
+        Date date = DateUtil.covertStr2Date(regDate, DateUtil.YYYY_MM_DD_HH_MM_SS);
+        return new StreamLinkRecorder(
+                genRegPathByRegDate(date),
+                date,
+                "chzzk.naver.com/video/" + videoObj.getString("videoNo")
+        );
     }
 
-    private String getLatestVideoNo(StreamerConfig streamerConfig) {
+    private JSONObject getLatestVideoNo(StreamerConfig streamerConfig) {
         String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), CHANNEL_REGEX);
 
         // 获取最近发布的一个视频，获取videoId
@@ -128,55 +92,7 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
         if (contentObj.getInteger("totalCount") < 1) {
             return null;
         } else {
-            return contentObj.getJSONArray("data").getJSONObject(0).getString("videoNo");
-        }
-    }
-
-    private String parseReplayStreamUrl(String xmlString) {
-        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-        dbFactory.setNamespaceAware(true);
-        DocumentBuilder dBuilder;
-        try {
-            dBuilder = dbFactory.newDocumentBuilder();
-            Document doc = dBuilder.parse(new java.io.ByteArrayInputStream(xmlString.getBytes()));
-            NodeList mpdElements = doc.getElementsByTagNameNS("urn:mpeg:dash:schema:mpd:2011", "BaseURL");
-            if (mpdElements.getLength() > 0) {
-                return mpdElements.item(0).getTextContent();
-            }
-
-            NodeList nvodElements = doc.getElementsByTagNameNS("urn:naver:vod:2020", "BaseURL");
-            if (nvodElements.getLength() > 0) {
-                return nvodElements.item(0).getTextContent();
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to parse XML", e);
-        }
-        return null;
-    }
-
-    private Map<String, String> buildReplayHeader(String replayStreamUrl) {
-        Map<String, String> header = Maps.newHashMap();
-        header.put("Range", "bytes=0-" + fetchTotalBytes(replayStreamUrl));
-        return header;
-    }
-
-    private long fetchTotalBytes(String replayStreamUrl) {
-        Request request = new Request.Builder()
-                .url(replayStreamUrl)
-                .addHeader("Range", "bytes=1-1024")
-                .build();
-
-        try (Response response = CLIENT.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                return 0L;
-            }
-
-            // 获取指定头部字段的值
-            String contentRange = response.headers().get("Content-Range");
-            String[] split = StringUtils.split(contentRange, "/");
-            return Long.valueOf(split[1]);
-        } catch (IOException e) {
-            return 0L;
+            return contentObj.getJSONArray("data").getJSONObject(0);
         }
     }
 
@@ -188,14 +104,5 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
             headers.put("Cookie", chzzkCookies);
         }
         return headers;
-    }
-
-    public static void main(String[] args) {
-        ChzzkStreamerServiceImpl service = new ChzzkStreamerServiceImpl();
-        RecordStream livingStreamer = service.isRoomOnline(StreamerConfig.builder()
-                .recordWhenOnline(false)
-                .roomUrl("https://chzzk.naver.com/bd76a497a85cd894ac3179d4e1a8c48f")
-                .build());
-        System.out.println(JSON.toJSONString(livingStreamer));
     }
 }

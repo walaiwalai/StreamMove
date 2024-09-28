@@ -161,50 +161,6 @@
             </dependency>
 
             <dependency>
-                <groupId>com.microsoft.playwright</groupId>
-                <artifactId>playwright</artifactId>
-                <version>1.44.0</version>
-            </dependency>
-
-
-            <!--ffmpeg工具类<-->
-            <!--            <dependency>-->
-            <!--                <groupId>ws.schild</groupId>-->
-            <!--                <artifactId>jave-all-deps</artifactId>-->
-            <!--                <version>3.3.1</version>-->
-            <!--                <exclusions>-->
-            <!--                    <exclusion>-->
-            <!--                        <groupId>ws.schild</groupId>-->
-<!--                        <artifactId>jave-nativebin-win32</artifactId>-->
-<!--                    </exclusion>-->
-<!--                    <exclusion>-->
-<!--                        <groupId>ws.schild</groupId>-->
-<!--                        <artifactId>jave-nativebin-win64</artifactId>-->
-<!--                    </exclusion>-->
-<!--                    <exclusion>-->
-<!--                        <groupId>ws.schild</groupId>-->
-<!--                        <artifactId>jave-nativebin-linux32</artifactId>-->
-<!--                    </exclusion>-->
-<!--                    <exclusion>-->
-<!--                        <groupId>ws.schild</groupId>-->
-<!--                        <artifactId>jave-nativebin-linux-arm32</artifactId>-->
-<!--                    </exclusion>-->
-<!--                    <exclusion>-->
-<!--                        <groupId>ws.schild</groupId>-->
-<!--                        <artifactId>jave-nativebin-linux-arm64</artifactId>-->
-<!--                    </exclusion>-->
-<!--                    <exclusion>-->
-<!--                        <groupId>ws.schild</groupId>-->
-<!--                        <artifactId>jave-nativebin-osx64</artifactId>-->
-<!--                    </exclusion>-->
-<!--                    <exclusion>-->
-<!--                        <groupId>ws.schild</groupId>-->
-<!--                        <artifactId>jave-nativebin-osxm1</artifactId>-->
-<!--                    </exclusion>-->
-<!--                </exclusions>-->
-<!--            </dependency>-->
-
-            <dependency>
                 <groupId>com.sh</groupId>
                 <artifactId>sh-engine</artifactId>
                 <version>1.0-SNAPSHOT</version>

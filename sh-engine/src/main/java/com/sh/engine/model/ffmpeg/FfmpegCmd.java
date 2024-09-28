@@ -2,6 +2,7 @@ package com.sh.engine.model.ffmpeg;
 
 import com.sh.config.utils.EnvUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.SystemUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -15,12 +16,6 @@ public class FfmpegCmd {
      * The process representing the ffmpeg execution.
      */
     private Process ffmpeg = null;
-
-//    /**
-//     * A process killer to kill the ffmpeg process with a shutdown hook, useful if the jvm execution
-//     * is shutted down during an ongoing encoding process.
-//     */
-//    private ProcessKiller ffmpegKiller = null;
 
     /**
      * A stream reading from the ffmpeg process standard output channel.
@@ -66,15 +61,16 @@ public class FfmpegCmd {
      */
     public void execute(boolean openIOStreams) {
 //        String cmd = defaultFFMPEGLocator.getExecutablePath() + " " + ffmpegCommand;
-        String cmd = "ffmpeg" + " " + ffmpegCommand;
-        log.info("ffmpegCmd final is: {}", cmd);
+//        String cmd = "ffmpeg" + " " + ffmpegCommand;
+        String cmd = ffmpegCommand;
+        log.info("final command is: {}", cmd);
 
         Runtime runtime = Runtime.getRuntime();
         try {
-            if (EnvUtil.isProd()) {
-                ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
-            } else {
+            if (SystemUtils.IS_OS_WINDOWS) {
                 ffmpeg = runtime.exec(cmd);
+            } else {
+                ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
             }
             if (openIOStreams) {
                 inputStream = ffmpeg.getInputStream();

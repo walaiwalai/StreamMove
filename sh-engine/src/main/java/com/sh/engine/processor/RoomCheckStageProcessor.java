@@ -8,7 +8,7 @@ import com.sh.engine.StreamChannelTypeEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
-import com.sh.engine.model.record.RecordStream;
+import com.sh.engine.model.record.Recorder;
 import com.sh.engine.website.AbstractStreamerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
@@ -41,7 +41,7 @@ public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
         StreamerConfig streamInfo = ConfigFetcher.getStreamerInfoByName(name);
 
         // 1. 检查直播间是否开播
-        context.setRecordStream(fetchStreamer(streamInfo));
+        context.setRecorder(fetchStreamer(streamInfo));
     }
 
     /**
@@ -50,7 +50,7 @@ public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
      * @param streamerConfig
      * @return
      */
-    private RecordStream fetchStreamer(StreamerConfig streamerConfig) {
+    private Recorder fetchStreamer(StreamerConfig streamerConfig) {
         StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(streamerConfig.getRoomUrl());
         if (channelEnum == null) {
             log.error("roomUrl not match any platform, roomUrl: {}", streamerConfig.getRoomUrl());
@@ -61,7 +61,7 @@ public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
             log.error("streamerService is null, type: {}", channelEnum.getDesc());
             return null;
         }
-        return streamerService.isRoomOnline(streamerConfig);
+        return streamerService.getStreamRecorder(streamerConfig);
     }
 
     @Override

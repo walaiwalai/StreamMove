@@ -75,12 +75,8 @@ public class CommandUtil {
                 output.append(line).append("\n");
             }
 
-            int code = ffmpegCmd.getProcessExitCode();
-            if (code == 0) {
-                return output.toString();
-            } else {
-                System.out.println("Command failed with error code " + code);
-            }
+            ffmpegCmd.getProcessExitCode();
+            return output.toString();
         } catch (Exception e) {
         }
 

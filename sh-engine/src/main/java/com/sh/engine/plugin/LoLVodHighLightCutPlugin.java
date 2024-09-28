@@ -147,7 +147,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
 
         List<String> params = Lists.newArrayList(
-                "-y",
+                "ffmpeg", "-y",
                 "-i", sourceFile.getAbsolutePath(),
                 "-vf", corpExp,
                 "-ss", "00:00:00",

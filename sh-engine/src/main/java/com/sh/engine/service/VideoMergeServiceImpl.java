@@ -72,7 +72,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
         // 2. 使用FFmpeg合并视频
         String targetPath = targetVideo.getAbsolutePath();
-        String command = "-y -loglevel error -f concat -safe 0 -i " + mergeListFile.getAbsolutePath() +
+        String command = "ffmpeg -y -loglevel error -f concat -safe 0 -i " + mergeListFile.getAbsolutePath() +
                 " -c:v copy -c:a copy " + targetPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
 
@@ -86,7 +86,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
             return false;
         }
         String targetPath = targetVideo.getAbsolutePath();
-        String cmd = "-loglevel error -i " + "concat:" + StringUtils.join(mergedFileNames, "|") + " -c copy " + targetPath;
+        String cmd = "ffmpeg -loglevel error -i " + "concat:" + StringUtils.join(mergedFileNames, "|") + " -c copy " + targetPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
         Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
         if (resCode == 0) {
@@ -160,7 +160,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     private String doFade(File oldVideoFile) {
         File fadedSeg = new File(oldVideoFile.getParent(), FileNameUtil.getPrefix(oldVideoFile) + "-fade.ts");
         String fadedPath = fadedSeg.getAbsolutePath();
-        String cmd = "-y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf fade=t=in:st=0:d=" + FADE_DURATION + " -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
+        String cmd = "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf fade=t=in:st=0:d=" + FADE_DURATION + " -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
         Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
         if (resCode == 0) {
@@ -221,44 +221,6 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         ffmpegCommand.append(targetVideo.getAbsolutePath());
 
         return ffmpegCommand.toString();
-    }
-
-    public static void main(String[] args) {
-        List<String> segs1 = Lists.newArrayList(
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-761.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-762.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-763.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-764.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-765.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-766.ts"
-        );
-
-        List<String> segs2 = Lists.newArrayList(
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-700.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-701.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-702.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-703.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-704.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-705.ts"
-        );
-
-        List<String> segs3 = Lists.newArrayList(
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-2260.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-2261.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-2262.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-2263.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-2264.ts",
-                "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\seg-2265.ts"
-        );
-        String outputFilePath = "F:\\video\\download\\TheShy\\2024-01-31-03-31-43\\aaa.mp4";
-        VideoMergeServiceImpl videoMergeService = new VideoMergeServiceImpl();
-//        videoMergeService.mergeMultiWithFadeV2(Lists.newArrayList(segs1, segs2, segs3), new File(outputFilePath));
-        File oldVideoFile = new File("/Users/caiwen/Desktop/download/TheShy/2024-01-31-03-31-43/tmp/tmp-6.ts");
-        String fadedPath = "/Users/caiwen/Desktop/download/TheShy/2024-01-31-03-31-43/tmp/tmp-6-fade.ts";
-        String cmd = "-y -i " + oldVideoFile.getAbsolutePath() + " -vf fade=t=in:st=0:d=" + FADE_DURATION + " -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
-        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-        System.out.println(resCode);
     }
 }
 

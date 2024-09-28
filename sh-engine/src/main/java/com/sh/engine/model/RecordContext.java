@@ -1,6 +1,6 @@
 package com.sh.engine.model;
 
-import com.sh.engine.model.record.RecordStream;
+import com.sh.engine.model.record.Recorder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,8 +17,5 @@ import lombok.NoArgsConstructor;
 public class RecordContext {
     private RecordTaskStateEnum state;
 
-    /**
-     * 正在直播的主播
-     */
-    private RecordStream recordStream;
+    private Recorder recorder;
 }

@@ -1,14 +1,12 @@
 package com.sh.engine.website;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.StreamChannelTypeEnum;
-import com.sh.engine.model.record.RecordStream;
-import com.sh.engine.model.record.TsRecordInfo;
+import com.sh.engine.model.record.*;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
@@ -18,7 +16,6 @@ import okhttp3.Response;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -45,7 +42,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     private static final String USER_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0";
 
     @Override
-    public RecordStream isRoomOnline(StreamerConfig streamerConfig) {
+    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             return fetchOnlineLivingInfo(streamerConfig);
         } else {
@@ -58,7 +55,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         return StreamChannelTypeEnum.AFREECA_TV;
     }
 
-    private RecordStream fetchTsUploadInfo(StreamerConfig streamerConfig) {
+    private Recorder fetchTsUploadInfo(StreamerConfig streamerConfig) {
         String roomUrl = streamerConfig.getRoomUrl();
         String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
 
@@ -70,10 +67,9 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
             return null;
         }
 
-        log.info("new ts record upload for {}", streamerConfig.getName());
         // 2. 解析切片成链接格式
         Long titleNo = lastedRecord.getLong("title_no");
-        List<TsRecordInfo> tsRecordInfos = fetchTsViews(titleNo);
+        List<VideoSegRecorder.TsRecordInfo> tsRecordInfos = fetchTsViews(titleNo);
 
         Date date;
         try {
@@ -82,14 +78,10 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
             date = new Date();
         }
 
-        return RecordStream.builder()
-                .regDate(date)
-                .tsViews(tsRecordInfos)
-                .build();
-
+        return new VideoSegRecorder(genRegPathByRegDate(date), date, tsRecordInfos);
     }
 
-    private List<TsRecordInfo> fetchTsViews(Long nTitleNo) {
+    private List<VideoSegRecorder.TsRecordInfo> fetchTsViews(Long nTitleNo) {
         String playlistUrl = "https://api.m.afreecatv.com/station/video/a/view";
         RequestBody body = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
@@ -106,7 +98,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
             requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
         }
 
-        List<TsRecordInfo> views = Lists.newArrayList();
+        List<VideoSegRecorder.TsRecordInfo> views = Lists.newArrayList();
         Response response = null;
         try {
             response = CLIENT.newCall(requestBuilder.build()).execute();
@@ -129,7 +121,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         return views;
     }
 
-    private TsRecordInfo covertSingleView(JSONObject fileObj) {
+    private VideoSegRecorder.TsRecordInfo covertSingleView(JSONObject fileObj) {
         String file = fileObj.getJSONArray("quality_info").getJSONObject(0).getString("file");
         int index1 = file.lastIndexOf(":");
         int index2 = file.indexOf("/playlist.m3u8");
@@ -164,7 +156,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
         }
     }
 
-    private TsRecordInfo fetchTsInfo(String tsPrefix) {
+    private VideoSegRecorder.TsRecordInfo fetchTsInfo(String tsPrefix) {
         String playlistUrl = tsPrefix + "/original/both/playlist.m3u8";
         Request.Builder requestBuilder = new Request.Builder()
                 .url(playlistUrl)
@@ -182,7 +174,7 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
                 String[] lines = StringUtils.split(resp, "\n");
                 String lastSegFile = lines[lines.length - 2];
                 String s = RegexUtil.fetchMatchedOne(lastSegFile, TS_COUNT_REGEX);
-                return TsRecordInfo.builder()
+                return VideoSegRecorder.TsRecordInfo.builder()
                         .tsFormatUrl(tsPrefix + "/original/both/seg-%s.ts")
                         .count(Integer.valueOf(s))
                         .build();
@@ -199,117 +191,9 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
     }
 
 
-    private RecordStream fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
-        String roomUrl = streamerConfig.getRoomUrl();
-        String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
-
-        JSONObject userRespObj = fetchUserInfo(bid);
-        if (userRespObj == null) {
-            return null;
-        }
-
-        if (userRespObj.getInteger("result") != 1) {
-            return null;
-        }
-
-        String anchorName = userRespObj.getJSONObject("data").getString("user_nick");
-        String boardNo = userRespObj.getJSONObject("data").getString("broad_no");
-        String hlsAuthenticationKey = userRespObj.getJSONObject("data").getString("hls_authentication_key");
-        String viewUrl = fetchCdnUrl(boardNo);
-        String m3u8Url = StringUtils.isNotBlank(viewUrl) ? viewUrl + "?aid=" + hlsAuthenticationKey : null;
-        return RecordStream.builder()
-                .livingStreamUrl(m3u8Url)
-                .anchorName(anchorName)
-                .build();
-    }
-
-    private JSONObject fetchUserInfo(String bid) {
-        RequestBody body = new MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("bj_id", bid)
-                .addFormDataPart("agent", "web")
-                .addFormDataPart("confirm_adult", "true")
-                .addFormDataPart("player_type", "webm")
-                .addFormDataPart("mode", "live")
-                .build();
-
-        Request.Builder requestBuilder = new Request.Builder()
-                .url(USER_URL)
-                .post(body)
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
-                .addHeader("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2")
-                .addHeader("Referer", "https://m.afreecatv.com/")
-                .addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
-            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
-        }
-        Response response = null;
-        try {
-            response = CLIENT.newCall(requestBuilder.build()).execute();
-            if (response.isSuccessful()) {
-                String resp = response.body().string();
-                log.info("query user info success, resp: {}", resp);
-                return JSONObject.parseObject(resp);
-            } else {
-                String message = response.message();
-                String bodyStr = response.body() != null ? response.body().string() : null;
-                log.error("query user info failed, message: {}, body: {}", message, bodyStr);
-                return null;
-            }
-        } catch (IOException e) {
-            log.error("query user info error, bid: {}", bid, e);
-            return null;
-        }
-    }
-
-    private String fetchCdnUrl(String boardNo) {
-        String apiUrl;
-        try {
-            URIBuilder builder = new URIBuilder("http://livestream-manager.afreecatv.com/broad_stream_assign.html");
-            builder.addParameter("return_type", "gcp_cdn");
-            builder.addParameter("use_cors", "false");
-            builder.addParameter("cors_origin_url", "play.afreecatv.com");
-            builder.addParameter("broad_key", boardNo + "-common-master-hls");
-            builder.addParameter("time", "8361.086329376785");
-            apiUrl = builder.build().toString();
-        } catch (Exception e) {
-            return null;
-        }
-
-        Request.Builder requestBuilder = new Request.Builder()
-                .url(apiUrl)
-                .get()
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
-                .addHeader("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2")
-                .addHeader("Referer", "https://play.afreecatv.com/oul282/249469582")
-                .addHeader("Content-Type", "application/x-www-form-urlencoded");
-        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
-            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
-        }
-        Response response = null;
-        try {
-            response = CLIENT.newCall(requestBuilder.build()).execute();
-            if (response.isSuccessful()) {
-                String resp = response.body().string();
-                log.info("user living info success, resp: {}", resp);
-                return JSONObject.parseObject(resp).getString("view_url");
-            } else {
-                String message = response.message();
-                String bodyStr = response.body() != null ? response.body().string() : null;
-                log.error("query user living info failed, message: {}, body: {}", message, bodyStr);
-                return null;
-            }
-        } catch (IOException e) {
-            log.error("query user living info error, boardNo: {}", boardNo, e);
-            return null;
-        }
-    }
-
-    public static void main(String[] args) {
-        AfreecatvStreamerServiceImpl service = new AfreecatvStreamerServiceImpl();
-        RecordStream s = service.isRoomOnline(StreamerConfig.builder().recordWhenOnline(false).roomUrl("https://play.afreecatv.com/tldn031").build());
-        System.out.println(JSON.toJSONString(s));
-
+    private Recorder fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
+        boolean isLiving = checkIsLivingByStreamLink(streamerConfig.getRoomUrl());
+        Date date = new Date();
+        return isLiving ? new StreamLinkRecorder(genRegPathByRegDate(date), date, streamerConfig.getRoomUrl()) : null;
     }
 }
