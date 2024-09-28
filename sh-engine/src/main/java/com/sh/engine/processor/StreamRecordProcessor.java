@@ -35,7 +35,6 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
         String name = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(name);
         if (context.getRecorder() == null) {
-            processWhenRoomOffline(name);
             return;
         }
 
@@ -112,21 +111,6 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
                 .name(streamerConfig.getName())
                 .lastRecordTime(lastRecordTime)
                 .build());
-    }
-
-    /**
-     * 处理直播间下线的逻辑
-     *
-     * @param name
-     */
-    private void processWhenRoomOffline(String name) {
-        boolean isLastOnRecord = statusManager.isRoomPathFetchStream();
-        if (isLastOnRecord) {
-            // 房间不在线，但仍在录制，先停止录制
-            msgSendService.send("主播" + name + "下线了，停止录制..");
-            log.info("stop recording for {}", name);
-            statusManager.deleteRoomPathStatus();
-        }
     }
 
     @Override

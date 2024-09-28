@@ -34,14 +34,9 @@ public class InitConfig {
     private String videoSavePath;
 
     /**
-     * 视频保存格式ts|mkv|flv|mp4|ts音频|mkv音频
+     * 用户在各个平台的账户保存地址
      */
-    private String videFormat = "mp4";
-
-    /**
-     * 原画|超清|高清|标清 = 原画
-     */
-    private String quality;
+    private String accountSavePath;
 
     private Integer maxRecordingCount = 2;
 
