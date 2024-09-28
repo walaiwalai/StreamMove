@@ -49,6 +49,7 @@ public class StreamLinkRecorder extends Recorder {
                 "-bufsize", "5000k",
                 "-c:v", "copy",
                 "-c:a", "copy",
+                "-c:s", "mov_text",
                 "-map", "0",
                 "-f", "segment",
                 "-segment_time", "4",
