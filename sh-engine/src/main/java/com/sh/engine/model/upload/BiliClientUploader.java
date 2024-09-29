@@ -18,7 +18,7 @@
 //import com.sh.engine.model.bili.BiliWebPreUploadCommand;
 //import com.sh.engine.model.bili.web.BiliClientPreUploadParams;
 //import com.sh.engine.model.bili.web.VideoUploadResultModel;
-//import com.sh.engine.service.MsgSendService;
+//import com.sh.message.service.MsgSendService;
 //import lombok.extern.slf4j.Slf4j;
 //import org.apache.commons.codec.digest.DigestUtils;
 //import org.apache.commons.collections4.CollectionUtils;

@@ -13,7 +13,7 @@ import com.sh.config.model.video.FailUploadVideoChunk;
 import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.model.video.UploadVideoPair;
-import com.sh.config.utils.VideoFileUtils;
+import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.UploadPlatformEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
@@ -21,7 +21,7 @@ import com.sh.engine.model.bili.BiliWebPreUploadCommand;
 import com.sh.engine.model.bili.BiliWebPreUploadParams;
 import com.sh.engine.model.bili.web.VideoUploadResultModel;
 import com.sh.engine.model.upload.BaseUploadTask;
-import com.sh.engine.service.MsgSendService;
+import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.apache.commons.collections4.CollectionUtils;
@@ -95,7 +95,7 @@ public class BiliWebUploadServiceImpl extends AbstractWorkUploadService {
             remoteVideos.add(biliVideoUploadResult.getRemoteSeverVideo());
 
             // 1.2 发消息
-            msgSendService.send(localVideo.getLocalFileFullPath() + "路径下的视频上传成功！");
+            msgSendService.sendText(localVideo.getLocalFileFullPath() + "路径下的视频上传成功！");
         }
 
         // 2. 给需要上传的视频文件命名
@@ -201,7 +201,7 @@ public class BiliWebUploadServiceImpl extends AbstractWorkUploadService {
 
         byte[] bytes = null;
         try {
-            bytes = VideoFileUtils.fetchBlock(targetFile, curChunkStart, curChunkSize);
+            bytes = VideoFileUtil.fetchBlock(targetFile, curChunkStart, curChunkSize);
         } catch (IOException e) {
             log.error("fetch chunk error, file: {}, chunkNo: {}, start: {}, curSize: {}", targetFile.getAbsolutePath(),
                     chunkShowNo, curChunkStart, curChunkSize, e);

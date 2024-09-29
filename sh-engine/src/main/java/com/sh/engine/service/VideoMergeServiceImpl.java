@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.sh.config.utils.EnvUtil;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.util.CommandUtil;
+import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -90,10 +91,10 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
         Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
         if (resCode == 0) {
-            msgSendService.send("按照concat协议合并视频完成！路径为：" + targetPath);
+            msgSendService.sendText("按照concat协议合并视频完成！路径为：" + targetPath);
             return true;
         } else {
-            msgSendService.send("按照concat协议合并视频失败！路径为：" + targetPath);
+            msgSendService.sendText("按照concat协议合并视频失败！路径为：" + targetPath);
             return false;
         }
     }

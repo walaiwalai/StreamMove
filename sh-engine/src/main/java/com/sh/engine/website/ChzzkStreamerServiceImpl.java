@@ -97,12 +97,8 @@ public class ChzzkStreamerServiceImpl extends AbstractStreamerService {
     }
 
     private Map<String, String> buildHeaders() {
-        String chzzkCookies = ConfigFetcher.getInitConfig().getChzzkCookies();
         Map<String, String> headers = Maps.newHashMap();
         headers.put("User-Agent", USER_AGENT);
-        if (StringUtils.isNotBlank(chzzkCookies)) {
-            headers.put("Cookie", chzzkCookies);
-        }
         return headers;
     }
 }

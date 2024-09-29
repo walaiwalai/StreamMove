@@ -50,14 +50,6 @@ public class InitConfig {
     // *********************阿里云云盘上传**********************
     private String refreshToken;
     private String targetFileId = "root";
-    // *********************直播cookies**********************
-    private String afreecaTvCookies;
-    // *********************直播cookies**********************
-    private String huyaCookies;
-    // *********************twitchcookies**********************
-    private String twitchCookies;
-    // *********************chzzkCookies**********************
-    private String chzzkCookies;
 
     // *********************抖音cookiesPath**********************
     private String douyinCookiesPath;
@@ -68,6 +60,18 @@ public class InitConfig {
      */
     private Integer videoPartLimitSize = 100;
 
-    // *********************消息通知**********************
+    // *********************企业微信消息通知**********************
+    private String weComWebhookSecret;
+
+    /**
+     * 微应用相关token
+     */
+    private String weComAgentId;
     private String weComSecret;
+    /**
+     * 消息事件token
+     */
+    private String weComEventToken;
+    private String weComEncodingAesKey;
+    private String weComCorpId;
 }

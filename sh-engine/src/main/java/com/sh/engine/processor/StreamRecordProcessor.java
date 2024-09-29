@@ -9,7 +9,7 @@ import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
 import com.sh.engine.model.record.Recorder;
-import com.sh.engine.service.MsgSendService;
+import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,9 +56,9 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
         // 2.发消息
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
-            msgSendService.send("主播" + streamerName + "开播了，即将开始录制..");
+            msgSendService.sendText("主播" + streamerName + "开播了，即将开始录制..");
         } else {
-            msgSendService.send("主播" + streamerName + "有新的视频上传，即将开始录制..");
+            msgSendService.sendText("主播" + streamerName + "有新的视频上传，即将开始录制..");
         }
 
         // 3 录像(长时间)

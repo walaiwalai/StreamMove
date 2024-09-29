@@ -1,7 +1,7 @@
 package com.sh.engine.model.record;
 
 import com.sh.config.utils.ExecutorPoolUtil;
-import com.sh.config.utils.VideoFileUtils;
+import com.sh.config.utils.VideoFileUtil;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +50,7 @@ public class VideoSegRecorder extends Recorder {
             for (int i = 1; i < tsView.getCount() + 1; i++) {
                 String segTsUrl = tsView.genTsUrl(i);
                 CompletableFuture.supplyAsync(() -> {
-                            File targetFile = new File(dirName, VideoFileUtils.genSegName(index.getAndIncrement()));
+                            File targetFile = new File(dirName, VideoFileUtil.genSegName(index.getAndIncrement()));
                             if (targetFile.exists()) {
                                 log.info("ts file existed, path: {}", targetFile.getAbsolutePath());
                                 return true;

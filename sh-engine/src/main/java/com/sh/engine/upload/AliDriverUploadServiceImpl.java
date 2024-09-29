@@ -12,13 +12,13 @@ import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.FileChunkIterator;
 import com.sh.config.utils.HttpClientUtil;
-import com.sh.config.utils.VideoFileUtils;
+import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.UploadPlatformEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.alidriver.*;
 import com.sh.engine.model.bili.web.VideoUploadResultModel;
 import com.sh.engine.model.upload.BaseUploadTask;
-import com.sh.engine.service.MsgSendService;
+import com.sh.message.service.MsgSendService;
 import com.sh.engine.util.AliDriverUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -77,9 +77,9 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
             boolean success = uploadFile(targetFileId, fileName, new File(localVideo.getLocalFileFullPath()));
 
             if (success) {
-                msgSendService.send(localVideo.getLocalFileFullPath() + "路径下的视频上传阿里云盘成功！");
+                msgSendService.sendText(localVideo.getLocalFileFullPath() + "路径下的视频上传阿里云盘成功！");
             } else {
-                msgSendService.send(localVideo.getLocalFileFullPath() + "路径下的视频上传阿里云盘失败！");
+                msgSendService.sendText(localVideo.getLocalFileFullPath() + "路径下的视频上传阿里云盘失败！");
                 throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
             }
         }
@@ -136,7 +136,7 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
     }
 
     private JSONObject preHash(File uploadFile, String fileName, String targetParentFileId) throws Exception {
-        byte[] buff = VideoFileUtils.fetchBlock(uploadFile, 0, 1024);
+        byte[] buff = VideoFileUtil.fetchBlock(uploadFile, 0, 1024);
         String preHash = AliDriverUtil.sha1(buff, 0, 1024);
 
         long size = uploadFile.length();
@@ -155,7 +155,7 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
     }
 
     private JSONObject contentHash(File file, String fileName, String targetParentFileId) throws Exception {
-        String cHash = VideoFileUtils.calculateSHA1ByChunk(file, (int) UPLOAD_CHUNK_SIZE);
+        String cHash = VideoFileUtil.calculateSHA1ByChunk(file, (int) UPLOAD_CHUNK_SIZE);
         String proof = calculateProof(file);
 
         long size = file.length();
@@ -283,7 +283,7 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
         BigInteger length = new BigInteger(String.valueOf(file.length()));
         long start = preMd5.mod(length).intValue();
         long end = Math.min(start + 8, file.length());
-        return Base64.getEncoder().encodeToString(VideoFileUtils.fetchBlock(file, start, (int) (end - start)));
+        return Base64.getEncoder().encodeToString(VideoFileUtil.fetchBlock(file, start, (int) (end - start)));
     }
 
     private List<UploadPartInfo> buildPartInfoList(long fileSize) {

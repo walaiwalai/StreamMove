@@ -25,6 +25,8 @@ public enum ErrorEnum {
      */
     HTTP_REQUEST_ERROR(3, "http request error"),
 
+    INVALID_PARAM(4, "invalid param"),
+
     ;
     private int errorCode;
     private String message;

@@ -5,6 +5,7 @@ package com.sh.engine.model.upload;
  * @Date 2024 09 28 22 26
  **/
 public abstract class Uploader {
+
     /**
      * 针对一个状态文件fileStatus.json下的视频目录
      */

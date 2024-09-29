@@ -16,7 +16,7 @@ import java.util.List;
  * @author caiWen
  * @date 2023/2/16 23:28
  */
-public class VideoFileUtils {
+public class VideoFileUtil {
     /**
      * 获取目录下所有文件(按时间排序)
      *
@@ -38,13 +38,6 @@ public class VideoFileUtils {
         });
 
         return files;
-    }
-
-    public static Integer getIndexOnLivingVideo(File file) {
-        String segFileName = file.getName();
-        int tail = segFileName.lastIndexOf(".");
-        int head = segFileName.lastIndexOf("-");
-        return Integer.valueOf(segFileName.substring(head + 1, tail));
     }
 
     public static String genSegName(int i) {
@@ -99,9 +92,5 @@ public class VideoFileUtils {
             hashString.append(String.format("%02X", b));
         }
         return hashString.toString();
-    }
-
-    public static void main(String[] args) {
-        System.out.println(getIndexOnLivingVideo(new File("TheShy-part-001.mp4")));
     }
 }

@@ -11,12 +11,13 @@ import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.SucceedUploadSeverVideo;
 import com.sh.config.model.video.UploadVideoPair;
-import com.sh.config.utils.VideoFileUtils;
+import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.RecordStageEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.RecordTaskStateEnum;
+import com.sh.engine.model.upload.DouyinUploader;
 import com.sh.engine.upload.AbstractWorkUploadService;
 import com.sh.engine.util.RecordConverter;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +54,9 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor {
     private void init() {
         Map<String, AbstractWorkUploadService> beansOfType = applicationContext.getBeansOfType(AbstractWorkUploadService.class);
         beansOfType.forEach((key, value) -> uploadServiceMap.put(value.getName(), value));
+
+        DouyinUploader douyinUploader = new DouyinUploader("", "");
+        douyinUploader.setUp();
     }
 
     @Override
@@ -114,7 +118,7 @@ public class VideoUploadProcessor extends AbstractRecordTaskProcessor {
 
         // 遍历本地的视频文件
         Collection<File> files = FileUtils.listFiles(new File(dirName), FileFilterUtils.suffixFileFilter("mp4"), null);
-        List<File> sortedFiles = VideoFileUtils.getFileSort(Lists.newArrayList(files));
+        List<File> sortedFiles = VideoFileUtil.getFileSort(Lists.newArrayList(files));
         List<String> succeedPaths = Optional.ofNullable(fileStatusModel.fetchVideoPartByPlatform(platform))
                 .map(UploadVideoPair::getSucceedUploadedVideos)
                 .orElse(Lists.newArrayList())

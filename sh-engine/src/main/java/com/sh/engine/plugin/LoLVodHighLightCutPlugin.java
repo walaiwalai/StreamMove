@@ -6,12 +6,12 @@ import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.OkHttpClientUtil;
-import com.sh.config.utils.VideoFileUtils;
+import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.plugin.lol.LoLPicData;
 import com.sh.engine.plugin.lol.LolSequenceStatistic;
-import com.sh.engine.service.MsgSendService;
+import com.sh.message.service.MsgSendService;
 import com.sh.engine.service.VideoMergeService;
 import com.sh.engine.util.CommandUtil;
 import com.sh.engine.util.RegexUtil;
@@ -91,7 +91,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
         Collection<File> videos = FileUtils.listFiles(new File(recordPath), new String[]{"ts"}, false)
                 .stream()
-                .sorted(Comparator.comparingInt(v -> VideoFileUtils.genIndex(v.getName())))
+                .sorted(Comparator.comparingInt(v -> VideoFileUtil.genIndex(v.getName())))
                 .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(videos)) {
             log.info("empty ts video file, will skip, path: {}", recordPath);
@@ -117,19 +117,19 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         // 4. 进行合并视频
         boolean success = videoMergeService.mergeMultiWithFadeV2(buildMergeFileNames(potentialIntervals, videos), highlightFile);
         if (success) {
-            msgSendService.send("合并highlight视频完成！路径为：" + highlightFile.getAbsolutePath());
+            msgSendService.sendText("合并highlight视频完成！路径为：" + highlightFile.getAbsolutePath());
         } else {
-            msgSendService.send("合并highlight视频完成！路径为：" + highlightFile.getAbsolutePath());
+            msgSendService.sendText("合并highlight视频完成！路径为：" + highlightFile.getAbsolutePath());
         }
         return success;
     }
 
     private String genKdaSnapshotPath(String recordPath, Integer index) {
-        return new File(new File(recordPath, KAD_SNAPSHOT_DIR_NAME), VideoFileUtils.genSnapshotName(index)).getAbsolutePath();
+        return new File(new File(recordPath, KAD_SNAPSHOT_DIR_NAME), VideoFileUtil.genSnapshotName(index)).getAbsolutePath();
     }
 
     private String genKillDetailSnapshotPath(String recordPath, Integer index) {
-        return new File(new File(recordPath, DETAIL_SNAPSHOT_DIR_NAME), VideoFileUtils.genSnapshotName(index)).getAbsolutePath();
+        return new File(new File(recordPath, DETAIL_SNAPSHOT_DIR_NAME), VideoFileUtil.genSnapshotName(index)).getAbsolutePath();
     }
 
     private void doSnapShot(String recordPath, String segFileName, String snapshotDirName, String corpExp) {
@@ -139,7 +139,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         }
 
         File sourceFile = new File(recordPath, segFileName);
-        File targetFile = new File(snapShotDir, VideoFileUtils.genSnapshotName(VideoFileUtils.genIndex(segFileName)));
+        File targetFile = new File(snapShotDir, VideoFileUtil.genSnapshotName(VideoFileUtil.genIndex(segFileName)));
         if (targetFile.exists()) {
             log.info("target snap file existed, will skip, path: {}", targetFile.getAbsolutePath());
             return;
@@ -166,7 +166,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
     private List<LoLPicData> parseSeqPicsV2(Collection<File> videos, String recordPath) {
         // 1.构建index到截图的映射
         List<Integer> indexes = videos.stream()
-                .map(video -> VideoFileUtils.genIndex(video.getName()))
+                .map(video -> VideoFileUtil.genIndex(video.getName()))
                 .collect(Collectors.toList());
 
         // 2. 遍历index列表，分析前后kad
@@ -232,7 +232,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
             // 精彩时刻进行击杀细节
             if (highlightOccur(tmp, cur)) {
-                doSnapShot(recordPath, VideoFileUtils.genSegName(idx), DETAIL_SNAPSHOT_DIR_NAME, KILL_DETAIL_CORP_EXP);
+                doSnapShot(recordPath, VideoFileUtil.genSegName(idx), DETAIL_SNAPSHOT_DIR_NAME, KILL_DETAIL_CORP_EXP);
                 cur.setHeroKADetail(parseDetailByVisDet(genKillDetailSnapshotPath(recordPath, idx)));
             }
 
@@ -281,7 +281,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
     private List<List<String>> buildMergeFileNames(List<Pair<Integer, Integer>> intervals, Collection<File> files) {
         Map<Integer, String> name2PathMap = files.stream().collect(
-                Collectors.toMap(file -> VideoFileUtils.genIndex(file.getName()), File::getAbsolutePath, (a, b) -> b)
+                Collectors.toMap(file -> VideoFileUtil.genIndex(file.getName()), File::getAbsolutePath, (a, b) -> b)
         );
         List<List<String>> res = Lists.newArrayList();
         for (Pair<Integer, Integer> interval : intervals) {

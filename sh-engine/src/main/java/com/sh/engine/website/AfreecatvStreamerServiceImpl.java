@@ -94,9 +94,9 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
                 .post(body)
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
                 .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
-        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
-            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
-        }
+//        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
+//            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
+//        }
 
         List<VideoSegRecorder.TsRecordInfo> views = Lists.newArrayList();
         Response response = null;
@@ -135,9 +135,9 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
                 .get()
                 .addHeader("User-Agent", USER_HEADER)
                 .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
-        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
-            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
-        }
+//        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
+//            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
+//        }
         Response response = null;
         try {
             response = CLIENT.newCall(requestBuilder.build()).execute();
@@ -163,9 +163,9 @@ public class AfreecatvStreamerServiceImpl extends AbstractStreamerService {
                 .get()
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
                 .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
-        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
-            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
-        }
+//        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
+//            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
+//        }
         Response response = null;
         try {
             response = CLIENT.newCall(requestBuilder.build()).execute();

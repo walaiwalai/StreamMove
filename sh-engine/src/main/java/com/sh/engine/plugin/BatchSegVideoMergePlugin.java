@@ -2,8 +2,8 @@ package com.sh.engine.plugin;
 
 import com.google.common.collect.Lists;
 import com.sh.config.utils.EnvUtil;
-import com.sh.config.utils.VideoFileUtils;
-import com.sh.engine.service.MsgSendService;
+import com.sh.config.utils.VideoFileUtil;
+import com.sh.message.service.MsgSendService;
 import com.sh.engine.service.VideoMergeService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -42,7 +42,7 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
 
         int videoIndex = 1;
         List<Integer> sortedIndexes = tsFiles.stream()
-                .map(file -> VideoFileUtils.genIndex(file.getName()))
+                .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .sorted()
                 .collect(Collectors.toList());
         int endIndex = sortedIndexes.get(sortedIndexes.size() - 1);
@@ -54,7 +54,7 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
         for (List<Integer> batchIndexes : Lists.partition(segIndexes, BATCH_RECORD_TS_COUNT)) {
             File targetMergedVideo = new File(recordPath, "P" + videoIndex + ".mp4");
             List<String> segNames = batchIndexes.stream()
-                    .map(i -> new File(recordPath, VideoFileUtils.genSegName(i)))
+                    .map(i -> new File(recordPath, VideoFileUtil.genSegName(i)))
                     .map(File::getAbsolutePath)
                     .collect(Collectors.toList());
             boolean success;
@@ -70,9 +70,9 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
                 if (EnvUtil.isProd()) {
                     deleteSegs(segNames);
                 }
-                msgSendService.send("合并视频完成！路径为：" + targetMergedVideo.getAbsolutePath());
+                msgSendService.sendText("合并视频完成！路径为：" + targetMergedVideo.getAbsolutePath());
             } else {
-                msgSendService.send("合并视频失败！路径为：" + targetMergedVideo.getAbsolutePath());
+                msgSendService.sendText("合并视频失败！路径为：" + targetMergedVideo.getAbsolutePath());
             }
             videoIndex++;
         }
