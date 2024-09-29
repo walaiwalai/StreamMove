@@ -10,14 +10,10 @@ import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Resource;
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Paths;
-import java.util.Base64;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +28,11 @@ public class DouyinUploader extends Uploader {
     @Resource
     private MsgSendService msgSendService;
 
+
+
+
+    private String uploadFilePath;
+    private UploadWorkMetaData workMetaData;
     private static final String AUTH_CODE_KEY = "douyin_login_authcode";
 
     public DouyinUploader(String uploadedDir, String metaDataDir) {
@@ -48,7 +49,143 @@ public class DouyinUploader extends Uploader {
 
     @Override
     public void doUpload() {
+        try (Playwright playwright = Playwright.create()) {
+            // 带着cookies创建浏览器
+            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(false));
+            BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+                    .setStorageStatePath(Paths.get(getAccoutFile().getAbsolutePath())));
 
+            Page page = context.newPage();
+            page.navigate("https://creator.douyin.com/creator-micro/content/upload");
+            log.info("begin uploading..., video: {}", uploadFilePath);
+
+            // 上传视频
+            page.setInputFiles(".upload-btn--9eZLd", Paths.get(uploadFilePath));
+
+            // 等待上回完成
+            page.waitForURL("https://creator.douyin.com/creator-micro/content/publish?enter_from=publish_page");
+
+            // 填写标题
+            log.info("begin filling tags..., video: {}", uploadFilePath);
+            String title = workMetaData.getTitle();
+            Locator titleInput = page.locator("text=作品标题").locator("..").locator("xpath=following-sibling::div[1]").locator("input");
+            if (titleInput.count() > 0) {
+                titleInput.fill(title.substring(0, Math.min(title.length(), 30)));
+            } else {
+                Locator titleContainer = page.locator(".notranslate");
+                titleContainer.click();
+                page.keyboard().press("Backspace");
+                page.keyboard().press("Control+A");
+                page.keyboard().press("Delete");
+                page.keyboard().type(title);
+                page.keyboard().press("Enter");
+            }
+
+            // 填写标签
+            String cssSelector = ".zone-container";
+            List<String> tags = workMetaData.getTags();
+            for (int i = 0; i < tags.size(); i++) {
+                page.type(cssSelector, "#" + tags.get(i));
+                page.press(cssSelector, "Space");
+            }
+
+            // Wait for upload to finish
+            while (page.locator("div label+div:has-text('重新上传')").count() == 0) {
+                log.info("video is uploading, video: {}", uploadFilePath);
+                page.waitForTimeout(2000);
+                if (page.locator("div.progress-div > div:has-text('上传失败')").count() > 0) {
+                    handleUploadError(page);
+                }
+            }
+            log.info("video is upload complete, video: {}", uploadFilePath);
+
+            // Set preview image
+            page.locator("text=替换").click();
+            page.waitForTimeout(1000);
+            page.locator("text=上传封面").click();
+            Locator previewUploadDiv = page.locator("div.semi-upload-drag-area");
+            previewUploadDiv.click();
+
+            // Upload preview image
+            page.setInputFiles("input[type='file']", Paths.get(workMetaData.getPreViewFilePath()));
+            page.waitForTimeout(3000);
+            page.locator("role=button[name='完成']").click();
+
+            // Set location
+            page.locator("div.semi-select span:has-text('输入地理位置')").click();
+            page.keyboard().press("Backspace");
+            page.keyboard().press("Control+A");
+            page.keyboard().press("Delete");
+            page.keyboard().type(workMetaData.getLocation());
+            page.locator("div[role='listbox'] [role='option']").first().click();
+
+            // Enable third-party platforms (if needed)
+            String thirdPartElement = "[class^='info'] > [class^='first-part'] div div.semi-switch";
+            if (page.locator(thirdPartElement).count() > 0) {
+                String className = page.evalOnSelector(thirdPartElement, "div => div.className").toString();
+                if (!className.contains("semi-switch-checked")) {
+                    page.locator(thirdPartElement).locator("input.semi-switch-native-control").click();
+                }
+            }
+
+//            // Set scheduled publishing time (if applicable)
+//            if (publishDate != 0) {
+//                setScheduleTimeDouyin(page, publishDate); // Placeholder for scheduled publishing
+//            }
+
+            // Publish the video
+            while (true) {
+                Locator publishButton = page.locator("role=button[name='发布']");
+                if (publishButton.count() > 0) {
+                    publishButton.click();
+                }
+                try {
+                    page.waitForURL("https://creator.douyin.com/creator-micro/content/manage", new Page.WaitForURLOptions().setTimeout(5000));
+                    log.info("video is upload success, video: {}", uploadFilePath);
+                    break;
+                } catch (Exception e) {
+                    String currentUrl = page.url();
+                    if (currentUrl.contains("https://creator.douyin.com/creator-micro/content/manage")) {
+                        log.info("video is upload success, video: {}", uploadFilePath);
+                        break;
+                    }
+                    log.info("video is uploading..., video: {}", uploadFilePath);
+                    page.waitForTimeout(500);
+                }
+            }
+
+            // Save updated cookies
+            context.storageState(new BrowserContext.StorageStateOptions().setPath(Paths.get(getAccoutFile().getAbsolutePath())));
+            log.info("update douyin cookies success, video: {}", uploadFilePath);
+            page.waitForTimeout(2000);
+
+            // Close the browser
+            context.close();
+            browser.close();
+
+        } catch (Exception e) {
+            log.error("douyin fuck", e);
+        }
+    }
+
+    private void handleUploadError(Page page) {
+        log.info("upload video error, upload try again, video: {}", uploadFilePath);
+        page.locator("div.progress-div [class^='upload-btn-input']").setInputFiles(Paths.get(uploadFilePath));
+    }
+
+    public void setScheduleTimeDouyin(Page page, LocalDateTime publishDate) throws InterruptedException {
+        Locator labelElement = page.locator("label.radio--4Gpx6:has-text('定时发布')");
+        labelElement.click();
+
+        String publishDateHour = publishDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+
+        Thread.sleep(1000);
+        page.locator(".semi-input[placeholder='日期和时间']").click();
+        page.keyboard().press("Control+A");
+        page.keyboard().type(publishDateHour);
+        page.keyboard().press("Enter");
+
+        Thread.sleep(1000);
     }
 
     private void genCookies() {
@@ -145,8 +282,7 @@ public class DouyinUploader extends Uploader {
     }
 
     private boolean checkAccountValid() {
-        String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
-        File accountFile = new File(accountSavePath, "douyin_accout.json");
+        File accountFile = getAccoutFile();
         if (!accountFile.exists()) {
             return false;
         }
@@ -177,5 +313,10 @@ public class DouyinUploader extends Uploader {
                 return true;
             }
         }
+    }
+
+    private File getAccoutFile() {
+        String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
+        return new File(accountSavePath, "douyin_accout.json");
     }
 }

@@ -21,10 +21,6 @@ public abstract class Uploader {
         this.metaDataDir = metaDataDir;
     }
 
-    public void init() {
-        setUp();
-    }
-
     /**
      * 初始化上传器
      * 如：用户cookies获取

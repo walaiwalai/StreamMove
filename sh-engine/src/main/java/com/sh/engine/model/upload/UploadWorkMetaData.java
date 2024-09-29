@@ -10,7 +10,7 @@ import java.util.List;
  * @Date 2024 09 28 22 29
  **/
 @Data
-public class UploadMetaData {
+public class UploadWorkMetaData {
     /**
      * 上传视频的标题（根据streamerInfo的template生成带时间）
      * 如：TheyShy直播2022-12-12
@@ -21,4 +21,8 @@ public class UploadMetaData {
      * 视频标签
      */
     private List<String> tags;
+
+    private String preViewFilePath;
+    private String location;
+
 }
