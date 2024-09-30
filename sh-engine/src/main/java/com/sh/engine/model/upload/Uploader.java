@@ -1,34 +1,30 @@
 package com.sh.engine.model.upload;
 
+import com.sh.config.manager.CacheManager;
+import com.sh.config.model.video.LocalVideo;
+import com.sh.message.service.MsgSendService;
+
+import java.util.List;
+
 /**
  * @Author caiwen
  * @Date 2024 09 28 22 26
  **/
-public abstract class Uploader {
+public interface Uploader {
+    String getType();
 
-    /**
-     * 针对一个状态文件fileStatus.json下的视频目录
-     */
-    protected String uploadedDir;
-
-    /**
-     * 上传视频的元数据
-     */
-    protected String metaDataDir;
-
-    public Uploader(String uploadedDir, String metaDataDir) {
-        this.uploadedDir = uploadedDir;
-        this.metaDataDir = metaDataDir;
-    }
+    void init();
 
     /**
      * 初始化上传器
      * 如：用户cookies获取
      */
-    public abstract void setUp();
+    void setUp();
 
     /**
      * 上传
+     *
+     * @return
      */
-    public abstract void doUpload() throws Exception;
+    boolean upload(String recordPath) throws Exception;
 }

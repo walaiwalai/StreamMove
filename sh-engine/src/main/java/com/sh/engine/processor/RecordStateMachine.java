@@ -2,6 +2,7 @@ package com.sh.engine.processor;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.base.Streamer;
 import com.sh.engine.base.StreamerInfoHolder;
@@ -77,7 +78,7 @@ public class RecordStateMachine {
     private void init(StreamerConfig config) {
         String name = config.getName();
         List<String> recordPaths = Lists.newArrayList();
-        String savePath = config.fetchSavePath();
+        String savePath = ConfigFetcher.getInitConfig().getVideoSavePath();
 
         // 搜索当前streamer下的所有文件夹中的fileStatus.json文件
         File streamerFile = new File(savePath, name);

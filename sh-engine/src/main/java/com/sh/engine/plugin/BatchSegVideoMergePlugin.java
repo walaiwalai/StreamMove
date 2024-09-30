@@ -3,6 +3,7 @@ package com.sh.engine.plugin;
 import com.google.common.collect.Lists;
 import com.sh.config.utils.EnvUtil;
 import com.sh.config.utils.VideoFileUtil;
+import com.sh.engine.ProcessPluginEnum;
 import com.sh.message.service.MsgSendService;
 import com.sh.engine.service.VideoMergeService;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,7 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
 
     @Override
     public String getPluginName() {
-        return "BATCH_SEG_MERGE";
+        return ProcessPluginEnum.BATCH_SEG_MERGE.getType();
     }
 
     @Override

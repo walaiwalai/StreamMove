@@ -23,7 +23,21 @@ public class ExecutorPoolUtil {
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
 
+    private static final ExecutorService uploadPool = new ThreadPoolExecutor(
+            8,
+            8,
+            600,
+            TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(40960),
+            new ThreadFactoryBuilder().setNameFormat("upload-thread-%d").build(),
+            new ThreadPoolExecutor.CallerRunsPolicy()
+    );
+
     public static ExecutorService getDownloadPool() {
         return downloadPool;
+    }
+
+    public static ExecutorService getUploadPool() {
+        return uploadPool;
     }
 }

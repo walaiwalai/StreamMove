@@ -200,43 +200,6 @@ public class AliDiverStoreClient {
         createFileRequest.setProofCode(proof);
         createFileRequest.setProofVersion("v1");
         return getAuthRequestBody(FILE_CREATE_WITH_FOLDERS_URL, JSON.toJSONString(createFileRequest));
-
-//        boolean readNext = false;
-//        for (int i = 1; i <= end; ) {
-//            for (AliUploadPartInfo item : partInfoList) {
-//                if (item.getPartNumber() != i) {
-//                    throw new RuntimeException("序号异常");
-//                }
-//                if (readNext) {
-//                    n = inputStream.read(buff);
-//                    readNext = false;
-//                }
-//                try {
-//                    writeData(item.getUploadUrl(), buff, 0, n);
-//                    readNext = true;
-//                } catch (Exception e) {
-//                    log.error("网络异常：5秒后重试");
-//                    Thread.sleep(5000);
-//                    break;
-//                }
-//                i++;
-//            }
-//            if (i <= end) {
-//                for (int j = 0; j < 3; j++) {
-//                    try {
-//                        partInfoList = getUploadUrl(uploadId, fileId, i, Math.min(i + 9, end));
-//                        break;
-//                    } catch (Exception e) {
-//                        if (j == 2) {
-//                            return null;
-//                        }
-//                        System.out.println("网络异常," + (20 * j) + "秒后重试");
-//                        Thread.sleep(20000 * j);
-//                    }
-//                }
-//            }
-//        }
-//        inputStream.close();
     }
 
 

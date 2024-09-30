@@ -13,24 +13,6 @@ import java.util.Date;
 public class DateUtil {
     public static final String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";
 
-    public static String getCurDateDesc() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("HH");
-        Integer curHour = Integer.valueOf(dateFormat.format(new Date()));
-        if (curHour <= 6) {
-            return "midnight";
-        }
-        if (curHour <= 12) {
-            return "morning";
-        }
-        if (curHour <= 18) {
-            return "afternoon";
-        }
-        if (curHour <= 24) {
-            return "evening";
-        }
-        return "";
-    }
-
     public static Date covertStr2Date(String dateStr, String format) {
         Date date;
         try {

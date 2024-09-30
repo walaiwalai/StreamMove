@@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
+import com.sh.engine.ProcessPluginEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.plugin.lol.LoLPicData;
@@ -78,7 +79,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
     @Override
     public String getPluginName() {
-        return "LOL_HL_VOD_CUT";
+        return ProcessPluginEnum.LOL_HL_VOD_CUT.getType();
     }
 
     @Override
@@ -116,11 +117,13 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
         // 4. 进行合并视频
         boolean success = videoMergeService.mergeMultiWithFadeV2(buildMergeFileNames(potentialIntervals, videos), highlightFile);
-        if (success) {
-            msgSendService.sendText("合并highlight视频完成！路径为：" + highlightFile.getAbsolutePath());
-        } else {
-            msgSendService.sendText("合并highlight视频完成！路径为：" + highlightFile.getAbsolutePath());
-        }
+
+        // 5. 发消息
+        String msg = success ?
+                "合并视频完成！路径为：" + highlightFile.getAbsolutePath() :
+                "合并视频失败！路径为：" + highlightFile.getAbsolutePath();
+        msgSendService.sendText(msg);
+
         return success;
     }
 

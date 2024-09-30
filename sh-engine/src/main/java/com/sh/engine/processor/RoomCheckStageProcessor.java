@@ -45,7 +45,7 @@ public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
     }
 
     /**
-     * 获取直播间的视频推送刘
+     * 获取视频的录像机
      *
      * @param streamerConfig
      * @return

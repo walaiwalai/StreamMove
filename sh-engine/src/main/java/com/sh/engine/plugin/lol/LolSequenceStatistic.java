@@ -239,34 +239,4 @@ public class LolSequenceStatistic {
     private List<Integer> listAssistCountWhenMyAssist() {
         return null;
     }
-
-    public static void main(String[] args) {
-        ArrayList<LoLPicData> data = Lists.newArrayList(
-                new LoLPicData(-1, -1, -1),
-                new LoLPicData(-1, -1, -1),
-                new LoLPicData(-1, -1, -1),
-                new LoLPicData(-1, -1, -1),
-                new LoLPicData(-1, -1, -1),
-                new LoLPicData(0, 0, 0),
-                new LoLPicData(1, 0, 0),
-                new LoLPicData(2, 0, 0),
-                new LoLPicData(-1, -1, -1),
-                new LoLPicData(3, 1, 1),
-                new LoLPicData(2, 1, 1),
-                new LoLPicData(14, 2, 1),
-                new LoLPicData(5, 2, 1),
-                new LoLPicData(-1, -1, -1),
-                new LoLPicData(-1, -1, -1),
-                new LoLPicData(-1, -1, -1),
-                new LoLPicData(-1, -1, -1),
-                new LoLPicData(-1, -1, -1),
-                new LoLPicData(-1, -1, -1)
-        );
-        int index = 1;
-        for (LoLPicData d : data) {
-            d.setTargetIndex(index++);
-        }
-
-        LolSequenceStatistic statistic = new LolSequenceStatistic(data, 20);
-    }
 }

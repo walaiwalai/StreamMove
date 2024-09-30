@@ -1,5 +1,6 @@
-package com.sh.engine.upload;
+package com.sh.engine.model.upload;
 
+import cn.hutool.extra.spring.SpringUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
@@ -7,8 +8,6 @@ import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.video.FailUploadVideoChunk;
-import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.FileChunkIterator;
 import com.sh.config.utils.HttpClientUtil;
@@ -16,17 +15,13 @@ import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.UploadPlatformEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.alidriver.*;
-import com.sh.engine.model.bili.web.VideoUploadResultModel;
-import com.sh.engine.model.upload.BaseUploadTask;
-import com.sh.message.service.MsgSendService;
 import com.sh.engine.util.AliDriverUtil;
+import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ByteArrayEntity;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.math.BigInteger;
@@ -37,16 +32,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * @Author caiwen
- * @Date 2024 03 09 18 23
- **/
+ * 阿里云盘上传器
+ * @Author : caiwen
+ * @Date: 2024/9/30
+ */
 @Slf4j
-@Component
-public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
-    @Autowired
+public class AliDriverUploader implements Uploader {
     private MsgSendService msgSendService;
 
-    private static volatile AliStoreBucket STORE_BUCKET;
+    private static AliStoreBucket STORE_BUCKET;
     /**
      * 分块上传大小为10M
      */
@@ -57,82 +51,61 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
     private static final int RETRY_COUNT = 3;
     public static final int CHUNK_RETRY_DELAY = 500;
 
-
     @Override
-    public String getName() {
+    public String getType() {
         return UploadPlatformEnum.ALI_DRIVER.getType();
     }
 
     @Override
-    public boolean upload(List<LocalVideo> localVideos, BaseUploadTask task) throws Exception {
-        // 初始化client
-        initClient();
+    public void init() {
+        msgSendService = SpringUtil.getBean(MsgSendService.class);
+    }
 
+    @Override
+    public void setUp() {
+        String refreshToken = ConfigFetcher.getInitConfig().getRefreshToken();
+        assert StringUtils.isNotBlank(refreshToken);
+
+        STORE_BUCKET = new AliStoreBucket(refreshToken);
+        STORE_BUCKET.refreshToken();
+        assert StringUtils.isNotBlank(STORE_BUCKET.getAccessToken());
+
+        log.info("init aliDriver param success, dirverId: {}, userId: {}", STORE_BUCKET.getDriveId(), STORE_BUCKET.getUserId());
+    }
+
+    @Override
+    public boolean upload(String recordPath) throws Exception {
         String targetFileId = ConfigFetcher.getInitConfig().getTargetFileId();
-        for (LocalVideo localVideo : localVideos) {
-            if (!StringUtils.equals("highlight", localVideo.getTitle())) {
-                continue;
-            }
-            String fileName = StreamerInfoHolder.getCurStreamerName() + "_" + localVideo.getTitle() + "_" + System.currentTimeMillis() + ".mp4";
-            boolean success = uploadFile(targetFileId, fileName, new File(localVideo.getLocalFileFullPath()));
+        File targetFile = new File(recordPath, "highlight.mp4");
 
-            if (success) {
-                msgSendService.sendText(localVideo.getLocalFileFullPath() + "路径下的视频上传阿里云盘成功！");
-            } else {
-                msgSendService.sendText(localVideo.getLocalFileFullPath() + "路径下的视频上传阿里云盘失败！");
-                throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
-            }
+        boolean success = uploadFile(targetFileId, targetFile);
+        if (success) {
+            msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传阿里云盘成功！");
+        } else {
+            msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传阿里云盘失败！");
+            throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
         }
 
         return true;
     }
 
-    private void initClient() {
-        if (STORE_BUCKET == null) {
-            synchronized (this) {
-                if (STORE_BUCKET == null) {
-                    String refreshToken = ConfigFetcher.getInitConfig().getRefreshToken();
-                    if (StringUtils.isNotBlank(refreshToken)) {
-                        STORE_BUCKET = new AliStoreBucket(refreshToken);
-                        STORE_BUCKET.refreshToken();
-                        log.info("init aliDriver param success, dirverId: {}, userId: {}", STORE_BUCKET.getDriveId(), STORE_BUCKET.getUserId());
-                    }
-                }
-            }
-        }
-    }
-
-
-    public static void main(String[] args) throws Exception {
-        String s = "{\"code\":\"InvalidResource.PartInfoList\",\"message\":\"The resource part_info_list is not valid. part 13 is not exist\"}";
-        AliFileDTO javaObject = JSON.parseObject(s).toJavaObject(AliFileDTO.class);
-        System.out.println(javaObject);
-//        AliDriverUploadServiceImpl service = new AliDriverUploadServiceImpl();
-//        service.upload(Lists.newArrayList(LocalVideo.builder()
-////                .localFileFullPath("/Users/caiwen/Desktop/download/TheShy/2024-01-31-03-31-43/seg-1.ts")
-//                .localFileFullPath("G:\\graduate\\process\\pro_load023frequency10.csv")
-//                .title("highlight")
-//                .build()), BaseUploadTask.builder().build());
-    }
-
-    private boolean uploadFile(String parentId, String fileName, File file) throws Exception {
-        long fileSize = file.length();
+    private boolean uploadFile(String parentId, File targetFile) throws Exception {
+        long fileSize = targetFile.length();
+        String fileName = StreamerInfoHolder.getCurStreamerName() + "-" + targetFile.getParentFile().getName() + ".mp4";
 
         // 1. 进行pre_hash
-        JSONObject preHashRet = preHash(file, fileName, parentId);
+        preHash(targetFile, fileName, parentId);
 
         // 2. 进行content_hash
-        CreateFileResponse response = contentHash(file, fileName, parentId).toJavaObject(CreateFileResponse.class);
+        CreateFileResponse response = contentHash(targetFile, fileName, parentId).toJavaObject(CreateFileResponse.class);
         if (response.isRapidUpload() || response.isExist()) {
             // 极速上传或文件已经存在，跳过
-            log.info("rapid upload file or file existed, file: {}", file.getAbsolutePath());
+            log.info("rapid upload targetFile or targetFile existed, targetFile: {}", targetFile.getAbsolutePath());
             return true;
         }
 
         // 3.分块进行上传
-        VideoUploadResultModel uploadResultModel = uploadByChunk(file, fileSize, response);
-
-        return uploadResultModel.isComplete();
+        return uploadByChunk(targetFile, fileSize, response) != null;
     }
 
     private JSONObject preHash(File uploadFile, String fileName, String targetParentFileId) throws Exception {
@@ -183,40 +156,30 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
      * @return
      * @throws Exception
      */
-    private VideoUploadResultModel uploadByChunk(File localVideo, long fileSize, CreateFileResponse fileInfo) {
-        VideoUploadResultModel uploadResult = new VideoUploadResultModel();
-
+    private RemoteSeverVideo uploadByChunk(File localVideo, long fileSize, CreateFileResponse fileInfo) {
         int partCount = (int) Math.ceil(fileSize * 1.0 / UPLOAD_CHUNK_SIZE);
         log.info("video size is {}M, seg {} parts to upload.", fileSize / 1024 / 1024, partCount);
 
-        List<FailUploadVideoChunk> failUploadVideoChunks = Lists.newCopyOnWriteArrayList();
+        List<Integer> failChunkNos = Lists.newCopyOnWriteArrayList();
         int i = 0;
         try (FileChunkIterator chunkIterator = new FileChunkIterator(localVideo.getAbsolutePath(), (int) UPLOAD_CHUNK_SIZE)) {
             for (byte[] chunk : chunkIterator.iterateChunks()) {
                 if (chunk == null) {
                     break;
                 }
-                long curChunkStart = (long) i * UPLOAD_CHUNK_SIZE;
-                long curChunkSize = (i + 1 == partCount) ? (fileSize - curChunkStart) : UPLOAD_CHUNK_SIZE;
                 boolean uploadChunkSuccess = uploadChunk(fileInfo, i, chunk, partCount);
                 if (!uploadChunkSuccess) {
-                    FailUploadVideoChunk failUploadVideoChunk = new FailUploadVideoChunk();
-                    failUploadVideoChunk.setChunkStart(curChunkStart);
-                    failUploadVideoChunk.setCurChunkSize(curChunkSize);
-                    failUploadVideoChunk.setChunkNo(i);
-                    failUploadVideoChunks.add(failUploadVideoChunk);
+                    failChunkNos.add(i);
                 }
                 i++;
             }
         }
 
-        if (CollectionUtils.isEmpty(failUploadVideoChunks)) {
+        if (CollectionUtils.isEmpty(failChunkNos)) {
             log.info("video chunks upload success, videoPath: {}", localVideo.getAbsolutePath());
         } else {
-            log.error("video chunks upload fail, failed chunkNos: {}", failUploadVideoChunks.stream().map(
-                    FailUploadVideoChunk::getChunkNo).collect(Collectors.toList()));
-            uploadResult.setFailedChunks(failUploadVideoChunks);
-            return uploadResult;
+            log.error("video chunks upload fail, failed chunkNos: {}", JSON.toJSONString(failChunkNos));
+            return null;
         }
 
         // 2. 调用完成整个视频上传
@@ -228,17 +191,12 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
 
         JSONObject competeFileObj = getAuthRequestBody(FILE_COMPLETE_URL, JSONObject.parseObject(JSON.toJSONString(completeFileRequest)));
         AliFileDTO aliFile = competeFileObj.toJavaObject(AliFileDTO.class);
-        uploadResult.setComplete(aliFile != null && StringUtils.isNotBlank(aliFile.getFileId()));
-
         if (aliFile == null || StringUtils.isBlank(aliFile.getFileId())) {
             log.error("file upload to aliDriver failed, resp: {}", competeFileObj.toJSONString());
-            return uploadResult;
+            return null;
         }
 
-        RemoteSeverVideo remoteSeverVideo = new RemoteSeverVideo(localVideo.getName(), aliFile.getFileId());
-        uploadResult.setRemoteSeverVideo(remoteSeverVideo);
-
-        return uploadResult;
+        return new RemoteSeverVideo(localVideo.getName(), aliFile.getFileId());
     }
 
     private boolean uploadChunk(CreateFileResponse fileInfo, int index, byte[] bytes, Integer totalChunks) {
@@ -250,7 +208,7 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
             try {
                 String resp = HttpClientUtil.sendPut(uploadUrl, null, requestEntity, false);
                 if (StringUtils.isBlank(resp)) {
-                    log.info("{} chunk upload success, progress: {}/{}, time cost: {}s.", getName(), index + 1, totalChunks,
+                    log.info("{} chunk upload success, progress: {}/{}, time cost: {}s.", getType(), index + 1, totalChunks,
                             (System.currentTimeMillis() - startTime) / 1000);
                     return true;
                 } else {
@@ -304,6 +262,4 @@ public class AliDriverUploadServiceImpl extends AbstractWorkUploadService {
         String resp = HttpClientUtil.sendPost(url, headers, data);
         return JSONObject.parseObject(resp);
     }
-
-
 }

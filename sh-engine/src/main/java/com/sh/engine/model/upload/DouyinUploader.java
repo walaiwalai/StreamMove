@@ -1,15 +1,21 @@
 package com.sh.engine.model.upload;
 
+import cn.hutool.extra.spring.SpringUtil;
+import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Cookie;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.video.LocalVideo;
+import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.PictureFileUtil;
+import com.sh.engine.UploadPlatformEnum;
+import com.sh.engine.model.upload.meta.DouyinWorkMetaData;
+import com.sh.engine.upload.UploaderFactory;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.annotation.Resource;
 import java.io.File;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -22,33 +28,42 @@ import java.util.Map;
  * @Date 2024 09 28 22 45
  **/
 @Slf4j
-public class DouyinUploader extends Uploader {
-    @Resource
+public class DouyinUploader implements Uploader {
     private CacheManager cacheManager;
-    @Resource
     private MsgSendService msgSendService;
 
-
-
-
-    private String uploadFilePath;
-    private UploadWorkMetaData workMetaData;
     private static final String AUTH_CODE_KEY = "douyin_login_authcode";
 
-    public DouyinUploader(String uploadedDir, String metaDataDir) {
-        super(uploadedDir, metaDataDir);
+    @Override
+    public String getType() {
+        return UploadPlatformEnum.DOU_YIN.getType();
+    }
+
+    @Override
+    public void init() {
+        cacheManager = SpringUtil.getBean(CacheManager.class);
+        msgSendService = SpringUtil.getBean(MsgSendService.class);
     }
 
     @Override
     public void setUp() {
-        boolean isValid = checkAccountValid();
-        if (!isValid) {
+        if (!checkAccountValid()) {
             genCookies();
         }
     }
 
     @Override
-    public void doUpload() {
+    public boolean upload(String recordPath) {
+        // 只选择第一个视频
+        String workFilePath = new File(recordPath, "highlight.mp4").getAbsolutePath();
+
+        // 加载元数据
+        DouyinWorkMetaData metaData = FileStoreUtil.loadFromFile(
+                new File(recordPath, UploaderFactory.getMetaFileName(UploadPlatformEnum.DOU_YIN.getType())),
+                new TypeReference<DouyinWorkMetaData>() {
+                });
+
+        // 开始上传
         try (Playwright playwright = Playwright.create()) {
             // 带着cookies创建浏览器
             Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(false));
@@ -57,69 +72,30 @@ public class DouyinUploader extends Uploader {
 
             Page page = context.newPage();
             page.navigate("https://creator.douyin.com/creator-micro/content/upload");
-            log.info("begin uploading..., video: {}", uploadFilePath);
+            log.info("begin uploading..., video: {}", workFilePath);
 
             // 上传视频
-            page.setInputFiles(".upload-btn--9eZLd", Paths.get(uploadFilePath));
+            page.setInputFiles("div[class^='container'] input", Paths.get(workFilePath));
 
             // 等待上回完成
             page.waitForURL("https://creator.douyin.com/creator-micro/content/publish?enter_from=publish_page");
 
             // 填写标题
-            log.info("begin filling tags..., video: {}", uploadFilePath);
-            String title = workMetaData.getTitle();
-            Locator titleInput = page.locator("text=作品标题").locator("..").locator("xpath=following-sibling::div[1]").locator("input");
-            if (titleInput.count() > 0) {
-                titleInput.fill(title.substring(0, Math.min(title.length(), 30)));
-            } else {
-                Locator titleContainer = page.locator(".notranslate");
-                titleContainer.click();
-                page.keyboard().press("Backspace");
-                page.keyboard().press("Control+A");
-                page.keyboard().press("Delete");
-                page.keyboard().type(title);
-                page.keyboard().press("Enter");
-            }
+            fillTitle(page, metaData);
 
             // 填写标签
-            String cssSelector = ".zone-container";
-            List<String> tags = workMetaData.getTags();
-            for (int i = 0; i < tags.size(); i++) {
-                page.type(cssSelector, "#" + tags.get(i));
-                page.press(cssSelector, "Space");
-            }
+            fillTags(page, metaData);
 
-            // Wait for upload to finish
-            while (page.locator("div label+div:has-text('重新上传')").count() == 0) {
-                log.info("video is uploading, video: {}", uploadFilePath);
-                page.waitForTimeout(2000);
-                if (page.locator("div.progress-div > div:has-text('上传失败')").count() > 0) {
-                    handleUploadError(page);
-                }
-            }
-            log.info("video is upload complete, video: {}", uploadFilePath);
+            // 等待视频上传完成
+            waitingVideoUploadFinish(page, workFilePath);
 
-            // Set preview image
-            page.locator("text=替换").click();
-            page.waitForTimeout(1000);
-            page.locator("text=上传封面").click();
-            Locator previewUploadDiv = page.locator("div.semi-upload-drag-area");
-            previewUploadDiv.click();
+            // 保存封面
+            fillThumbnail(page, metaData);
 
-            // Upload preview image
-            page.setInputFiles("input[type='file']", Paths.get(workMetaData.getPreViewFilePath()));
-            page.waitForTimeout(3000);
-            page.locator("role=button[name='完成']").click();
+            // 填写位置
+            fillLocation(page, metaData);
 
-            // Set location
-            page.locator("div.semi-select span:has-text('输入地理位置')").click();
-            page.keyboard().press("Backspace");
-            page.keyboard().press("Control+A");
-            page.keyboard().press("Delete");
-            page.keyboard().type(workMetaData.getLocation());
-            page.locator("div[role='listbox'] [role='option']").first().click();
-
-            // Enable third-party platforms (if needed)
+            // 三方平台勾选
             String thirdPartElement = "[class^='info'] > [class^='first-part'] div div.semi-switch";
             if (page.locator(thirdPartElement).count() > 0) {
                 String className = page.evalOnSelector(thirdPartElement, "div => div.className").toString();
@@ -133,44 +109,28 @@ public class DouyinUploader extends Uploader {
 //                setScheduleTimeDouyin(page, publishDate); // Placeholder for scheduled publishing
 //            }
 
-            // Publish the video
-            while (true) {
-                Locator publishButton = page.locator("role=button[name='发布']");
-                if (publishButton.count() > 0) {
-                    publishButton.click();
-                }
-                try {
-                    page.waitForURL("https://creator.douyin.com/creator-micro/content/manage", new Page.WaitForURLOptions().setTimeout(5000));
-                    log.info("video is upload success, video: {}", uploadFilePath);
-                    break;
-                } catch (Exception e) {
-                    String currentUrl = page.url();
-                    if (currentUrl.contains("https://creator.douyin.com/creator-micro/content/manage")) {
-                        log.info("video is upload success, video: {}", uploadFilePath);
-                        break;
-                    }
-                    log.info("video is uploading..., video: {}", uploadFilePath);
-                    page.waitForTimeout(500);
-                }
-            }
+            // 发布视频
+            publishVideo(page, workFilePath);
 
             // Save updated cookies
             context.storageState(new BrowserContext.StorageStateOptions().setPath(Paths.get(getAccoutFile().getAbsolutePath())));
-            log.info("update douyin cookies success, video: {}", uploadFilePath);
+            log.info("update douyin cookies success, video: {}", workFilePath);
             page.waitForTimeout(2000);
 
             // Close the browser
             context.close();
             browser.close();
+            return true;
 
         } catch (Exception e) {
             log.error("douyin fuck", e);
+            return false;
         }
     }
 
-    private void handleUploadError(Page page) {
-        log.info("upload video error, upload try again, video: {}", uploadFilePath);
-        page.locator("div.progress-div [class^='upload-btn-input']").setInputFiles(Paths.get(uploadFilePath));
+    private void handleUploadError(Page page, String workFilePath) {
+        log.info("upload video error, upload try again, video: {}", workFilePath);
+        page.locator("div.progress-div [class^='upload-btn-input']").setInputFiles(Paths.get(workFilePath));
     }
 
     public void setScheduleTimeDouyin(Page page, LocalDateTime publishDate) throws InterruptedException {
@@ -188,6 +148,116 @@ public class DouyinUploader extends Uploader {
         Thread.sleep(1000);
     }
 
+    /**
+     * 填充视频标签
+     * @param page
+     * @param metaData
+     */
+    private void fillTitle(Page page, DouyinWorkMetaData metaData) {
+        String title = metaData.getTitle();
+        Locator titleInput = page.locator("text=作品标题").locator("..")
+                .locator("xpath=following-sibling::div[1]")
+                .locator("input");
+        if (titleInput.count() > 0) {
+            titleInput.fill(title.substring(0, Math.min(title.length(), 30)));
+        } else {
+            Locator titleContainer = page.locator(".notranslate");
+            titleContainer.click();
+            page.keyboard().press("Backspace");
+            page.keyboard().press("Control+A");
+            page.keyboard().press("Delete");
+            page.keyboard().type(title);
+            page.keyboard().press("Enter");
+        }
+    }
+
+    /**
+     * 填充标签
+     * @param page
+     * @param metaData
+     */
+    private void fillTags(Page page, DouyinWorkMetaData metaData) {
+        String cssSelector = ".zone-container";
+        List<String> tags = metaData.getTags();
+        for (int i = 0; i < tags.size(); i++) {
+            page.type(cssSelector, "#" + tags.get(i));
+            page.press(cssSelector, "Space");
+        }
+    }
+
+    /**
+     * 等待视频上传完成
+     * @param page
+     * @param workFilePath
+     */
+    private void waitingVideoUploadFinish(Page page, String workFilePath) {
+        while (page.locator("div label+div:has-text('重新上传')").count() == 0) {
+            log.info("video is uploading, video: {}", workFilePath);
+            page.waitForTimeout(2000);
+            if (page.locator("div.progress-div > div:has-text('上传失败')").count() > 0) {
+                handleUploadError(page, workFilePath);
+            }
+        }
+        log.info("video is upload complete, video: {}", workFilePath);
+    }
+
+    /**
+     * 上传地址位置
+     * @param page
+     * @param metaData
+     */
+    private void fillLocation(Page page, DouyinWorkMetaData metaData) {
+        page.locator("div.semi-select span:has-text('输入地理位置')").click();
+        page.keyboard().press("Backspace");
+        page.keyboard().press("Control+A");
+        page.keyboard().press("Delete");
+        page.keyboard().type(metaData.getLocation());
+        page.locator("div[role='listbox'] [role='option']").first().click();
+    }
+
+    /**
+     * 保存视频封面
+     * @param page
+     * @param metaData
+     */
+    private void fillThumbnail(Page page, DouyinWorkMetaData metaData) {
+        page.click("text='选择封面'");
+        page.waitForSelector("div.semi-modal-content:visible");
+        page.click("text='上传封面'");
+
+        // 定位到上传区域并点击
+        page.locator("div[class^='semi-upload upload'] >> input.semi-upload-hidden-input").setInputFiles(Paths.get(metaData.getPreViewFilePath()));
+        page.waitForTimeout(2000);
+        page.locator("div[class^='uploadCrop'] button:has-text('完成')").click();
+    }
+
+    private void publishVideo(Page page, String workFilePath) {
+        while (true) {
+            Locator publishButton = page.locator("role=button[name='发布']");
+            if (publishButton.count() > 0) {
+                publishButton.click();
+            }
+            try {
+                page.waitForURL("https://creator.douyin.com/creator-micro/content/manage", new Page.WaitForURLOptions().setTimeout(5000));
+                log.info("video is upload success, video: {}", workFilePath);
+                break;
+            } catch (Exception e) {
+                String currentUrl = page.url();
+                if (currentUrl.contains("https://creator.douyin.com/creator-micro/content/manage")) {
+                    log.info("video is upload success, video: {}", workFilePath);
+                    break;
+                }
+                log.info("video is uploading..., video: {}", workFilePath);
+                page.waitForTimeout(500);
+            }
+        }
+    }
+
+
+
+    /**
+     * 生成cookies
+     */
     private void genCookies() {
         String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
         File accountFile = new File(accountSavePath, "douyin_accout.json");
@@ -234,13 +304,12 @@ public class DouyinUploader extends Uploader {
                     while (true) {
                         Thread.sleep(3000);
                         // 检查缓存中是否有验证码
-                        String authNumber = (String) cacheManager.get(AUTH_CODE_KEY);
+                        String authNumber = cacheManager.get(AUTH_CODE_KEY, new TypeReference<String>() {});
                         if (authNumber != null) {
                             page.locator("input[placeholder='请输入验证码']").nth(1).fill(authNumber);
-                            page.locator("text=验证").filter(new Locator.FilterOptions().setHasText("验证")).click();
+                            page.getByText("验证", new Page.GetByTextOptions().setExact(true)).filter().click();
                             Thread.sleep(2000);
 
-                            cacheManager.delete("douyin_login_need_auth");
                             break;
                         }
                         if (numTwo > 20) {
@@ -281,6 +350,10 @@ public class DouyinUploader extends Uploader {
         }
     }
 
+    /**
+     * 账号是否生效
+     * @return  true/false
+     */
     private boolean checkAccountValid() {
         File accountFile = getAccoutFile();
         if (!accountFile.exists()) {
@@ -315,6 +388,10 @@ public class DouyinUploader extends Uploader {
         }
     }
 
+    /**
+     * 获取账号保存文件
+     * @return  账号文件
+     */
     private File getAccoutFile() {
         String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
         return new File(accountSavePath, "douyin_accout.json");

@@ -77,8 +77,7 @@ public class ConfigFetcher {
         log.info("refresh config success");
     }
 
-    public static void refreshStreamer(StreamerConfig updated) {
-        String name = updated.getName();
+    public static void refreshStreamer(String name, StreamerConfig updated) {
         StreamerConfig existed = getStreamerInfoByName(name);
         if (updated.getLastRecordTime() != null) {
             existed.setLastRecordTime(updated.getLastRecordTime());

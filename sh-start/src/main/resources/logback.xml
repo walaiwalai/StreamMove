@@ -4,6 +4,7 @@
     <!--定义日志文件的存储地址 勿在 LogBack 的配置中使用相对路径-->
     <property name="LOG_HOME" value="/home/admin/stream/logs" />
 <!--    <property name="LOG_HOME" value="D:/360MoveData/Users/caiwe/Desktop" />-->
+    <!--    <property name="LOG_HOME" value="/Users/caiwen/Desktop/logs" />-->
 
     <!--控制台日志， 控制台输出 -->
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">

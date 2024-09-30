@@ -27,6 +27,8 @@ public enum ErrorEnum {
 
     INVALID_PARAM(4, "invalid param"),
 
+    PLUGIN_NOT_EXIST(5, "plugin not exist"),
+
     ;
     private int errorCode;
     private String message;

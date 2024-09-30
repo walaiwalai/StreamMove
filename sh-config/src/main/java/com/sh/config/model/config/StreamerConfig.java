@@ -25,20 +25,21 @@ public class StreamerConfig {
     private List<String> videoPlugins;
     private List<String> uploadPlatforms = Lists.newArrayList();
 
+    private String templateTitle;
+    private String desc;
+    private List<String> tags;
+
     /**
      * b站投稿相关
      */
-    private String templateTitle;
-    private String desc;
     private String source;
     private String dynamic;
     private Integer tid;
-    private List<String> tags;
     private String cover;
 
-
-    public String fetchSavePath() {
-        return ConfigFetcher.getInitConfig().getVideoSavePath();
-    }
-
+    /**
+     * 抖音投稿相关
+     */
+    private String location;
+    private String preViewFilePath;
 }

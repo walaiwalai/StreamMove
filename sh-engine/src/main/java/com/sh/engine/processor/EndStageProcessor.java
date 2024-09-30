@@ -14,8 +14,6 @@ import javax.annotation.Resource;
  **/
 @Component
 public class EndStageProcessor extends AbstractRecordTaskProcessor{
-    @Resource
-    StatusManager statusManager;
     @Override
     public void processInternal(RecordContext context) {
     }

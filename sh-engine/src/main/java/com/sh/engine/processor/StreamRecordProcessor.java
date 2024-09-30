@@ -3,6 +3,7 @@ package com.sh.engine.processor;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
+import com.sh.config.utils.FileStoreUtil;
 import com.sh.engine.RecordStageEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.manager.StatusManager;
@@ -55,11 +56,10 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
 
         // 2.发消息
         String streamerName = StreamerInfoHolder.getCurStreamerName();
-        if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
-            msgSendService.sendText("主播" + streamerName + "开播了，即将开始录制..");
-        } else {
-            msgSendService.sendText("主播" + streamerName + "有新的视频上传，即将开始录制..");
-        }
+        String msg = BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline()) ?
+                "主播" + streamerName + "开播了，即将开始录制.." :
+                "主播" + streamerName + "有新的视频上传，即将开始录制..";
+        msgSendService.sendText(msg);
 
         // 3 录像(长时间)
         Recorder recorder = context.getRecorder();
@@ -70,7 +70,7 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
         }
 
         // 4.后置操作
-        recordPostProcess(context, streamerConfig);
+        recordPostProcess(context, name);
     }
 
 
@@ -87,11 +87,8 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
 
         // 2.写fileStatus.json
         FileStatusModel fileStatusModel = new FileStatusModel();
-        fileStatusModel.setPath(recordPath);
-        fileStatusModel.setRecorderName(streamerConfig.getName());
-        fileStatusModel.setTimeV(timeV);
         fileStatusModel.setPlatforms(streamerConfig.getUploadPlatforms());
-        fileStatusModel.writeSelfToFile();
+        fileStatusModel.writeSelfToFile(recordPath);
 
         // 3.将录像文件加到threadLocal
         StreamerInfoHolder.addRecordPath(recordPath);
@@ -100,15 +97,14 @@ public class StreamRecordProcessor extends AbstractRecordTaskProcessor {
         statusManager.addRoomPathStatus(recordPath);
     }
 
-    private void recordPostProcess(RecordContext context, StreamerConfig streamerConfig) {
+    private void recordPostProcess(RecordContext context, String name) {
         // 1.状态位解除
         statusManager.deleteRoomPathStatus();
 
         // 2.修改streamer.json
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String lastRecordTime = dateFormat.format(context.getRecorder().getRegDate());
-        ConfigFetcher.refreshStreamer(StreamerConfig.builder()
-                .name(streamerConfig.getName())
+        ConfigFetcher.refreshStreamer(name, StreamerConfig.builder()
                 .lastRecordTime(lastRecordTime)
                 .build());
     }

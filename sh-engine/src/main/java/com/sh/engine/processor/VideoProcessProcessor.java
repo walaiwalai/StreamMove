@@ -1,8 +1,11 @@
 package com.sh.engine.processor;
 
 import com.google.common.collect.Maps;
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.engine.ProcessPluginEnum;
 import com.sh.engine.RecordStageEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.manager.StatusManager;
@@ -56,15 +59,16 @@ public class VideoProcessProcessor extends AbstractRecordTaskProcessor {
                 continue;
             }
 
-            // 1. 解析处理对应插件，并处理
-            for (String pluginName : streamerConfig.getVideoPlugins()) {
+            // 1. 解析处理对应插件，并处理, 加上系统的对应的插件
+            List<String> videoPlugins = streamerConfig.getVideoPlugins();
+            videoPlugins.add(0, ProcessPluginEnum.META_DATA_GEN.getType());
+
+            for (String pluginName : videoPlugins) {
                 if (plugins.get(pluginName) == null) {
-                    log.info("no certain video plugin for name: {}, will skip.", pluginName);
-                    continue;
+                    throw new StreamerRecordException(ErrorEnum.PLUGIN_NOT_EXIST);
                 }
 
                 // 加入当前处理的插件类型
-                log.info("begin running {}'s {} plugin.", streamerName, pluginName);
                 statusManager.doPostProcess(curRecordPath, pluginName);
 
                 try {
