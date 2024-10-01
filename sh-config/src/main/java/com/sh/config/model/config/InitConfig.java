@@ -38,10 +38,14 @@ public class InitConfig {
      */
     private String accountSavePath;
 
+    // *********************录制配置**********************
     private Integer maxRecordingCount = 2;
 
-    // *********************OCR识别服务部署ip**********************
-    private String ocrIp = "127.0.0.1";
+    // *********************投稿配置**********************
+    /**
+     * 投稿时忽略小于此大小的文件(M)
+     */
+    private Integer videoPartLimitSize = 100;
 
     // *********************B站视频上传**********************
     private String biliCookies;
@@ -51,14 +55,7 @@ public class InitConfig {
     private String refreshToken;
     private String targetFileId = "root";
 
-    // *********************抖音cookiesPath**********************
-    private String douyinCookiesPath;
 
-    // *********************其他配置**********************
-    /**
-     * 投稿时忽略小于此大小的文件(M)
-     */
-    private Integer videoPartLimitSize = 100;
 
     // *********************企业微信消息通知**********************
     private String weComWebhookSecret;

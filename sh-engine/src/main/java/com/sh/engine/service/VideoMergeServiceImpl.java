@@ -11,6 +11,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -51,15 +52,9 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                     return "file " + segFile.getAbsolutePath();
                 })
                 .filter(Objects::nonNull)
-                .map(s -> {
-                    if (EnvUtil.isProd()) {
-                        return s;
-                    } else {
-                        return s.replace("\\", "\\\\");
-//                        return s;
-                    }
-                })
+                .map(s -> SystemUtils.IS_OS_WINDOWS ? s.replace("\\", "\\\\") : s)
                 .collect(Collectors.toList());
+
         if (CollectionUtils.isEmpty(lines)) {
             return false;
         }

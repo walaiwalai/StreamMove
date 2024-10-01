@@ -96,4 +96,3 @@ hs_err_pid*
 
 sh-config/src/main/resources/config/init.json
 sh-config/src/main/resources/config/streamer.json
-sh-start/src/main/resources/logback.xml

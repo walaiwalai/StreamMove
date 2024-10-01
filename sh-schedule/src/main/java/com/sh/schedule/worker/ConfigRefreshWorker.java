@@ -3,6 +3,8 @@ package com.sh.schedule.worker;
 import com.sh.config.manager.ConfigFetcher;
 import org.quartz.JobExecutionContext;
 
+import javax.annotation.Resource;
+
 /**
  * @Author caiwen
  * @Date 2023 12 23 10 20

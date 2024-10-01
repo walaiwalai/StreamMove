@@ -15,6 +15,9 @@ import com.sh.engine.model.upload.meta.DouyinWorkMetaData;
 import com.sh.engine.upload.UploaderFactory;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.BooleanUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -31,6 +34,7 @@ import java.util.Map;
 public class DouyinUploader implements Uploader {
     private CacheManager cacheManager;
     private MsgSendService msgSendService;
+    private boolean headless;
 
     private static final String AUTH_CODE_KEY = "douyin_login_authcode";
 
@@ -43,6 +47,7 @@ public class DouyinUploader implements Uploader {
     public void init() {
         cacheManager = SpringUtil.getBean(CacheManager.class);
         msgSendService = SpringUtil.getBean(MsgSendService.class);
+        headless = SpringUtil.getBean(Environment.class).getProperty("playwright.headless", Boolean.class);
     }
 
     @Override
@@ -66,7 +71,7 @@ public class DouyinUploader implements Uploader {
         // 开始上传
         try (Playwright playwright = Playwright.create()) {
             // 带着cookies创建浏览器
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(false));
+            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(getAccoutFile().getAbsolutePath())));
 
@@ -265,7 +270,7 @@ public class DouyinUploader implements Uploader {
 
         try (Playwright playwright = Playwright.create()) {
             // 启动 Chromium 浏览器，非无头模式
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(false));
+            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
             // 设置浏览器上下文
             BrowserContext context = browser.newContext();
             // 创建一个新的页面
@@ -361,7 +366,7 @@ public class DouyinUploader implements Uploader {
         }
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
             Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath()));
             BrowserContext context = browser.newContext(contextOptions);

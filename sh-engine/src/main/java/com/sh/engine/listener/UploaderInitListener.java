@@ -8,8 +8,10 @@ import com.sh.engine.UploadPlatformEnum;
 import com.sh.engine.model.upload.Uploader;
 import com.sh.engine.upload.UploaderFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -20,36 +22,28 @@ import java.util.stream.Collectors;
 
 @Component
 @Slf4j
-public class UploaderInitListener implements ApplicationListener<ContextRefreshedEvent> {
+public class UploaderInitListener implements ApplicationListener<ApplicationReadyEvent>{
 
     @Override
-    public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
+    public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
+        initUploader();
+    }
+
+    private void initUploader() {
         Set<String> platforms = ConfigFetcher.getStreamerInfoList().stream()
                 .map(StreamerConfig::getUploadPlatforms)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
-
-        initUploader(platforms);
-        log.info("init uploader finish, uploader: {}", JSON.toJSONString(platforms));
-    }
-
-    private void initUploader(Set<String> platforms) {
-        List<UploadPlatformEnum> platformEnums = platforms.stream().map(UploadPlatformEnum::of)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        for (UploadPlatformEnum platformEnum : platformEnums) {
+        for (String platform : platforms) {
             try {
-                Uploader uploader = UploaderFactory.getUploader(platformEnum.getType());
+                Uploader uploader = UploaderFactory.getUploader(platform);
+
                 uploader.init();
                 uploader.setUp();
             } catch (Exception e) {
-                log.error("init uploader failed, platform: {}", platformEnum.getType());
+                log.error("init uploader failed, platform: {}", platform);
             }
         }
-    }
-
-    public static void main(String[] args) {
-        UploaderInitListener uploaderInitListener = new UploaderInitListener();
-        uploaderInitListener.initUploader(Sets.newHashSet("DOU_YIN"));
+        log.info("init uploader success, uploaders: {}", JSON.toJSONString(platforms));
     }
 }
