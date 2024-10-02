@@ -63,7 +63,6 @@ public class WeComMsgEventController {
             return null;
         }
         try {
-            log.info("begin decrypt weixin eventXml: {}, model: {}", eventXml, JSON.toJSONString(model));
             String decryXml = crypt.DecryptMsg(model.getMsg_signature(), model.getTimestamp(), model.getNonce(), eventXml);
             cn.hutool.json.JSONObject xml = XML.toJSONObject(decryXml).getJSONObject("xml");
             JSONObject xmlObj = xml.toBean(JSONObject.class);

@@ -1,6 +1,6 @@
 package com.sh.engine.base;
 
-import com.sh.engine.StreamChannelTypeEnum;
+import com.sh.engine.constant.StreamChannelTypeEnum;
 
 import java.util.List;
 

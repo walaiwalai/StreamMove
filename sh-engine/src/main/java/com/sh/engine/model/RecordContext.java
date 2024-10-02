@@ -1,6 +1,7 @@
 package com.sh.engine.model;
 
-import com.sh.engine.model.record.Recorder;
+import com.sh.engine.constant.RecordTaskStateEnum;
+import com.sh.engine.processor.recorder.Recorder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -17,35 +17,15 @@ import java.util.List;
  * @date 2023/2/16 23:28
  */
 public class VideoFileUtil {
-    /**
-     * 获取目录下所有文件(按时间排序)
-     *
-     * @param files
-     * @return
-     */
-    public static List<File> getFileSort(List<File> files) {
-        if (CollectionUtils.isEmpty(files)) {
-            return new ArrayList<>();
-        }
-        Collections.sort(files, (file, newFile) -> {
-            if (file.lastModified() < newFile.lastModified()) {
-                return -1;
-            } else if (file.lastModified() == newFile.lastModified()) {
-                return 0;
-            } else {
-                return 1;
-            }
-        });
-
-        return files;
-    }
+    public static final String SEG_FILE_NAME = "seg-%05d.ts";
+    public static final String SEG_SNAPSHOT_FILE_NAME = "seg-%05d.jpg";
 
     public static String genSegName(int i) {
-        return "seg-" + String.format("%04d", i) + ".ts";
+        return String.format(SEG_FILE_NAME, i);
     }
 
     public static String genSnapshotName(int i) {
-        return "seg-" + String.format("%04d", i) + ".jpg";
+        return String.format(SEG_SNAPSHOT_FILE_NAME, i);
     }
 
     public static int genIndex(String segName) {

@@ -76,7 +76,10 @@ public class ConfigFetcher {
     }
 
     public static InitConfig getInitConfig() {
-        return initConfig;
+        if (initConfig != null) {
+            return initConfig;
+        }
+        return loadInitConfig();
     }
 
     public static void refresh() {
