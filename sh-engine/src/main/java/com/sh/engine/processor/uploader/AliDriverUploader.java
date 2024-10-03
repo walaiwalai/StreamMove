@@ -77,6 +77,9 @@ public class AliDriverUploader implements Uploader {
     public boolean upload(String recordPath) throws Exception {
         String targetFileId = ConfigFetcher.getInitConfig().getTargetFileId();
         File targetFile = new File(recordPath, "highlight.mp4");
+        if (!targetFile.exists()) {
+            return true;
+        }
 
         boolean success = uploadFile(targetFileId, targetFile);
         if (success) {
