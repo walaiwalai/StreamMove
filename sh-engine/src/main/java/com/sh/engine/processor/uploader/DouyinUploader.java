@@ -56,8 +56,14 @@ public class DouyinUploader implements Uploader {
 
     @Override
     public boolean upload(String recordPath) {
+        File targetFile = new File(recordPath, "highlight.mp4");
+        if (!targetFile.exists()) {
+            // 不存在也当作上传成功
+            return true;
+        }
+
         // 只选择第一个视频
-        String workFilePath = new File(recordPath, "highlight.mp4").getAbsolutePath();
+        String workFilePath = targetFile.getAbsolutePath();
 
         // 加载元数据
         DouyinWorkMetaData metaData = FileStoreUtil.loadFromFile(
@@ -301,6 +307,8 @@ public class DouyinUploader implements Uploader {
 
             // 保存二维码图片
             File qrCodeFile = PictureFileUtil.saveBase64Image(imgElementSrc);
+            msgSendService.sendText("需要扫码验证，扫描下方二维码");
+            msgSendService.sendImage(qrCodeFile);
 
             int num = 1;
             while (true) {
@@ -367,7 +375,7 @@ public class DouyinUploader implements Uploader {
             context.close();
             browser.close();
         } catch (Exception e) {
-            log.error("Failed to genCookies, path: {}", accountFile.getAbsolutePath(), e);
+            log.error("Failed to genCookies for douyin, path: {}", accountFile.getAbsolutePath(), e);
         }
     }
 

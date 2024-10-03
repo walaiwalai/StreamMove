@@ -14,6 +14,7 @@ public enum UploadPlatformEnum {
     BILI_WEB("BILI_WEB", "bilibili网页", null),
     ALI_DRIVER("ALI_DRIVER", "阿里云盘", null),
     DOU_YIN("DOU_YIN", "抖音", DouyinUploader.class),
+    TENCENT("TENCENT", "腾讯视频号", DouyinUploader.class),
     ;
 
     String type;

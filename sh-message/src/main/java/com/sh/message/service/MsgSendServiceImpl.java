@@ -95,9 +95,4 @@ public class MsgSendServiceImpl implements MsgSendService {
             log.error("send weCom image error, path: {}", imageFile.getAbsolutePath(), e);
         }
     }
-
-    public static void main(String[] args) {
-        MsgSendServiceImpl msgSendService = new MsgSendServiceImpl();
-        msgSendService.sendImage(new File("G:\\stream_record\\account\\douyin_login_qrcode.png"));
-    }
 }
