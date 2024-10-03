@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=123456
+
+  stream-ocr:
+    image: stream-ocr:v4
+    container_name: stream-ocr
+    ports:
+      - "5000:5000"
+    volumes:
+      - /home/admin/stream:/home/admin/stream
+    depends_on:
+      - redis
+
+  stream-move:
+    image: stream-move:v1
+    container_name: stream-move
+    volumes:
+      - /home/admin/stream:/home/admin/stream
+    depends_on:
+      - redis
+      - stream-ocr

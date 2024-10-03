@@ -9,11 +9,9 @@ app = Flask(__name__)
 
 # 运行变量（enable_mkldnn开启多次ocr识别会报错）
 option = fd.RuntimeOption()
-option.paddle_infer_option.enable_mkldnn = False
+#option.paddle_infer_option.enable_mkldnn = False
 
 # ocr相关
-# pp_det_file = "F:/video/models/ch_PP-OCRv3_det_infer"
-# pp_rec_file = "F:/video/models/ch_PP-OCRv3_rec_infer"
 pp_det_file = "/home/admin/stream/models/ch_PP-OCRv3_det_infer"
 pp_rec_file = "/home/admin/stream/models/ch_PP-OCRv3_rec_infer"
 det_model_file = os.path.join(pp_det_file, "inference.pdmodel")
@@ -27,12 +25,11 @@ rec_model = fd.vision.ocr.Recognizer(rec_model_file, rec_params_file, rec_label_
 ppocr_v3 = fd.vision.ocr.PPOCRv3(det_model=det_model, cls_model=None, rec_model=rec_model)
 
 # 物体识别相关
-# model_path = "F:/video/models/hero_detection"
 model_path = "/home/admin/stream/models/hero_detection"
 model_file = os.path.join(model_path, "inference.pdmodel")
 params_file = os.path.join(model_path, "inference.pdiparams")
 config_file = os.path.join(model_path, "inference.yml")
-visDetModel = fd.vision.detection.PaddleDetectionModel(model_file, params_file, config_file, runtime_option=option)
+visDetModel = fd.vision.detection.PicoDet(model_file, params_file, config_file)
 
 @app.route('/ocr', methods=['POST'])
 def ocr():
