@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Component
 public class UploaderInitListener implements ApplicationListener<ApplicationReadyEvent>{
 
     @Override
@@ -31,7 +32,7 @@ public class UploaderInitListener implements ApplicationListener<ApplicationRead
             try {
                 Uploader uploader = UploaderFactory.getUploader(platform);
 
-                uploader.init();
+//                uploader.init();
                 uploader.setUp();
             } catch (Exception e) {
                 log.error("init uploader failed, platform: {}", platform);

@@ -126,6 +126,16 @@ public class CacheManager {
     }
 
     /**
+     * 获取缓存值
+     *
+     * @param key           缓存键
+     * @return 缓存值
+     */
+    public String get(String key) {
+        return get(key, new TypeReference<String>() {});
+    }
+
+    /**
      * 删除缓存
      *
      * @param key 缓存键

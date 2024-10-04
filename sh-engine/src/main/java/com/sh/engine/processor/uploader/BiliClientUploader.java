@@ -34,7 +34,9 @@ import org.apache.http.entity.mime.FormBodyPartBuilder;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.StringBody;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -48,8 +50,11 @@ import java.util.stream.Collectors;
  * @Date 2024 09 28 22 49
  **/
 @Slf4j
-public class BiliClientUploader implements Uploader {
+@Component
+public class BiliClientUploader extends Uploader {
+    @Resource
     private CacheManager cacheManager;
+    @Resource
     private MsgSendService msgSendService;
 
     /**
@@ -80,8 +85,8 @@ public class BiliClientUploader implements Uploader {
 
     @Override
     public void init() {
-        cacheManager = SpringUtil.getBean(CacheManager.class);
-        msgSendService = SpringUtil.getBean(MsgSendService.class);
+//        cacheManager = SpringUtil.getBean(CacheManager.class);
+//        msgSendService = SpringUtil.getBean(MsgSendService.class);
     }
 
     @Override

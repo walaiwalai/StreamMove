@@ -22,7 +22,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ByteArrayEntity;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.io.File;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -37,7 +39,9 @@ import java.util.stream.Collectors;
  * @Date: 2024/9/30
  */
 @Slf4j
-public class AliDriverUploader implements Uploader {
+@Component
+public class AliDriverUploader extends Uploader {
+    @Resource
     private MsgSendService msgSendService;
 
     private static AliStoreBucket STORE_BUCKET;
@@ -58,7 +62,7 @@ public class AliDriverUploader implements Uploader {
 
     @Override
     public void init() {
-        msgSendService = SpringUtil.getBean(MsgSendService.class);
+//        msgSendService = SpringUtil.getBean(MsgSendService.class);
     }
 
     @Override

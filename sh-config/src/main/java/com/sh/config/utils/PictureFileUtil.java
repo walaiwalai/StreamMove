@@ -17,7 +17,7 @@ import java.util.Base64;
 @Slf4j
 public class PictureFileUtil {
 
-    public static File saveBase64Image(String base64Image) {
+    public static File saveBase64Image(String base64Image, String fileName) {
         String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
 
         try {
@@ -29,7 +29,7 @@ public class PictureFileUtil {
             byte[] imageBytes = Base64.getDecoder().decode(base64Image);
             InputStream inputStream = new ByteArrayInputStream(imageBytes);
             BufferedImage bufferedImage = ImageIO.read(inputStream);
-            File outputFile = new File(accountSavePath, "douyin_login_qrcode.png");
+            File outputFile = new File(accountSavePath, fileName);
             ImageIO.write(bufferedImage, "png", outputFile);
             return outputFile;
         } catch (IOException e) {

@@ -14,8 +14,11 @@ import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.io.File;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -28,9 +31,14 @@ import java.util.Map;
  * @Date 2024 09 28 22 45
  **/
 @Slf4j
-public class DouyinUploader implements Uploader {
+@Component
+public class DouyinUploader extends Uploader {
+    @Resource
     private CacheManager cacheManager;
+    @Resource
     private MsgSendService msgSendService;
+
+    @Value("${playwright.headless}")
     private boolean headless;
 
     public static final String AUTH_CODE_KEY = "douyin_login_authcode";
@@ -42,9 +50,9 @@ public class DouyinUploader implements Uploader {
 
     @Override
     public void init() {
-        cacheManager = SpringUtil.getBean(CacheManager.class);
-        msgSendService = SpringUtil.getBean(MsgSendService.class);
-        headless = SpringUtil.getBean(Environment.class).getProperty("playwright.headless", Boolean.class);
+//        cacheManager = SpringUtil.getBean(CacheManager.class);
+//        msgSendService = SpringUtil.getBean(MsgSendService.class);
+//        headless = SpringUtil.getBean(Environment.class).getProperty("playwright.headless", Boolean.class);
     }
 
     @Override
@@ -306,7 +314,7 @@ public class DouyinUploader implements Uploader {
             String imgElementSrc = imgElement.getAttribute("src");
 
             // 保存二维码图片
-            File qrCodeFile = PictureFileUtil.saveBase64Image(imgElementSrc);
+            File qrCodeFile = PictureFileUtil.saveBase64Image(imgElementSrc, UploaderFactory.getQrCodeFileName(getType()));
             msgSendService.sendText("需要扫码验证，扫描下方二维码");
             msgSendService.sendImage(qrCodeFile);
 
@@ -415,14 +423,5 @@ public class DouyinUploader implements Uploader {
                 return true;
             }
         }
-    }
-
-    /**
-     * 获取账号保存文件
-     * @return  账号文件
-     */
-    private File getAccoutFile() {
-        String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
-        return new File(accountSavePath, "douyin_accout.json");
     }
 }

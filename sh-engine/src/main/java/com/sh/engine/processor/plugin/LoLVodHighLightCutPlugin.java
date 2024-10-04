@@ -115,6 +115,10 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         // 3. 找出精彩片段
         LolSequenceStatistic statistic = new LolSequenceStatistic(datas, MAX_HIGH_LIGHT_SEG_COUNT);
         List<Pair<Integer, Integer>> potentialIntervals = statistic.getPotentialIntervals();
+        if (CollectionUtils.isEmpty(potentialIntervals)) {
+            log.info("no highlight video, will skip, path: {}", recordPath);
+            return true;
+        }
 
         // 4. 进行合并视频
         String timeStr = highlightFile.getParentFile().getName();

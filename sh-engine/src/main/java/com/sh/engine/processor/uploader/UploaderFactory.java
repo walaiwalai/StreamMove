@@ -2,13 +2,19 @@ package com.sh.engine.processor.uploader;
 
 import com.google.common.collect.Maps;
 import com.sh.engine.constant.UploadPlatformEnum;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
+import java.util.List;
 import java.util.Map;
 
 /**
  * @Author : caiwen
  * @Date: 2024/9/29
  */
+@Component
 public class UploaderFactory {
     /**
      * 上传器
@@ -16,18 +22,39 @@ public class UploaderFactory {
     private static Map<String, Uploader> uploaderMap = Maps.newHashMap();
 
     /**
+     * 登录二维码名称
+     */
+    private static Map<String, String> qrCodemap = Maps.newHashMap();
+
+    /**
+     * 存储个人信息的key
+     */
+    private static Map<String, String> accountKeymap = Maps.newHashMap();
+
+    /**
      * 元数据文件名称
      */
     private static Map<String, String> uploaderMetaFileName = Maps.newHashMap();
 
-    static  {
-        uploaderMap.put(UploadPlatformEnum.DOU_YIN.getType(), new DouyinUploader());
-        uploaderMap.put(UploadPlatformEnum.BILI_CLIENT.getType(), new BiliClientUploader());
-        uploaderMap.put(UploadPlatformEnum.ALI_DRIVER.getType(), new AliDriverUploader());
+    @Resource
+    private List<Uploader> uploaders;
+
+    @PostConstruct
+    private void init() {
+        for (Uploader uploader : uploaders) {
+            uploaderMap.put(uploader.getType(), uploader);
+        }
+
+        qrCodemap.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin_login_qrcode.png");
+        qrCodemap.put(UploadPlatformEnum.WECHAT_VIDEO.getType(), "wechat_login_qrcode.png");
+
+        accountKeymap.put(UploadPlatformEnum.DOU_YIN.getType(), "wechat-video-cookies");
+        accountKeymap.put(UploadPlatformEnum.WECHAT_VIDEO.getType(), "douyin-cookies");
 
         uploaderMetaFileName.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin-metaData.json");
         uploaderMetaFileName.put(UploadPlatformEnum.BILI_CLIENT.getType(), "bili-client-metaData.json");
         uploaderMetaFileName.put(UploadPlatformEnum.ALI_DRIVER.getType(), "ali-driver-metaData.json");
+        uploaderMetaFileName.put(UploadPlatformEnum.WECHAT_VIDEO.getType(), "wechat-video-metaData.json");
     }
 
     public static Uploader getUploader(String type) {
@@ -36,5 +63,9 @@ public class UploaderFactory {
 
     public static String getMetaFileName(String type) {
         return uploaderMetaFileName.get(type);
+    }
+
+    public static String getQrCodeFileName(String type) {
+        return qrCodemap.get(type);
     }
 }

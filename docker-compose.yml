@@ -3,6 +3,7 @@ version: '3.8'
 services:
   redis:
     image: redis:latest
+    network_mode: host
     container_name: redis
     ports:
       - "6379:6379"
@@ -11,6 +12,7 @@ services:
 
   stream-ocr:
     image: stream-ocr:v4
+    network_mode: host
     container_name: stream-ocr
     ports:
       - "5000:5000"
@@ -21,6 +23,7 @@ services:
 
   stream-move:
     image: stream-move:v1
+    network_mode: host
     container_name: stream-move
     volumes:
       - /home/admin/stream:/home/admin/stream
