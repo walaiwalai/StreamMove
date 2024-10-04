@@ -15,11 +15,11 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 public class RedisConfig {
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
-        try {
-            factory.getConnection().ping();
-        } catch (Exception e) {
-            throw new RuntimeException("Unable to connect to Redis server. Application startup failed.", e);
-        }
+//        try {
+//            factory.getConnection().ping();
+//        } catch (Exception e) {
+//            throw new RuntimeException("Unable to connect to Redis server. Application startup failed.", e);
+//        }
 
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
