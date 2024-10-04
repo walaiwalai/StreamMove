@@ -7,8 +7,10 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+
     environment:
       - REDIS_PASSWORD=123456
+    command: [ "redis-server", "--requirepass", "123456" ]
 
   stream-ocr:
     image: stream-ocr:v4
