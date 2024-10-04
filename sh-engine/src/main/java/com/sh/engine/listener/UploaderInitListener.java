@@ -14,7 +14,6 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Component
 @Slf4j
 public class UploaderInitListener implements ApplicationListener<ApplicationReadyEvent>{
 
