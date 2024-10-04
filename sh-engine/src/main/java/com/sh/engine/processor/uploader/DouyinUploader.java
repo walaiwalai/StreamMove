@@ -49,13 +49,6 @@ public class DouyinUploader extends Uploader {
     }
 
     @Override
-    public void init() {
-//        cacheManager = SpringUtil.getBean(CacheManager.class);
-//        msgSendService = SpringUtil.getBean(MsgSendService.class);
-//        headless = SpringUtil.getBean(Environment.class).getProperty("playwright.headless", Boolean.class);
-    }
-
-    @Override
     public void setUp() {
         if (!checkAccountValid()) {
             genCookies();
@@ -70,7 +63,15 @@ public class DouyinUploader extends Uploader {
             return true;
         }
 
-        // 只选择第一个视频
+        // cookies有效性检测
+        setUp();
+
+        // 真正上传
+        return doUpload(recordPath);
+    }
+
+    private boolean doUpload(String recordPath) {
+        File targetFile = new File(recordPath, "highlight.mp4");
         String workFilePath = targetFile.getAbsolutePath();
 
         // 加载元数据
@@ -151,7 +152,6 @@ public class DouyinUploader extends Uploader {
             context.close();
             browser.close();
             return true;
-
         } catch (Exception e) {
             log.error("douyin fuck", e);
             return false;

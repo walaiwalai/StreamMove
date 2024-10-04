@@ -9,6 +9,7 @@ import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.processor.uploader.meta.BiliClientWorkMetaData;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
+import com.sh.engine.processor.uploader.meta.WechatVideoMetaData;
 import com.sh.engine.processor.uploader.meta.WorkMetaData;
 import com.sh.engine.processor.uploader.UploaderFactory;
 import com.sh.engine.util.DateUtil;
@@ -35,9 +36,6 @@ import java.util.Optional;
 @Component
 @Slf4j
 public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
-    private static final DateTimeFormatter DATE_ONLY_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
     @Override
     public String getPluginName() {
         return ProcessPluginEnum.META_DATA_GEN.getType();
@@ -78,6 +76,8 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
             FileStoreUtil.saveToFile(new File(recordPath, metaFileName), buildMetaDataForBiliClient(streamerConfig, recordPath));
         } else if (platformEnum == UploadPlatformEnum.DOU_YIN) {
             FileStoreUtil.saveToFile(new File(recordPath, metaFileName), buildMetaDataForDouyin(streamerConfig, recordPath));
+        } else if (platformEnum == UploadPlatformEnum.WECHAT_VIDEO) {
+            FileStoreUtil.saveToFile(new File(recordPath, metaFileName), buildMetaDataForWechatVideo(streamerConfig, recordPath));
         }
     }
 
@@ -100,6 +100,15 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
         metaData.setDesc(streamerConfig.getDesc());
         metaData.setTags(streamerConfig.getTags());
         metaData.setLocation(streamerConfig.getLocation());
+        metaData.setPreViewFilePath(streamerConfig.getPreViewFilePath());
+        return metaData;
+    }
+
+    private static WorkMetaData buildMetaDataForWechatVideo(StreamerConfig streamerConfig, String recordPath) {
+        WechatVideoMetaData metaData = new WechatVideoMetaData();
+        metaData.setTitle(genTitle(streamerConfig, recordPath));
+        metaData.setDesc(streamerConfig.getDesc());
+        metaData.setTags(streamerConfig.getTags());
         metaData.setPreViewFilePath(streamerConfig.getPreViewFilePath());
         return metaData;
     }

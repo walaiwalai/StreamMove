@@ -1,6 +1,5 @@
 package com.sh.engine.constant;
 
-import com.sh.engine.processor.uploader.DouyinUploader;
 import com.sh.engine.processor.uploader.Uploader;
 
 /**
@@ -10,29 +9,23 @@ import com.sh.engine.processor.uploader.Uploader;
  * @Date 2024 07 07 17 20
  **/
 public enum UploadPlatformEnum {
-    BILI_CLIENT("BILI_CLIENT", "bilibili客户端", null),
-    BILI_WEB("BILI_WEB", "bilibili网页", null),
-    ALI_DRIVER("ALI_DRIVER", "阿里云盘", null),
-    DOU_YIN("DOU_YIN", "抖音", DouyinUploader.class),
-    WECHAT_VIDEO("WECHAT_VIDEO", "腾讯视频号", DouyinUploader.class),
+    BILI_CLIENT("BILI_CLIENT", "bilibili客户端"),
+    BILI_WEB("BILI_WEB", "bilibili网页"),
+    ALI_DRIVER("ALI_DRIVER", "阿里云盘"),
+    DOU_YIN("DOU_YIN", "抖音"),
+    WECHAT_VIDEO("WECHAT_VIDEO", "腾讯视频号"),
     ;
 
     String type;
     String desc;
-    Class<? extends Uploader> uploader;
 
-    UploadPlatformEnum( String type, String desc, Class<? extends Uploader> uploader ) {
+    UploadPlatformEnum( String type, String desc) {
         this.type = type;
         this.desc = desc;
-        this.uploader = uploader;
     }
 
     public String getType() {
         return type;
-    }
-
-    public Class<? extends Uploader> getUploader() {
-        return uploader;
     }
 
     public static UploadPlatformEnum of( String type ) {

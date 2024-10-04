@@ -61,11 +61,6 @@ public class AliDriverUploader extends Uploader {
     }
 
     @Override
-    public void init() {
-//        msgSendService = SpringUtil.getBean(MsgSendService.class);
-    }
-
-    @Override
     public void setUp() {
         String refreshToken = ConfigFetcher.getInitConfig().getRefreshToken();
         assert StringUtils.isNotBlank(refreshToken);

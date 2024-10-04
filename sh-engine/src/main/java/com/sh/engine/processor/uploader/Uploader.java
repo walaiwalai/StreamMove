@@ -11,8 +11,6 @@ import java.io.File;
 public abstract class Uploader {
     public abstract String getType();
 
-    public abstract void init();
-
     /**
      * 初始化上传器
      * 如：用户cookies获取

@@ -84,12 +84,6 @@ public class BiliClientUploader extends Uploader {
     }
 
     @Override
-    public void init() {
-//        cacheManager = SpringUtil.getBean(CacheManager.class);
-//        msgSendService = SpringUtil.getBean(MsgSendService.class);
-    }
-
-    @Override
     public void setUp() {
 
     }
