@@ -1,13 +1,13 @@
-from flask import Flask, jsonify, request
+from fastapi import FastAPI, Request
 import cv2
 import fastdeploy as fd
 import os
 import numpy as np
 import re
 
-app = Flask(__name__)
+app = FastAPI()
 
-# 运行变量（enable_mkldnn开启多次ocr识别会报错）
+# 运行变量
 option = fd.RuntimeOption()
 #option.paddle_infer_option.enable_mkldnn = False
 
@@ -31,9 +31,10 @@ params_file = os.path.join(model_path, "inference.pdiparams")
 config_file = os.path.join(model_path, "inference.yml")
 visDetModel = fd.vision.detection.PicoDet(model_file, params_file, config_file)
 
-@app.route('/ocr', methods=['POST'])
-def ocr():
-    path = request.get_json()['path']
+@app.post('/ocr')
+async def ocr(request: Request):
+    data = await request.json()
+    path = data['path']
     im = cv2.imread(path)
 
     try:
@@ -47,28 +48,24 @@ def ocr():
 
     text = text_match.group(1) if text_match else ""
     score = score_match.group(1) if score_match else ""
-    res = {}
-    res['text'] = text
-    res['score'] = score
-    return jsonify(res)
+    res = {'text': text, 'score': score}
+    return res
 
-
-@app.route('/lolKillVisDet', methods=['POST'])
-def visDet():
-    path = request.get_json()['path']
+@app.post('/lolKillVisDet')
+async def visDet(request: Request):
+    data = await request.json()
+    path = data['path']
     im = cv2.imread(path)
     result = visDetModel.predict(im)
-    
+
     scores = np.array(result.scores)
     index = scores > 0.6
     boxes = np.array(result.boxes)[index]
     label_ids = np.array(result.label_ids)[index]
 
-    res = {}
-    res['boxes'] = boxes.tolist()
-    res['labelIds'] = label_ids.tolist()
-
-    return jsonify(res)
+    res = {'boxes': boxes.tolist(), 'labelIds': label_ids.tolist()}
+    return res
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    import uvicorn
+    uvicorn.run(app, host='0.0.0.0', port=5000)

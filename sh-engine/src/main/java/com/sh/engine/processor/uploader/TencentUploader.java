@@ -107,7 +107,7 @@
 //            // 关闭浏览器
 //            context.close();
 //            browser.close();
-//        } catch (InterruptedException | IOException e) {
+//        } catch (Exception e) {
 //            log.error("Failed to genCookies for tencent, path: {}", accountFile.getAbsolutePath(), e);
 //        }
 //    }

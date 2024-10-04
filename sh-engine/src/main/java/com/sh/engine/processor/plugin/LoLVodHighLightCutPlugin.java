@@ -12,6 +12,7 @@ import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.lol.LoLPicData;
 import com.sh.engine.model.lol.LolSequenceStatistic;
+import com.sh.engine.util.DateUtil;
 import com.sh.message.service.MsgSendService;
 import com.sh.engine.service.VideoMergeService;
 import com.sh.engine.util.CommandUtil;
@@ -116,7 +117,9 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         List<Pair<Integer, Integer>> potentialIntervals = statistic.getPotentialIntervals();
 
         // 4. 进行合并视频
-        boolean success = videoMergeService.mergeMultiWithFadeV2(buildMergeFileNames(potentialIntervals, videos), highlightFile);
+        String timeStr = highlightFile.getParentFile().getName();
+        String title = DateUtil.describeTime(timeStr, DateUtil.YYYY_MM_DD_HH_MM_SS_V2) + "\n" + StreamerInfoHolder.getCurStreamerName() + "直播精彩片段";
+        boolean success = videoMergeService.mergeMultiWithFadeV2(buildMergeFileNames(potentialIntervals, videos), highlightFile, title);
 
         // 5. 发消息
         String msg = success ?

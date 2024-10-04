@@ -22,7 +22,8 @@ public interface VideoMergeService {
      *
      * @param intervals
      * @param targetVideo
+     * @param title
      * @return
      */
-    boolean mergeMultiWithFadeV2(List<List<String>> intervals, File targetVideo);
+    boolean mergeMultiWithFadeV2(List<List<String>> intervals, File targetVideo, String title);
 }

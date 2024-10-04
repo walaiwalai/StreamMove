@@ -2,9 +2,10 @@ package com.sh.engine.service;
 
 import cn.hutool.core.io.file.FileNameUtil;
 import com.google.common.collect.Lists;
-import com.sh.config.utils.EnvUtil;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.util.CommandUtil;
+import com.sh.engine.util.DateUtil;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -113,7 +114,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
             List<String> interval = intervals.get(i);
             for (int j = 0; j < interval.size(); j++) {
                 if (j == 0) {
-                    segVideoPaths.add(doFade(new File(interval.get(j))));
+                    segVideoPaths.add(genFadeVideo(new File(interval.get(j))));
                 } else {
                     segVideoPaths.add(interval.get(j));
                 }
@@ -123,7 +124,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     }
 
     @Override
-    public boolean mergeMultiWithFadeV2(List<List<String>> intervals, File targetVideo) {
+    public boolean mergeMultiWithFadeV2( List<List<String>> intervals, File targetVideo, String title ) {
         // 单独一个不处理
         if (intervals.size() == 1) {
             return concatByDemuxer(intervals.get(0), targetVideo);
@@ -138,7 +139,11 @@ public class VideoMergeServiceImpl implements VideoMergeService {
             File tmpFile = new File((tmpSaveDir), "tmp-" + (i + 1) + ".ts");
             boolean success = concatByDemuxer(intervals.get(i), tmpFile);
             if (success) {
-                mergedPaths.add(doFade(tmpFile));
+                if (i == 0) {
+                    mergedPaths.add(genTitleVideo(tmpFile, title));
+                } else {
+                    mergedPaths.add(genFadeVideo(tmpFile));
+                }
             }
         }
 
@@ -150,10 +155,49 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     }
 
     /**
+     * 往标题加上title
+     *
      * @param oldVideoFile
      * @return
      */
-    private String doFade(File oldVideoFile) {
+    private String genTitleVideo( File oldVideoFile, String title ) {
+        File fadedSeg = new File(oldVideoFile.getParent(), FileNameUtil.getPrefix(oldVideoFile) + "-fade.ts");
+        String fadedPath = fadedSeg.getAbsolutePath();
+
+        // 按空格拆分成两行
+        String[] lines = title.split("\n", 2);
+        String firstLine = lines.length > 0 ? lines[0] : "";
+        String secondLine = lines.length > 1 ? lines[1] : "";
+        String cmd = String.format(
+                "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf \"" +
+                        "drawtext=text='%s':fontcolor=white:fontsize=80:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=(h-text_h)/2-40:enable='lt(t,1)', " +
+                        "drawtext=text='%s':fontcolor=yellow:fontsize=80:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=(h-text_h)/2+60:enable='lt(t,1)'\"" +
+                        " -codec:a copy " + fadedPath,
+                firstLine, secondLine
+        );
+
+        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
+        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
+        if (resCode == 0) {
+            log.info("add title success, path: {}, title: {}", fadedPath, title);
+            return fadedPath;
+        } else {
+            log.info("add title fail, will use origin video, path: {}, resCode: {}", fadedPath, resCode);
+            return oldVideoFile.getAbsolutePath();
+        }
+    }
+
+    public static void main( String[] args ) {
+        VideoMergeServiceImpl service = new VideoMergeServiceImpl();
+        String title = DateUtil.describeTime("2024-03-15-16-43-15", DateUtil.YYYY_MM_DD_HH_MM_SS_V2) + "\n" + "Theshy" + "直播精彩片段";
+        service.genTitleVideo(new File("/Users/caiwen/Desktop/222.mp4"), title);
+    }
+
+    /**
+     * @param oldVideoFile
+     * @return
+     */
+    private String genFadeVideo( File oldVideoFile) {
         File fadedSeg = new File(oldVideoFile.getParent(), FileNameUtil.getPrefix(oldVideoFile) + "-fade.ts");
         String fadedPath = fadedSeg.getAbsolutePath();
         String cmd = "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf fade=t=in:st=0:d=" + FADE_DURATION + " -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;

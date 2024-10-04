@@ -11,6 +11,7 @@ import com.sh.engine.processor.uploader.meta.BiliClientWorkMetaData;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
 import com.sh.engine.processor.uploader.meta.WorkMetaData;
 import com.sh.engine.processor.uploader.UploaderFactory;
+import com.sh.engine.util.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -112,7 +113,7 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
     private static String genTitle(StreamerConfig streamerConfig, String recordPath) {
         String timeV = new File(recordPath).getName();
         Map<String, String> paramsMap = Maps.newHashMap();
-        paramsMap.put("time", describeTime(timeV));
+        paramsMap.put("time", DateUtil.describeTime(timeV, DateUtil.YYYY_MM_DD_HH_MM_SS_V2));
         paramsMap.put("name", streamerConfig.getName());
 
         if (StringUtils.isNotBlank(streamerConfig.getTemplateTitle())) {
@@ -120,41 +121,6 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
             return sub.replace(streamerConfig.getTemplateTitle());
         } else {
             return streamerConfig.getName() + " " + timeV + " " + "录播";
-        }
-    }
-
-
-    /**
-     * 根据给定的时间字符串返回年月日 + 时间段描述
-     *
-     * @param timeStr 时间字符串，格式为 "yyyy-MM-dd-HH-mm-ss"
-     * @return 年月日 + 时间段描述
-     */
-    private static String describeTime(String timeStr) {
-        LocalDateTime dateTime = LocalDateTime.parse(timeStr, DATE_FORMATTER);
-        LocalTime time = dateTime.toLocalTime();
-        String timeDescription = getTimeDescription(time);
-        return dateTime.toLocalDate().format(DATE_ONLY_FORMATTER) + " " + timeDescription;
-    }
-
-    /**
-     * 获取时间段描述
-     *
-     * @param time 时间
-     * @return 时间段描述
-     */
-    private static String getTimeDescription(LocalTime time) {
-        int hour = time.getHour();
-        if (hour < 4) {
-            return "凌晨";
-        } else if (hour >= 5 && hour < 12) {
-            return "早上";
-        } else if (hour >= 12 && hour < 18) {
-            return "中午";
-        } else if (hour >= 18) {
-            return "晚上";
-        } else {
-            return "下午";
         }
     }
 }
