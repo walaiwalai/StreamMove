@@ -169,13 +169,13 @@ public class DouyinUploader extends Uploader {
 
         String publishDateHour = publishDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 
-        Thread.sleep(1000);
+        page.waitForTimeout(1000);
         page.locator(".semi-input[placeholder='日期和时间']").click();
         page.keyboard().press("Control+A");
         page.keyboard().type(publishDateHour);
         page.keyboard().press("Enter");
 
-        Thread.sleep(1000);
+        page.waitForTimeout(1000);
     }
 
     /**
@@ -319,7 +319,7 @@ public class DouyinUploader extends Uploader {
             int num = 1;
             while (true) {
                 // 等待 3 秒
-                Thread.sleep(3000);
+                page.waitForTimeout(3000);
 
                 // 检查是否已登录
                 if (page.url().contains("creator.douyin.com/creator-micro/home")) {
@@ -331,19 +331,19 @@ public class DouyinUploader extends Uploader {
                 if (authDiv.isVisible()) {
                     // 需要短信验证码验证
                     page.locator("text=接收短信验证").click();
-                    Thread.sleep(1000);
+                    page.waitForTimeout(1000);
                     page.locator("text=获取验证码").click();
                     msgSendService.sendText("需要进行验证码验证，验证码已发出，请在60s内在微应用回复验证码");
 
                     int numTwo = 1;
                     while (true) {
-                        Thread.sleep(3000);
+                        page.waitForTimeout(3000);
                         // 检查缓存中是否有验证码
                         String authNumber = cacheManager.get(AUTH_CODE_KEY, new TypeReference<String>() {});
                         if (authNumber != null) {
                             page.locator("input[placeholder='请输入验证码']").nth(1).fill(authNumber);
                             page.getByText("验证", new Page.GetByTextOptions().setExact(true)).filter().click();
-                            Thread.sleep(2000);
+                            page.waitForTimeout(2000);
 
                             break;
                         }

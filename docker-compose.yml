@@ -18,8 +18,6 @@ services:
     container_name: stream-ocr
     ports:
       - "5000:5000"
-    volumes:
-      - /home/admin/stream:/home/admin/stream
     depends_on:
       - redis
 

@@ -73,15 +73,18 @@ public class WechatVideoUploader extends Uploader {
             Locator successImgDiv = page.locator(".mask").first();
             int num = 0;
             while (num ++ < 13) {
-                Thread.sleep(3000);
+                page.waitForTimeout(3000);
                 String successShowClass = successImgDiv.getAttribute("class");
                 if (successShowClass != null && successShowClass.contains("show")) {
+                    log.info("scan qrCode for {} success", getType());
                     break;
+                } else {
+                    log.info("waiting for scanning qrCode for {}..., retry: {}/13", getType(), num);
                 }
             }
 
             // 等待用户操作并刷新页面
-            Thread.sleep(6000);
+            page.waitForTimeout(7000);
             List<Cookie> cookies = context.cookies();
             Map<String, String> userInfo = null;
 
