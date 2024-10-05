@@ -48,8 +48,8 @@ public class UploaderFactory {
         qrCodemap.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin_login_qrcode.png");
         qrCodemap.put(UploadPlatformEnum.WECHAT_VIDEO.getType(), "wechat_login_qrcode.png");
 
-        accountKeymap.put(UploadPlatformEnum.DOU_YIN.getType(), "wechat-video-cookies");
-        accountKeymap.put(UploadPlatformEnum.WECHAT_VIDEO.getType(), "douyin-cookies");
+        accountKeymap.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin-cookies.json");
+        accountKeymap.put(UploadPlatformEnum.WECHAT_VIDEO.getType(), "wechat-video-cookies.json");
 
         uploaderMetaFileName.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin-metaData.json");
         uploaderMetaFileName.put(UploadPlatformEnum.BILI_CLIENT.getType(), "bili-client-metaData.json");
@@ -63,6 +63,10 @@ public class UploaderFactory {
 
     public static String getMetaFileName(String type) {
         return uploaderMetaFileName.get(type);
+    }
+
+    public static String getAccountFileName(String type) {
+        return accountKeymap.get(type);
     }
 
     public static String getQrCodeFileName(String type) {

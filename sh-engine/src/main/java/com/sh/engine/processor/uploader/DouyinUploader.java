@@ -294,9 +294,7 @@ public class DouyinUploader extends Uploader {
      * 生成cookies
      */
     private void genCookies() {
-        String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
-        File accountFile = new File(accountSavePath, "douyin_accout.json");
-
+        File accountFile = getAccoutFile();
 
         try (Playwright playwright = Playwright.create()) {
             // 启动 Chromium 浏览器，非无头模式

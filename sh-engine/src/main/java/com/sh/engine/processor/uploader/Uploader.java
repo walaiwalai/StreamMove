@@ -30,7 +30,7 @@ public abstract class Uploader {
      */
     protected File getAccoutFile() {
         String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
-        return new File(accountSavePath, UploaderFactory.getMetaFileName(getType()));
+        return new File(accountSavePath, UploaderFactory.getAccountFileName(getType()));
     }
 
     protected String getAccountKey() {
