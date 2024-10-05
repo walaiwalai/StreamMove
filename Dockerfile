@@ -1,4 +1,4 @@
-FROM stream-base:v1
+FROM stream-base:latest
 MAINTAINER caiwen 'caiwenwqc@163.com'
 
 VOLUME /tmp

@@ -32,9 +32,17 @@ touch streamer.json
 
 ### 3. 填写init.json和streamer.json配置信息（见下）
 
-### 4. 配置docker-compose
+### 4. docker部署
 ```shell
+cd /home/admin
+git clone https://github.com/walaiwalai/StreamMove.git
+cd StreamMove
+
 # 1. 创建启动配置文件
+docker build -t stream-ocr:latest -f Dockerfile-ocr .
+docker build -t stream-base:latest -f Dockerfile-base .
+docker build -t stream-move:latest -f Dockerfile .
+
 touch docker-compose.yml
 
 # 2.编辑文件
