@@ -26,18 +26,18 @@ mddir -p /home/admin/stream && cd /home/admin/stream
 
 ### 2. 创建项目初始化配置文件 & 直播用户配置
 ```shell
-touch init.json
-touch streamer.json
-```
-
-### 3. 填写init.json和streamer.json配置信息（见下）
-
-### 4. 编译
-```shell
 cd /home/admin
 git clone https://github.com/walaiwalai/StreamMove.git
-cd StreamMove
-apt intall maven
+cd /home/admin/StreamMove/sh-config/src/main/resources
+
+# 填写init.json和streamer.json配置信息（见下）
+vim init.json
+vim streamer.json
+```
+
+### 3. 编译
+```shell
+# 没有maven安装以下：apt intall maven
 mvn package
 ```
 ### 4. docker部署
