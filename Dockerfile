@@ -3,8 +3,8 @@ MAINTAINER caiwen 'caiwenwqc@163.com'
 
 VOLUME /tmp
 
-WORKDIR /app
-ENV APP_HOME=/app
+WORKDIR /home/admin/stream
+ENV APP_HOME=/home/admin/stream
 
 COPY sh-config/target/classes/config/init.json ${APP_HOME}/init.json
 COPY sh-config/target/classes/config/streamer.json ${APP_HOME}/streamer.json
