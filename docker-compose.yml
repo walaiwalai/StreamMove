@@ -1,19 +1,19 @@
-version: '3.8'
+version: '3.3'
 
 services:
   redis:
     image: redis:latest
-    network_mode: host
     container_name: redis
+    network_mode: host
     ports:
       - "6379:6379"
-
     environment:
       - REDIS_PASSWORD=123456
-    command: [ "redis-server", "--requirepass", "123456" ]
+    command: ["redis-server", "--requirepass", "123456"]
+
 
   stream-ocr:
-    image: stream-ocr:v4
+    image: stream-ocr:latest
     network_mode: host
     container_name: stream-ocr
     ports:
@@ -24,7 +24,7 @@ services:
       - redis
 
   stream-move:
-    image: stream-move:v1
+    image: stream-move:latest
     network_mode: host
     container_name: stream-move
     volumes:
