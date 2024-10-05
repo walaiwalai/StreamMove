@@ -1,0 +1,22 @@
+[
+  {
+    "name": "TheShy",
+    "roomUrl": "https://huya.com/999111",
+    "templateTitle": "【${name}直播回放】 ${time}",
+    "desc": "TheShy直播录播",
+    "source": "TheShy直播间：https://huya.com/999111",
+    "dynamic": "",
+    "tid": 171,
+    "tags": [
+      "TheShy",
+      "英雄联盟",
+      "直播录播",
+      "直播回放"
+    ],
+    "cover": "xxx",
+
+    "recordWhenOnline": false,
+    "lastRecordTime": "2024-12-24 12:00:00",
+    "videoPlugins": ["LOL_HL_VOD_CUT"]
+  }
+]

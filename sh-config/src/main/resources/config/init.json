@@ -1,0 +1,12 @@
+{
+  "roomCheckCron": "0/15 * * * * ?",
+  "fileCleanCron": "0 3 0 * * ?",
+  "configRefreshCron": "0 0/30 * * * ?",
+
+  "videoSavePath": "xxx",
+  "accountSavePath": "xxx",
+
+  "videoPartLimitSize": 10
+
+  // 请按照init.json参数配置
+}
