@@ -6,7 +6,7 @@ WORKDIR /app
 
 # 复制 Python 脚本和模型到容器中
 COPY paddle-vision.py /app/paddle-vision.py
-COPY models /app/stream/models
+COPY models /app/models
 
 # 安装必要的依赖项，包括 Flask，并清理无用的文件
 RUN apt-get update && apt-get install -y \
