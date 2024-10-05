@@ -21,16 +21,19 @@
 
 ### 1. 创建项目路径
 ```shell
-mddir -p /home/admin/stream && cd /home/admin/stream
+mkdir -p /home/admin/stream/{download,logs,dump,account,thumbnail}
+
 ```
 
 ### 2. 创建项目初始化配置文件 & 直播用户配置
 ```shell
 cd /home/admin
 git clone https://github.com/walaiwalai/StreamMove.git
-cd /home/admin/StreamMove/sh-config/src/main/resources
+cd StreamMove
+
 
 # 填写init.json和streamer.json配置信息（见下）
+cd /home/admin/StreamMove/sh-config/src/main/resources/config
 vim init.json
 vim streamer.json
 ```
@@ -39,6 +42,12 @@ vim streamer.json
 ```shell
 # 没有maven安装以下：apt intall maven
 mvn package
+
+# 拷贝到项目目录
+cp /home/admin/StreamMove/sh-config/target/classes/config/init.json /home/admin/stream
+cp /home/admin/StreamMove/sh-config/target/classes/config/streamer.json /home/admin/stream
+cp /home/admin/StreamMove/sh-start/target/sh-start-1.0-SNAPSHOT.jar /home/admin/stream
+
 ```
 ### 4. docker部署
 ```shell
