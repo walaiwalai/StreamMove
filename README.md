@@ -32,54 +32,22 @@ touch streamer.json
 
 ### 3. 填写init.json和streamer.json配置信息（见下）
 
-### 4. docker部署
+### 4. 编译
 ```shell
 cd /home/admin
 git clone https://github.com/walaiwalai/StreamMove.git
 cd StreamMove
-
-# 1. 创建启动配置文件
+apt intall maven
+mvn package
+```
+### 4. docker部署
+```shell
+# 1. 创建镜像
 docker build -t stream-ocr:latest -f Dockerfile-ocr .
 docker build -t stream-base:latest -f Dockerfile-base .
 docker build -t stream-move:latest -f Dockerfile .
 
-touch docker-compose.yml
-
-# 2.编辑文件
-vim docker-compose.yml
-
-# 3.配置如下
-version: '3.3'
-services:
-  redis:
-    image: redis:latest
-    container_name: redis
-    ports:
-      - "6379:6379"
-    environment:
-      - REDIS_PASSWORD=123456
-
-  streammove-ocr:
-    image: wqc57c/streammove-ocr:v1
-    container_name: streammove-ocr
-    ports:
-      - "5000:5000"
-    volumes:
-      - /home/admin/stream:/home/admin/stream
-    depends_on:
-      - redis
-
-  streammmove:
-    image: wqc57c/streammove:v1
-    container_name: streammmove
-    volumes:
-      - /home/admin/stream:/home/admin/stream
-    depends_on:
-      - redis
-      - streammove-ocr
-```
-### 5. 启动docker服务
-```shell
+# 2.启动docker
 docker-compose up -d
 ```
 

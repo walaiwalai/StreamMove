@@ -6,8 +6,8 @@ VOLUME /tmp
 WORKDIR /home/admin/stream
 ENV APP_HOME=/home/admin/stream
 
-COPY init.json ${APP_HOME}/init.json
-COPY streamer.json ${APP_HOME}/streamer.json
+COPY /home/admin/stream/init.json ${APP_HOME}/init.json
+COPY /home/admin/stream/streamer.json ${APP_HOME}/streamer.json
 COPY sh-start-1.0-SNAPSHOT.jar ${APP_HOME}/sh-start-1.0-SNAPSHOT.jar
 
 RUN mkdir -p ${APP_HOME}/download && \
