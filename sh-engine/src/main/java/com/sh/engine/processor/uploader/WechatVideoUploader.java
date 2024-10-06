@@ -66,7 +66,7 @@ public class WechatVideoUploader extends Uploader {
             // 获取二维码图片的 src 属性
             String imgElement = page.locator("img.qrcode").getAttribute("src");
             File qrCodeFile = PictureFileUtil.saveBase64Image(imgElement, UploaderFactory.getQrCodeFileName(getType()));
-            msgSendService.sendText("微信视频好需要扫码验证，扫描下方二维码");
+            msgSendService.sendText("微信视频号需要扫码验证，扫描下方二维码");
             msgSendService.sendImage(qrCodeFile);
 
             // 检查扫码状态
