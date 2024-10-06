@@ -52,7 +52,12 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), VALID_URL_BASE);
 
         // 获取最近视频
-        VideoShelvesItem videoItem = findLatestVideoItem(channelName);
+        VideoShelvesItem videoItem = null;
+        try {
+            videoItem = findLatestVideoItem(channelName);
+        } catch (Exception e) {
+            return null;
+        }
         // 发布时间
         Instant instant = Instant.parse(videoItem.getPublishedAt());
         Date date = Date.from(instant);
