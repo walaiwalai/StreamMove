@@ -4,7 +4,6 @@ services:
   redis:
     image: redis:latest
     container_name: redis
-    network_mode: host
     ports:
       - "6379:6379"
     environment:
@@ -16,7 +15,6 @@ services:
 
   stream-ocr:
     image: stream-ocr:latest
-    network_mode: host
     container_name: stream-ocr
     volumes:
       - /home/admin/stream/download:/home/admin/stream/download
@@ -29,7 +27,6 @@ services:
 
   stream-move:
     image: stream-move:latest
-    network_mode: host
     container_name: stream-move
     volumes:
       - /home/admin/stream:/home/admin/stream
