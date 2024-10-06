@@ -71,4 +71,8 @@ public class InitConfig {
     private String weComEventToken;
     private String weComEncodingAesKey;
     private String weComCorpId;
+
+
+    // *********************用户登录小关**********************
+    private String phoneNumber;
 }

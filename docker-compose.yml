@@ -10,16 +10,22 @@ services:
     environment:
       - REDIS_PASSWORD=123456
     command: ["redis-server", "--requirepass", "123456"]
+    networks:
+      - stream-docker
 
 
   stream-ocr:
     image: stream-ocr:latest
     network_mode: host
     container_name: stream-ocr
+    volumes:
+      - /home/admin/stream/download:/home/admin/stream/download
     ports:
       - "5000:5000"
     depends_on:
       - redis
+    networks:
+      - stream-docker
 
   stream-move:
     image: stream-move:latest
@@ -27,6 +33,14 @@ services:
     container_name: stream-move
     volumes:
       - /home/admin/stream:/home/admin/stream
+    ports:
+      - "8080:8080"
     depends_on:
       - redis
       - stream-ocr
+    networks:
+      - stream-docker
+
+networks:
+  stream-docker:
+    external: false

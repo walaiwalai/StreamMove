@@ -1,8 +1,5 @@
 FROM linuxserver/ffmpeg:7.0.2
 
-# 设置工作目录
-WORKDIR /home/admin/stream
-
 # 更新包列表，安装 pip 和 python3-venv，并清理缓存
 RUN apt-get update && \
     apt-get install -y --no-install-recommends python3-pip python3-venv openjdk-8-jre libxkbcommon0 libgbm1 && \

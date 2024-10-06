@@ -53,7 +53,10 @@ public class WeComMsgEventController {
 
     @RequestMapping(value = "/test", method = {RequestMethod.POST, RequestMethod.GET})
     @ResponseBody
-    public String accept() {
+    public String accept(@RequestBody JSONObject requestBody) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("Content", requestBody.getString("content"));
+        weComMsgEventManager.processEvent(jsonObject);
         return "hah";
     }
 

@@ -55,6 +55,7 @@ public class UploaderFactory {
         uploaderMetaFileName.put(UploadPlatformEnum.BILI_CLIENT.getType(), "bili-client-metaData.json");
         uploaderMetaFileName.put(UploadPlatformEnum.ALI_DRIVER.getType(), "ali-driver-metaData.json");
         uploaderMetaFileName.put(UploadPlatformEnum.WECHAT_VIDEO.getType(), "wechat-video-metaData.json");
+        uploaderMetaFileName.put(UploadPlatformEnum.MEI_TUAN_VIDEO.getType(), "meituan-video-metaData.json");
     }
 
     public static Uploader getUploader(String type) {

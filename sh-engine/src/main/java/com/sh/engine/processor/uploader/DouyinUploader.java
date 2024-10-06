@@ -76,7 +76,7 @@ public class DouyinUploader extends Uploader {
 
         // 加载元数据
         DouyinWorkMetaData metaData = FileStoreUtil.loadFromFile(
-                new File(recordPath, UploaderFactory.getMetaFileName(UploadPlatformEnum.DOU_YIN.getType())),
+                new File(recordPath, UploaderFactory.getMetaFileName(getType())),
                 new TypeReference<DouyinWorkMetaData>() {
                 });
 
@@ -333,7 +333,7 @@ public class DouyinUploader extends Uploader {
                     page.locator("text=接收短信验证").click();
                     page.waitForTimeout(1000);
                     page.locator("text=获取验证码").click();
-                    msgSendService.sendText("需要进行验证码验证，验证码已发出，请在60s内在微应用回复验证码");
+                    msgSendService.sendText("微信视频号需要进行验证码验证，验证码已发出，请在60s内在微应用回复验证码");
 
                     int numTwo = 1;
                     while (true) {
@@ -375,6 +375,7 @@ public class DouyinUploader extends Uploader {
                 );
                 // 保存 cookie 到文件
                 context.storageState(new BrowserContext.StorageStateOptions().setPath(Paths.get(accountFile.getAbsolutePath())));
+                log.info("gen cookies for {} success", getType());
             }
 
             // 关闭浏览器

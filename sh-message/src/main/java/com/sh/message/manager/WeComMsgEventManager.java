@@ -79,14 +79,14 @@ public class WeComMsgEventManager {
      * @param msgContent
      */
     private void doPostProcess(String msgContent) {
-        if (StringUtils.startsWith(msgContent, "#")) {
+        if (!StringUtils.startsWith(msgContent, "#")) {
             return;
         }
-        String[] splited = StringUtils.split(" ");
+        String[] splited = StringUtils.split(msgContent," ");
         if (splited.length < 2) {
             return;
         }
-        String msgType = splited[0].substring(1, splited[1].length());
+        String msgType = splited[0].substring(1);
         String content = splited[1];
         for (String type : msgHandlerMap.keySet()) {
             if (StringUtils.equals(msgType, type)) {
