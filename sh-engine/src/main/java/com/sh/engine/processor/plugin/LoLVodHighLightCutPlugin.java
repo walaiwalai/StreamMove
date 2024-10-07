@@ -55,13 +55,10 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
      */
     private static final int MAX_HIGH_LIGHT_SEG_COUNT = 100;
     private static final int OCR_INTERVAL_NUM = 5;
-    /**
-     * docker run -it -d --name ppocr -p 8866:8866 paddlepaddle/paddle:2.6.0
-     * hub install ch_pp-ocrv3==1.2.0
-     * hub serving start -m ch_pp-ocrv3
-     */
-    private static final String OCR_URL = "http://127.0.0.1:5000/ocr";
-    private static final String DETAIL_URL = "http://127.0.0.1:5000/lolKillVisDet";
+
+
+    private static final String OCR_URL = "http://stream-ocr:5000/ocr";
+    private static final String DETAIL_URL = "http://stream-ocr:5000/lolKillVisDet";
 
     private static final Map<String, Integer> LAST_OCR_K_MAP = Maps.newConcurrentMap();
     private static final Map<String, Integer> LAST_OCR_D_MAP = Maps.newConcurrentMap();
