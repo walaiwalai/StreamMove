@@ -66,6 +66,10 @@ async def visDet(request: Request):
     res = {'boxes': boxes.tolist(), 'labelIds': label_ids.tolist()}
     return res
 
+@app.post('/ping')
+async def visDet(request: Request):
+    return 'pang'
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app, host='0.0.0.0', port=5000)
