@@ -21,6 +21,8 @@ services:
       - "5000:5000"
     depends_on:
       - redis
+    extra_hosts:
+      - "localhost:host-gateway"
 
   stream-move:
     image: stream-move:latest
@@ -32,3 +34,5 @@ services:
     depends_on:
       - redis
       - stream-ocr
+    extra_hosts:
+      - "localhost:host-gateway"
