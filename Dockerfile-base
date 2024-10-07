@@ -23,3 +23,6 @@ RUN python3 -m venv /opt/myenv && \
 
 # 将虚拟环境路径添加到 PATH
 ENV PATH="/opt/myenv/bin:$PATH"
+
+# 设置字体环境变量（可选）
+ENV FONTCONFIG_PATH=/etc/fonts/fonts.conf

@@ -184,7 +184,7 @@ public class WechatVideoUploader extends Uploader {
 
         String storageState = cacheManager.get(getAccountKey());
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless).setChannel("chrome"));
+            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
             BrowserContext context = browser.newContext(new Browser.NewContextOptions().setStorageState(storageState));
 
             Page page = context.newPage();
