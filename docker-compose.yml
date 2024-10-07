@@ -30,7 +30,12 @@ services:
     image: stream-move:latest
     container_name: stream-move
     volumes:
-      - /home/admin/stream:/home/admin/stream
+      - /home/admin/stream/download:/home/admin/stream/download
+      - /home/admin/stream/logs:/home/admin/stream/logs
+      - /home/admin/stream/config:/home/admin/stream/config
+      - /home/admin/stream/dump:/home/admin/stream/dump
+      - /home/admin/stream/account:/home/admin/stream/account
+      - /home/admin/stream/thumbnail:/home/admin/stream/thumbnail
     ports:
       - "8080:8080"
     depends_on:
