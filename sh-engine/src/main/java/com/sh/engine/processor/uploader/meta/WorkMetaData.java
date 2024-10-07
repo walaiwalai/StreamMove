@@ -29,4 +29,8 @@ public class WorkMetaData {
      * 视频标签
      */
     private List<String> tags;
+
+    protected boolean check() {
+        return true;
+    }
 }

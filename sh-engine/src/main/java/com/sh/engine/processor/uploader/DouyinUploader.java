@@ -1,12 +1,12 @@
 package com.sh.engine.processor.uploader;
 
-import cn.hutool.extra.spring.SpringUtil;
 import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Cookie;
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
-import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.PictureFileUtil;
 import com.sh.engine.constant.UploadPlatformEnum;
@@ -15,7 +15,6 @@ import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -25,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author caiwen
@@ -42,6 +42,7 @@ public class DouyinUploader extends Uploader {
     private boolean headless;
 
     public static final String AUTH_CODE_KEY = "douyin_login_authcode";
+    private static final String IS_SETTING_UP = "wechat_set_up_flag";
 
     @Override
     public String getType() {
@@ -50,8 +51,17 @@ public class DouyinUploader extends Uploader {
 
     @Override
     public void setUp() {
-        if (!checkAccountValid()) {
-            genCookies();
+        if (cacheManager.hasKey(IS_SETTING_UP)) {
+            throw new StreamerRecordException(ErrorEnum.UPLOAD_COOKIES_IS_FETCHING);
+        }
+        cacheManager.set(IS_SETTING_UP, 1, 300, TimeUnit.SECONDS);
+
+        try {
+            if (!checkAccountValid()) {
+                genCookies();
+            }
+        } finally {
+            cacheManager.delete(IS_SETTING_UP);
         }
     }
 

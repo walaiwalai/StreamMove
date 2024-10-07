@@ -5,6 +5,8 @@ import com.google.common.collect.ImmutableMap;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.Cookie;
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.PictureFileUtil;
@@ -40,6 +42,7 @@ public class WechatVideoUploader extends Uploader {
     private boolean headless;
 
     private static final long WECHAT_COOKIES_VALID_SECONDS = 86400L * 7;
+    private static final String IS_SETTING_UP = "wechat_set_up_flag";
 
     @Override
     public String getType() {
@@ -48,9 +51,19 @@ public class WechatVideoUploader extends Uploader {
 
     @Override
     public void setUp() {
-        if (!checkAccountValid()) {
-            genCookies();
+        if (cacheManager.hasKey(IS_SETTING_UP)) {
+            throw new StreamerRecordException(ErrorEnum.UPLOAD_COOKIES_IS_FETCHING);
         }
+
+        cacheManager.set(IS_SETTING_UP, 1, 300, TimeUnit.SECONDS);
+        try {
+            if (!checkAccountValid()) {
+                genCookies();
+            }
+        } finally {
+            cacheManager.delete(IS_SETTING_UP);
+        }
+
     }
 
     private void genCookies() {
@@ -85,15 +98,15 @@ public class WechatVideoUploader extends Uploader {
 
             // 等待用户操作并刷新页面
             page.waitForTimeout(7000);
+
+            // 打开平台页面获取用户信息
+            Page platformPage = context.newPage();
+            platformPage.navigate("https://channels.weixin.qq.com/platform");
+            platformPage.waitForURL("https://channels.weixin.qq.com/platform");
+
             List<Cookie> cookies = context.cookies();
             Map<String, String> userInfo = null;
-
             if (CollectionUtils.isNotEmpty(cookies)) {
-                // 打开平台页面获取用户信息
-                Page platformPage = context.newPage();
-                platformPage.navigate("https://channels.weixin.qq.com/platform");
-                platformPage.waitForURL("https://channels.weixin.qq.com/platform");
-
                 // 获取用户信息
                 String thirdId = platformPage.locator("span.finder-uniq-id").nth(0).innerText();
                 userInfo = ImmutableMap.of(
@@ -149,8 +162,6 @@ public class WechatVideoUploader extends Uploader {
                 page.waitForSelector("div.title-name:has-text('视频号小店')", new Page.WaitForSelectorOptions().setTimeout(5000));
                 log.info("cookies invalid for wechat video");
 
-                // Cookie 失效，删除缓存
-                cacheManager.delete(getAccountKey());
                 context.close();
                 browser.close();
                 return false;
