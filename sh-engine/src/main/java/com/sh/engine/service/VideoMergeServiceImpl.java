@@ -161,36 +161,46 @@ public class VideoMergeServiceImpl implements VideoMergeService {
      * @return
      */
     private String genTitleVideo( File oldVideoFile, String title ) {
-        File fadedSeg = new File(oldVideoFile.getParent(), FileNameUtil.getPrefix(oldVideoFile) + "-fade.ts");
-        String fadedPath = fadedSeg.getAbsolutePath();
+        return oldVideoFile.getAbsolutePath();
+//        String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + oldVideoFile.getAbsolutePath();
+//        String res = CommandUtil.cmdExecWithRes(new FfmpegCmd(querySizeCmd));
+//        String[] split = res.split(",");
+//        int width = Integer.parseInt(split[0]);
+//        int height = Integer.parseInt(split[1]);
+//
+//        File thumnailFile = new File(oldVideoFile.getParent(), "h-thumnail.png");
+//        PictureFileUtil.createTextOverlayImage(title, width, height, 80, thumnailFile.getAbsolutePath());
 
-        // 按空格拆分成两行
-        String[] lines = title.split("\n", 2);
-        String firstLine = lines.length > 0 ? lines[0] : "";
-        String secondLine = lines.length > 1 ? lines[1] : "";
-        String cmd = String.format(
-                "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf \"" +
-                        "drawtext=text='%s':fontcolor=white:fontsize=80:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=(h-text_h)/2-40:enable='lt(t,1)', " +
-                        "drawtext=text='%s':fontcolor=yellow:fontsize=80:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=(h-text_h)/2+60:enable='lt(t,1)'\"" +
-                        " -codec:a copy " + fadedPath,
-                firstLine, secondLine
-        );
-
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
-        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-        if (resCode == 0) {
-            log.info("add title success, path: {}, title: {}", fadedPath, title);
-            return fadedPath;
-        } else {
-            log.info("add title fail, will use origin video, path: {}, resCode: {}", fadedPath, resCode);
-            return oldVideoFile.getAbsolutePath();
-        }
+//        File fadedSeg = new File(oldVideoFile.getParent(), FileNameUtil.getPrefix(oldVideoFile) + "-fade.ts");
+//        String fadedPath = fadedSeg.getAbsolutePath();
+//        String cmd = "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -i " + thumnailFile.getAbsolutePath() +
+//                " -filter_complex \"[0][1]overlay=0:0:enable='lte(t,1)'\" -codec:a copy " + fadedPath;
+//
+//        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
+//        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
+//        if (resCode == 0) {
+//            log.info("add title success, path: {}, title: {}", fadedPath, title);
+//            return fadedPath;
+//        } else {
+//            log.info("add title fail, will use origin video, path: {}, resCode: {}", fadedPath, resCode);
+//            return oldVideoFile.getAbsolutePath();
+//        }
+//        // 按空格拆分成两行
+//        String[] lines = title.split("\n", 2);
+//        String firstLine = lines.length > 0 ? lines[0] : "";
+//        String secondLine = lines.length > 1 ? lines[1] : "";
+//        String cmd = String.format(
+//                "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf \"" +
+//                        "drawtext=text='%s':fontcolor=white:fontsize=80:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=(h-text_h)/2-40:enable='lt(t,1)', " +
+//                        "drawtext=text='%s':fontcolor=yellow:fontsize=80:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=(h-text_h)/2+60:enable='lt(t,1)'\"" +
+//                        " -codec:a copy " + fadedPath,
+//                firstLine, secondLine
+//        );
     }
 
-    public static void main( String[] args ) {
-        VideoMergeServiceImpl service = new VideoMergeServiceImpl();
-        String title = DateUtil.describeTime("2024-03-15-16-43-15", DateUtil.YYYY_MM_DD_HH_MM_SS_V2) + "\n" + "Theshy" + "直播精彩片段";
-        service.genTitleVideo(new File("/Users/caiwen/Desktop/222.mp4"), title);
+    public static void main(String[] args) {
+        VideoMergeServiceImpl videoMergeService = new VideoMergeServiceImpl();
+        videoMergeService.genTitleVideo(new File("G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\tmp\\high.mp4"), "Theshy 精彩 \n 直播片段");
     }
 
     /**

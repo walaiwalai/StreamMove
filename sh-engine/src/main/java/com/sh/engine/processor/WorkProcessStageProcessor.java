@@ -1,5 +1,6 @@
 package com.sh.engine.processor;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
@@ -60,7 +61,7 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
             }
 
             // 1. 解析处理对应插件，并处理, 加上系统的对应的插件
-            List<String> videoPlugins = streamerConfig.getVideoPlugins();
+            List<String> videoPlugins = Lists.newArrayList(streamerConfig.getVideoPlugins());
             videoPlugins.add(0, ProcessPluginEnum.META_DATA_GEN.getType());
 
             for (String pluginName : videoPlugins) {

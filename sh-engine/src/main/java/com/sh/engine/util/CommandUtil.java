@@ -3,6 +3,7 @@ package com.sh.engine.util;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.model.ffmpeg.StreamGobbler;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -76,7 +77,7 @@ public class CommandUtil {
             }
 
             ffmpegCmd.getProcessExitCode();
-            return output.toString();
+            return StringUtils.trim(output.toString()) ;
         } catch (Exception e) {
         }
 
