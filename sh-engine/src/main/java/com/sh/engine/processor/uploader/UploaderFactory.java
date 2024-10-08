@@ -50,7 +50,7 @@ public class UploaderFactory {
 
         accountKeymap.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin-cookies.json");
         accountKeymap.put(UploadPlatformEnum.WECHAT_VIDEO.getType(), "wechat-video-cookies.json");
-        accountKeymap.put(UploadPlatformEnum.WECHAT_VIDEO.getType(), "meituan-video-cookies.json");
+        accountKeymap.put(UploadPlatformEnum.MEI_TUAN_VIDEO.getType(), "meituan-video-cookies.json");
 
         uploaderMetaFileName.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin-metaData.json");
         uploaderMetaFileName.put(UploadPlatformEnum.BILI_CLIENT.getType(), "bili-client-metaData.json");

@@ -131,7 +131,7 @@ public class MeituanUploader extends Uploader {
 
 
             int num = 0;
-            while (num ++ < 14) {
+            while (num ++ < 20) {
                 page.waitForTimeout(3000);
                 // 检查缓存中是否有验证码
                 String authNumber = cacheManager.get(AUTH_CODE_KEY, new TypeReference<String>() {});
