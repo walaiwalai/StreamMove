@@ -82,15 +82,15 @@ public class MeituanUploader extends Uploader {
     }
 
     private boolean checkAccountValid() {
-        String storageInfo = cacheManager.get(getAccountKey());
-        if (StringUtils.isBlank(storageInfo)) {
+        File accountFile = getAccoutFile();
+        if (!accountFile.exists()) {
             return false;
         }
 
         try (Playwright playwright = Playwright.create()) {
             Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions().setHeadless(headless));
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
-                    .setStorageState(storageInfo));
+                    .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
             Page page = context.newPage();
             page.navigate("https://czz.meituan.com/new/personalHomePage");
@@ -112,6 +112,8 @@ public class MeituanUploader extends Uploader {
     }
 
     private void genCookies() {
+        File accountFile = getAccoutFile();
+
         try (Playwright playwright = Playwright.create()) {
             Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions().setHeadless(headless));
             BrowserContext context = browser.newContext();
@@ -163,7 +165,8 @@ public class MeituanUploader extends Uploader {
                     cookies.stream().anyMatch(cookie -> StringUtils.equals("lt", cookie.name));
             if (cookiesValid) {
                 // 保存cookie到文件
-                cacheManager.set(getAccountKey(), context.storageState(), MEITUAN_COOKIES_VALID_SECONDS, TimeUnit.SECONDS);
+                context.storageState(new BrowserContext.StorageStateOptions().setPath(Paths.get(accountFile.getAbsolutePath())));
+//                cacheManager.set(getAccountKey(), context.storageState(), MEITUAN_COOKIES_VALID_SECONDS, TimeUnit.SECONDS);
                 log.info("gen cookies for {} success", getType());
             }
 
@@ -184,11 +187,10 @@ public class MeituanUploader extends Uploader {
                 new TypeReference<MeituanWorkMetaData>() {
                 });
 
-        String storageState = cacheManager.get(getAccountKey());
         try (Playwright playwright = Playwright.create()) {
             Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions().setHeadless(headless));
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
-                    .setStorageState(storageState));
+                    .setStorageStatePath(Paths.get(getAccoutFile().getAbsolutePath())));
 
             Page page = context.newPage();
             page.navigate("https://czz.meituan.com/new/personalHomePage");
@@ -214,8 +216,7 @@ public class MeituanUploader extends Uploader {
             publishVideo(page);
 
             // Save updated cookies
-            String cookies = context.storageState();
-            cacheManager.set(getAccountKey(), cookies, MEITUAN_COOKIES_VALID_SECONDS, TimeUnit.SECONDS);
+            context.storageState(new BrowserContext.StorageStateOptions().setPath(Paths.get(getAccoutFile().getAbsolutePath())));
             log.info("update meituanVideo cookies success, video: {}", workFilePath);
             page.waitForTimeout(2000);
 

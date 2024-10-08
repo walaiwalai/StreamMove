@@ -34,7 +34,7 @@ public class UploaderInitListener implements ApplicationListener<ApplicationRead
 
                 uploader.setUp();
             } catch (Exception e) {
-                log.error("init uploader failed, platform: {}", platform);
+                log.error("init uploader failed, platform: {}", platform, e);
             }
         }
         log.info("init uploader success, uploaders: {}", JSON.toJSONString(platforms));

@@ -1,52 +1,41 @@
-package com.sh.message.controller;
-
-import com.alibaba.fastjson.JSONObject;
-import com.google.common.base.Preconditions;
-import com.sh.config.manager.CacheManager;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
-
-import javax.annotation.Resource;
-
-/**
- * @Author caiwen
- * @Date 2024 10 08 22 26
- **/
-@Slf4j
-@Controller
-@RequestMapping("/test")
-public class TestController {
-    @Resource
-    private CacheManager cacheManager;
-
-    @RequestMapping(value = "/putCache", method = {RequestMethod.POST})
-    @ResponseBody
-    public String putCache(@RequestBody JSONObject requestBody) {
-        validToken(requestBody.getString("token"));
-
-        String key = requestBody.getString("key");
-        String value = "{\"cookies\":[{\"name\":\"_lxsdk_cuid\",\"value\":\"1926596b275c8-0f780d917396ef8-e5d5628-e1000-1926596b275c8\",\"domain\":\".meituan.com\",\"path\":\"/\",\"expires\":1822889227,\"httpOnly\":false,\"secure\":false,\"sameSite\":\"None\"},{\"name\":\"lt\",\"value\":\"AgEMI37RuQAZN3CeNHyi6PUuJqRSowrn_CplaZKOBNZx0A2O9FM7QXpetmO2pAaPGoIQe4vMkqO1twAAAACJIwAAClXL0t90QKkLd3Us-Gj5c1F7RVNdqZqVV09K2HMP3q1z1U5EnqL4dwuwklbW0ueU\",\"domain\":\".meituan.com\",\"path\":\"/\",\"expires\":-1,\"httpOnly\":true,\"secure\":false,\"sameSite\":\"None\"},{\"name\":\"u\",\"value\":\"170010810\",\"domain\":\".meituan.com\",\"path\":\"/\",\"expires\":-1,\"httpOnly\":false,\"secure\":false,\"sameSite\":\"None\"},{\"name\":\"n\",\"value\":\"%E5%B0%8F%E7%8E%8B%E7%9B%B4%E6%92%AD%E7%B2%BE%E5%BD%A9%E7%89%87%E6%AE%B5\",\"domain\":\".meituan.com\",\"path\":\"/\",\"expires\":-1,\"httpOnly\":false,\"secure\":false,\"sameSite\":\"None\"},{\"name\":\"iuuid\",\"value\":\"73A8E41ABAD527B825DD610DD03E3438734B29551044FCB03ED86FC1769CA6AC\",\"domain\":\".meituan.com\",\"path\":\"/\",\"expires\":1791353248,\"httpOnly\":false,\"secure\":false,\"sameSite\":\"None\"},{\"name\":\"logan_session_token\",\"value\":\"zpiualui490u1wb1ixic\",\"domain\":\"czz.meituan.com\",\"path\":\"/\",\"expires\":-1,\"httpOnly\":false,\"secure\":false,\"sameSite\":\"None\"},{\"name\":\"com.sankuai.passport.login.component_strategy\",\"value\":\"tDpvIVKZU6\",\"domain\":\"passport.meituan.com\",\"path\":\"/\",\"expires\":-1,\"httpOnly\":false,\"secure\":true,\"sameSite\":\"None\"},{\"name\":\"com.sankuai.passport.login.component_random\",\"value\":\"tDpvIVKZU6_60\",\"domain\":\"passport.meituan.com\",\"path\":\"/\",\"expires\":1733465270,\"httpOnly\":false,\"secure\":true,\"sameSite\":\"None\"},{\"name\":\"WEBDFPID\",\"value\":\"yu89y34629w6574y1yzw56v01zzu01z58073403ywu2979585vx417uz-2043641229762-1728281227841SWOIMAK10f02007e9804b0b4cf483cebf1f9f513108\",\"domain\":\".meituan.com\",\"path\":\"/\",\"expires\":2043641271,\"httpOnly\":false,\"secure\":false,\"sameSite\":\"None\"},{\"name\":\"UserType\",\"value\":\"NEW_STAFF\",\"domain\":\"czz.meituan.com\",\"path\":\"/\",\"expires\":-1,\"httpOnly\":false,\"secure\":false,\"sameSite\":\"None\"},{\"name\":\"mtStoreInfo\",\"value\":\"U2FsdGVkX19yXbDvPj/v0hR28l7gXMclieSkasf+xHLzoVt/XNb7S1eE/mJlK75jszgVNgwnxENOor9EaV1UwDD6kh3aw34k2QMGsaZmzSvOJvvcIHlV1I0aOrBQOMyvrg/yetkXwyWMpAhJhIWl24QQ4KndtUbscfb6CX1iNplmtlT8XU6IBjGu80E+UjuROyfHkZox9kzKZvVQmi95AHq8S23SHSMxjDUt2oS51vyvZyMu121HYERbzqX4bQMXjaLKwv+CKfy9I4ZTiFHmySZ5KP2jggvWDGA3lH+6cB3gQXDU9x1waF3jTYcuahKI4jomuFYeUMCjNPEMkFcLDlN9IbJLTPO82w7OOUR6Q0Z0GnV3TlY8HArI+jI7HlLBRbNAa1PS8E55xX9BV8kCpqfw8Xdxix31orvpUvZMKpM6BQV7JkdtSC8N8pp2cAP/HmBUy6768CwwLtp4eT1iJKP75BimSGKXGywjCOXHq6sr/fKB/+/heh/k3S5uLgn4GVFyKuDfMg1oIG9WSmHH+HXVZgvIAOk0XqlW7zvqXRtgjFAuLrA2wwvrZpnXNj9dFTJ1iuxM3cwKGrTUzCd/Og9mPUieCC8PphRatfMxkjJPR7kb9ozfJseGpuwnw/g7wu0f7IvIOfMQ9Ed0oIPwi6BP7sjKKBjdqZd7wUhl3BkhvaLuqQEpUVTGrVC/KogWrEHVNnVUrLG2JTXa7i/+7FOQxHSzNGbgqY/4PM7lc6vRMGuUKR3M3LxNiY1CVTEw760EEvj8OtIIhnyeRF9z9kev4HT1xTLTxv5AbrWYlwGyXWuz4yrkVE5gFehIpx02OIDUog2FEGxPDCKkrdrOfKLrja4Q2OMh7tOzkhxnJF0LSMaiwZDNnuY3t0UTrR1+jgWT447W8EOKCz0iLPtu/TLG9UIIq027/unMvwF6OLfrR/G2Y9VSSDfGlbaCwrtC3xgTc415s1gfoC6SN3qFfGfWnVAX2ld3uXkw/vW5QiRf4U9EWWgd+TRzBMq5kkRBd74KAncQVF7SNJcBUeBfCg==\",\"domain\":\"czz.meituan.com\",\"path\":\"/\",\"expires\":1730873275,\"httpOnly\":false,\"secure\":false,\"sameSite\":\"None\"},{\"name\":\"_lxsdk_s\",\"value\":\"1926596b276-0a4-d67-4fa%7C%7C26\",\"domain\":\".meituan.com\",\"path\":\"/\",\"expires\":1728283075,\"httpOnly\":false,\"secure\":false,\"sameSite\":\"None\"}],\"origins\":[{\"origin\":\"https://czz.meituan.com\",\"localStorage\":[{\"name\":\"dfpId\",\"value\":\"yu89y34629w6574y1yzw56v01zzu01z58073403ywu2979585vx417uz\"},{\"name\":\"llog_config\",\"value\":\"{\\\"llog_enabled\\\":true,\\\"llog_endpoint_prod\\\":\\\"https://logan-rtl.dreport.meituan.net\\\",\\\"llog_endpoint_dev\\\":\\\"https://rtl-test.d.meituan.net\\\",\\\"llog_keyRotateInterval\\\":604800,\\\"llog_enableUserEvents\\\":true,\\\"trigger_interval\\\":30,\\\"trigger_count\\\":30,\\\"trigger_onhide\\\":true,\\\"trigger_onunload\\\":true,\\\"llog_allowUnencrypted\\\":true,\\\"id\\\":\\\"ov4s-hykp-m84h-0xf4\\\",\\\"limit_retryCap\\\":1,\\\"limit_logLength\\\":20480,\\\"limit_logsPerMin\\\":2000,\\\"limit_sender_queue_size\\\":2,\\\"limit_storage_bytes\\\":3145728,\\\"limit_storage_filter\\\":[],\\\"limit_log_filter\\\":[],\\\"sampleRate_uploadEvent\\\":0.001,\\\"sampleRate_storageEvent\\\":0.001,\\\"sampleRate_lifetimeTracing\\\":0.01,\\\"sampleRate_errorReporting\\\":0.01,\\\"sampleRate_resumeUpload\\\":0.01,\\\"llog_prefersFetch\\\":false}\"},{\"name\":\"PUBLISH_TO_COLLECTION\",\"value\":\"1\"},{\"name\":\"dfp_params_list\",\"value\":\"{\\\"black_host\\\":[\\\"gatewaydsp.meituan.com\\\",\\\"portal-portm.meituan.com\\\",\\\"dd.sankuai.com\\\",\\\"dd.meituan.com\\\",\\\"catfront.dianping.com\\\",\\\"catfront.51ping.com\\\",\\\"report.meituan.com\\\",\\\"dreport.meituan.net\\\",\\\"postreport.meituan.com\\\",\\\"wreport1.meituan.net\\\",\\\"lx0.meituan.com\\\",\\\"lx1.meituan.net\\\",\\\"lx2.meituan.net\\\",\\\"plx.meituan.com\\\",\\\"hlx.meituan.com\\\",\\\"ad.e.waimai.sankuai.com:80\\\",\\\"speech-inspection.vip.sankuai.com\\\",\\\"kms.sankuai.com\\\",\\\"r.dianping.com\\\",\\\"r1.dianping.com\\\",\\\"api-channel.waimai.meituan.com\\\",\\\"lion-monitor.sankuai.com\\\",\\\"cat-config.sankuai.com\\\",\\\"catdot.sankuai.com\\\",\\\"s3plus.meituan.net\\\",\\\"ebooking.meituan.com\\\",\\\"eb.hotel.test.sankuai.com\\\",\\\"eb.vip.sankuai.com\\\",\\\"eb.meituan.com\\\",\\\"logan.sankuai.com\\\",\\\"mads.meituan.com\\\",\\\"mlog.dianping.com\\\",\\\"oneservice.meituan.com\\\",\\\"api-unionid.meituan.com\\\",\\\"fe-config.meituan.com\\\",\\\"fe-config0.meituan.com\\\",\\\"h.meituan.com\\\",\\\"p.meituan.com\\\",\\\"peisong-collector.meituan.com\\\",\\\"wreport2.meituan.net\\\",\\\"hreport.meituan.com\\\",\\\"c.qcs.test.sankuai.com\\\",\\\"dache.st.meituan.com\\\",\\\"dache.meituan.com\\\"],\\\"black_url\\\":[\\\"syncloud.meituan.com/be/chp/takeaway/\\\",\\\"syncloud.meituan.com/be/chp/takeawayClassifyManagement/\\\",\\\"syncloud.meituan.com/be/chp/createSkuToTakeaway/\\\",\\\"i.meituan.com/api/address\\\",\\\"i.meituan.com/api/maf\\\",\\\"mapi.dianping.com/mapi/mlog/applog.bin\\\",\\\"mapi.dianping.com/mapi/mlog/zlog.bin\\\",\\\"mapi.dianping.com/mapi/mlog/mtmidas.bin\\\",\\\"mapi.dianping.com/mapi/mlog/mtzmidas.bin\\\",\\\"m.dianping.com/adp/log\\\",\\\"mlog.meituan.com/log\\\",\\\"mlog.dianping.com/log\\\",\\\"m.api.dianping.com/mapi/mlog/applog.bin\\\",\\\"m.api.dianping.com/mapi/mlog/zlog.bin\\\",\\\"m.api.dianping.com/mapi/mlog/mtmidas.bin\\\",\\\"m.api.dianping.com/mapi/mlog/mtzmidas.bin\\\",\\\"peisong.meituan.com/collector/report/logdata/short/batch\\\",\\\"transcode-video.sankuai.com/pfop\\\",\\\"peisong.meituan.com/api/collector/collector/report/logdata/short/batch\\\",\\\"api-map.meituan.com/tile/style\\\",\\\"api-map01.meituan.com/tile/style\\\",\\\"api-map02.meituan.com/tile/style\\\",\\\"api-map03.meituan.com/tile/style\\\",\\\"api-map04.meituan.com/tile/style\\\",\\\"api-map05.meituan.com/tile/style\\\",\\\"api-map.meituan.com/tile/source\\\",\\\"api-map01.meituan.com/tile/source\\\",\\\"api-map02.meituan.com/tile/source\\\",\\\"api-map03.meituan.com/tile/source\\\",\\\"api-map04.meituan.com/tile/source\\\",\\\"api-map05.meituan.com/tile/source\\\",\\\"api-map.meituan.com/tile/font\\\",\\\"api-map01.meituan.com/tile/font\\\",\\\"api-map02.meituan.com/tile/font\\\",\\\"api-map03.meituan.com/tile/font\\\",\\\"api-map04.meituan.com/tile/font\\\",\\\"api-map05.meituan.com/tile/font\\\",\\\"api-map.meituan.com/tile/grid\\\",\\\"api-map01.meituan.com/tile/grid\\\",\\\"api-map02.meituan.com/tile/grid\\\",\\\"api-map03.meituan.com/tile/grid\\\",\\\"api-map04.meituan.com/tile/grid\\\",\\\"api-map05.meituan.com/tile/grid\\\",\\\"api-map.meituan.com/tile/dem\\\",\\\"api-map01.meituan.com/tile/dem\\\",\\\"api-map02.meituan.com/tile/dem\\\",\\\"api-map03.meituan.com/tile/dem\\\",\\\"api-map04.meituan.com/tile/dem\\\",\\\"api-map05.meituan.com/tile/dem\\\",\\\"api-map.meituan.com/render/traffic\\\",\\\"api-map01.meituan.com/render/traffic\\\",\\\"api-map02.meituan.com/render/traffic\\\",\\\"api-map03.meituan.com/render/traffic\\\",\\\"api-map04.meituan.com/render/traffic\\\",\\\"api-map05.meituan.com/render/traffic\\\",\\\"api-map.meituan.com/tile/model\\\",\\\"api-map01.meituan.com/tile/model\\\",\\\"api-map02.meituan.com/tile/model\\\",\\\"api-map03.meituan.com/tile/model\\\",\\\"api-map04.meituan.com/tile/model\\\",\\\"api-map05.meituan.com/tile/model\\\",\\\"spotter-relay.sankuai.com/auk01/\\\",\\\"spotter-livevod.vip.sankuai.com/recordings/auk01/\\\",\\\"e.dianping.com/joy/merchant/newuploadimage\\\",\\\"e.51ping.com/joy/merchant/newuploadimage\\\",\\\"spotter-relay.sankuai.com/maiot/\\\",\\\"wx-shangou.meituan.com/quickbuy/v2/activity/supersale/getLocationByIp\\\",\\\"wx-shangou.meituan.com/quickbuy/v2/activity/supersale/bigPromotionHeadInfo\\\",\\\"wx-shangou.meituan.com/quickbuy/v2/activity/supersale/bigPromotionResourceInfo\\\",\\\"wx-shangou.meituan.com/quickbuy/v1/user/address/posname\\\",\\\"wx-shangou.meituan.com/quickbuy/v1/activity/supersale/grab/queryUserSubscription\\\",\\\"transcode-video.cloud.test.sankuai.com/pfop\\\",\\\"ecom.meituan.com/emis/gw/PublishAssistantQueryService/queryFieldRequirements\\\",\\\"ecom.meituan.com/emis/gw/PublishAssistantValidateService/realTimeValidateProduct\\\",\\\"ecom.meishi.test.meituan.com/emis/gw/PublishAssistantQueryService/queryFieldRequirements\\\",\\\"ecom.meishi.test.meituan.com/emis/gw/PublishAssistantValidateService/realTimeValidateProduct\\\"],\\\"close_knb_sign\\\":0,\\\"header_white_host\\\":[],\\\"swim_black_host\\\":[\\\"ebooking.meituan.com\\\",\\\"eb.hotel.test.sankuai.com\\\",\\\"eb.vip.sankuai.com\\\",\\\"eb.meituan.com\\\",\\\"c.qcs.test.sankuai.com\\\",\\\"dache.st.meituan.com\\\",\\\"dache.meituan.com\\\"],\\\"white_host\\\":[\\\".dianping.com\\\",\\\".meituan.com\\\",\\\".sankuai.com\\\",\\\".maoyan.com\\\",\\\".neixin.cn\\\",\\\".51ping.com\\\",\\\".baobaoaichi.cn\\\",\\\".dper.com\\\",\\\".jchunuo.com\\\"]}\"},{\"name\":\"guardAppkey\",\"value\":\"cd06a5c56736bd3d03dacc9cb7ecd94e73050dbaa558615c1a2fc369c7d30077\"},{\"name\":\"dfp_timestamp\",\"value\":\"2043641229762\"},{\"name\":\"LLog_9yta_1$_1728281271109_shared\",\"value\":\"{\\\"content\\\":[],\\\"client\\\":\\\"web\\\",\\\"deviceModel\\\":\\\"Win32\\\",\\\"sdkVersion\\\":\\\"1.3.6\\\",\\\"topic\\\":\\\"app.com.sankuai.mttouchweb.cms.www\\\",\\\"appKey\\\":\\\"com.sankuai.mttouchweb.cms.www\\\",\\\"key\\\":\\\"ArJcTP4R3wwLXLnQvupLwYrwvVYyaX/j+XOCk1x7ts9I\\\",\\\"userID\\\":\\\"1926596b275c8-0f780d917396ef8-e5d5628-e1000-1926596b275c8\\\"}\"},{\"name\":\"__lxsdk__lxsdk_cuid\",\"value\":\"\\\"1926596b275c8-0f780d917396ef8-e5d5628-e1000-1926596b275c8\\\"\"},{\"name\":\"UPLOAD_TO_COLLECTION\",\"value\":\"1\"},{\"name\":\"localId\",\"value\":\"1728281227841SWOIMAK10f02007e9804b0b4cf483cebf1f9f513108\"}]}]}";
-        cacheManager.set(key, value);
-        return "success";
-    }
-
-    @RequestMapping(value = "/getCache", method = {RequestMethod.POST})
-    @ResponseBody
-    public String getCache(@RequestBody JSONObject requestBody) {
-        validToken(requestBody.getString("token"));
-
-        String key = requestBody.getString("key");
-        String value = cacheManager.get(key);
-        log.info("getCache key: {}, value: {}", key, value);
-        return value;
-    }
-
-    private void validToken(String token) {
-        Preconditions.checkArgument(StringUtils.equals(token, "lkguxuva154"));
-    }
-}
+//package com.sh.message.controller;
+//
+//import com.alibaba.fastjson.JSONObject;
+//import com.google.common.base.Preconditions;
+//import com.sh.config.manager.CacheManager;
+//import lombok.extern.slf4j.Slf4j;
+//import org.apache.commons.lang3.StringUtils;
+//import org.springframework.stereotype.Controller;
+//import org.springframework.web.bind.annotation.RequestBody;
+//import org.springframework.web.bind.annotation.RequestMapping;
+//import org.springframework.web.bind.annotation.RequestMethod;
+//import org.springframework.web.bind.annotation.ResponseBody;
+//
+//import javax.annotation.Resource;
+//
+///**
+// * @Author caiwen
+// * @Date 2024 10 08 22 26
+// **/
+//@Slf4j
+//@Controller
+//@RequestMapping("/test")
+//public class TestController {
+//    @Resource
+//    private CacheManager cacheManager;
+//
+//    @RequestMapping(value = "/getCache", method = {RequestMethod.POST})
+//    @ResponseBody
+//    public String getCache(@RequestBody JSONObject requestBody) {
+//        validToken(requestBody.getString("token"));
+//
+//        String key = requestBody.getString("key");
+//        String value = cacheManager.get(key);
+//        log.info("getCache key: {}, value: {}", key, value);
+//        return value;
+//    }
+//
+//    private void validToken(String token) {
+//        Preconditions.checkArgument(StringUtils.equals(token, "lkguxuva154"));
+//    }
+//}
