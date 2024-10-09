@@ -298,16 +298,8 @@ public class WechatVideoUploader extends Uploader {
                     String previewButtonInfo = page.locator("div.finder-tag-wrap.btn:has-text(\"更换封面\")").getAttribute("class");
                     if (!previewButtonInfo.contains("disabled")) {
                         page.locator("div.finder-tag-wrap.btn:has-text(\"更换封面\")").click();
-//                        page.locator("div.single-cover-uploader-wrap > div.wrap").hover();
-//                        if (page.locator(".del-wrap > .svg-icon").count() > 0) {
-//                            page.locator(".del-wrap > .svg-icon").click();
-//                        }
                         page.locator("input[type='file'][accept*='image']").setInputFiles(Paths.get(metaData.getPreViewFilePath()));
 
-                        // 定位上传封面图的div， 并确认上传
-//                        Locator previewUploadDivLoc = page.locator("div.single-cover-uploader-wrap > div.wrap");
-//                        FileChooser fileChooser = page.waitForFileChooser(previewUploadDivLoc::click);
-//                        fileChooser.setFiles(Paths.get(metaData.getPreViewFilePath()));
                         page.waitForTimeout(2000);
                         page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("确定")).click();
                         page.waitForTimeout(1000);
@@ -315,7 +307,8 @@ public class WechatVideoUploader extends Uploader {
                         break;
                     }
                 } else {
-                    log.info("video is uploading for wechat, path: {}", workFilePath);
+                    String progress = page.locator("span.ant-progress-text").textContent();
+                    log.info("video is uploading for wechat, path: {}, progress: {}", workFilePath, progress);
                     page.waitForTimeout(2000);
                     // 出错了视频出错
                     if (page.locator("div.status-msg.error").count() > 0 && page.locator("div.media-status-content div.tag-inner:has-text(\"删除\")").count() > 0) {

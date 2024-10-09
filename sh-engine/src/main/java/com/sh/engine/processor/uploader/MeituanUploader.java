@@ -249,11 +249,16 @@ public class MeituanUploader extends Uploader {
         while (errorCnt++ < 40) {
             try {
                 // 匹配取消视频按钮，代表视频上传完毕
-                page.locator(".replace").waitFor(new Locator.WaitForOptions().setTimeout(30000).setState(WaitForSelectorState.VISIBLE));
+                page.locator(".replace").waitFor(new Locator.WaitForOptions().setTimeout(3000).setState(WaitForSelectorState.VISIBLE));
                 log.info("video upload finish for meituan, path: {}", workFilePath);
                 break;
             } catch (Exception e) {
-                log.info("video is uploading for meituan, path: {}", workFilePath);
+                String progress = "-1";
+                try {
+                    progress = page.locator("span.mtd-progress-text").textContent();
+                } catch (Exception ignored) {
+                }
+                log.info("video is uploading for meituan, path: {}, progress: {}", workFilePath, progress);
             }
         }
 

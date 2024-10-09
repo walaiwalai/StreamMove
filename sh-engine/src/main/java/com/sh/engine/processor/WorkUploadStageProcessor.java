@@ -10,6 +10,7 @@ import com.sh.engine.model.RecordContext;
 import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.processor.uploader.Uploader;
 import com.sh.engine.processor.uploader.UploaderFactory;
+import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,8 @@ import javax.annotation.Resource;
 public class WorkUploadStageProcessor extends AbstractStageProcessor {
     @Resource
     StatusManager statusManager;
+    @Resource
+    MsgSendService msgSendService;
 
     @Override
     public void processInternal(RecordContext context) {
@@ -67,10 +70,13 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
 
                 if (success) {
                     log.info("{}'s {} platform upload success, path: {}. ", streamerName, platform, curRecordPath);
+                    msgSendService.sendText(curRecordPath + "路径下的视频上传成功, 类型:" + platform);
+
                     fileStatusModel.postSuccess(platform);
                     fileStatusModel.writeSelfToFile(curRecordPath);
                 } else {
                     log.info("{}'s {} platform upload fail, path: {}. ", streamerName, platform, curRecordPath);
+                    msgSendService.sendText(curRecordPath + "路径下的视频上传失败, 类型:" + platform);
                 }
 
             }
