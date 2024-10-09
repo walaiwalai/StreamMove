@@ -256,7 +256,7 @@ public class MeituanUploader extends Uploader {
 
     private void detectUploadStatus(Page page, String workFilePath) {
         int errorCnt = 0;
-        while (errorCnt++ < 999) {
+        while (errorCnt < 20) {
             try {
                 // 匹配取消视频按钮，代表视频上传完毕
                 page.locator(".replace").waitFor(new Locator.WaitForOptions().setTimeout(3000).setState(WaitForSelectorState.VISIBLE));
@@ -267,12 +267,13 @@ public class MeituanUploader extends Uploader {
                 try {
                     progress = page.locator("span.mtd-progress-text").textContent();
                 } catch (Exception ignored) {
+                    errorCnt++;
                 }
                 log.info("video is uploading for meituan, path: {}, progress: {}", workFilePath, progress);
             }
         }
 
-        if (errorCnt >= 999) {
+        if (errorCnt >= 20) {
             log.error("video upload failed for wechat, path: {}", workFilePath);
             throw new StreamerRecordException(ErrorEnum.UPLOAD_CHUNK_ERROR);
         }
