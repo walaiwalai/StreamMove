@@ -39,8 +39,6 @@ public class MeituanUploader extends Uploader {
     @Value("${playwright.headless}")
     private boolean headless;
 
-    private static final long MEITUAN_COOKIES_VALID_SECONDS = 86400L * 7;
-
     public static final String AUTH_CODE_KEY = "meituan_login_authcode";
     public static final String IS_SETTING_UP = "meituan_set_up_flag";
 

@@ -10,6 +10,7 @@ import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.PictureFileUtil;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.processor.uploader.meta.WechatVideoMetaData;
 import com.sh.message.service.MsgSendService;
@@ -25,6 +26,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 腾讯视频号上传
@@ -41,7 +43,6 @@ public class WechatVideoUploader extends Uploader {
     @Value("${playwright.headless}")
     private boolean headless;
 
-    private static final long WECHAT_COOKIES_VALID_SECONDS = 86400L * 7;
     private static final String IS_SETTING_UP = "wechat_set_up_flag";
 
     @Override
@@ -67,8 +68,10 @@ public class WechatVideoUploader extends Uploader {
     }
 
     private void genCookies() {
+        File accountFile = getAccoutFile();
+
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
+            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions().setHeadless(headless));
             BrowserContext context = browser.newContext();
             Page page = context.newPage();
 
@@ -116,8 +119,7 @@ public class WechatVideoUploader extends Uploader {
                 );
 
                 // 保存cookie到文件
-                String storageState = context.storageState();
-                cacheManager.set(getAccountKey(), storageState, WECHAT_COOKIES_VALID_SECONDS, TimeUnit.SECONDS);
+                context.storageState(new BrowserContext.StorageStateOptions().setPath(Paths.get(accountFile.getAbsolutePath())));
                 log.info("gen cookies for {} success", getType());
             }
 
@@ -145,15 +147,15 @@ public class WechatVideoUploader extends Uploader {
     }
 
     private boolean checkAccountValid() {
-        String storageInfo = cacheManager.get(getAccountKey());
-        if (StringUtils.isBlank(storageInfo)) {
+        File accountFile = getAccoutFile();
+        if (!accountFile.exists()) {
             return false;
         }
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
+            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions().setHeadless(headless));
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
-                    .setStorageState(storageInfo));
+                    .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
             Page page = context.newPage();
             page.navigate("https://channels.weixin.qq.com/platform/post/create");
@@ -177,15 +179,16 @@ public class WechatVideoUploader extends Uploader {
     private boolean doUpload( String recordPath ) {
         File targetFile = new File(recordPath, "highlight.mp4");
         String workFilePath = targetFile.getAbsolutePath();
+        String cookiesPath = getAccoutFile().getAbsolutePath();
         WechatVideoMetaData metaData = FileStoreUtil.loadFromFile(
                 new File(recordPath, UploaderFactory.getMetaFileName(getType())),
                 new TypeReference<WechatVideoMetaData>() {
                 });
 
-        String storageState = cacheManager.get(getAccountKey());
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
-            BrowserContext context = browser.newContext(new Browser.NewContextOptions().setStorageState(storageState));
+            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions().setHeadless(headless));
+            BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+                    .setStorageStatePath(Paths.get(cookiesPath)));
 
             Page page = context.newPage();
             page.navigate("https://channels.weixin.qq.com/platform/post/create");
@@ -206,14 +209,15 @@ public class WechatVideoUploader extends Uploader {
 
             // 定时发布先不搞
 
+            // 选择发布集合
+
             // 添加短标题
             addShortTitle(page, metaData.getTitle());
             // 发布视频
             publishVideo(page, workFilePath);
 
             // Save updated cookies
-            String cookies = context.storageState();
-            cacheManager.set(getAccountKey(), cookies, WECHAT_COOKIES_VALID_SECONDS, TimeUnit.SECONDS);
+            context.storageState(new BrowserContext.StorageStateOptions().setPath(Paths.get(cookiesPath)));
             log.info("update wechatVideo cookies success, video: {}", workFilePath);
             page.waitForTimeout(2000);
 
@@ -228,12 +232,7 @@ public class WechatVideoUploader extends Uploader {
     }
 
     private void uploadVideo(Page page, String workFilePath) {
-        Locator uploadDiv = page.locator("div.upload-content");
-        // 监听文件选择器
-        FileChooser fileChooser = page.waitForFileChooser(uploadDiv::click);
-
-        // 设置文件路径并上传文件
-        fileChooser.setFiles(Paths.get(workFilePath));
+        page.locator("input[type='file'][accept*='video']").setInputFiles(Paths.get(workFilePath));
     }
 
     private void addTitleTags(Page page, String workFilePath, WechatVideoMetaData metaData) {
@@ -299,15 +298,16 @@ public class WechatVideoUploader extends Uploader {
                     String previewButtonInfo = page.locator("div.finder-tag-wrap.btn:has-text(\"更换封面\")").getAttribute("class");
                     if (!previewButtonInfo.contains("disabled")) {
                         page.locator("div.finder-tag-wrap.btn:has-text(\"更换封面\")").click();
-                        page.locator("div.single-cover-uploader-wrap > div.wrap").hover();
-                        if (page.locator(".del-wrap > .svg-icon").count() > 0) {
-                            page.locator(".del-wrap > .svg-icon").click();
-                        }
+//                        page.locator("div.single-cover-uploader-wrap > div.wrap").hover();
+//                        if (page.locator(".del-wrap > .svg-icon").count() > 0) {
+//                            page.locator(".del-wrap > .svg-icon").click();
+//                        }
+                        page.locator("input[type='file'][accept*='image']").setInputFiles(Paths.get(metaData.getPreViewFilePath()));
 
                         // 定位上传封面图的div， 并确认上传
-                        Locator previewUploadDivLoc = page.locator("div.single-cover-uploader-wrap > div.wrap");
-                        FileChooser fileChooser = page.waitForFileChooser(previewUploadDivLoc::click);
-                        fileChooser.setFiles(Paths.get(metaData.getPreViewFilePath()));
+//                        Locator previewUploadDivLoc = page.locator("div.single-cover-uploader-wrap > div.wrap");
+//                        FileChooser fileChooser = page.waitForFileChooser(previewUploadDivLoc::click);
+//                        fileChooser.setFiles(Paths.get(metaData.getPreViewFilePath()));
                         page.waitForTimeout(2000);
                         page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("确定")).click();
                         page.waitForTimeout(1000);
@@ -330,6 +330,14 @@ public class WechatVideoUploader extends Uploader {
             }
         }
     }
+
+//    private void addToCollection(Page page, WechatVideoMetaData metaData) {
+//        String streamerName = StreamerInfoHolder.getCurStreamerName();
+//        String collName = streamerName + "直播录像";
+//        page.locator(".post-album-wrap").click();
+//
+//        page.locator(".option-item.active .name").all().stream().map(loc -> loc.textContent()).collect(Collectors.toList())
+//    }
 
     private void handleUploadError(Page page, String workFilePath) {
         // 点击删除按钮
