@@ -197,9 +197,11 @@ public class WechatVideoUploader extends Uploader {
             page.waitForURL("https://channels.weixin.qq.com/platform/post/create");
             // 上传文件
             uploadVideo(page, workFilePath);
+            snapshot(page);
 
             // 添加视频标签
             addTitleTags(page, workFilePath, metaData);
+            snapshot(page);
 
             // 增加原创
             addOriginal(page, metaData);
@@ -232,6 +234,7 @@ public class WechatVideoUploader extends Uploader {
     }
 
     private void uploadVideo(Page page, String workFilePath) {
+        page.waitForTimeout(4000);
         page.locator("input[type='file'][accept*='video']").setInputFiles(Paths.get(workFilePath));
     }
 
@@ -290,6 +293,7 @@ public class WechatVideoUploader extends Uploader {
         while (errorCnt < 10) {
             try {
                 // 匹配删除按钮，代表视频上传完毕
+                snapshot(page);
                 String buttonInfo = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("发表")).getAttribute("class");
                 if (!buttonInfo.contains("weui-desktop-btn_disabled")) {
                     log.info("video upload finish for wechat, path: {}", workFilePath);
@@ -318,7 +322,8 @@ public class WechatVideoUploader extends Uploader {
                     }
                 }
             } catch (Exception e) {
-                log.info("video is uploading for wechat, path: {}", workFilePath);
+                log.info("video is uploading for wechat, path: {}", workFilePath, e);
+                errorCnt++;
                 page.waitForTimeout(2000);
             }
         }

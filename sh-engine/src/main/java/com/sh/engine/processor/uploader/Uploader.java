@@ -1,8 +1,10 @@
 package com.sh.engine.processor.uploader;
 
+import com.microsoft.playwright.Page;
 import com.sh.config.manager.ConfigFetcher;
 
 import java.io.File;
+import java.nio.file.Paths;
 
 /**
  * @Author caiwen
@@ -33,7 +35,9 @@ public abstract class Uploader {
         return new File(accountSavePath, UploaderFactory.getAccountFileName(getType()));
     }
 
-    protected String getAccountKey() {
-        return getType() + "_" + "cookies";
+    protected void snapshot(Page page) {
+        String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
+        File sapshotFile = new File(accountSavePath, getType() + "-" + System.currentTimeMillis() + "png");
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(sapshotFile.getAbsolutePath())).setFullPage(true));
     }
 }
