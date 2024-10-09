@@ -198,11 +198,6 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 //        );
     }
 
-    public static void main(String[] args) {
-        VideoMergeServiceImpl videoMergeService = new VideoMergeServiceImpl();
-        videoMergeService.genTitleVideo(new File("G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\tmp\\high.mp4"), "Theshy 精彩 \n 直播片段");
-    }
-
     /**
      * @param oldVideoFile
      * @return
