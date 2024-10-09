@@ -37,7 +37,7 @@ public abstract class Uploader {
 
     protected void snapshot(Page page) {
         String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
-        File sapshotFile = new File(accountSavePath, getType() + "-" + System.currentTimeMillis() + "png");
+        File sapshotFile = new File(accountSavePath, getType() + "-" + System.currentTimeMillis() + ".png");
         page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(sapshotFile.getAbsolutePath())).setFullPage(true));
     }
 }
