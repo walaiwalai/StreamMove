@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -71,7 +72,10 @@ public class WechatVideoUploader extends Uploader {
         File accountFile = getAccoutFile();
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions().setHeadless(headless));
+            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
+                    .setHeadless(headless)
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
+            );
             BrowserContext context = browser.newContext();
             Page page = context.newPage();
 
@@ -153,7 +157,10 @@ public class WechatVideoUploader extends Uploader {
         }
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions().setHeadless(headless));
+            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
+                    .setHeadless(headless)
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
+            );
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
@@ -186,7 +193,10 @@ public class WechatVideoUploader extends Uploader {
                 });
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions().setHeadless(headless));
+            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
+                    .setHeadless(headless)
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
+            );
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(cookiesPath)));
 

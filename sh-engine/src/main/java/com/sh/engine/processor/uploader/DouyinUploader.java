@@ -22,6 +22,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -93,7 +94,10 @@ public class DouyinUploader extends Uploader {
         // 开始上传
         try (Playwright playwright = Playwright.create()) {
             // 带着cookies创建浏览器
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
+            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
+                    .setHeadless(headless)
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
+            );
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(getAccoutFile().getAbsolutePath())));
 
@@ -308,7 +312,10 @@ public class DouyinUploader extends Uploader {
 
         try (Playwright playwright = Playwright.create()) {
             // 启动 Chromium 浏览器，非无头模式
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
+            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
+                    .setHeadless(headless)
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
+            );
             // 设置浏览器上下文
             BrowserContext context = browser.newContext();
             // 创建一个新的页面
@@ -407,7 +414,10 @@ public class DouyinUploader extends Uploader {
         }
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
+            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
+                    .setHeadless(headless)
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
+            );
             Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath()));
             BrowserContext context = browser.newContext(contextOptions);
