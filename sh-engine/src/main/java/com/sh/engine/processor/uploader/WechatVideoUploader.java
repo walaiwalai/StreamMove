@@ -234,7 +234,7 @@ public class WechatVideoUploader extends Uploader {
     }
 
     private void uploadVideo(Page page, String workFilePath) {
-        page.waitForTimeout(4000);
+        page.waitForTimeout(5000);
         page.locator("input[type='file'][accept*='video']").setInputFiles(Paths.get(workFilePath));
     }
 
