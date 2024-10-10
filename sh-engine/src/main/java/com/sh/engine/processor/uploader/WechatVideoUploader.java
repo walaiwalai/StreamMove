@@ -205,6 +205,7 @@ public class WechatVideoUploader extends Uploader {
             log.info("Video begin uploading, type: {}, path: {}", getType(), workFilePath);
 
             page.waitForURL("https://channels.weixin.qq.com/platform/post/create");
+            snapshot(page);
             // 上传文件
             uploadVideo(page, workFilePath);
             snapshot(page);
