@@ -240,6 +240,7 @@ public class MeituanUploader extends Uploader {
     private void uploadVideo(Page page, String workFilePath) {
         page.waitForTimeout(3000);
         page.locator("input.mtd-upload-input[accept*='video']").setInputFiles(Paths.get(workFilePath));
+        page.waitForTimeout(3000);
 
     }
 
