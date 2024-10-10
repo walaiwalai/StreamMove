@@ -16,10 +16,14 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
+# 下载 SimHei 字体（黑体）并安装
+RUN mkdir -p /usr/share/fonts/truetype/simhei && \
+    curl -o /usr/share/fonts/truetype/simhei/SimHei.ttf https://github.com/owenthereal/SimHei/raw/master/SimHei.ttf && \
+    fc-cache -f -v
+
 # 创建 Python 虚拟环境并安装 streamlink
 RUN python3 -m venv /opt/myenv && \
-    /opt/myenv/bin/pip install --no-cache-dir streamlink && \
-    fc-cache -f -v
+    /opt/myenv/bin/pip install --no-cache-dir streamlink
 
 # 将虚拟环境路径添加到 PATH
 ENV PATH="/opt/myenv/bin:$PATH"
