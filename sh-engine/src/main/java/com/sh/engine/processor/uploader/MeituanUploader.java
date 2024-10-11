@@ -92,6 +92,7 @@ public class MeituanUploader extends Uploader {
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
             );
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+                            .setProxy("http://222.73.135.243:16817")
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
             Page page = context.newPage();
@@ -121,7 +122,7 @@ public class MeituanUploader extends Uploader {
                     .setHeadless(headless)
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
             );
-            BrowserContext context = browser.newContext();
+            BrowserContext context = browser.newContext(new Browser.NewContextOptions().setProxy("http://222.73.135.243:16817"));
             Page page = context.newPage();
 
             // 登录页面
@@ -198,6 +199,7 @@ public class MeituanUploader extends Uploader {
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
             );
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+                    .setProxy("http://222.73.135.243:16817")
                     .setStorageStatePath(Paths.get(getAccoutFile().getAbsolutePath())));
 
             Page page = context.newPage();
