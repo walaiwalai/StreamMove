@@ -4,6 +4,7 @@ import com.alibaba.fastjson.TypeReference;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.Cookie;
+import com.microsoft.playwright.options.Proxy;
 import com.microsoft.playwright.options.WaitForSelectorState;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
@@ -89,10 +90,10 @@ public class MeituanUploader extends Uploader {
         try (Playwright playwright = Playwright.create()) {
             Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
                     .setHeadless(headless)
+                    .setProxy(new Proxy("http://222.73.135.243:16817").setUsername("pfppdgej").setPassword("2qpesxbe"))
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
             );
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
-                            .setProxy("http://222.73.135.243:16817")
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
             Page page = context.newPage();
@@ -120,9 +121,10 @@ public class MeituanUploader extends Uploader {
         try (Playwright playwright = Playwright.create()) {
             Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
                     .setHeadless(headless)
+                    .setProxy(new Proxy("http://222.73.135.243:16817").setUsername("pfppdgej").setPassword("2qpesxbe"))
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
             );
-            BrowserContext context = browser.newContext(new Browser.NewContextOptions().setProxy("http://222.73.135.243:16817"));
+            BrowserContext context = browser.newContext();
             Page page = context.newPage();
 
             // 登录页面
@@ -196,10 +198,10 @@ public class MeituanUploader extends Uploader {
         try (Playwright playwright = Playwright.create()) {
             Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
                     .setHeadless(headless)
+                    .setProxy(new Proxy("http://222.73.135.243:16817").setUsername("pfppdgej").setPassword("2qpesxbe"))
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
             );
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
-                    .setProxy("http://222.73.135.243:16817")
                     .setStorageStatePath(Paths.get(getAccoutFile().getAbsolutePath())));
 
             Page page = context.newPage();
