@@ -92,7 +92,6 @@ public class MeituanUploader extends Uploader {
         try (Playwright playwright = Playwright.create()) {
             BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
-                    .setChannel("chrome")
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
 //            if (StringUtils.isNotBlank(proxyUrl)) {
 //                options.setProxy(proxyUrl);
@@ -127,7 +126,6 @@ public class MeituanUploader extends Uploader {
         try (Playwright playwright = Playwright.create()) {
             BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
-                    .setChannel("chrome")
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
 //            if (StringUtils.isNotBlank(proxyUrl)) {
 //                options.setProxy(proxyUrl);
@@ -208,7 +206,6 @@ public class MeituanUploader extends Uploader {
         try (Playwright playwright = Playwright.create()) {
             BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
-                    .setChannel("chrome")
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
 //            if (StringUtils.isNotBlank(proxyUrl)) {
 //                options.setProxy(proxyUrl);
