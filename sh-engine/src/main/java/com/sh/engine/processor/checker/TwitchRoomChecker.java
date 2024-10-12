@@ -17,6 +17,7 @@ import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -31,8 +32,6 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
 
     @Override
     public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
-//        --twitch-disable-ads
-//        --twitch-access-token-param
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             return fetchLivingRecord(streamerConfig);
         } else {
@@ -58,10 +57,10 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         } catch (Exception e) {
             return null;
         }
-        // 发布时间
+        // 发布时间(延迟1小时)
         Instant instant = Instant.parse(videoItem.getPublishedAt());
         Date date = Date.from(instant);
-        boolean isNewTs = checkVodIsNew(streamerConfig, date);
+        boolean isNewTs = checkVodIsNew(streamerConfig, DateUtils.addHours(date, -1));
         if (!isNewTs) {
             return null;
         }

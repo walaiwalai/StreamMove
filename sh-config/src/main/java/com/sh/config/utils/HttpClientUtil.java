@@ -123,7 +123,7 @@ public class HttpClientUtil {
             httpPost.releaseConnection();
         }
 
-        if (printInfo) {
+        if (printInfo && resp.length() < 200) {
             log.info("Receive http post response. url: {}, response: {}", httpPost.getURI().toString(), resp);
         }
         return resp;
