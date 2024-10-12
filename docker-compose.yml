@@ -26,6 +26,16 @@ services:
     networks:
       - stream-docker
 
+  stream-proxy:
+    image: stream-proxy:latest
+    container_name: stream-proxy
+    volumes:
+      - /etc/shadowsocks-libev:/etc/shadowsocks-libev
+    ports:
+      - "1080:1080"
+    networks:
+      - stream-docker
+
   stream-move:
     image: stream-move:latest
     container_name: stream-move
