@@ -93,9 +93,9 @@ public class MeituanUploader extends Uploader {
             BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
-            if (StringUtils.isNotBlank(proxyUrl)) {
-                options.setProxy(proxyUrl);
-            }
+//            if (StringUtils.isNotBlank(proxyUrl)) {
+//                options.setProxy(proxyUrl);
+//            }
 
             Browser browser = playwright.firefox().launch(options);
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
@@ -127,9 +127,9 @@ public class MeituanUploader extends Uploader {
             BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
-            if (StringUtils.isNotBlank(proxyUrl)) {
-                options.setProxy(proxyUrl);
-            }
+//            if (StringUtils.isNotBlank(proxyUrl)) {
+//                options.setProxy(proxyUrl);
+//            }
 
             Browser browser = playwright.firefox().launch(options);
             BrowserContext context = browser.newContext();
@@ -207,9 +207,9 @@ public class MeituanUploader extends Uploader {
             BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
-            if (StringUtils.isNotBlank(proxyUrl)) {
-                options.setProxy(proxyUrl);
-            }
+//            if (StringUtils.isNotBlank(proxyUrl)) {
+//                options.setProxy(proxyUrl);
+//            }
 
             Browser browser = playwright.firefox().launch(options);
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
