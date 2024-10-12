@@ -92,12 +92,13 @@ public class MeituanUploader extends Uploader {
         try (Playwright playwright = Playwright.create()) {
             BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
+                    .setChannel("chrome")
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
 //            if (StringUtils.isNotBlank(proxyUrl)) {
 //                options.setProxy(proxyUrl);
 //            }
 
-            Browser browser = playwright.firefox().launch(options);
+            Browser browser = playwright.chromium().launch(options);
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
@@ -126,12 +127,13 @@ public class MeituanUploader extends Uploader {
         try (Playwright playwright = Playwright.create()) {
             BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
+                    .setChannel("chrome")
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
 //            if (StringUtils.isNotBlank(proxyUrl)) {
 //                options.setProxy(proxyUrl);
 //            }
 
-            Browser browser = playwright.firefox().launch(options);
+            Browser browser = playwright.chromium().launch(options);
             BrowserContext context = browser.newContext();
             Page page = context.newPage();
 
@@ -206,12 +208,13 @@ public class MeituanUploader extends Uploader {
         try (Playwright playwright = Playwright.create()) {
             BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
+                    .setChannel("chrome")
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
 //            if (StringUtils.isNotBlank(proxyUrl)) {
 //                options.setProxy(proxyUrl);
 //            }
 
-            Browser browser = playwright.firefox().launch(options);
+            Browser browser = playwright.chromium().launch(options);
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(getAccoutFile().getAbsolutePath())));
 
