@@ -40,6 +40,8 @@ public class MeituanUploader extends Uploader {
     private MsgSendService msgSendService;
     @Value("${playwright.headless}")
     private boolean headless;
+    @Value("${playwright.proxy.url}")
+    private String proxyUrl;
 
     public static final String AUTH_CODE_KEY = "meituan_login_authcode";
     public static final String IS_SETTING_UP = "meituan_set_up_flag";
@@ -88,11 +90,14 @@ public class MeituanUploader extends Uploader {
         }
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
+            BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
-                    .setProxy(new Proxy("http://222.73.135.243:16817").setUsername("pfppdgej").setPassword("2qpesxbe"))
-                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
-            );
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
+            if (StringUtils.isNotBlank(proxyUrl)) {
+                options.setProxy(proxyUrl);
+            }
+
+            Browser browser = playwright.firefox().launch(options);
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
@@ -119,11 +124,14 @@ public class MeituanUploader extends Uploader {
         File accountFile = getAccoutFile();
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
+            BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
-                    .setProxy(new Proxy("http://222.73.135.243:16817").setUsername("pfppdgej").setPassword("2qpesxbe"))
-                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
-            );
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
+            if (StringUtils.isNotBlank(proxyUrl)) {
+                options.setProxy(proxyUrl);
+            }
+
+            Browser browser = playwright.firefox().launch(options);
             BrowserContext context = browser.newContext();
             Page page = context.newPage();
 
@@ -196,11 +204,14 @@ public class MeituanUploader extends Uploader {
                 });
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
+            BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                     .setHeadless(headless)
-                    .setProxy(new Proxy("http://222.73.135.243:16817").setUsername("pfppdgej").setPassword("2qpesxbe"))
-                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
-            );
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
+            if (StringUtils.isNotBlank(proxyUrl)) {
+                options.setProxy(proxyUrl);
+            }
+
+            Browser browser = playwright.firefox().launch(options);
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(getAccoutFile().getAbsolutePath())));
 
