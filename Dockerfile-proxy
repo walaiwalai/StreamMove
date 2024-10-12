@@ -4,10 +4,9 @@ RUN apk update && \
     apk add --no-cache shadowsocks-libev bash
 
 # 创建配置目录
-RUN mkdir -p /etc/shadowsocks
-COPY ./config.json /etc/shadowsocks/config.json
+RUN mkdir -p /etc/shadowsocks-libev
+COPY ./proxy-config.json /etc/shadowsocks-libev/config.json
 
 EXPOSE 1080
 
-# 设置启动命令，启动 Shadowsocks 客户端
-CMD ["ss-local", "-c", "/etc/shadowsocks/config.json"]
+CMD ["ss-local", "-c", "/etc/shadowsocks-libev/config.json"]
