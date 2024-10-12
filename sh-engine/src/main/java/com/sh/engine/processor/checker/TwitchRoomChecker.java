@@ -57,11 +57,12 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         } catch (Exception e) {
             return null;
         }
-        // 发布时间(延迟1小时)
+        // 发布时间
         Instant instant = Instant.parse(videoItem.getPublishedAt());
         Date date = Date.from(instant);
-        boolean isNewTs = checkVodIsNew(streamerConfig, DateUtils.addHours(date, -1));
-        if (!isNewTs) {
+        boolean isNewTs = checkVodIsNew(streamerConfig, date);
+        if (!isNewTs || DateUtils.addMinutes(date, 30).getTime() > System.currentTimeMillis()) {
+            // 延迟0.5小时
             return null;
         }
 
