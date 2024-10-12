@@ -228,6 +228,7 @@ public class MeituanUploader extends Uploader {
 
             // 填写标题
             addTitleTags(page, workFilePath, metaData);
+            snapshot(page);
 
             // 检查是否上传视频完成
             detectUploadStatus(page, workFilePath);
@@ -255,7 +256,7 @@ public class MeituanUploader extends Uploader {
     private void uploadVideo(Page page, String workFilePath) {
         page.waitForTimeout(3000);
         page.locator("input.mtd-upload-input[accept*='video']").setInputFiles(Paths.get(workFilePath));
-
+        snapshot(page);
     }
 
     private void addTitleTags(Page page, String workFilePath, MeituanWorkMetaData metaData) {
@@ -284,6 +285,7 @@ public class MeituanUploader extends Uploader {
                 } catch (Exception ignored) {
                     errorCnt++;
                 }
+                snapshot(page);
                 log.info("video is uploading for meituan, path: {}, progress: {}", workFilePath, progress);
             }
         }
