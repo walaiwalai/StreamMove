@@ -1,6 +1,7 @@
 package com.sh.engine.processor.recorder;
 
 import com.google.common.collect.Lists;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
@@ -31,12 +32,14 @@ public class StreamLinkRecorder extends Recorder {
 
     @Override
     public void doRecord() throws Exception {
-//        // 保存视频元信息
-//        doSaveMetaData();
+        String extraArguments = "";
+        if (channel == StreamChannelTypeEnum.TWITCH) {
+            extraArguments += "--twitch-disable-ads \"--twitch-api-header=Authorization=" + ConfigFetcher.getInitConfig().getTwitchAuthorization() + "\"";
+        }
 
         File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME);
         List<String> commands = Lists.newArrayList(
-                "streamlink", "--twitch-disable-ads",
+                "streamlink", extraArguments,
                 url, "best",
                 "--stdout", "|",
                 "ffmpeg",

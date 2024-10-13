@@ -40,8 +40,6 @@ public class MeituanUploader extends Uploader {
     private MsgSendService msgSendService;
     @Value("${playwright.headless}")
     private boolean headless;
-    @Value("${playwright.proxy.url}")
-    private String proxyUrl;
 
     public static final String AUTH_CODE_KEY = "meituan_login_authcode";
     public static final String IS_SETTING_UP = "meituan_set_up_flag";

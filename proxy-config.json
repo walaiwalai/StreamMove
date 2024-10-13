@@ -1,9 +1,0 @@
-{
-  "server": "你的服务器地址",
-  "server_port": 你的服务器端口,
-  "local_address": "127.0.0.1",
-  "local_port": 1080,
-  "password": "你的密码",
-  "timeout": 300,
-  "method": "代理服务器的加密方式"
-}

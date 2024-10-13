@@ -47,6 +47,9 @@ public class InitConfig {
      */
     private Integer videoPartLimitSize = 100;
 
+    // *********************twitchApi请求header Authorization**********************
+    private String twitchAuthorization;
+
     // *********************B站视频上传**********************
     private String biliCookies;
     private String accessToken;
