@@ -122,6 +122,19 @@ public enum LOLHeroPositionEnum {
     }
 
     /**
+     * 我被击杀
+     *
+     * @return
+     */
+    private static List<Integer> findMyselfKilledPair() {
+        return Lists.newArrayList(
+                LOLHeroPositionEnum.E_KILL.getLabelId(),
+                LOLHeroPositionEnum.MYSELF_KILLED.getLabelId(),
+                LOLHeroPositionEnum.E_ASSIST.getLabelId()
+        );
+    }
+
+    /**
      * yolo识别结果可能有误，做一下过滤
      * 只要跟我相关的
      *
@@ -139,6 +152,8 @@ public enum LOLHeroPositionEnum {
             pairCodes = findMyselfAssistPair();
         } else if (labelIds.contains(MYSELF_KILL.getLabelId())) {
             pairCodes = findMyselfKillPair();
+        } else if (labelIds.contains(MYSELF_KILLED.getLabelId())) {
+            pairCodes = findMyselfKilledPair();
         }
 
         for (Integer labelId : labelIds) {

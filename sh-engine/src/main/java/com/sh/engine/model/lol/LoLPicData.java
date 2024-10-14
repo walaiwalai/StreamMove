@@ -35,6 +35,10 @@ public class LoLPicData {
         return new LoLPicData(this.K, this.D, this.A);
     }
 
+    /**
+     * 合并识别的击杀细节框，每一行表示一次击杀详情
+     * @return
+     */
     public List<List<Integer>> merge2PositionEnum() {
         if (heroKADetail == null) {
             return Lists.newArrayList();

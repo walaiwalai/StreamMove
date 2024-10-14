@@ -165,20 +165,31 @@ public class LolSequenceStatistic {
         float killOrAssistGain = 0f;
         List<List<Integer>> detailPositions = cur.merge2PositionEnum();
         for (List<Integer> sameLine : detailPositions) {
+            float curGain = 0f;
             if (sameLine.contains(LOLHeroPositionEnum.MYSELF_KILL.getLabelId())) {
                 // 我击杀
                 if (sameLine.size() == 2) {
                     // 只有敌方被击杀和我击杀敌方，说明发生单杀
                     log.info("occur solo kill! cur: {}", JSON.toJSONString(cur));
-                    killOrAssistGain += 8.0f;
+                    curGain += 8.0f;
                 } else {
                     // 减1是因为有一个被击杀的敌方
-                    killOrAssistGain += (float) 6.0f / Math.max(sameLine.size() - 1, 1);
+                    curGain += (float) 6.0f / Math.max(sameLine.size() - 1, 1);
                 }
-            } else if (sameLine.contains(LOLHeroPositionEnum.MYSELF_ASSIST.getLabelId())) {
-                // 我助攻，减1是因为有一个被击杀的敌方
-                killOrAssistGain += (float) 4.0f / Math.max(sameLine.size() - 1, 1);
             }
+
+            if (sameLine.contains(LOLHeroPositionEnum.MYSELF_ASSIST.getLabelId())) {
+                // 我助攻，减1是因为有一个被击杀的敌方
+                curGain += (float) 4.0f / Math.max(sameLine.size() - 1, 1);
+            }
+
+            if (sameLine.contains(LOLHeroPositionEnum.MYSELF_KILLED.getLabelId())) {
+                // 我被击杀，有扣分,减1是因为排除我被击杀
+                curGain -= 4.0f / Math.max(sameLine.size() - 1, 1);
+            }
+
+
+            killOrAssistGain += Math.max(curGain, 0f);
         }
 
         return kadGain + killOrAssistGain;
