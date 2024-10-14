@@ -2,10 +2,9 @@ package com.sh.engine.service;
 
 import cn.hutool.core.io.file.FileNameUtil;
 import com.google.common.collect.Lists;
-import com.sh.engine.base.StreamerInfoHolder;
+import com.sh.config.utils.PictureFileUtil;
 import com.sh.engine.model.ffmpeg.FfmpegCmd;
 import com.sh.engine.util.CommandUtil;
-import com.sh.engine.util.DateUtil;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -154,48 +153,33 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         return success;
     }
 
-    /**
-     * 往标题加上title
-     *
-     * @param oldVideoFile
-     * @return
-     */
-    private String genTitleVideo( File oldVideoFile, String title ) {
-        return oldVideoFile.getAbsolutePath();
-//        String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + oldVideoFile.getAbsolutePath();
-//        String res = CommandUtil.cmdExecWithRes(new FfmpegCmd(querySizeCmd));
-//        String[] split = res.split(",");
-//        int width = Integer.parseInt(split[0]);
-//        int height = Integer.parseInt(split[1]);
-//
-//        File thumnailFile = new File(oldVideoFile.getParent(), "h-thumnail.png");
-//        PictureFileUtil.createTextOverlayImage(title, width, height, 80, thumnailFile.getAbsolutePath());
+    private String genTitleVideo(File tmpFile, String title) {
+        String tmpDir = tmpFile.getParent();
+        File thumnailFile = new File(tmpDir, "h-thumnail.png");
+        File titledSeg = new File(tmpDir, FileNameUtil.getPrefix(tmpFile) + "-titled.ts");
 
-//        File fadedSeg = new File(oldVideoFile.getParent(), FileNameUtil.getPrefix(oldVideoFile) + "-fade.ts");
-//        String fadedPath = fadedSeg.getAbsolutePath();
-//        String cmd = "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -i " + thumnailFile.getAbsolutePath() +
-//                " -filter_complex \"[0][1]overlay=0:0:enable='lte(t,1)'\" -codec:a copy " + fadedPath;
-//
-//        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
-//        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-//        if (resCode == 0) {
-//            log.info("add title success, path: {}, title: {}", fadedPath, title);
-//            return fadedPath;
-//        } else {
-//            log.info("add title fail, will use origin video, path: {}, resCode: {}", fadedPath, resCode);
-//            return oldVideoFile.getAbsolutePath();
-//        }
-//        // 按空格拆分成两行
-//        String[] lines = title.split("\n", 2);
-//        String firstLine = lines.length > 0 ? lines[0] : "";
-//        String secondLine = lines.length > 1 ? lines[1] : "";
-//        String cmd = String.format(
-//                "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf \"" +
-//                        "drawtext=text='%s':fontcolor=white:fontsize=80:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=(h-text_h)/2-40:enable='lt(t,1)', " +
-//                        "drawtext=text='%s':fontcolor=yellow:fontsize=80:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=(h-text_h)/2+60:enable='lt(t,1)'\"" +
-//                        " -codec:a copy " + fadedPath,
-//                firstLine, secondLine
-//        );
+
+        // 创建封面
+        String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + tmpFile.getAbsolutePath();
+        String res = CommandUtil.cmdExecWithRes(new FfmpegCmd(querySizeCmd));
+        String[] split = res.split("\n")[0].split(",");
+        int width = Integer.parseInt(split[0]);
+        int height = Integer.parseInt(split[1]);
+        PictureFileUtil.createTextOverlayImage(title, width, height, 80, thumnailFile.getAbsolutePath());
+
+        // 合并封面和视频
+        String fadedPath = titledSeg.getAbsolutePath();
+        String cmd = "ffmpeg -y -loglevel error -i " + tmpFile.getAbsolutePath() + " -i " + thumnailFile.getAbsolutePath() +
+                " -filter_complex \"[1][0]scale2ref[i][v];[v][i]overlay=enable='between(t,0,1)':format=auto\" -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
+        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
+        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
+        if (resCode == 0) {
+            log.info("add title success, path: {}, title: {}", fadedPath, title);
+            return fadedPath;
+        } else {
+            log.info("add title fail, will use origin video, path: {}, resCode: {}", fadedPath, resCode);
+            return tmpFile.getAbsolutePath();
+        }
     }
 
     /**
@@ -217,55 +201,24 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         }
     }
 
-    /**
-     * @param videoFilePaths
-     * @return
-     */
-    private static String genFadeConcatFilterCmd(List<String> videoFilePaths, File targetVideo) {
-        StringBuilder ffmpegCommand = new StringBuilder("-y ");
-        // 添加输入文件路径
-        for (int i = 0; i < videoFilePaths.size(); i++) {
-            ffmpegCommand.append("-i \"").append(videoFilePaths.get(i)).append("\" ");
-        }
-
-        // 视频淡入/淡出效果（假设对每个视频片段都做淡入）
-        ffmpegCommand.append("-filter_complex \"");
-        for (int i = 1; i < videoFilePaths.size(); i++) {
-            ffmpegCommand.append("[")
-                    .append(i)
-                    .append(":v]fade=t=in:st=0:d=" + FADE_DURATION + "[v")
-                    .append(i)
-                    .append("];");
-        }
-
-        // 合并视频流
-        ffmpegCommand.append("[0:v]");
-        for (int i = 1; i < videoFilePaths.size(); i++) {
-            ffmpegCommand.append("[");
-            ffmpegCommand.append("v")
-                    .append(i)
-                    .append("]");
-        }
-        ffmpegCommand.append("concat=n=").append(videoFilePaths.size()).append(":v=1:a=0[outv];");
-
-        // 合并音频流
-        for (int i = 0; i < videoFilePaths.size(); i++) {
-            ffmpegCommand.append("[").append(i).append(":a]");
-        }
-        ffmpegCommand.append("concat=n=").append(videoFilePaths.size()).append(":v=0:a=1[outa]\" ");
-
-        // 输出映射
-        ffmpegCommand.append("-map \"[outv]\" ");
-        ffmpegCommand.append("-map \"[outa]\" ");
-
-        // 编码参数设置
-        ffmpegCommand.append("-c:v libx264 -crf 24 -preset superfast ");
-        ffmpegCommand.append("-c:a aac ");
-
-        // 输出文件路径
-        ffmpegCommand.append(targetVideo.getAbsolutePath());
-
-        return ffmpegCommand.toString();
+    public static void main(String[] args) {
+        VideoMergeServiceImpl videoMergeService = new VideoMergeServiceImpl();
+        File targetFile = new File("G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\highlight.mp4");
+        List<List<String>> intervals = Lists.newArrayList(
+                Lists.newArrayList(
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-458.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-459.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-460.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-461.ts"
+                ),
+                Lists.newArrayList(
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-627.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-628.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-629.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-630.ts"
+                )
+        );
+        videoMergeService.mergeMultiWithFadeV2(intervals, targetFile, "Thesy精彩直播\n2929-98-1晚上");
     }
 }
 

@@ -99,9 +99,6 @@ public class PictureFileUtil {
         Font font = new Font("SimSun", Font.PLAIN, fontSize);
         g2d.setFont(font);
 
-        // 设置字体颜色为黄色
-        g2d.setColor(Color.YELLOW);
-
         // 计算多行文本位置
         FontMetrics fontMetrics = g2d.getFontMetrics();
         int lineHeight = fontMetrics.getHeight();
@@ -114,8 +111,13 @@ public class PictureFileUtil {
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i];
             int textWidth = fontMetrics.stringWidth(line);
-            int x = (width - textWidth) / 2; // 横向居中
+            int x = (width - textWidth) / 2;
             int y = yStart + i * lineHeight + fontMetrics.getAscent();
+            if (i % 2 == 0) {
+                g2d.setColor(Color.YELLOW);
+            } else {
+                g2d.setColor(Color.RED);
+            }
             g2d.drawString(line, x, y);
         }
 

@@ -1,4 +1,4 @@
-FROM linuxserver/ffmpeg:latest
+FROM linuxserver/ffmpeg:7.0.2
 
 # 更新包列表，安装 pip 和 python3-venv，并清理缓存
 RUN apt-get update && \

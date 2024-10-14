@@ -17,6 +17,7 @@ import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.stereotype.Component;
 
@@ -51,18 +52,15 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), VALID_URL_BASE);
 
         // 获取最近视频
-        VideoShelvesItem videoItem = null;
-        try {
-            videoItem = findLatestVideoItem(channelName);
-        } catch (Exception e) {
+        VideoShelvesItem videoItem = findLatestVideoItem(channelName);
+        if (videoItem == null) {
             return null;
         }
+
         // 发布时间
-        Instant instant = Instant.parse(videoItem.getPublishedAt());
-        Date date = Date.from(instant);
+        Date date = Date.from(Instant.parse(videoItem.getPublishedAt()));
         boolean isNewTs = checkVodIsNew(streamerConfig, date);
-        if (!isNewTs || DateUtils.addMinutes(date, 30).getTime() > System.currentTimeMillis()) {
-            // 延迟0.5小时
+        if (!isNewTs) {
             return null;
         }
 
@@ -99,23 +97,33 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
                 .build();
 
         String resp = OkHttpClientUtil.execute(request);
-        JSONArray items = JSON.parseArray(resp).getJSONObject(0)
-                .getJSONObject("data")
-                .getJSONObject("user")
-                .getJSONObject("videoShelves")
-                .getJSONArray("edges")
-                .getJSONObject(0)
-                .getJSONObject("node")
-                .getJSONArray("items");
-        List<VideoShelvesItem> videoShelvesItems = JSON.parseArray(items.toJSONString(), VideoShelvesItem.class);
-        return videoShelvesItems.stream()
-                .max(Comparator.comparing(video -> Instant.parse(video.getPublishedAt())))
-                .orElse(null);
+        try {
+            JSONArray items = JSON.parseArray(resp).getJSONObject(0)
+                    .getJSONObject("data")
+                    .getJSONObject("user")
+                    .getJSONObject("videoShelves")
+                    .getJSONArray("edges")
+                    .getJSONObject(0)
+                    .getJSONObject("node")
+                    .getJSONArray("items");
+            List<VideoShelvesItem> videoShelvesItems = JSON.parseArray(items.toJSONString(), VideoShelvesItem.class);
+            VideoShelvesItem latestItem = videoShelvesItems.stream()
+                    .max(Comparator.comparing(video -> Instant.parse(video.getPublishedAt())))
+                    .orElse(null);
+
+            // 针对twitch，在直播时也会产生当前直播的录像，等直播完成再开始录播
+            // 封面如果在处理中，说明还在进行直播
+            return latestItem != null && latestItem.getPreviewThumbnailURL().contains("processing") ? latestItem : null;
+        } catch (Exception e) {
+            return null;
+        }
+
     }
 
     @Data
     private static class VideoShelvesItem {
         private String id;
         private String publishedAt;
+        private String previewThumbnailURL;
     }
 }
