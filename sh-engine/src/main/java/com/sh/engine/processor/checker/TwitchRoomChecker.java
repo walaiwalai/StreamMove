@@ -113,7 +113,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
 
             // 针对twitch，在直播时也会产生当前直播的录像，等直播完成再开始录播
             // 封面如果在处理中，说明还在进行直播
-            return latestItem != null && latestItem.getPreviewThumbnailURL().contains("processing") ? latestItem : null;
+            return latestItem != null && !latestItem.getPreviewThumbnailURL().contains("processing") ? latestItem : null;
         } catch (Exception e) {
             return null;
         }
