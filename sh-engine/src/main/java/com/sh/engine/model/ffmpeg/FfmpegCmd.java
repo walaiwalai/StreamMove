@@ -56,10 +56,8 @@ public class FfmpegCmd {
     /**
      * Executes the ffmpeg process with the previous given arguments.
      *
-     * @param openIOStreams Open IO streams for input/output and errorout, should be false when
-     *                      destroyOnRuntimeShutdown is false too
      */
-    public void execute(boolean openIOStreams) {
+    public void execute() {
 //        String cmd = defaultFFMPEGLocator.getExecutablePath() + " " + ffmpegCommand;
 //        String cmd = "ffmpeg" + " " + ffmpegCommand;
         String cmd = ffmpegCommand;
@@ -72,11 +70,9 @@ public class FfmpegCmd {
             } else {
                 ffmpeg = runtime.exec(new String[]{"sh", "-c", cmd});
             }
-            if (openIOStreams) {
-                inputStream = ffmpeg.getInputStream();
-                outputStream = ffmpeg.getOutputStream();
-                errorStream = ffmpeg.getErrorStream();
-            }
+            inputStream = ffmpeg.getInputStream();
+            outputStream = ffmpeg.getOutputStream();
+            errorStream = ffmpeg.getErrorStream();
         } catch (Exception e) {
             log.error("run ffmpeg error!, cmd: {}", cmd, e);
         }

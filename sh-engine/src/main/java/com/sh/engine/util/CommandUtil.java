@@ -26,14 +26,14 @@ public class CommandUtil {
         String errMsg = null;
         try {
             Thread.sleep(200);
-            ffmpegCmd.execute(true);
+            ffmpegCmd.execute();
 
             // 打印输出信息
             StreamGobbler errorGobbler = new StreamGobbler(ffmpegCmd.getErrorStream(), "ERROR");
             errorGobbler.start();
 
             StreamGobbler outGobbler = new StreamGobbler(ffmpegCmd.getInputStream(), "OUTPUT",
-                    ffmpegCmd.getOutputStream());
+                    ffmpegCmd.getOutputStream(), true);
             outGobbler.start();
 
             code = ffmpegCmd.getProcessExitCode();
@@ -50,7 +50,13 @@ public class CommandUtil {
         Integer code = 999;
         String errMsg = null;
         try {
-            ffmpegCmd.execute(false);
+            ffmpegCmd.execute();
+            StreamGobbler errorGobbler = new StreamGobbler(ffmpegCmd.getErrorStream(), "ERROR", null, false);
+            errorGobbler.start();
+
+            StreamGobbler outGobbler = new StreamGobbler(ffmpegCmd.getInputStream(), "OUTPUT", ffmpegCmd.getOutputStream(), false);
+            outGobbler.start();
+
             code = ffmpegCmd.getProcessExitCode();
         } catch (Exception e) {
             log.error("exec cmd fail, cmdStr: {}, errMsg: {}", ffmpegCmd.getFfmpegCommand(), errMsg, e);
@@ -66,7 +72,7 @@ public class CommandUtil {
         StringBuilder error = new StringBuilder();
 
         try {
-            ffmpegCmd.execute(true);
+            ffmpegCmd.execute();
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(ffmpegCmd.getInputStream()));
             BufferedReader errorReader = new BufferedReader(new InputStreamReader(ffmpegCmd.getErrorStream()));

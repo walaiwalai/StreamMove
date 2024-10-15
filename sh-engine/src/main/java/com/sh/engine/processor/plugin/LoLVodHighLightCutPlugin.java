@@ -25,6 +25,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -48,18 +49,18 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
     @Resource
     private VideoMergeService videoMergeService;
     @Resource
-    MsgSendService msgSendService;
+    private MsgSendService msgSendService;
+    @Value("${ocr.server.host}")
+    private String ocrHost;
+    @Value("${ocr.server.port}")
+    private String ocrPort;
 
     /**
      * 精彩片段的视频片段总数
      */
     private static final int MAX_HIGH_LIGHT_SEG_COUNT = 100;
+
     private static final int OCR_INTERVAL_NUM = 5;
-
-
-    private static final String OCR_URL = "http://stream-ocr:5000/ocr";
-    private static final String DETAIL_URL = "http://stream-ocr:5000/lolKillVisDet";
-
     private static final Map<String, Integer> LAST_OCR_K_MAP = Maps.newConcurrentMap();
     private static final Map<String, Integer> LAST_OCR_D_MAP = Maps.newConcurrentMap();
     private static final Map<String, Integer> LAST_OCR_A_MAP = Maps.newConcurrentMap();
@@ -314,7 +315,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         params.put("path", filePath);
         RequestBody body = RequestBody.create(mediaType, JSON.toJSONString(params));
         Request request = new Request.Builder()
-                .url(OCR_URL)
+                .url("http://" + ocrHost + ":" + ocrPort + "/ocr")
                 .post(body)
                 .addHeader("Content-Type", "application/json")
                 .build();
@@ -344,7 +345,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         params.put("path", detailPath);
         RequestBody body = RequestBody.create(mediaType, JSON.toJSONString(params));
         Request request = new Request.Builder()
-                .url(DETAIL_URL)
+                .url("http://" + ocrHost + ":" + ocrPort + "/lolKillVisDet")
                 .post(body)
                 .addHeader("Content-Type", "application/json")
                 .build();

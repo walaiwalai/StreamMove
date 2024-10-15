@@ -14,15 +14,17 @@ public class StreamGobbler extends  Thread {
     InputStream is;
     String type;
     OutputStream os;
+    boolean printInfo;
 
     public StreamGobbler(InputStream is, String type) {
-        this(is, type, null);
+        this(is, type, null, true);
     }
 
-    public StreamGobbler(InputStream is, String type, OutputStream redirect) {
+    public StreamGobbler(InputStream is, String type, OutputStream redirect, boolean printInfo) {
         this.is = is;
         this.type = type;
         this.os = redirect;
+        this.printInfo = printInfo;
     }
 
     @Override
@@ -42,7 +44,7 @@ public class StreamGobbler extends  Thread {
                 if (pw != null) {
                     pw.println(line);
                 }
-                if (lineNo < MAX_LINE) {
+                if (lineNo < MAX_LINE && printInfo) {
                     log.info(type + ">>>>" + line);
                 }
             }
