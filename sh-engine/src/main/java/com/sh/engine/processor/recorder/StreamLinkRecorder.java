@@ -23,23 +23,39 @@ public class StreamLinkRecorder extends Recorder {
     private String url;
 
     private StreamChannelTypeEnum channel;
+    private boolean useProxy;
 
     public StreamLinkRecorder(String savePath, Date regDate, String url) {
+        this(savePath, regDate, url, false);
+    }
+
+    public StreamLinkRecorder(String savePath, Date regDate, String url, boolean useProxy) {
         super(savePath, regDate);
         this.url = url;
-        channel = StreamChannelTypeEnum.findChannelByUrl(url);
+        this.channel = StreamChannelTypeEnum.findChannelByUrl(url);
+        this.useProxy = useProxy;
     }
 
     @Override
     public void doRecord() throws Exception {
-        String extraArguments = "";
+        List<String> extraArgs = Lists.newArrayList();
         if (channel == StreamChannelTypeEnum.TWITCH) {
-            extraArguments += "--twitch-disable-ads \"--twitch-api-header=Authorization=" + ConfigFetcher.getInitConfig().getTwitchAuthorization() + "\"";
+            extraArgs.add("--twitch-disable-ads");
+            String authorization = ConfigFetcher.getInitConfig().getTwitchAuthorization();
+            if (StringUtils.isNotBlank(authorization)) {
+                extraArgs.add(String.format("\"--twitch-api-header=Authorization=%s\"", authorization));
+            }
+        }
+
+        String httpProxy = ConfigFetcher.getInitConfig().getHttpProxy();
+        if (useProxy && StringUtils.isNotBlank(httpProxy)) {
+            extraArgs.add(String.format("--http-proxy \"%s\"", httpProxy));
         }
 
         File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME);
         List<String> commands = Lists.newArrayList(
-                "streamlink", extraArguments,
+                "streamlink", StringUtils.join(extraArgs, " "),
+                "--stream-segment-threads", "3",
                 url, "best",
                 "--stdout", "|",
                 "ffmpeg",

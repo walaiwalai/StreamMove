@@ -41,6 +41,13 @@ public class InitConfig {
     // *********************录制配置**********************
     private Integer maxRecordingCount = 2;
 
+    /**
+     * 代理服务地址
+     * 如：socks5h://address:port
+     * http://address:port
+     */
+    private String httpProxy;
+
     // *********************投稿配置**********************
     /**
      * 投稿时忽略小于此大小的文件(M)

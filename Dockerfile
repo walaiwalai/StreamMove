@@ -16,5 +16,5 @@ RUN mkdir -p ${APP_HOME}/download && \
     mkdir -p ${APP_HOME}/account && \
     mkdir -p ${APP_HOME}/thumbnail
 
-# 运行 jar 包
-ENTRYPOINT ["java", "-Dfile.encoding=utf-8", "-Duser.timezone=GMT+08", "-Dspring.profiles.active=prod", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/home/admin/stream/dump/", "-Xms512m", "-Xmx512m", "-jar", "/home/admin/stream/sh-start-1.0-SNAPSHOT.jar"]
+# 运行 jar 包和本地shadowsocks
+ENTRYPOINT ["sh", "-c", "ss-local -c /etc/shadowsocks-libev/shadowsocks-config.json & java -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dspring.profiles.active=prod -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/home/admin/stream/dump/ -Xms512m -Xmx512m -jar /home/admin/stream/sh-start-1.0-SNAPSHOT.jar"]

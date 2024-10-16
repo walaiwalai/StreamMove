@@ -201,3 +201,7 @@ https://github.com/ZhangMingZhao1/StreamerHelper
 https://github.com/ihmily/DouyinLiveRecorder
 
 https://github.com/AsaChiri/DDRecorder
+
+https://github.com/KLordy/auto_publish_videos
+
+https://github.com/dreammis/social-auto-upload
