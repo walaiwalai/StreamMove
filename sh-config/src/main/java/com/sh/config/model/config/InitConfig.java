@@ -85,4 +85,9 @@ public class InitConfig {
 
     // *********************用户登录小关**********************
     private String phoneNumber;
+
+    // *********************MINIO相关参数**********************
+    private String minioUrl;
+    private String minioAccessKey;
+    private String minioSecretKey;
 }

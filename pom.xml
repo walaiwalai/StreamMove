@@ -27,7 +27,7 @@
         <commons-collections4.version>4.1</commons-collections4.version>
         <commons-text.version>1.9</commons-text.version>
         <commons-codec.version>1.6</commons-codec.version>
-        <guava.version>17.0</guava.version>
+        <guava.version>19.0</guava.version>
         <lombok.version>1.18.30</lombok.version>
         <spring-boot.version>2.2.3.RELEASE</spring-boot.version>
         <slf4j-api.version>1.7.7</slf4j-api.version>
@@ -145,7 +145,12 @@
                 <artifactId>bitcoinj-core</artifactId>
                 <version>0.15.10</version>
             </dependency>
-
+            <!--            minio-->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>8.3.0</version>
+            </dependency>
 
             <!-- http-->
             <dependency>
@@ -161,7 +166,7 @@
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp</artifactId>
-                <version>3.10.0</version>
+                <version>4.8.1</version>
             </dependency>
 
             <dependency>

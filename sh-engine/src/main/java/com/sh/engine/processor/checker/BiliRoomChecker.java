@@ -31,7 +31,7 @@ public class BiliRoomChecker extends AbstractRoomChecker {
         boolean isLiving = checkIsLivingByStreamLink(roomUrl);
 
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(genRegPathByRegDate(date), date, roomUrl, true) : null;
+        return isLiving ? new StreamLinkRecorder(genRegPathByRegDate(date), date, roomUrl) : null;
     }
 
     @Override

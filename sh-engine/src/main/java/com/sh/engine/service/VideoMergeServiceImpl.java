@@ -170,7 +170,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         // 合并封面和视频
         String fadedPath = titledSeg.getAbsolutePath();
         String cmd = "ffmpeg -y -loglevel error -i " + tmpFile.getAbsolutePath() + " -i " + thumnailFile.getAbsolutePath() +
-                " -filter_complex \"[1][0]scale2ref[i][v];[v][i]overlay=enable='between(t,0,1)':format=auto\" -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
+                " -filter_complex \"[0][1]overlay=enable='between(t,0,1)':format=auto\" -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
         FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
         Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
         if (resCode == 0) {

@@ -36,6 +36,11 @@ public enum StreamChannelTypeEnum {
      * chzzk
      */
     CHZZK(6, "chzzk", "chzzk.naver.com"),
+
+    /**
+     * minio
+     */
+    MINIO(7, "minio", "minio"),
     ;
 
     private int type;

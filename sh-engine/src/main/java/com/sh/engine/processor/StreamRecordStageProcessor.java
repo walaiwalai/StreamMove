@@ -3,11 +3,11 @@ package com.sh.engine.processor;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
-import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.base.StreamerInfoHolder;
+import com.sh.engine.constant.RecordStageEnum;
+import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
-import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.processor.recorder.Recorder;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
@@ -65,7 +65,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         try {
             recorder.doRecord();
         } catch (Exception e) {
-            log.error("record error, savePath: {}", recorder.getSavePath());
+            log.error("record error, savePath: {}", recorder.getSavePath(), e);
         }
 
         // 4.后置操作

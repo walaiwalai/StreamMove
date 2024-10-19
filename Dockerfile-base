@@ -6,7 +6,7 @@ RUN apt-get update && \
     python3-pip \
     python3-venv \
     openjdk-8-jre \
-    shadowsocks-libev \
+#    shadowsocks-libev \
     fonts-noto-cjk \
     fonts-wqy-microhei \
     fonts-wqy-zenhei \
@@ -17,13 +17,10 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
-COPY shadowsocks-config.json /etc/shadowsocks-libev/shadowsocks-config.json
+#COPY shadowsocks-config.json /etc/shadowsocks-libev/shadowsocks-config.json
 
 # 更新字头
 RUN fc-cache -f -v
-#RUN mkdir -p /usr/share/fonts/truetype/simhei && \
-#    curl -o /usr/share/fonts/truetype/simhei/SimHei.ttf https://github.com/owenthereal/SimHei/raw/master/SimHei.ttf && \
-#    fc-cache -f -v
 
 # 创建 Python 虚拟环境并安装 streamlink
 RUN python3 -m venv /opt/myenv && \
