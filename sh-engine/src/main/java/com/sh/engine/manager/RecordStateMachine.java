@@ -44,7 +44,7 @@ public class RecordStateMachine {
             8,
             600,
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(32),
+            new ArrayBlockingQueue<>(64),
             new ThreadFactoryBuilder().setNameFormat("record-state-machine").build(),
             new ThreadPoolExecutor.AbortPolicy()
     );

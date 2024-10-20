@@ -35,7 +35,7 @@ public class RecordConstant {
     /**
      * 精彩区间前后视频端个数
      */
-    public static final int POTENTIAL_INTERVAL_PRE_N = 6;
+    public static final int POTENTIAL_INTERVAL_PRE_N = 5;
     public static final int POTENTIAL_INTERVAL_POST_N = 1;
 
     /**
