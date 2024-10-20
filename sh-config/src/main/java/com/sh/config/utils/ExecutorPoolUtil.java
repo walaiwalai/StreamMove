@@ -13,9 +13,10 @@ import java.util.concurrent.TimeUnit;
  * @Date 2024 09 28 10 26
  **/
 public class ExecutorPoolUtil {
+    private static final int CORE_COUNT = Runtime.getRuntime().availableProcessors();
     private static ExecutorService downloadPool = new ThreadPoolExecutor(
-            8,
-            8,
+            CORE_COUNT * 2,
+            CORE_COUNT * 2,
             600,
             TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(20480),
@@ -24,8 +25,8 @@ public class ExecutorPoolUtil {
     );
 
     private static final ExecutorService uploadPool = new ThreadPoolExecutor(
-            8,
-            8,
+            CORE_COUNT * 2,
+            CORE_COUNT * 2,
             600,
             TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(40960),

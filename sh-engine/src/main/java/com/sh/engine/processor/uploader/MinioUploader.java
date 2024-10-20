@@ -1,17 +1,22 @@
 package com.sh.engine.processor.uploader;
 
 import com.sh.config.manager.MinioManager;
+import com.sh.config.utils.ExecutorPoolUtil;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.UploadPlatformEnum;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -42,15 +47,31 @@ public class MinioUploader extends Uploader {
                 .stream()
                 .sorted(Comparator.comparingInt(v -> VideoFileUtil.genIndex(v.getName())))
                 .collect(Collectors.toList());
-
+        if (CollectionUtils.isEmpty(videos)) {
+            return true;
+        }
 
         int totalCnt = videos.size();
         String timeV = new File(recordPath).getName();
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         String targetMinioDir = streamerName + "/" + timeV;
+
+        CountDownLatch countDownLatch = new CountDownLatch(totalCnt);
+        AtomicInteger cnt = new AtomicInteger(0);
         for (File segVideo : videos) {
-            uploadWithRetry(segVideo, targetMinioDir, totalCnt);
+            CompletableFuture.supplyAsync(() -> {
+                        return uploadWithRetry(segVideo, targetMinioDir);
+                    }, ExecutorPoolUtil.getUploadPool())
+                    .whenComplete((isSuccess, throwbale) -> {
+                        if (isSuccess) {
+                            log.info("finish uploading ts to minio, {}/{}", cnt.getAndIncrement(), totalCnt);
+                        } else {
+                            log.error("error uploading ts to minio, file: {}", segVideo.getAbsolutePath());
+                        }
+                        countDownLatch.countDown();
+                    });
         }
+        countDownLatch.await();
 
         // 2. 上传完成后，再上传一个完成上传的标志
         File finishFlag = new File(recordPath, "finish-flag.txt");
@@ -58,12 +79,11 @@ public class MinioUploader extends Uploader {
         return MinioManager.uploadFile(finishFlag, targetMinioDir);
     }
 
-    private boolean uploadWithRetry(File segVideo, String targetMinioDir, int totalCnt) {
+    private boolean uploadWithRetry(File segVideo, String targetMinioDir) {
         int reTryCnt = 0;
         for (int i = 0; i < MAX_RETRY_CNT; i++) {
             boolean isFinish = MinioManager.uploadFile(segVideo, targetMinioDir);
             if (isFinish) {
-                log.info("finish uploading ts to minio, {}/{}", VideoFileUtil.genIndex(segVideo.getName()) + 1, totalCnt);
                 return true;
             }
 

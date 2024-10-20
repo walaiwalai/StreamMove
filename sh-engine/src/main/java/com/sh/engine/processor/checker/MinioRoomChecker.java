@@ -28,7 +28,7 @@ public class MinioRoomChecker extends AbstractRoomChecker {
         String dirPath = roomUrl.substring(roomUrl.lastIndexOf(":") + 1);
 
         // 获取mino下指定dirPath最近上传的文件夹
-        List<String> timeVs = MinioManager.getFolderNames(dirPath + "/");
+        List<String> timeVs = MinioManager.listFolderNames(dirPath + "/");
         Date date = timeVs.stream()
                 // 已经上传完成的
                 .filter(timeV -> MinioManager.doesFileExist(dirPath + "/" + timeV + "/" + "finish-flag.txt"))

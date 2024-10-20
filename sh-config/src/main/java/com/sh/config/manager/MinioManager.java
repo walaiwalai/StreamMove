@@ -1,8 +1,6 @@
 package com.sh.config.manager;
 
 import com.google.common.collect.Lists;
-import com.sh.config.exception.ErrorEnum;
-import com.sh.config.exception.StreamerRecordException;
 import io.minio.*;
 import io.minio.errors.MinioException;
 import io.minio.messages.Item;
@@ -11,8 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,42 +66,6 @@ public class MinioManager {
         }
     }
 
-    /**
-     * 下载指定路径下的所有对象到本地指定文件夹
-     *
-     * @param minioFolderPath
-     * @param localFolderPath
-     * @throws MinioException
-     * @throws IOException
-     */
-    public static void down2LocalDir(String minioFolderPath, String localFolderPath) throws MinioException, IOException, NoSuchAlgorithmException, InvalidKeyException {
-        // 确保本地文件夹存在
-        File localFolder = new File(localFolderPath);
-        if (!localFolder.exists()) {
-            throw new StreamerRecordException(ErrorEnum.INVALID_PARAM);
-        }
-
-        // 列出 MinIO 对象路径下的所有文件
-        Iterable<Result<Item>> results = getMinioClient().listObjects(
-                ListObjectsArgs.builder()
-                        .bucket(BUCKET_NAME)
-                        .prefix(minioFolderPath)
-                        .build()
-        );
-
-        // 逐个文件下载到本地
-        for (Result<Item> result : results) {
-            Item item = result.get();
-            if (!item.isDir()) {
-                // 创建本地子目录结构
-                File savePath = new File(localFolder, item.objectName().substring(minioFolderPath.length()));
-
-                // 下载文件
-                downloadFile(item.objectName(), savePath.getAbsolutePath());
-            }
-        }
-    }
-
 
     public static boolean doesFileExist(String objectPath) {
         try {
@@ -127,7 +87,7 @@ public class MinioManager {
      * @param minioFolderPath
      * @return
      */
-    public static List<String> getFolderNames(String minioFolderPath) {
+    public static List<String> listFolderNames(String minioFolderPath) {
         List<String> folderNames = new ArrayList<>();
         Iterable<Result<Item>> results = getMinioClient().listObjects(
                 ListObjectsArgs.builder()
@@ -155,12 +115,40 @@ public class MinioManager {
     }
 
     /**
+     * 获取前缀下的所有文件名称
+     *
+     * @param prefix
+     * @return
+     */
+    public static List<String> listObjectNames(String prefix) {
+        Iterable<Result<Item>> results = getMinioClient().listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(BUCKET_NAME)
+                        .recursive(false)
+                        .prefix(prefix)
+                        .build()
+        );
+        List<String> res = Lists.newArrayList();
+        for (Result<Item> result : results) {
+            Item item = null;
+            try {
+                item = result.get();
+            } catch (Exception e) {
+            }
+            res.add(item.objectName());
+        }
+        return res;
+    }
+
+    /**
      * 下载单个文件
      *
      * @param objectName
-     * @param localFilePath
+     * @param localFolderPath
      */
-    private static void downloadFile(String objectName, String localFilePath) {
+    public static boolean downloadFile(String objectName, String localFolderPath) {
+        File savePath = new File(localFolderPath, objectName.substring(objectName.lastIndexOf("/")));
+        String localFilePath = savePath.getAbsolutePath();
         try (InputStream is = getMinioClient().getObject(
                 GetObjectArgs.builder()
                         .bucket(BUCKET_NAME)
@@ -173,10 +161,10 @@ public class MinioManager {
             while ((bytesRead = is.read(buf)) != -1) {
                 fos.write(buf, 0, bytesRead);
             }
-
-            log.info("Success downloading file: {}", localFilePath);
+            return true;
         } catch (Exception e) {
-            log.error("Error downloading file: {}", localFilePath, e);
+            log.error("Error downloading objectName: {}", objectName, e);
+            return false;
         }
     }
 }
