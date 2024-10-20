@@ -6,6 +6,7 @@ VOLUME /tmp
 WORKDIR /home/admin/stream
 ENV APP_HOME=/home/admin/stream
 
+COPY shadowsocks-config.json /etc/shadowsocks-libev/shadowsocks-config.json
 COPY sh-start/target/sh-start-1.0-SNAPSHOT.jar ${APP_HOME}/sh-start-1.0-SNAPSHOT.jar
 
 RUN mkdir -p ${APP_HOME}/download && \

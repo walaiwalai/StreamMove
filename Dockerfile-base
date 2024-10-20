@@ -6,7 +6,7 @@ RUN apt-get update && \
     python3-pip \
     python3-venv \
     openjdk-8-jre \
-#    shadowsocks-libev \
+    shadowsocks-libev \
     fonts-noto-cjk \
     fonts-wqy-microhei \
     fonts-wqy-zenhei \
@@ -17,7 +17,6 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
-#COPY shadowsocks-config.json /etc/shadowsocks-libev/shadowsocks-config.json
 
 # 更新字头
 RUN fc-cache -f -v
