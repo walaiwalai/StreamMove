@@ -6,8 +6,8 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.base.Streamer;
 import com.sh.engine.base.StreamerInfoHolder;
-import com.sh.engine.model.RecordContext;
 import com.sh.engine.constant.RecordTaskStateEnum;
+import com.sh.engine.model.RecordContext;
 import com.sh.engine.processor.AbstractStageProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -113,6 +113,5 @@ public class RecordStateMachine {
         if (loop == 100) {
             throw new RuntimeException("internal reach to max loop");
         }
-        log.info("process internal finish, name: {}", StreamerInfoHolder.getCurStreamerName());
     }
 }
