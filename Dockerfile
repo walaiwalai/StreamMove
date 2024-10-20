@@ -16,4 +16,4 @@ RUN mkdir -p ${APP_HOME}/download && \
     mkdir -p ${APP_HOME}/thumbnail
 
 # 运行 jar 包和本地shadowsocks
-ENTRYPOINT ["sh", "-c", "ss-local -c /etc/shadowsocks-libev/shadowsocks-config.json & java -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dspring.profiles.active=prod -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/home/admin/stream/dump/ -Xms512m -Xmx512m -jar /home/admin/stream/sh-start-1.0-SNAPSHOT.jar"]
+ENTRYPOINT ["sh", "-c", "if [ -f /etc/shadowsocks-libev/shadowsocks-config.json ]; then ss-local -c /etc/shadowsocks-libev/shadowsocks-config.json & else echo 'Configuration file not found, starting without it.'; ss-local & fi; java -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dspring.profiles.active=prod -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/home/admin/stream/dump/ -Xms512m -Xmx512m -jar /home/admin/stream/sh-start-1.0-SNAPSHOT.jar"]
