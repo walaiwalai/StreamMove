@@ -6,7 +6,6 @@ VOLUME /tmp
 WORKDIR /home/admin/stream
 ENV APP_HOME=/home/admin/stream
 
-COPY shadowsocks-config.json /etc/shadowsocks-libev/shadowsocks-config.json
 COPY sh-start/target/sh-start-1.0-SNAPSHOT.jar ${APP_HOME}/sh-start-1.0-SNAPSHOT.jar
 
 RUN mkdir -p ${APP_HOME}/download && \
@@ -16,4 +15,4 @@ RUN mkdir -p ${APP_HOME}/download && \
     mkdir -p ${APP_HOME}/thumbnail
 
 # 运行 jar 包和本地shadowsocks
-ENTRYPOINT ["sh", "-c", "if [ -f /etc/shadowsocks-libev/shadowsocks-config.json ]; then ss-local -c /etc/shadowsocks-libev/shadowsocks-config.json & else echo 'Configuration file not found, starting without it.'; ss-local & fi; java -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dspring.profiles.active=prod -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/home/admin/stream/dump/ -Xms512m -Xmx512m -jar /home/admin/stream/sh-start-1.0-SNAPSHOT.jar"]
+ENTRYPOINT ["sh", "-c", "java -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dspring.profiles.active=prod -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/home/admin/stream/dump/ -Xms512m -Xmx512m -jar /home/admin/stream/sh-start-1.0-SNAPSHOT.jar"]

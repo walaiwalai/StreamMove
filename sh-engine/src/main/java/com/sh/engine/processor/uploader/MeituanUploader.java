@@ -4,7 +4,6 @@ import com.alibaba.fastjson.TypeReference;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.Cookie;
-import com.microsoft.playwright.options.Proxy;
 import com.microsoft.playwright.options.WaitForSelectorState;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
@@ -88,14 +87,7 @@ public class MeituanUploader extends Uploader {
         }
 
         try (Playwright playwright = Playwright.create()) {
-            BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
-                    .setHeadless(headless)
-                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
-//            if (StringUtils.isNotBlank(proxyUrl)) {
-//                options.setProxy(proxyUrl);
-//            }
-
-            Browser browser = playwright.chromium().launch(options);
+            Browser browser = playwright.chromium().launch(buildOptions());
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
@@ -122,14 +114,7 @@ public class MeituanUploader extends Uploader {
         File accountFile = getAccoutFile();
 
         try (Playwright playwright = Playwright.create()) {
-            BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
-                    .setHeadless(headless)
-                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
-//            if (StringUtils.isNotBlank(proxyUrl)) {
-//                options.setProxy(proxyUrl);
-//            }
-
-            Browser browser = playwright.chromium().launch(options);
+            Browser browser = playwright.chromium().launch(buildOptions());
             BrowserContext context = browser.newContext();
             Page page = context.newPage();
 
@@ -180,7 +165,6 @@ public class MeituanUploader extends Uploader {
             if (cookiesValid) {
                 // 保存cookie到文件
                 context.storageState(new BrowserContext.StorageStateOptions().setPath(Paths.get(accountFile.getAbsolutePath())));
-//                cacheManager.set(getAccountKey(), context.storageState(), MEITUAN_COOKIES_VALID_SECONDS, TimeUnit.SECONDS);
                 log.info("gen cookies for {} success", getType());
             }
 
@@ -202,14 +186,7 @@ public class MeituanUploader extends Uploader {
                 });
 
         try (Playwright playwright = Playwright.create()) {
-            BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
-                    .setHeadless(headless)
-                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
-//            if (StringUtils.isNotBlank(proxyUrl)) {
-//                options.setProxy(proxyUrl);
-//            }
-
-            Browser browser = playwright.chromium().launch(options);
+            Browser browser = playwright.chromium().launch(buildOptions());
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(getAccoutFile().getAbsolutePath())));
 
@@ -313,5 +290,17 @@ public class MeituanUploader extends Uploader {
     private void publishVideo(Page page) {
         Locator publishButton = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("发布").setExact(true));
         publishButton.click();
+    }
+
+    private BrowserType.LaunchOptions buildOptions() {
+        BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
+                .setHeadless(headless)
+                .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
+
+        String httpProxy = ConfigFetcher.getInitConfig().getHttpProxy();
+        if (StringUtils.isNotBlank(httpProxy)) {
+            options.setProxy(httpProxy);
+        }
+        return options;
     }
 }

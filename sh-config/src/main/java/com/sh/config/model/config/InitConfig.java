@@ -44,7 +44,6 @@ public class InitConfig {
     /**
      * 代理服务地址
      * 如：socks5h://address:port
-     * http://address:port
      */
     private String httpProxy;
 

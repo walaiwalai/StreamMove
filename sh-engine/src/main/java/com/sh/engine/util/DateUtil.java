@@ -3,7 +3,6 @@ package com.sh.engine.util;
 import org.apache.commons.lang3.time.DateUtils;
 
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -35,7 +34,7 @@ public class DateUtil {
      * 根据给定的时间字符串返回年月日 + 时间段描述
      *
      * @param timeStr 时间字符串
-     * @param format 时间格式
+     * @param format  时间格式
      * @return 年月日 + 时间段描述
      */
     public static String describeTime(String timeStr, String format) {
@@ -53,16 +52,19 @@ public class DateUtil {
      */
     private static String getTimeDescription(LocalTime time) {
         int hour = time.getHour();
-        if (hour < 4) {
-            return "凌晨";
-        } else if (hour >= 5 && hour < 12) {
-            return "早上";
-        } else if (hour >= 12 && hour < 18) {
-            return "中午";
-        } else if (hour >= 18) {
-            return "晚上";
+        String prefix = "";
+        if (hour < 5) {
+            prefix = "凌晨";
+        } else if (hour < 11) {
+            prefix = "早上";
+        } else if (hour < 13) {
+            prefix = "中午";
+        } else if (hour < 18) {
+            prefix = "下午";
         } else {
-            return "下午";
+            prefix = "晚上";
         }
+
+        return prefix + hour + "点";
     }
 }

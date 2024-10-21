@@ -58,6 +58,7 @@ services:
       --fast-open
     ports:
       - "1080:1080"
+    restart: no
     networks:
       - stream-docker
 
