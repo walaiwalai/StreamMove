@@ -44,6 +44,20 @@ services:
     networks:
       - stream-docker
 
+  stream-shadowsocks:
+    image: easypi/shadowsocks-libev
+    command:
+      ss-local -s 1.2.3.4
+      -p 8388
+      -m chacha20-ietf-poly1305
+      -k test1234
+      -b 0.0.0.0
+      -l 1080
+      -t 60
+      --fast-open
+    ports:
+      - "1080:1080"
+
 networks:
   stream-docker:
     external: false
