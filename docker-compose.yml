@@ -46,6 +46,7 @@ services:
 
   stream-shadowsocks:
     image: easypi/shadowsocks-libev
+    container_name: stream-shadowsocks
     command:
       ss-local -s 1.2.3.4
       -p 8388
@@ -57,6 +58,8 @@ services:
       --fast-open
     ports:
       - "1080:1080"
+    networks:
+      - stream-docker
 
 networks:
   stream-docker:
