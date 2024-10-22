@@ -102,7 +102,7 @@ public class MeituanUploader extends Uploader {
                 browser.close();
                 return true;
             } catch (Exception e) {
-                log.error("cookies invalid for wechat video");
+                log.error("cookies invalid for meituan video");
                 context.close();
                 browser.close();
                 return false;
@@ -130,10 +130,11 @@ public class MeituanUploader extends Uploader {
 
 
             int num = 0;
-            while (num ++ < 20) {
+            while (num++ < 20) {
                 page.waitForTimeout(3000);
                 // 检查缓存中是否有验证码
-                String authNumber = cacheManager.get(AUTH_CODE_KEY, new TypeReference<String>() {});
+                String authNumber = cacheManager.get(AUTH_CODE_KEY, new TypeReference<String>() {
+                });
                 if (authNumber != null) {
                     log.info("receive verify code for {}..., code: {}", getType(), authNumber);
                     page.getByPlaceholder("请输入短信验证码").fill(authNumber);
@@ -273,6 +274,7 @@ public class MeituanUploader extends Uploader {
 
     /**
      * 保存视频封面
+     *
      * @param page
      * @param metaData
      */

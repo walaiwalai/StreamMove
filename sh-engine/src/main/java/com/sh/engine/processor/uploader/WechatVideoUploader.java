@@ -8,9 +8,9 @@ import com.microsoft.playwright.options.Cookie;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.PictureFileUtil;
-import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.processor.uploader.meta.WechatVideoMetaData;
 import com.sh.message.service.MsgSendService;
@@ -23,14 +23,13 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.io.File;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * 腾讯视频号上传
+ *
  * @Author : caiwen
  * @Date: 2024/10/2
  */
@@ -43,6 +42,8 @@ public class WechatVideoUploader extends Uploader {
     private MsgSendService msgSendService;
     @Value("${playwright.headless}")
     private boolean headless;
+    @Value("${playwright.execute.path}")
+    private String executePath;
 
     private static final String IS_SETTING_UP = "wechat_set_up_flag";
 
@@ -72,10 +73,8 @@ public class WechatVideoUploader extends Uploader {
         File accountFile = getAccoutFile();
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
-                    .setHeadless(headless)
-                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
-            );
+            Browser browser = playwright.firefox().launch(buildOptions());
+
             BrowserContext context = browser.newContext();
             Page page = context.newPage();
 
@@ -92,7 +91,7 @@ public class WechatVideoUploader extends Uploader {
             // 检查扫码状态
             Locator successImgDiv = page.locator(".mask").first();
             int num = 0;
-            while (num ++ < 13) {
+            while (num++ < 13) {
                 page.waitForTimeout(3000);
                 String successShowClass = successImgDiv.getAttribute("class");
                 if (successShowClass != null && successShowClass.contains("show")) {
@@ -136,7 +135,7 @@ public class WechatVideoUploader extends Uploader {
     }
 
     @Override
-    public boolean upload( String recordPath ) throws Exception {
+    public boolean upload(String recordPath) throws Exception {
         File targetFile = new File(recordPath, "highlight.mp4");
         if (!targetFile.exists()) {
             // 不存在也当作上传成功
@@ -157,33 +156,32 @@ public class WechatVideoUploader extends Uploader {
         }
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
-                    .setHeadless(headless)
-                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
-            );
+            Browser browser = playwright.firefox().launch(buildOptions());
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
             Page page = context.newPage();
             page.navigate("https://channels.weixin.qq.com/platform/post/create");
+            page.waitForTimeout(5000);
+            boolean isValid = page.getByText("通知中心").count() > 0;
 
-            try {
-                page.waitForSelector("div.title-name:has-text('视频号小店')", new Page.WaitForSelectorOptions().setTimeout(5000));
-                log.info("cookies invalid for wechat video");
+            context.close();
+            browser.close();
 
-                context.close();
-                browser.close();
-                return false;
-            } catch (PlaywrightException e) {
+            if (isValid) {
                 log.info("cookies valid for wechat video");
-                context.close();
-                browser.close();
-                return true;
+            } else {
+                log.info("cookies invalid for wechat video");
             }
+
+            return isValid;
+        } catch (Exception e) {
+            log.error("wechat video fuck", e);
+            return false;
         }
     }
 
-    private boolean doUpload( String recordPath ) {
+    private boolean doUpload(String recordPath) {
         File targetFile = new File(recordPath, "highlight.mp4");
         String workFilePath = targetFile.getAbsolutePath();
         String cookiesPath = getAccoutFile().getAbsolutePath();
@@ -193,10 +191,7 @@ public class WechatVideoUploader extends Uploader {
                 });
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(new BrowserType.LaunchOptions()
-                    .setHeadless(headless)
-                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"))
-            );
+            Browser browser = playwright.firefox().launch(buildOptions());
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(cookiesPath)));
 
@@ -260,7 +255,7 @@ public class WechatVideoUploader extends Uploader {
         log.info("add tag success, type: {}, path: {}, tags: {}", getType(), workFilePath, metaData.getTags());
     }
 
-    private void addOriginal( Page page, WechatVideoMetaData metaData) {
+    private void addOriginal(Page page, WechatVideoMetaData metaData) {
         // 检查是否存在 "视频为原创" 复选框
         if (page.getByLabel("视频为原创").count() > 0) {
             page.getByLabel("视频为原创").check();
@@ -369,7 +364,7 @@ public class WechatVideoUploader extends Uploader {
         }
     }
 
-    public void publishVideo( Page page, String workFilePath) {
+    public void publishVideo(Page page, String workFilePath) {
         int waitCnt = 0;
         while (waitCnt < 10) {
             try {
@@ -426,6 +421,22 @@ public class WechatVideoUploader extends Uploader {
             formattedString = padding.toString();
         }
         return formattedString;
+    }
+
+    private BrowserType.LaunchOptions buildOptions() {
+        BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
+                .setHeadless(headless);
+//                .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
+
+        String httpProxy = ConfigFetcher.getInitConfig().getHttpProxy();
+        if (StringUtils.isNotBlank(httpProxy)) {
+            options.setProxy(httpProxy);
+        }
+
+        if (StringUtils.isNotBlank(executePath)) {
+            options.setExecutablePath(Paths.get(executePath));
+        }
+        return options;
     }
 
 }
