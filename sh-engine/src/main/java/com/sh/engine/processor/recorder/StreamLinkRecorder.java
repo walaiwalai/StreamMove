@@ -15,6 +15,7 @@ import java.util.List;
 
 /**
  * streamlink录像机
+ *
  * @Author caiwen
  * @Date 2024 09 28 10 12
  **/
@@ -55,18 +56,22 @@ public class StreamLinkRecorder extends Recorder {
         File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME);
         List<String> commands = Lists.newArrayList(
                 "streamlink", StringUtils.join(extraArgs, " "),
-                "--stream-segment-threads", "3",
+                "--stream-segment-threads 3",
+                "--retry-streams 3",
+                "--retry-open 3",
                 url, "best",
                 "--stdout", "|",
                 "ffmpeg",
                 "-y",
                 "-v verbose",
                 "-loglevel error",
+                "-rw_timeout 30000000",
                 "-hide_banner",
                 "-i -",
-                "-bufsize 5000k",
+                "-bufsize 10000k",
                 "-c:v copy -c:a copy -c:s mov_text",
-                channel == StreamChannelTypeEnum.TWITCH ? "-map 0:v -map 0:a" : "-map 0",
+                channel == StreamChannelTypeEnum.TWITCH ? "-map 0:v -map 0:a" : "-map" +
+                        " 0",
                 "-f segment",
                 "-segment_time 4",
                 "-segment_start_number 1",
