@@ -5,6 +5,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     python3-pip \
     python3-venv \
+    chromium-browser \
     openjdk-8-jre \
     fonts-noto-cjk \
     fonts-wqy-microhei \
