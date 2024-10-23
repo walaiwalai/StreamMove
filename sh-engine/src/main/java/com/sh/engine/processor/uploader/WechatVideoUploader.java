@@ -73,7 +73,7 @@ public class WechatVideoUploader extends Uploader {
         File accountFile = getAccoutFile();
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(buildOptions());
+            Browser browser = playwright.chromium().launch(buildOptions());
 
             BrowserContext context = browser.newContext();
             Page page = context.newPage();
@@ -156,7 +156,7 @@ public class WechatVideoUploader extends Uploader {
         }
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(buildOptions());
+            Browser browser = playwright.chromium().launch(buildOptions());
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
@@ -191,7 +191,7 @@ public class WechatVideoUploader extends Uploader {
                 });
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(buildOptions());
+            Browser browser = playwright.chromium().launch(buildOptions());
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(cookiesPath)));
 
