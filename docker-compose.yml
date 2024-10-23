@@ -29,6 +29,8 @@ services:
   stream-move:
     image: stream-move:latest
     container_name: stream-move
+    privileged: true
+    tty: true
     volumes:
       - /home/admin/stream/download:/home/admin/stream/download
       - /home/admin/stream/logs:/home/admin/stream/logs

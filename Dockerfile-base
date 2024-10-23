@@ -6,7 +6,6 @@ RUN apt-get update && \
     python3-pip \
     python3-venv \
     chromium-browser \
-    chromium \
     openjdk-8-jre \
     fonts-noto-cjk \
     fonts-wqy-microhei \
