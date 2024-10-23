@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-public class UploaderInitListener implements ApplicationListener<ApplicationReadyEvent>{
+public class UploaderInitListener implements ApplicationListener<ApplicationReadyEvent> {
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
@@ -29,13 +29,13 @@ public class UploaderInitListener implements ApplicationListener<ApplicationRead
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
         for (String platform : platforms) {
-//            try {
-//                Uploader uploader = UploaderFactory.getUploader(platform);
-//
-//                uploader.setUp();
-//            } catch (Exception e) {
-//                log.error("init uploader failed, platform: {}", platform, e);
-//            }
+            try {
+                Uploader uploader = UploaderFactory.getUploader(platform);
+
+                uploader.setUp();
+            } catch (Exception e) {
+                log.error("init uploader failed, platform: {}", platform, e);
+            }
         }
         log.info("init uploader finish, uploaders: {}", JSON.toJSONString(platforms));
     }
