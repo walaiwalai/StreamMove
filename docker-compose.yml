@@ -10,7 +10,7 @@ services:
       - "6379:6379"
     environment:
       - REDIS_PASSWORD=123456
-    command: ["redis-server", "--requirepass", "123456", "--appendonly", "yes"]
+    command: [ "redis-server", "--requirepass", "123456", "--appendonly", "yes" ]
     networks:
       - stream-docker
 
@@ -58,7 +58,7 @@ services:
       --fast-open
     ports:
       - "1080:1080"
-    restart: no
+    restart: "no"
     networks:
       - stream-docker
 
