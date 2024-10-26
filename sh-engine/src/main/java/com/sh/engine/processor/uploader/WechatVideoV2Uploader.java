@@ -4,7 +4,6 @@ import com.alibaba.fastjson.TypeReference;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.Cookie;
-import com.microsoft.playwright.options.Proxy;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
@@ -290,7 +289,10 @@ public class WechatVideoV2Uploader extends Uploader {
 
     public void publishVideo(Page page, String workFilePath) {
         page.getByText("一键发布").click();
-        snapshot(page);
+        for (int i = 0; i < 5; i++) {
+            page.waitForTimeout(2000);
+            snapshot(page);
+        }
 
         page.waitForURL("http://loong.videostui.com/#/content", new Page.WaitForURLOptions().setTimeout(30000));
         log.info("video upload success, path: {}", workFilePath);
@@ -334,7 +336,7 @@ public class WechatVideoV2Uploader extends Uploader {
 
         String httpProxy = ConfigFetcher.getInitConfig().getHttpProxy();
         if (StringUtils.isNotBlank(httpProxy)) {
-            options.setProxy(new Proxy(httpProxy));
+            options.setProxy(httpProxy);
         }
         return options;
     }
