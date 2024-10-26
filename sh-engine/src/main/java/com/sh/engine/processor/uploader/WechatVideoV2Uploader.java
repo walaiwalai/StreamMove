@@ -4,6 +4,7 @@ import com.alibaba.fastjson.TypeReference;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.Cookie;
+import com.microsoft.playwright.options.Proxy;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
@@ -333,7 +334,7 @@ public class WechatVideoV2Uploader extends Uploader {
 
         String httpProxy = ConfigFetcher.getInitConfig().getHttpProxy();
         if (StringUtils.isNotBlank(httpProxy)) {
-            options.setProxy(httpProxy);
+            options.setProxy(new Proxy(httpProxy));
         }
         return options;
     }
