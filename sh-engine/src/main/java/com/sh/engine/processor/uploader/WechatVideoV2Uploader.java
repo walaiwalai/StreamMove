@@ -174,6 +174,7 @@ public class WechatVideoV2Uploader extends Uploader {
             page.waitForURL("http://loong.videostui.com/#/publish");
 
             // 上传文件
+            page.waitForTimeout(2000);
             uploadVideo(page, workFilePath);
 
             // 添加短标题
@@ -181,6 +182,7 @@ public class WechatVideoV2Uploader extends Uploader {
 
             // 添加封面
             addThumbnail(page, metaData.getPreViewFilePath());
+            page.waitForTimeout(2000);
 
             // 添加视频标签
             addTitleTags(page, workFilePath, metaData);
@@ -210,8 +212,10 @@ public class WechatVideoV2Uploader extends Uploader {
     }
 
     private void uploadVideo(Page page, String workFilePath) {
-        page.waitForTimeout(5000);
-        page.locator(".ant-upload.ant-upload-select.ant-upload-select-text input[type='file']").setInputFiles(Paths.get(workFilePath));
+        FileChooser fileChooser = page.waitForFileChooser(
+                () -> page.locator(".ant-upload.ant-upload-select.ant-upload-select-text input[type='file']").click());
+        fileChooser.setFiles(Paths.get(workFilePath));
+//        page.locator(".ant-upload.ant-upload-select.ant-upload-select-text input[type='file']").setInputFiles(Paths.get(workFilePath));
     }
 
     private void addTitleTags(Page page, String workFilePath, WechatVideoMetaData metaData) {
@@ -280,8 +284,10 @@ public class WechatVideoV2Uploader extends Uploader {
 
     private void addThumbnail(Page page, String previewPath) {
         // 定位到上传区域并点击
-        page.locator(".ant-upload.ant-upload-select.ant-upload-select-picture-card input[type='file']").setInputFiles(Paths.get(previewPath));
-        page.waitForTimeout(2000);
+        FileChooser fileChooser = page.waitForFileChooser(
+                () -> page.locator(".ant-upload.ant-upload-select.ant-upload-select-picture-card input[type='file']").click());
+        fileChooser.setFiles(Paths.get(previewPath));
+//        page.locator(".ant-upload.ant-upload-select.ant-upload-select-picture-card input[type='file']").setInputFiles(Paths.get(previewPath));
     }
 
     public void publishVideo(Page page, String workFilePath) {
