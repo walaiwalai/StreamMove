@@ -11,7 +11,6 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.processor.uploader.meta.WechatVideoMetaData;
-import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -37,8 +36,6 @@ import java.util.concurrent.TimeUnit;
 public class WechatVideoV2Uploader extends Uploader {
     @Resource
     private CacheManager cacheManager;
-    @Resource
-    private MsgSendService msgSendService;
     @Value("${playwright.headless}")
     private boolean headless;
 
@@ -72,7 +69,7 @@ public class WechatVideoV2Uploader extends Uploader {
         String password = ConfigFetcher.getInitConfig().getPassword();
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.webkit().launch(buildOptions());
+            Browser browser = playwright.chromium().launch(buildOptions());
 
             BrowserContext context = browser.newContext();
             Page page = context.newPage();
@@ -131,7 +128,7 @@ public class WechatVideoV2Uploader extends Uploader {
         }
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.webkit().launch(buildOptions());
+            Browser browser = playwright.chromium().launch(buildOptions());
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
@@ -166,7 +163,7 @@ public class WechatVideoV2Uploader extends Uploader {
                 });
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.webkit().launch(buildOptions());
+            Browser browser = playwright.chromium().launch(buildOptions());
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(cookiesPath)));
 
