@@ -40,6 +40,11 @@ public enum ErrorEnum {
      */
     UPLOAD_COOKIES_IS_FETCHING(6, "upload cookies is fetching"),
 
+    /**
+     * ffmpeg执行失败
+     */
+    FFMPEG_EXECUTE_ERROR(7, "ffmpeg execute error"),
+
     ;
     private int errorCode;
     private String message;

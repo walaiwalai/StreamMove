@@ -2,11 +2,10 @@ package com.sh.engine.processor.checker;
 
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.base.StreamerInfoHolder;
-import com.sh.engine.model.ffmpeg.FfmpegCmd;
+import com.sh.engine.constant.StreamChannelTypeEnum;
+import com.sh.engine.model.ffmpeg.StreamLinkCheckCmd;
 import com.sh.engine.processor.recorder.Recorder;
-import com.sh.engine.util.CommandUtil;
 import okhttp3.OkHttpClient;
 import org.apache.commons.lang3.StringUtils;
 
@@ -59,6 +58,7 @@ public abstract class AbstractRoomChecker {
 
     /**
      * 生成录像保存地址
+     *
      * @param date
      * @return
      */
@@ -74,7 +74,9 @@ public abstract class AbstractRoomChecker {
     }
 
     protected boolean checkIsLivingByStreamLink(String url) {
-        String res = CommandUtil.cmdExecWithRes(new FfmpegCmd("streamlink " + url));
-        return res.contains("Available");
+        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("streamlink " + url);
+        checkCmd.execute();
+
+        return checkCmd.isStreamOnline();
     }
 }

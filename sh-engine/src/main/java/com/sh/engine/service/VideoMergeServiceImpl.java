@@ -3,8 +3,8 @@ package com.sh.engine.service;
 import cn.hutool.core.io.file.FileNameUtil;
 import com.google.common.collect.Lists;
 import com.sh.config.utils.PictureFileUtil;
-import com.sh.engine.model.ffmpeg.FfmpegCmd;
-import com.sh.engine.util.CommandUtil;
+import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
+import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -70,10 +70,9 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         String targetPath = targetVideo.getAbsolutePath();
         String command = "ffmpeg -y -loglevel error -f concat -safe 0 -i " + mergeListFile.getAbsolutePath() +
                 " -c:v copy -c:a copy " + targetPath;
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
-
-        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-        return resCode == 0;
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(command);
+        processCmd.execute();
+        return processCmd.isEndNormal();
     }
 
     @Override
@@ -83,9 +82,9 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         }
         String targetPath = targetVideo.getAbsolutePath();
         String cmd = "ffmpeg -loglevel error -i " + "concat:" + StringUtils.join(mergedFileNames, "|") + " -c copy " + targetPath;
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
-        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-        if (resCode == 0) {
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
+        processCmd.execute();
+        if (processCmd.isEndNormal()) {
             msgSendService.sendText("按照concat协议合并视频完成！路径为：" + targetPath);
             return true;
         } else {
@@ -123,7 +122,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     }
 
     @Override
-    public boolean mergeMultiWithFadeV2( List<List<String>> intervals, File targetVideo, String title ) {
+    public boolean mergeMultiWithFadeV2(List<List<String>> intervals, File targetVideo, String title) {
         // 单独一个不处理
         if (intervals.size() == 1) {
             return concatByDemuxer(intervals.get(0), targetVideo);
@@ -161,23 +160,23 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
         // 创建封面
         String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + tmpFile.getAbsolutePath();
-        String res = CommandUtil.cmdExecWithRes(new FfmpegCmd(querySizeCmd));
-        String[] split = res.split("\n")[0].split(",");
-        int width = Integer.parseInt(split[0]);
-        int height = Integer.parseInt(split[1]);
+        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(querySizeCmd);
+        detectCmd.execute();
+        int width = detectCmd.getWidth();
+        int height = detectCmd.getHeight();
         PictureFileUtil.createTextOverlayImage(title, width, height, 80, thumnailFile.getAbsolutePath());
 
         // 合并封面和视频
         String fadedPath = titledSeg.getAbsolutePath();
         String cmd = "ffmpeg -y -loglevel error -i " + tmpFile.getAbsolutePath() + " -i " + thumnailFile.getAbsolutePath() +
                 " -filter_complex \"[0][1]overlay=enable='between(t,0,1)':format=auto\" -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
-        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-        if (resCode == 0) {
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
+        processCmd.execute();
+        if (processCmd.isEndNormal()) {
             log.info("add title success, path: {}, title: {}", fadedPath, title);
             return fadedPath;
         } else {
-            log.info("add title fail, will use origin video, path: {}, resCode: {}", fadedPath, resCode);
+            log.info("add title fail, will use origin video, path: {}", fadedPath);
             return tmpFile.getAbsolutePath();
         }
     }
@@ -186,17 +185,17 @@ public class VideoMergeServiceImpl implements VideoMergeService {
      * @param oldVideoFile
      * @return
      */
-    private String genFadeVideo( File oldVideoFile) {
+    private String genFadeVideo(File oldVideoFile) {
         File fadedSeg = new File(oldVideoFile.getParent(), FileNameUtil.getPrefix(oldVideoFile) + "-fade.ts");
         String fadedPath = fadedSeg.getAbsolutePath();
         String cmd = "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf fade=t=in:st=0:d=" + FADE_DURATION + " -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
-        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-        if (resCode == 0) {
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
+        processCmd.execute();
+        if (processCmd.isEndNormal()) {
             log.info("do fade success, path: {}", fadedPath);
             return fadedPath;
         } else {
-            log.info("do fade fail, will use origin video, path: {}, resCode: {}", fadedPath, resCode);
+            log.info("do fade fail, will use origin video, path: {}", fadedPath);
             return oldVideoFile.getAbsolutePath();
         }
     }

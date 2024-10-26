@@ -19,6 +19,7 @@ RUN apt-get update && \
     apt-get clean
 
 COPY systemctl3.py /usr/bin/systemctl
+RUN chmod a+x /usr/bin/systemctl
 RUN test -e /bin/systemctl || ln -sf /usr/bin/systemctl /bin/systemctl
 
 # 更新字头

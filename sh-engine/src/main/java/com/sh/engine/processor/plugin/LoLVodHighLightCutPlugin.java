@@ -7,16 +7,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
-import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.base.StreamerInfoHolder;
-import com.sh.engine.model.ffmpeg.FfmpegCmd;
+import com.sh.engine.constant.ProcessPluginEnum;
+import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
 import com.sh.engine.model.lol.LoLPicData;
 import com.sh.engine.model.lol.LolSequenceStatistic;
-import com.sh.engine.util.DateUtil;
-import com.sh.message.service.MsgSendService;
 import com.sh.engine.service.VideoMergeService;
-import com.sh.engine.util.CommandUtil;
+import com.sh.engine.util.DateUtil;
 import com.sh.engine.util.RegexUtil;
+import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -162,9 +161,9 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
                 "-frames:v", "1",
                 targetFile.getAbsolutePath()
         );
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(StringUtils.join(params, " "));
-        Integer resCode = CommandUtil.cmdExecWithoutLog(ffmpegCmd);
-        if (resCode == 0) {
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(StringUtils.join(params, " "), false, false);
+        processCmd.execute();
+        if (processCmd.isEndNormal()) {
             log.info("get pic success, path: {}", sourceFile.getAbsolutePath());
         } else {
             log.info("get pic fail, path: {}", sourceFile.getAbsolutePath());
