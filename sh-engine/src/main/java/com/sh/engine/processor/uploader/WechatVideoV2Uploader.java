@@ -41,8 +41,6 @@ public class WechatVideoV2Uploader extends Uploader {
     private MsgSendService msgSendService;
     @Value("${playwright.headless}")
     private boolean headless;
-    @Value("${playwright.execute.path}")
-    private String executePath;
 
     private static final String IS_SETTING_UP = "wechat_set_up_flag";
 
@@ -74,7 +72,7 @@ public class WechatVideoV2Uploader extends Uploader {
         String password = ConfigFetcher.getInitConfig().getPassword();
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(buildOptions());
+            Browser browser = playwright.firefox().launch(buildOptions());
 
             BrowserContext context = browser.newContext();
             Page page = context.newPage();
@@ -133,7 +131,7 @@ public class WechatVideoV2Uploader extends Uploader {
         }
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(buildOptions());
+            Browser browser = playwright.firefox().launch(buildOptions());
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(accountFile.getAbsolutePath())));
 
@@ -168,7 +166,7 @@ public class WechatVideoV2Uploader extends Uploader {
                 });
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(buildOptions());
+            Browser browser = playwright.firefox().launch(buildOptions());
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setStorageStatePath(Paths.get(cookiesPath)));
 
@@ -334,10 +332,6 @@ public class WechatVideoV2Uploader extends Uploader {
         String httpProxy = ConfigFetcher.getInitConfig().getHttpProxy();
         if (StringUtils.isNotBlank(httpProxy)) {
             options.setProxy(httpProxy);
-        }
-
-        if (StringUtils.isNotBlank(executePath)) {
-            options.setExecutablePath(Paths.get(executePath));
         }
         return options;
     }
