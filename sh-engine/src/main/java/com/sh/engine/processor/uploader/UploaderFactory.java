@@ -2,7 +2,6 @@ package com.sh.engine.processor.uploader;
 
 import com.google.common.collect.Maps;
 import com.sh.engine.constant.UploadPlatformEnum;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -50,12 +49,14 @@ public class UploaderFactory {
 
         accountKeymap.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin-cookies.json");
         accountKeymap.put(UploadPlatformEnum.WECHAT_VIDEO.getType(), "wechat-video-cookies.json");
+        accountKeymap.put(UploadPlatformEnum.WECHAT_VIDEO_V2.getType(), "wechat-video-v2-cookies.json");
         accountKeymap.put(UploadPlatformEnum.MEI_TUAN_VIDEO.getType(), "meituan-video-cookies.json");
 
         uploaderMetaFileName.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin-metaData.json");
         uploaderMetaFileName.put(UploadPlatformEnum.BILI_CLIENT.getType(), "bili-client-metaData.json");
         uploaderMetaFileName.put(UploadPlatformEnum.ALI_DRIVER.getType(), "ali-driver-metaData.json");
         uploaderMetaFileName.put(UploadPlatformEnum.WECHAT_VIDEO.getType(), "wechat-video-metaData.json");
+        uploaderMetaFileName.put(UploadPlatformEnum.WECHAT_VIDEO_V2.getType(), "wechat-video-metaData.json");
         uploaderMetaFileName.put(UploadPlatformEnum.MEI_TUAN_VIDEO.getType(), "meituan-video-metaData.json");
     }
 

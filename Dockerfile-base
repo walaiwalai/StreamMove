@@ -5,8 +5,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     python3-pip \
     python3-venv \
-    wget \
-    chromium-browser \
+#    wget \
+#    chromium-browser \
     openjdk-8-jre \
     fonts-noto-cjk \
     fonts-wqy-microhei \
@@ -17,10 +17,6 @@ RUN apt-get update && \
     libcairo-gobject2 && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
-
-COPY systemctl3.py /usr/bin/systemctl
-RUN chmod a+x /usr/bin/systemctl
-RUN test -e /bin/systemctl || ln -sf /usr/bin/systemctl /bin/systemctl
 
 # 更新字头
 RUN fc-cache -f -v

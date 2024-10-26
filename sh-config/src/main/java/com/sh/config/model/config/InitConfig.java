@@ -65,7 +65,6 @@ public class InitConfig {
     private String targetFileId = "root";
 
 
-
     // *********************企业微信消息通知**********************
     private String weComWebhookSecret;
 
@@ -84,6 +83,7 @@ public class InitConfig {
 
     // *********************用户登录小关**********************
     private String phoneNumber;
+    private String password;
 
     // *********************MINIO相关参数**********************
     private String minioUrl;

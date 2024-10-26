@@ -1,7 +1,5 @@
 package com.sh.engine.constant;
 
-import com.sh.engine.processor.uploader.Uploader;
-
 /**
  * 上传平台
  *
@@ -16,12 +14,14 @@ public enum UploadPlatformEnum {
     WECHAT_VIDEO("WECHAT_VIDEO", "腾讯视频号"),
     MEI_TUAN_VIDEO("MEI_TUAN_VIDEO", "美团视频号"),
     MINIO("MINIO", "MINIO存储"),
+    WECHAT_VIDEO_V2("WECHAT_VIDEO_V2", "腾讯视频号三方"),
+
     ;
 
     String type;
     String desc;
 
-    UploadPlatformEnum( String type, String desc) {
+    UploadPlatformEnum(String type, String desc) {
         this.type = type;
         this.desc = desc;
     }
@@ -30,7 +30,7 @@ public enum UploadPlatformEnum {
         return type;
     }
 
-    public static UploadPlatformEnum of( String type ) {
+    public static UploadPlatformEnum of(String type) {
         for (UploadPlatformEnum value : UploadPlatformEnum.values()) {
             if (value.type.equals(type)) {
                 return value;
