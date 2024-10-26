@@ -4,11 +4,11 @@ import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.FileStoreUtil;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.UploadPlatformEnum;
-import com.sh.engine.base.StreamerInfoHolder;
-import com.sh.engine.processor.uploader.meta.*;
 import com.sh.engine.processor.uploader.UploaderFactory;
+import com.sh.engine.processor.uploader.meta.*;
 import com.sh.engine.util.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -17,9 +17,6 @@ import org.apache.commons.text.StringSubstitutor;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,6 +55,7 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
 
     /**
      * 保存视频元数据
+     *
      * @param platform
      * @param streamerConfig
      * @param recordPath
@@ -73,7 +71,7 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
             FileStoreUtil.saveToFile(new File(recordPath, metaFileName), buildMetaDataForBiliClient(streamerConfig, recordPath));
         } else if (platformEnum == UploadPlatformEnum.DOU_YIN) {
             FileStoreUtil.saveToFile(new File(recordPath, metaFileName), buildMetaDataForDouyin(streamerConfig, recordPath));
-        } else if (platformEnum == UploadPlatformEnum.WECHAT_VIDEO) {
+        } else if (platformEnum == UploadPlatformEnum.WECHAT_VIDEO || platformEnum == UploadPlatformEnum.WECHAT_VIDEO_V2) {
             FileStoreUtil.saveToFile(new File(recordPath, metaFileName), buildMetaDataForWechatVideo(streamerConfig, recordPath));
         } else if (platformEnum == UploadPlatformEnum.MEI_TUAN_VIDEO) {
             FileStoreUtil.saveToFile(new File(recordPath, metaFileName), buildMetaDataForMeituanVideo(streamerConfig, recordPath));
@@ -123,8 +121,9 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
 
     /**
      * 根据标题模板生成视频标题
-     * @param streamerConfig  配置
-     * @param recordPath 保存路径名称
+     *
+     * @param streamerConfig 配置
+     * @param recordPath     保存路径名称
      * @return 视频标题
      */
     private static String genTitle(StreamerConfig streamerConfig, String recordPath) {
