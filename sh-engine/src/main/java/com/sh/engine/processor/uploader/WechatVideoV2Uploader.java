@@ -289,7 +289,7 @@ public class WechatVideoV2Uploader extends Uploader {
 
     public void publishVideo(Page page, String workFilePath) {
         page.getByText("一键发布").click();
-        page.waitForURL("http://loong.videostui.com/#/content", new Page.WaitForURLOptions().setTimeout(10000));
+        page.waitForURL("http://loong.videostui.com/#/content", new Page.WaitForURLOptions().setTimeout(30000));
         log.info("video upload success, path: {}", workFilePath);
     }
 
