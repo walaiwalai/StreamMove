@@ -4,12 +4,15 @@ import com.google.common.collect.Lists;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.VideoFileUtil;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
@@ -43,6 +46,7 @@ public class StreamLinkRecorder extends Recorder {
     @Override
     public void doRecord() throws Exception {
         // 执行录制，长时间
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
         int totalCnt = RecordConstant.FFMPEG_RETRY_CNT;
         for (int i = 0; i < totalCnt; i++) {
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd());
@@ -53,11 +57,12 @@ public class StreamLinkRecorder extends Recorder {
                 throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);
             }
 
-            if (rfCmd.isEndNormal()) {
+            if (rfCmd.isEndNormal() || BooleanUtils.isNotTrue(streamerConfig.isRecordWhenOnline())) {
                 log.info("download stream completed, savePath: {}", savePath);
                 return;
             }
 
+            // 录制直播，但是由于网络原因进行重试
             Integer endIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
                     .stream()
                     .map(file -> VideoFileUtil.genIndex(file.getName()))
