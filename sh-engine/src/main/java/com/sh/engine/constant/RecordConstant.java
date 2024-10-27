@@ -51,8 +51,10 @@ public class RecordConstant {
      * ffmpeg错误关键字
      */
     public static final List<String> FFMPEG_RETRY_KEY_WORDS = Lists.newArrayList(
-            "timeout"
+            "error", "missing", "Invalid"
     );
+
+    public static final String FFMPEG_NORM_END_LINE = "Closing currently open stream";
 
     /**
      * ffmpeg重试次数
