@@ -3,6 +3,7 @@ package com.sh.config.manager;
 import com.google.common.collect.Lists;
 import io.minio.*;
 import io.minio.errors.MinioException;
+import io.minio.http.Method;
 import io.minio.messages.Item;
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,6 +56,24 @@ public class MinioManager {
                     PutObjectArgs.builder()
                             .bucket(BUCKET_NAME)
                             .object(objectName)
+                            .stream(fis, file.length(), -1)
+                            .contentType(Files.probeContentType(Paths.get(file.getAbsolutePath())))
+                            .build()
+            );
+            return true;
+        } catch (Exception e) {
+            log.error("Error uploading file: {}", file.getAbsolutePath(), e);
+            return false;
+        }
+    }
+
+    public static boolean uploadFileV2(File file, String objPath) {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            // 使用 Minio SDK 上传文件
+            getMinioClient().putObject(
+                    PutObjectArgs.builder()
+                            .bucket(BUCKET_NAME)
+                            .object(objPath)
                             .stream(fis, file.length(), -1)
                             .contentType(Files.probeContentType(Paths.get(file.getAbsolutePath())))
                             .build()
@@ -166,5 +185,21 @@ public class MinioManager {
             log.error("Error downloading objectName: {}", objectName, e);
             return false;
         }
+    }
+
+    public static String genPresignedObjUrl(String objectName, int hours) {
+        String url = null;
+        try {
+            url = getMinioClient().getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .bucket(BUCKET_NAME)
+                            .expiry(hours * 60 * 60)
+                            .object(objectName)
+                            .method(Method.GET)
+                            .build());
+        } catch (Exception e) {
+            log.error("Error presigned url, objectName: {}", objectName, e);
+        }
+        return url;
     }
 }

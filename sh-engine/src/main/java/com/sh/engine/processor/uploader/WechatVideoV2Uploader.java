@@ -13,6 +13,7 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.manager.MinioManager;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.UploadPlatformEnum;
@@ -50,6 +51,9 @@ public class WechatVideoV2Uploader extends Uploader {
     private boolean headless;
 
     private static final String IS_SETTING_UP = "wechat_set_up_flag";
+
+    private static final String VIDEO_PRESIGNED_URL_KEY = "v-preSignUrl-%s";
+    private static final String IMAGE_PRESIGNED_URL_KEY = "i-preSignUrl-%s";
 
     @Override
     public String getType() {
@@ -163,164 +167,164 @@ public class WechatVideoV2Uploader extends Uploader {
         }
     }
 
-    private boolean doUpload(String recordPath) {
-        File targetFile = new File(recordPath, "highlight.mp4");
-        String workFilePath = targetFile.getAbsolutePath();
-        String cookiesPath = getAccoutFile().getAbsolutePath();
-        WechatVideoMetaData metaData = FileStoreUtil.loadFromFile(
-                new File(recordPath, UploaderFactory.getMetaFileName(getType())),
-                new TypeReference<WechatVideoMetaData>() {
-                });
+//    private boolean doUpload(String recordPath) {
+//        File targetFile = new File(recordPath, "highlight.mp4");
+//        String workFilePath = targetFile.getAbsolutePath();
+//        String cookiesPath = getAccoutFile().getAbsolutePath();
+//        WechatVideoMetaData metaData = FileStoreUtil.loadFromFile(
+//                new File(recordPath, UploaderFactory.getMetaFileName(getType())),
+//                new TypeReference<WechatVideoMetaData>() {
+//                });
+//
+//        try (Playwright playwright = Playwright.create()) {
+//            Browser browser = playwright.firefox().launch(buildOptions());
+//            BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+//                    .setStorageStatePath(Paths.get(cookiesPath)));
+//
+//            Page page = context.newPage();
+//            page.navigate("http://loong.videostui.com/#/publish");
+//            log.info("Video begin uploading, type: {}, path: {}", getType(), workFilePath);
+//
+//            page.waitForURL("http://loong.videostui.com/#/publish");
+//
+//            // 上传文件
+//            uploadVideo(page, workFilePath);
+//
+//            // 添加短标题
+//            addShortTitle(page, metaData.getTitle());
+//
+//            // 添加封面
+//            addThumbnail(page, metaData.getPreViewFilePath());
+//
+//            // 添加视频标签
+//            addTitleTags(page, workFilePath, metaData);
+//
+//            // 检查是否上传视频完成
+//            detectUploadStatus(page, workFilePath);
+//
+//            // 选择账号
+//            chooseAccount(page);
+//
+//            // 发布视频
+//            publishVideo(page, workFilePath, cookiesPath, metaData);
+//
+//            // Save updated cookies
+//            context.storageState(new BrowserContext.StorageStateOptions().setPath(Paths.get(cookiesPath)));
+//            log.info("update wechatVideo cookies success, video: {}", workFilePath);
+//            page.waitForTimeout(2000);
+//
+//            context.close();
+//            browser.close();
+//
+//            return true;
+//        } catch (Exception e) {
+//            log.error("wechat video fuck", e);
+//            return false;
+//        }
+//    }
 
-        try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.firefox().launch(buildOptions());
-            BrowserContext context = browser.newContext(new Browser.NewContextOptions()
-                    .setStorageStatePath(Paths.get(cookiesPath)));
+//    private void uploadVideo(Page page, String workFilePath) {
+//        page.waitForTimeout(2000);
+//        page.locator(".ant-upload.ant-upload-select.ant-upload-select-text input[type='file']").setInputFiles(Paths.get(workFilePath));
+//    }
+//
+//    private void addTitleTags(Page page, String workFilePath, WechatVideoMetaData metaData) {
+//        for (String tag : metaData.getTags()) {
+//            page.getByText("+ 添加话题标签").click();
+//            page.keyboard().type("#" + tag);
+//            page.keyboard().press("Enter");
+//        }
+//        log.info("add tag success, type: {}, path: {}, tags: {}", getType(), workFilePath, metaData.getTags());
+//    }
+//
+//    private void detectUploadStatus(Page page, String workFilePath) {
+//        int errorCnt = 0;
+//        while (errorCnt < 10) {
+//            try {
+//                // 等待上传完成小图标
+//                Locator finishCircle = page.locator(".anticon.anticon-check-circle");
+//                if (finishCircle.count() > 0) {
+//                    log.info("video upload finish for wechat, path: {}", workFilePath);
+//                    page.waitForTimeout(2000);
+//                    break;
+//                } else {
+//                    String progress = page.locator("span.ant-progress-text").textContent();
+//                    log.info("video is uploading for wechat, path: {}, progress: {}", workFilePath, progress);
+//                    page.waitForTimeout(2000);
+//                }
+//            } catch (Exception e) {
+//                log.info("video is uploading for wechat, path: {}", workFilePath, e);
+//                errorCnt++;
+//                page.waitForTimeout(2000);
+//            }
+//        }
+//    }
+//
+//    private void chooseAccount(Page page) {
+//        page.getByText("+ 添加帐号").click();
+//        page.waitForTimeout(2000);
+//
+//        page.locator(".ant-checkbox-input").nth(1).click();
+//        page.getByText("确 定").click();
+//    }
+//
+//
+//    private void addShortTitle(Page page, String title) {
+//        Locator titleLoc = page.getByPlaceholder("请输入视频标题");
+//        titleLoc.click();
+//        titleLoc.fill(title);
+//    }
+//
+//    private void addThumbnail(Page page, String previewPath) {
+//        page.waitForTimeout(2000);
+//        page.locator(".ant-upload.ant-upload-select.ant-upload-select-picture-card input[type='file']").setInputFiles(Paths.get(previewPath));
+//    }
 
-            Page page = context.newPage();
-            page.navigate("http://loong.videostui.com/#/publish");
-            log.info("Video begin uploading, type: {}, path: {}", getType(), workFilePath);
+//    private void publishVideo(Page page, String workFilePath, String cookiesPath, WechatVideoMetaData metaData) {
+//        // 获取cookies
+//        JSONObject cookieObj = FileStoreUtil.loadFromFile(new File(cookiesPath), new TypeReference<JSONObject>() {
+//        });
+//        Map<String, String> kvMap = cookieObj.getJSONArray("cookies").stream()
+//                .collect(Collectors.toMap(obj -> ((JSONObject) obj).getString("name"), obj -> ((JSONObject) obj).getString("value")));
+//        String authorization = kvMap.get("Authorization").replace("%20", " ");
+//
+//        // 拦截请求获取参数
+//        final JSONObject[] createParam = {new JSONObject()};
+//        page.route("http://loong.videostui.com/prod-api/manage/production/create", route -> {
+//            createParam[0] = extractCreateVideoParam(route);
+//            route.abort();
+//        });
+//        page.route("http://loong.videostui.com/prod-api/manage/production/publish", Route::abort);
+//        page.getByText("一键发布").click();
+//
+//        // 等待拦截发生
+//        page.waitForTimeout(5000);
+//
+//        // api请求
+//        String videoUrl = createParam[0].getString("videoUrl");
+//        String imgUrl = createParam[0].getString("imgUrl");
+//        String workId = createWork(authorization, videoUrl, imgUrl, workFilePath, metaData);
+//        if (StringUtils.isBlank(workId)) {
+//            throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
+//        }
+//        boolean publishSuccess = publishWork(authorization, workId);
+//        if (!publishSuccess) {
+//            throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
+//        }
+//
+//        log.info("video upload success, path: {}", workFilePath);
+//    }
 
-            page.waitForURL("http://loong.videostui.com/#/publish");
-
-            // 上传文件
-            uploadVideo(page, workFilePath);
-
-            // 添加短标题
-            addShortTitle(page, metaData.getTitle());
-
-            // 添加封面
-            addThumbnail(page, metaData.getPreViewFilePath());
-
-            // 添加视频标签
-            addTitleTags(page, workFilePath, metaData);
-
-            // 检查是否上传视频完成
-            detectUploadStatus(page, workFilePath);
-
-            // 选择账号
-            chooseAccount(page);
-
-            // 发布视频
-            publishVideo(page, workFilePath, cookiesPath, metaData);
-
-            // Save updated cookies
-            context.storageState(new BrowserContext.StorageStateOptions().setPath(Paths.get(cookiesPath)));
-            log.info("update wechatVideo cookies success, video: {}", workFilePath);
-            page.waitForTimeout(2000);
-
-            context.close();
-            browser.close();
-
-            return true;
-        } catch (Exception e) {
-            log.error("wechat video fuck", e);
-            return false;
-        }
-    }
-
-    private void uploadVideo(Page page, String workFilePath) {
-        page.waitForTimeout(2000);
-        page.locator(".ant-upload.ant-upload-select.ant-upload-select-text input[type='file']").setInputFiles(Paths.get(workFilePath));
-    }
-
-    private void addTitleTags(Page page, String workFilePath, WechatVideoMetaData metaData) {
-        for (String tag : metaData.getTags()) {
-            page.getByText("+ 添加话题标签").click();
-            page.keyboard().type("#" + tag);
-            page.keyboard().press("Enter");
-        }
-        log.info("add tag success, type: {}, path: {}, tags: {}", getType(), workFilePath, metaData.getTags());
-    }
-
-    private void detectUploadStatus(Page page, String workFilePath) {
-        int errorCnt = 0;
-        while (errorCnt < 10) {
-            try {
-                // 等待上传完成小图标
-                Locator finishCircle = page.locator(".anticon.anticon-check-circle");
-                if (finishCircle.count() > 0) {
-                    log.info("video upload finish for wechat, path: {}", workFilePath);
-                    page.waitForTimeout(2000);
-                    break;
-                } else {
-                    String progress = page.locator("span.ant-progress-text").textContent();
-                    log.info("video is uploading for wechat, path: {}, progress: {}", workFilePath, progress);
-                    page.waitForTimeout(2000);
-                }
-            } catch (Exception e) {
-                log.info("video is uploading for wechat, path: {}", workFilePath, e);
-                errorCnt++;
-                page.waitForTimeout(2000);
-            }
-        }
-    }
-
-    private void chooseAccount(Page page) {
-        page.getByText("+ 添加帐号").click();
-        page.waitForTimeout(2000);
-
-        page.locator(".ant-checkbox-input").nth(1).click();
-        page.getByText("确 定").click();
-    }
-
-
-    private void addShortTitle(Page page, String title) {
-        Locator titleLoc = page.getByPlaceholder("请输入视频标题");
-        titleLoc.click();
-        titleLoc.fill(title);
-    }
-
-    private void addThumbnail(Page page, String previewPath) {
-        page.waitForTimeout(2000);
-        page.locator(".ant-upload.ant-upload-select.ant-upload-select-picture-card input[type='file']").setInputFiles(Paths.get(previewPath));
-    }
-
-    private void publishVideo(Page page, String workFilePath, String cookiesPath, WechatVideoMetaData metaData) {
-        // 获取cookies
-        JSONObject cookieObj = FileStoreUtil.loadFromFile(new File(cookiesPath), new TypeReference<JSONObject>() {
-        });
-        Map<String, String> kvMap = cookieObj.getJSONArray("cookies").stream()
-                .collect(Collectors.toMap(obj -> ((JSONObject) obj).getString("name"), obj -> ((JSONObject) obj).getString("value")));
-        String authorization = kvMap.get("Authorization").replace("%20", " ");
-
-        // 拦截请求获取参数
-        final JSONObject[] createParam = {new JSONObject()};
-        page.route("http://loong.videostui.com/prod-api/manage/production/create", route -> {
-            createParam[0] = extractCreateVideoParam(route);
-            route.abort();
-        });
-        page.route("http://loong.videostui.com/prod-api/manage/production/publish", Route::abort);
-        page.getByText("一键发布").click();
-
-        // 等待拦截发生
-        page.waitForTimeout(5000);
-
-        // api请求
-        String videoUrl = createParam[0].getString("videoUrl");
-        String imgUrl = createParam[0].getString("imgUrl");
-        String workId = createWork(authorization, videoUrl, imgUrl, workFilePath, metaData);
-        if (StringUtils.isBlank(workId)) {
-            throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
-        }
-        boolean publishSuccess = publishWork(authorization, workId);
-        if (!publishSuccess) {
-            throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
-        }
-
-        log.info("video upload success, path: {}", workFilePath);
-    }
-
-    private JSONObject extractCreateVideoParam(Route route) {
-        JSONObject originalParam = null;
-        Request request = route.request();
-        if ("POST".equals(request.method())) {
-            // 解析 JSON 数据
-            log.info("wechat video create request data: {}", request.postData());
-            originalParam = JSONObject.parseObject(request.postData());
-        }
-        return originalParam;
-    }
+//    private JSONObject extractCreateVideoParam(Route route) {
+//        JSONObject originalParam = null;
+//        Request request = route.request();
+//        if ("POST".equals(request.method())) {
+//            // 解析 JSON 数据
+//            log.info("wechat video create request data: {}", request.postData());
+//            originalParam = JSONObject.parseObject(request.postData());
+//        }
+//        return originalParam;
+//    }
 
     private String createWork(String authorization, String videoUrl, String imageUrl, String workFilePath, WechatVideoMetaData metaData) {
         // 尺寸
@@ -356,46 +360,6 @@ public class WechatVideoV2Uploader extends Uploader {
         return respObj.getString("data");
     }
 
-    private boolean publishWork(String authorization, String workId) {
-        // 获取账号id
-        okhttp3.Request request = new okhttp3.Request.Builder()
-                .url("http://loong.videostui.com/prod-api/manage/wechatChannelInfo/wxChannels?pageSize=10&pageNum=1&status=3")
-                .get()
-                .addHeader("Content-Type", "application/json")
-                .addHeader("authorization", authorization)
-                .build();
-        String resp = OkHttpClientUtil.execute(request);
-        JSONObject respObj = JSONObject.parseObject(resp);
-        if (respObj.getInteger("code") != 200) {
-            log.info("get wxUser error, resp: {}, path: {}", resp);
-            return false;
-        }
-        JSONArray wxUsers = respObj.getJSONArray("rows");
-        if (CollectionUtils.isEmpty(wxUsers)) {
-            log.info("get wxUser empty, wx login expire");
-            return false;
-        }
-        String wcId = wxUsers.getJSONObject(0).getString("wcId");
-
-        // 发布视频
-        Map<String, Object> params = Maps.newHashMap();
-        params.put("wcIds", Lists.newArrayList(wcId));
-        params.put("productionId", workId);
-        okhttp3.Request pRequest = new okhttp3.Request.Builder()
-                .url("http://loong.videostui.com/prod-api/manage/production/publish")
-                .post(RequestBody.create(MediaType.parse("application/json"), JSON.toJSONString(params)))
-                .addHeader("Content-Type", "application/json")
-                .addHeader("authorization", authorization)
-                .build();
-        String pResp = OkHttpClientUtil.execute(pRequest);
-        JSONObject pRespObj = JSONObject.parseObject(pResp);
-        if (pRespObj.getInteger("code") != 200) {
-            log.info("publish work error, resp: {}", resp);
-            return false;
-        }
-        return true;
-    }
-
     private BrowserType.LaunchOptions buildOptions() {
         BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
                 .setHeadless(headless);
@@ -408,71 +372,117 @@ public class WechatVideoV2Uploader extends Uploader {
     }
 
 
-//    private boolean doUpload(String recordPath) {
-//        File targetFile = new File(recordPath, "highlight.mp4");
-//        String workFilePath = targetFile.getAbsolutePath();
-//        String cookiesPath = getAccoutFile().getAbsolutePath();
-//        WechatVideoMetaData metaData = FileStoreUtil.loadFromFile(
-//                new File(recordPath, UploaderFactory.getMetaFileName(getType())),
-//                new TypeReference<WechatVideoMetaData>() {
-//                });
-//
-//        // 1. 从cookies中读取authorization
-//        JSONObject cookieObj = FileStoreUtil.loadFromFile(new File(cookiesPath), new TypeReference<JSONObject>() {
-//        });
-//        Map<String, String> kvMap = cookieObj.getJSONArray("cookies").stream()
-//                .collect(Collectors.toMap(obj -> ((JSONObject) obj).getString("name"), obj -> ((JSONObject) obj).getString("value")));
-//        String authorization = kvMap.get("Authorization").replace("%20", " ");
-//
-//        // 2. 上传视频到minio获取下载地址
-//        String videoUrl = getVideoUrl(targetFile, metaData);
-//        String imageUrl = getImageUrl(targetFile, metaData);
-//
-//        // 2. create作品
-//        String workId = createWork(authorization, videoUrl, imageUrl, workFilePath, metaData);
-//        if (StringUtils.isBlank(workId)) {
-//            throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
-//        }
-//
-//        // 3. 发布作品
-//        return publishWork(authorization, workId, workFilePath);
-//    }
-//
-//    private String getVideoUrl(File targetFile, WechatVideoMetaData metaData) {
-//        String key = String.format(VIDEO_PRESIGNED_URL_KEY, targetFile.getAbsolutePath());
-//        String videoUrl = cacheManager.get(key);
-//        if (StringUtils.isBlank(videoUrl)) {
-//            long curStamp = System.currentTimeMillis();
-//            String videoPath = "highlight/" + curStamp + metaData.getTitle() + ".mp4";
-//            MinioManager.uploadFileV2(targetFile, videoPath);
-//            log.info("upload video {} to minio finish", videoPath);
-//            videoUrl = MinioManager.genPresignedObjUrl(videoPath, 6);
-//
-//            cacheManager.set(key, videoUrl, 6, TimeUnit.HOURS);
-//        }
-//
-//        log.info("get videoUrl: {} success", videoUrl);
-//        return videoUrl;
-//    }
-//
-//    private String getImageUrl(File targetFile, WechatVideoMetaData metaData) {
-//        String key = String.format(IMAGE_PRESIGNED_URL_KEY, targetFile.getAbsolutePath());
-//        String imageUrl = cacheManager.get(key);
-//        if (StringUtils.isBlank(imageUrl)) {
-//            long curStamp = System.currentTimeMillis();
-//            String preViewFilePath = metaData.getPreViewFilePath();
-//            String imagePath = "highlight/" + curStamp + new File(preViewFilePath).getName() + ".jpg";
-//            MinioManager.uploadFileV2(new File(preViewFilePath), imagePath);
-//            imageUrl = MinioManager.genPresignedObjUrl(imagePath, 6);
-//
-//            cacheManager.set(key, imageUrl, 6, TimeUnit.HOURS);
-//        }
-//
-//        return imageUrl;
-//    }
-//
+    private boolean doUpload(String recordPath) {
+        File targetFile = new File(recordPath, "highlight.mp4");
+        String workFilePath = targetFile.getAbsolutePath();
+        String cookiesPath = getAccoutFile().getAbsolutePath();
+        WechatVideoMetaData metaData = FileStoreUtil.loadFromFile(
+                new File(recordPath, UploaderFactory.getMetaFileName(getType())),
+                new TypeReference<WechatVideoMetaData>() {
+                });
 
-//
+        // 1. 从cookies中读取authorization
+        JSONObject cookieObj = FileStoreUtil.loadFromFile(new File(cookiesPath), new TypeReference<JSONObject>() {
+        });
+        Map<String, String> kvMap = cookieObj.getJSONArray("cookies").stream()
+                .collect(Collectors.toMap(obj -> ((JSONObject) obj).getString("name"), obj -> ((JSONObject) obj).getString("value")));
+        String authorization = kvMap.get("Authorization").replace("%20", " ");
+
+        // 2. 上传视频到minio获取下载地址
+        String videoUrl = getVideoUrl(targetFile, metaData);
+        String imageUrl = getImageUrl(targetFile, metaData);
+
+        // 2. create作品
+        String workId = createWork(authorization, videoUrl, imageUrl, workFilePath, metaData);
+        if (StringUtils.isBlank(workId)) {
+            throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
+        }
+
+        // 3. 获取账号id
+        List<String> wxIds = chooseAccounts(authorization);
+        if (CollectionUtils.isEmpty(wxIds)) {
+            throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
+        }
+
+        // 4. 发布作品
+        return publishWork(authorization, workId, wxIds);
+    }
+
+    private List<String> chooseAccounts(String authorization) {
+        // 获取账号id
+        okhttp3.Request request = new okhttp3.Request.Builder()
+                .url("http://loong.videostui.com/prod-api/manage/wechatChannelInfo/wxChannels?pageSize=10&pageNum=1&status=3")
+                .get()
+                .addHeader("Content-Type", "application/json")
+                .addHeader("authorization", authorization)
+                .build();
+        String resp = OkHttpClientUtil.execute(request);
+        JSONObject respObj = JSONObject.parseObject(resp);
+        if (respObj.getInteger("code") != 200) {
+            log.info("get wxUser error, resp: {}, path: {}", resp);
+            return Lists.newArrayList();
+        }
+        JSONArray wxUsers = respObj.getJSONArray("rows");
+        if (CollectionUtils.isEmpty(wxUsers)) {
+            log.info("get wxUser empty, wx login expire");
+            return Lists.newArrayList();
+        }
+        String wcId = wxUsers.getJSONObject(0).getString("wcId");
+        return Lists.newArrayList(wcId);
+    }
+
+    private String getVideoUrl(File targetFile, WechatVideoMetaData metaData) {
+        String key = String.format(VIDEO_PRESIGNED_URL_KEY, targetFile.getAbsolutePath());
+        String videoUrl = cacheManager.get(key);
+        if (StringUtils.isBlank(videoUrl)) {
+            long curStamp = System.currentTimeMillis();
+            String videoPath = "highlight/" + curStamp + metaData.getTitle() + ".mp4";
+            MinioManager.uploadFileV2(targetFile, videoPath);
+            log.info("upload video {} to minio finish", videoPath);
+            videoUrl = MinioManager.genPresignedObjUrl(videoPath, 6);
+
+            cacheManager.set(key, videoUrl, 6, TimeUnit.HOURS);
+        }
+
+        log.info("get videoUrl: {} success", videoUrl);
+        return videoUrl;
+    }
+
+    private String getImageUrl(File targetFile, WechatVideoMetaData metaData) {
+        String key = String.format(IMAGE_PRESIGNED_URL_KEY, targetFile.getAbsolutePath());
+        String imageUrl = cacheManager.get(key);
+        if (StringUtils.isBlank(imageUrl)) {
+            long curStamp = System.currentTimeMillis();
+            String preViewFilePath = metaData.getPreViewFilePath();
+            String imagePath = "highlight/" + curStamp + new File(preViewFilePath).getName() + ".jpg";
+            MinioManager.uploadFileV2(new File(preViewFilePath), imagePath);
+            imageUrl = MinioManager.genPresignedObjUrl(imagePath, 6);
+
+            cacheManager.set(key, imageUrl, 6, TimeUnit.HOURS);
+        }
+
+        return imageUrl;
+    }
+
+    private boolean publishWork(String authorization, String workId, List<String> wxIds) {
+        // 发布视频
+        Map<String, Object> params = Maps.newHashMap();
+        params.put("wcIds", wxIds);
+        params.put("productionId", workId);
+        okhttp3.Request pRequest = new okhttp3.Request.Builder()
+                .url("http://loong.videostui.com/prod-api/manage/production/publish")
+                .post(RequestBody.create(MediaType.parse("application/json"), JSON.toJSONString(params)))
+                .addHeader("Content-Type", "application/json")
+                .addHeader("authorization", authorization)
+                .build();
+        String pResp = OkHttpClientUtil.execute(pRequest);
+        JSONObject pRespObj = JSONObject.parseObject(pResp);
+        if (pRespObj.getInteger("code") != 200) {
+            log.info("publish work error, resp: {}", pResp);
+            return false;
+        }
+        return true;
+    }
 
 
 }
