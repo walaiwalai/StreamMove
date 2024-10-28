@@ -316,6 +316,7 @@ public class WechatVideoV2Uploader extends Uploader {
         Request request = route.request();
         if ("POST".equals(request.method())) {
             // 解析 JSON 数据
+            log.info("wechat video create request data: {}", request.postData());
             originalParam = JSONObject.parseObject(request.postData());
         }
         return originalParam;
