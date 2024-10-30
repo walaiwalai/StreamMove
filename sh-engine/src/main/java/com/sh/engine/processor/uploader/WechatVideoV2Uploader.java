@@ -11,9 +11,9 @@ import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.Cookie;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
+import com.sh.config.manager.AWSS3Manager;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.manager.MinioManager;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.UploadPlatformEnum;
@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
+ * https://www.ctyun.cn/document/10026693/10446500
  * 腾讯视频号上传
  * 三方工具：http://loong.videostui.com
  *
@@ -389,7 +390,7 @@ public class WechatVideoV2Uploader extends Uploader {
         String authorization = kvMap.get("Authorization").replace("%20", " ");
 
         // 2. 上传视频到minio获取下载地址
-        String videoUrl = getVideoUrl(targetFile, metaData);
+        String videoUrl = getVideoUrl(targetFile);
         String imageUrl = getImageUrl(targetFile, metaData);
 
         // 2. create作品
@@ -431,16 +432,14 @@ public class WechatVideoV2Uploader extends Uploader {
         return Lists.newArrayList(wcId);
     }
 
-    private String getVideoUrl(File targetFile, WechatVideoMetaData metaData) {
+    private String getVideoUrl(File targetFile) {
         String key = String.format(VIDEO_PRESIGNED_URL_KEY, targetFile.getAbsolutePath());
         String videoUrl = cacheManager.get(key);
         if (StringUtils.isBlank(videoUrl)) {
-            long curStamp = System.currentTimeMillis();
-            String videoPath = "highlight/" + curStamp + metaData.getTitle() + ".mp4";
-            MinioManager.uploadFileV2(targetFile, videoPath);
-            log.info("upload video {} to minio finish", videoPath);
-            videoUrl = MinioManager.genPresignedObjUrl(videoPath, 6);
-
+            String objKey = System.currentTimeMillis() + targetFile.getName();
+            AWSS3Manager.multipartUpload(objKey, targetFile);
+            log.info("upload video {} to oos finish", objKey);
+            videoUrl = AWSS3Manager.generateV2PresignedUrl(objKey, 365);
             cacheManager.set(key, videoUrl, 6, TimeUnit.HOURS);
         }
 
@@ -452,14 +451,14 @@ public class WechatVideoV2Uploader extends Uploader {
         String key = String.format(IMAGE_PRESIGNED_URL_KEY, targetFile.getAbsolutePath());
         String imageUrl = cacheManager.get(key);
         if (StringUtils.isBlank(imageUrl)) {
-            long curStamp = System.currentTimeMillis();
             String preViewFilePath = metaData.getPreViewFilePath();
-            String imagePath = "highlight/" + curStamp + new File(preViewFilePath).getName() + ".jpg";
-            MinioManager.uploadFileV2(new File(preViewFilePath), imagePath);
-            imageUrl = MinioManager.genPresignedObjUrl(imagePath, 6);
+            String objKey = System.currentTimeMillis() + new File(preViewFilePath).getName();
+            AWSS3Manager.multipartUpload(objKey, new File(preViewFilePath));
+            imageUrl = AWSS3Manager.generateV2PresignedUrl(objKey, 365);
 
             cacheManager.set(key, imageUrl, 6, TimeUnit.HOURS);
         }
+        log.info("get imageUrl: {} success", imageUrl);
 
         return imageUrl;
     }

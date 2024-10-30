@@ -89,4 +89,11 @@ public class InitConfig {
     private String minioUrl;
     private String minioAccessKey;
     private String minioSecretKey;
+
+    // *********************天翼云存储相关参数**********************
+    private String oosAccessKeyId;
+    private String oosSecretAccessKey;
+    private String oosEndpoint;
+    private String oosBucketName;
+    private String oosRegion;
 }
