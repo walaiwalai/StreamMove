@@ -1,16 +1,21 @@
 package com.sh.engine.processor;
 
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
+import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
+import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import com.sh.engine.processor.recorder.Recorder;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -66,16 +71,38 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
             recorder.doRecord();
         } catch (Exception e) {
             log.error("record error, savePath: {}", recorder.getSavePath(), e);
+            throw new StreamerRecordException(ErrorEnum.RECORD_ERROR);
         }
 
-        // 4.后置操作
+        // 4 检查以下视频切片是否合法
+        if (!checkRecordSeg(context)) {
+            FileUtils.deleteQuietly(new File(context.getRecorder().getSavePath()));
+            throw new StreamerRecordException(ErrorEnum.RECORD_SEG_ERROR);
+        }
+
+        // 5.后置操作
         recordPostProcess(context, name);
     }
 
 
+    private boolean checkRecordSeg(RecordContext context) {
+        // 抽样视频片段是否合法
+        String recordPath = context.getRecorder().getSavePath();
+        File segFile = new File(recordPath, VideoFileUtil.genSegName(1));
+        if (!segFile.exists()) {
+            return false;
+        }
+
+        String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + segFile.getAbsolutePath();
+        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(querySizeCmd);
+        detectCmd.execute();
+        int height = detectCmd.getHeight();
+
+        return height >= 1080;
+    }
+
+
     private void recordPreProcess(RecordContext context, StreamerConfig streamerConfig) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        String timeV = dateFormat.format(context.getRecorder().getRegDate());
 
         // 1. 创建录像文件
         String recordPath = context.getRecorder().getSavePath();

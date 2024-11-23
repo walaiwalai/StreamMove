@@ -44,6 +44,15 @@ public enum ErrorEnum {
      * ffmpeg执行失败
      */
     FFMPEG_EXECUTE_ERROR(7, "ffmpeg execute error"),
+    /**
+     * 录制失败
+     */
+    RECORD_ERROR(8, "record error"),
+
+    /**
+     * 录制分片失败
+     */
+    RECORD_SEG_ERROR(8, "record seg error"),
 
     ;
     private int errorCode;
