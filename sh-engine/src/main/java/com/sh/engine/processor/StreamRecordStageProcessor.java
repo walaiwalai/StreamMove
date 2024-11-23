@@ -71,7 +71,6 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
             recorder.doRecord();
         } catch (Exception e) {
             log.error("record error, savePath: {}", recorder.getSavePath(), e);
-            throw new StreamerRecordException(ErrorEnum.RECORD_ERROR);
         }
 
         // 4 检查以下视频切片是否合法
