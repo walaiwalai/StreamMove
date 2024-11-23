@@ -26,6 +26,10 @@ public class VideoSizeDetectCmd extends CommonCmd {
         }, null);
 
         super.getPrExitCode();
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+        }
 
         String[] split = StringUtils.trim(output.toString()).split("\n")[0].split(",");
         width = Integer.parseInt(split[0]);
