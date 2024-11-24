@@ -9,7 +9,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.List;
@@ -64,9 +63,6 @@ public class FileStatusModel {
     public boolean allPost() {
         boolean allPost = true;
         for (String platform : platforms) {
-            if (StringUtils.isBlank(platform)) {
-                continue;
-            }
             allPost = allPost && isPost(platform);
         }
         return allPost;

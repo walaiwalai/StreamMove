@@ -2,7 +2,6 @@ package com.sh.engine.processor.uploader;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.file.FileNameUtil;
-import cn.hutool.extra.spring.SpringUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
@@ -12,7 +11,8 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.video.*;
+import com.sh.config.model.video.LocalVideo;
+import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.ExecutorPoolUtil;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.HttpClientUtil;
@@ -40,7 +40,10 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
@@ -92,6 +95,9 @@ public class BiliClientUploader extends Uploader {
     public boolean upload(String recordPath) throws Exception {
         // 0. 获取要上传的文件
         List<LocalVideo> localVideos = fetchLocalVideos(recordPath);
+        if (CollectionUtils.isEmpty(localVideos)) {
+            return true;
+        }
 
         // 1. 上传视频
         List<RemoteSeverVideo> remoteVideos = Lists.newArrayList();
@@ -140,7 +146,8 @@ public class BiliClientUploader extends Uploader {
 
     /**
      * 获取要上传的视频
-     * @param dirName   文件地址
+     *
+     * @param dirName 文件地址
      * @return 要上传的视频
      */
     private List<LocalVideo> fetchLocalVideos(String dirName) {
