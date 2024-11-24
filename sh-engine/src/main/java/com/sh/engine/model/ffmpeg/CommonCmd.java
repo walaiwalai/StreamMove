@@ -68,7 +68,7 @@ public abstract class CommonCmd {
     /**
      * Executes the ffmpeg process with the previous given arguments.
      */
-    protected void start(Consumer<String> iCon, Consumer<String> eCon) {
+    protected CompletableFuture<Void> start(Consumer<String> iCon, Consumer<String> eCon) {
         log.info("final command is: {}", command);
 
         Runtime runtime = Runtime.getRuntime();
@@ -81,7 +81,7 @@ public abstract class CommonCmd {
 
             inputStream = pr.getInputStream();
             errorStream = pr.getErrorStream();
-            CompletableFuture.runAsync(() -> {
+            CompletableFuture<Void> infoFuture = CompletableFuture.runAsync(() -> {
                 BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
                 String line = null;
                 try {
@@ -97,7 +97,7 @@ public abstract class CommonCmd {
                 }
             });
 
-            CompletableFuture.runAsync(() -> {
+            CompletableFuture<Void> errorFuture = CompletableFuture.runAsync(() -> {
                 BufferedReader br = new BufferedReader(new InputStreamReader(errorStream));
                 String line = null;
                 try {
@@ -112,8 +112,10 @@ public abstract class CommonCmd {
                 } catch (Exception e) {
                 }
             });
+            return CompletableFuture.allOf(infoFuture, errorFuture);
         } catch (Exception e) {
             log.error("run ffmpeg error!, cmd: {}", command, e);
+            return CompletableFuture.allOf();
         }
     }
 

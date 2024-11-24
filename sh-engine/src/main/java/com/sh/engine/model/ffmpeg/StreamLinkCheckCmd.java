@@ -22,10 +22,9 @@ public class StreamLinkCheckCmd extends CommonCmd {
     @Override
     protected void doExecute() {
         StringBuilder output = new StringBuilder();
-
         super.start((line) -> {
             output.append(line).append("\n");
-        }, null);
+        }, null).join();
 
         super.getPrExitCode();
 
