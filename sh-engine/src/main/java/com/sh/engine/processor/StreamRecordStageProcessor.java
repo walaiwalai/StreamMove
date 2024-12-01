@@ -55,32 +55,37 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
             return;
         }
 
-        // 1. 前期准备
-        recordPreProcess(context, streamerConfig);
+        String recordPath = context.getRecorder().getSavePath();
+        statusManager.addRoomPathStatus(recordPath);
 
-        // 2.发消息
-        String streamerName = StreamerInfoHolder.getCurStreamerName();
-        String msg = BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline()) ?
-                "主播" + streamerName + "开播了，即将开始录制.." :
-                "主播" + streamerName + "有新的视频上传，即将开始录制..";
-        msgSendService.sendText(msg);
-
-        // 3 录像(长时间)
-        Recorder recorder = context.getRecorder();
         try {
+            // 1. 前期准备
+            recordPreProcess(context, streamerConfig);
+
+            // 2.发消息
+            String streamerName = StreamerInfoHolder.getCurStreamerName();
+            String msg = BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline()) ?
+                    "主播" + streamerName + "开播了，即将开始录制.." :
+                    "主播" + streamerName + "有新的视频上传，即将开始录制..";
+            msgSendService.sendText(msg);
+
+            // 3 录像(长时间)
+            Recorder recorder = context.getRecorder();
             recorder.doRecord();
+
+            // 4 检查以下视频切片是否合法
+            if (!checkRecordSeg(context)) {
+                FileUtils.deleteQuietly(new File(context.getRecorder().getSavePath()));
+                throw new StreamerRecordException(ErrorEnum.RECORD_SEG_ERROR);
+            }
+
+            // 5.后置操作
+            recordPostProcess(context, name);
         } catch (Exception e) {
-            log.error("record error, savePath: {}", recorder.getSavePath(), e);
+            log.error("record error, savePath: {}", recordPath, e);
+        } finally {
+            statusManager.deleteRoomPathStatus();
         }
-
-        // 4 检查以下视频切片是否合法
-        if (!checkRecordSeg(context)) {
-            FileUtils.deleteQuietly(new File(context.getRecorder().getSavePath()));
-            throw new StreamerRecordException(ErrorEnum.RECORD_SEG_ERROR);
-        }
-
-        // 5.后置操作
-        recordPostProcess(context, name);
     }
 
 
@@ -117,16 +122,9 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
 
         // 3.将录像文件加到threadLocal
         StreamerInfoHolder.addRecordPath(recordPath);
-
-        // 4.状态位注入
-        statusManager.addRoomPathStatus(recordPath);
     }
 
     private void recordPostProcess(RecordContext context, String name) {
-        // 1.状态位解除
-        statusManager.deleteRoomPathStatus();
-
-        // 2.修改streamer.json
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String lastRecordTime = dateFormat.format(context.getRecorder().getRegDate());
         ConfigFetcher.refreshStreamer(name, StreamerConfig.builder()
