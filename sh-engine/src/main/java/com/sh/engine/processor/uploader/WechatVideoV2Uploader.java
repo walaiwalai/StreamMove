@@ -129,8 +129,8 @@ public class WechatVideoV2Uploader extends Uploader {
             return true;
         }
 
-        // cookies有效性检测
-        setUp();
+//        // cookies有效性检测
+//        setUp();
 
         // 真正上传
         return doUpload(recordPath);
@@ -389,19 +389,19 @@ public class WechatVideoV2Uploader extends Uploader {
                 .collect(Collectors.toMap(obj -> ((JSONObject) obj).getString("name"), obj -> ((JSONObject) obj).getString("value")));
         String authorization = kvMap.get("Authorization").replace("%20", " ");
 
-        // 2. 上传视频到minio获取下载地址
-        String videoUrl = getVideoUrl(targetFile);
-        String imageUrl = getImageUrl(targetFile, metaData);
-
-        // 2. create作品
-        String workId = createWork(authorization, videoUrl, imageUrl, workFilePath, metaData);
-        if (StringUtils.isBlank(workId)) {
+        // 2. 获取账号id
+        List<String> wxIds = chooseAccounts(authorization);
+        if (CollectionUtils.isEmpty(wxIds)) {
             throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
         }
 
-        // 3. 获取账号id
-        List<String> wxIds = chooseAccounts(authorization);
-        if (CollectionUtils.isEmpty(wxIds)) {
+        // 3. 上传视频到minio获取下载地址
+        String videoUrl = getVideoUrl(targetFile);
+        String imageUrl = getImageUrl(targetFile, metaData);
+
+        // 4. create作品
+        String workId = createWork(authorization, videoUrl, imageUrl, workFilePath, metaData);
+        if (StringUtils.isBlank(workId)) {
             throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
         }
 
