@@ -25,6 +25,35 @@ public enum ErrorEnum {
      */
     HTTP_REQUEST_ERROR(3, "http request error"),
 
+    /**
+     * 不合法参数
+     */
+    INVALID_PARAM(4, "invalid param"),
+
+    /**
+     * 处理插件不存在
+     */
+    PLUGIN_NOT_EXIST(5, "plugin not exist"),
+
+    /**
+     * 上传的cookies正在获取
+     */
+    UPLOAD_COOKIES_IS_FETCHING(6, "upload cookies is fetching"),
+
+    /**
+     * ffmpeg执行失败
+     */
+    FFMPEG_EXECUTE_ERROR(7, "ffmpeg execute error"),
+    /**
+     * 录制失败
+     */
+    RECORD_ERROR(8, "record error"),
+
+    /**
+     * 录制分片失败
+     */
+    RECORD_SEG_ERROR(8, "record seg error"),
+
     ;
     private int errorCode;
     private String message;

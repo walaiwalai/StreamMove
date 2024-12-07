@@ -1,11 +1,13 @@
 package com.sh.engine.manager;
 
 import com.google.common.collect.Maps;
+import com.sh.config.manager.CacheManager;
 import com.sh.engine.base.StreamerInfoHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.util.Map;
 
 /**
@@ -54,20 +56,21 @@ public class StatusManager {
 
 
     /**
-     * 录像是否在投稿中(某个主播某段时间维度)
-     * @return
+     * 录像是否在往某个平台投稿中
+     * @return 是否在投稿中
      */
     public boolean isRecordOnSubmission(String recordPath) {
         return uploadStatusMap.containsKey(recordPath);
     }
 
     /**
-     * 锁住当前时间段多个视频（001,002...）投稿状态
+     * 锁住当前录像路径正在被某个平台投递
      *
-     * @param pathWithTimeV
+     * @param recordPath    录像存储路径
+     * @param platform      投稿平台
      */
-    public void lockRecordForSubmission(String pathWithTimeV, String platform) {
-        uploadStatusMap.put(pathWithTimeV, platform);
+    public void lockRecordForSubmission(String recordPath, String platform) {
+        uploadStatusMap.put(recordPath, platform);
     }
 
     /**

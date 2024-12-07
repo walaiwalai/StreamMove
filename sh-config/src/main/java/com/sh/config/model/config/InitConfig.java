@@ -34,19 +34,27 @@ public class InitConfig {
     private String videoSavePath;
 
     /**
-     * 视频保存格式ts|mkv|flv|mp4|ts音频|mkv音频
+     * 用户在各个平台的账户保存地址
      */
-    private String videFormat = "mp4";
+    private String accountSavePath;
 
-    /**
-     * 原画|超清|高清|标清 = 原画
-     */
-    private String quality;
-
+    // *********************录制配置**********************
     private Integer maxRecordingCount = 2;
 
-    // *********************OCR识别服务部署ip**********************
-    private String ocrIp = "127.0.0.1";
+    /**
+     * 代理服务地址
+     * 如：socks5h://address:port
+     */
+    private String httpProxy;
+
+    // *********************投稿配置**********************
+    /**
+     * 投稿时忽略小于此大小的文件(M)
+     */
+    private Integer videoPartLimitSize = 100;
+
+    // *********************twitchApi请求header Authorization**********************
+    private String twitchAuthorization;
 
     // *********************B站视频上传**********************
     private String biliCookies;
@@ -55,24 +63,37 @@ public class InitConfig {
     // *********************阿里云云盘上传**********************
     private String refreshToken;
     private String targetFileId = "root";
-    // *********************直播cookies**********************
-    private String afreecaTvCookies;
-    // *********************直播cookies**********************
-    private String huyaCookies;
-    // *********************twitchcookies**********************
-    private String twitchCookies;
-    // *********************chzzkCookies**********************
-    private String chzzkCookies;
 
-    // *********************抖音cookiesPath**********************
-    private String douyinCookiesPath;
 
-    // *********************其他配置**********************
+    // *********************企业微信消息通知**********************
+    private String weComWebhookSecret;
+
     /**
-     * 投稿时忽略小于此大小的文件(M)
+     * 微应用相关token
      */
-    private Integer videoPartLimitSize = 100;
-
-    // *********************消息通知**********************
+    private String weComAgentId;
     private String weComSecret;
+    /**
+     * 消息事件token
+     */
+    private String weComEventToken;
+    private String weComEncodingAesKey;
+    private String weComCorpId;
+
+
+    // *********************用户登录小关**********************
+    private String phoneNumber;
+    private String password;
+
+    // *********************MINIO相关参数**********************
+    private String minioUrl;
+    private String minioAccessKey;
+    private String minioSecretKey;
+
+    // *********************天翼云存储相关参数**********************
+    private String oosAccessKeyId;
+    private String oosSecretAccessKey;
+    private String oosEndpoint;
+    private String oosBucketName;
+    private String oosRegion;
 }

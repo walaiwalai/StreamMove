@@ -1,0 +1,22 @@
+# 使用 Python 基础镜像
+FROM python:3.10
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制 Python 脚本和模型到容器中
+COPY paddle-vision.py /app/paddle-vision.py
+COPY models /app/models
+
+# 安装必要的依赖项，包括 Flask，并清理无用的文件
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx libglib2.0-0 && \
+    pip install --no-cache-dir numpy fastapi uvicorn opencv-python fastdeploy-python -f https://www.paddlepaddle.org.cn/whl/fastdeploy.html && \
+    apt-get purge -y --auto-remove && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# 暴露 Flask 接口的端口
+EXPOSE 5000
+
+# 运行 Flask 应用
+CMD ["python", "-u", "paddle-vision.py"]

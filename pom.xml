@@ -14,6 +14,7 @@
         <module>sh-start</module>
         <module>sh-schedule</module>
         <module>sh-config</module>
+        <module>sh-message</module>
     </modules>
 
     <properties>
@@ -26,7 +27,7 @@
         <commons-collections4.version>4.1</commons-collections4.version>
         <commons-text.version>1.9</commons-text.version>
         <commons-codec.version>1.6</commons-codec.version>
-        <guava.version>17.0</guava.version>
+        <guava.version>19.0</guava.version>
         <lombok.version>1.18.30</lombok.version>
         <spring-boot.version>2.2.3.RELEASE</spring-boot.version>
         <slf4j-api.version>1.7.7</slf4j-api.version>
@@ -97,9 +98,37 @@
                 <artifactId>spring-boot-autoconfigure</artifactId>
                 <version>${spring-boot.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-web</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+
+            <!--            redis-->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-data-redis</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
 
 
-<!--            commons-->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.10.5</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>2.10.5</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>2.10.5</version>
+            </dependency>
+
+            <!--            commons-->
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
@@ -117,7 +146,12 @@
                 <artifactId>bitcoinj-core</artifactId>
                 <version>0.15.10</version>
             </dependency>
-
+            <!--            minio-->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>8.3.0</version>
+            </dependency>
 
             <!-- http-->
             <dependency>
@@ -133,7 +167,7 @@
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp</artifactId>
-                <version>3.10.0</version>
+                <version>4.8.1</version>
             </dependency>
 
             <dependency>
@@ -153,11 +187,17 @@
                 <artifactId>quartz-jobs</artifactId>
                 <version>${quartz.version}</version>
             </dependency>
-            <!-- dom4j -->
+
             <dependency>
-                <groupId>dom4j</groupId>
-                <artifactId>dom4j</artifactId>
-                <version>1.6.1</version>
+                <groupId>com.microsoft.playwright</groupId>
+                <artifactId>playwright</artifactId>
+                <version>1.48.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-s3</artifactId>
+                <version>1.12.521</version>
             </dependency>
 
             <dependency>
@@ -175,6 +215,12 @@
             <dependency>
                 <groupId>com.sh</groupId>
                 <artifactId>sh-config</artifactId>
+                <version>1.0-SNAPSHOT</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.sh</groupId>
+                <artifactId>sh-message</artifactId>
                 <version>1.0-SNAPSHOT</version>
             </dependency>
 

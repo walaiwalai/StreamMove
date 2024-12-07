@@ -44,7 +44,7 @@ public class FileCleanWorker extends ProcessWorker {
                     continue;
                 }
 
-                log.info("Begin to delete file {}", fileStatusModel.getPath());
+                log.info("Begin to delete file {}", curRecordPath);
                 try {
                     FileUtils.deleteDirectory(new File(curRecordPath));
                 } catch (IOException e) {
@@ -59,7 +59,7 @@ public class FileCleanWorker extends ProcessWorker {
     private void init(StreamerConfig streamerConfig) {
         String name = streamerConfig.getName();
         List<String> recordPaths = Lists.newArrayList();
-        File streamerFile = new File(streamerConfig.fetchSavePath(), name);
+        File streamerFile = new File(ConfigFetcher.getInitConfig().getVideoSavePath(), name);
         if (streamerFile.exists()) {
             Collection<File> statusFiles = FileUtils.listFiles(streamerFile, new NameFileFilter("fileStatus.json"),
                     DirectoryFileFilter.INSTANCE);

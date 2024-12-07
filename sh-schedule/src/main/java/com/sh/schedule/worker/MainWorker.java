@@ -4,7 +4,7 @@ import cn.hutool.extra.spring.SpringUtil;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.manager.StatusManager;
-import com.sh.engine.processor.RecordStateMachine;
+import com.sh.engine.manager.RecordStateMachine;
 import org.quartz.JobExecutionContext;
 
 import java.util.List;

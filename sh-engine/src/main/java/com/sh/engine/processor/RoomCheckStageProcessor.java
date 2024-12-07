@@ -3,13 +3,13 @@ package com.sh.engine.processor;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.engine.RecordStageEnum;
-import com.sh.engine.StreamChannelTypeEnum;
+import com.sh.engine.constant.RecordStageEnum;
+import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.model.RecordContext;
-import com.sh.engine.model.RecordTaskStateEnum;
-import com.sh.engine.model.record.Recorder;
-import com.sh.engine.website.AbstractStreamerService;
+import com.sh.engine.constant.RecordTaskStateEnum;
+import com.sh.engine.processor.recorder.Recorder;
+import com.sh.engine.processor.checker.AbstractRoomChecker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -24,14 +24,14 @@ import java.util.Map;
  **/
 @Component
 @Slf4j
-public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
+public class RoomCheckStageProcessor extends AbstractStageProcessor {
     @Resource
     ApplicationContext applicationContext;
 
-    Map<StreamChannelTypeEnum, AbstractStreamerService> streamerServiceMap = Maps.newHashMap();
+    Map<StreamChannelTypeEnum, AbstractRoomChecker> streamerServiceMap = Maps.newHashMap();
     @PostConstruct
     private void init() {
-        Map<String, AbstractStreamerService> beansOfType = applicationContext.getBeansOfType(AbstractStreamerService.class);
+        Map<String, AbstractRoomChecker> beansOfType = applicationContext.getBeansOfType(AbstractRoomChecker.class);
         beansOfType.forEach((key, value) -> streamerServiceMap.put(value.getType(), value));
     }
 
@@ -45,7 +45,7 @@ public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
     }
 
     /**
-     * 获取直播间的视频推送刘
+     * 获取视频的录像机
      *
      * @param streamerConfig
      * @return
@@ -56,7 +56,7 @@ public class RoomCheckStageProcessor extends AbstractRecordTaskProcessor {
             log.error("roomUrl not match any platform, roomUrl: {}", streamerConfig.getRoomUrl());
             return null;
         }
-        AbstractStreamerService streamerService = streamerServiceMap.get(channelEnum);
+        AbstractRoomChecker streamerService = streamerServiceMap.get(channelEnum);
         if (streamerService == null) {
             log.error("streamerService is null, type: {}", channelEnum.getDesc());
             return null;

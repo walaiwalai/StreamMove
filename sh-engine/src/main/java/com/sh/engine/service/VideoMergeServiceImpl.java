@@ -2,14 +2,16 @@ package com.sh.engine.service;
 
 import cn.hutool.core.io.file.FileNameUtil;
 import com.google.common.collect.Lists;
-import com.sh.config.utils.EnvUtil;
-import com.sh.engine.model.ffmpeg.FfmpegCmd;
-import com.sh.engine.util.CommandUtil;
+import com.sh.config.utils.PictureFileUtil;
+import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
+import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
+import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -50,15 +52,9 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                     return "file " + segFile.getAbsolutePath();
                 })
                 .filter(Objects::nonNull)
-                .map(s -> {
-                    if (EnvUtil.isProd()) {
-                        return s;
-                    } else {
-                        return s.replace("\\", "\\\\");
-//                        return s;
-                    }
-                })
+                .map(s -> SystemUtils.IS_OS_WINDOWS ? s.replace("\\", "\\\\") : s)
                 .collect(Collectors.toList());
+
         if (CollectionUtils.isEmpty(lines)) {
             return false;
         }
@@ -74,10 +70,9 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         String targetPath = targetVideo.getAbsolutePath();
         String command = "ffmpeg -y -loglevel error -f concat -safe 0 -i " + mergeListFile.getAbsolutePath() +
                 " -c:v copy -c:a copy " + targetPath;
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(command);
-
-        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-        return resCode == 0;
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(command);
+        processCmd.execute();
+        return processCmd.isEndNormal();
     }
 
     @Override
@@ -87,13 +82,13 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         }
         String targetPath = targetVideo.getAbsolutePath();
         String cmd = "ffmpeg -loglevel error -i " + "concat:" + StringUtils.join(mergedFileNames, "|") + " -c copy " + targetPath;
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
-        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-        if (resCode == 0) {
-            msgSendService.send("按照concat协议合并视频完成！路径为：" + targetPath);
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
+        processCmd.execute();
+        if (processCmd.isEndNormal()) {
+            msgSendService.sendText("按照concat协议合并视频完成！路径为：" + targetPath);
             return true;
         } else {
-            msgSendService.send("按照concat协议合并视频失败！路径为：" + targetPath);
+            msgSendService.sendText("按照concat协议合并视频失败！路径为：" + targetPath);
             return false;
         }
     }
@@ -117,7 +112,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
             List<String> interval = intervals.get(i);
             for (int j = 0; j < interval.size(); j++) {
                 if (j == 0) {
-                    segVideoPaths.add(doFade(new File(interval.get(j))));
+                    segVideoPaths.add(genFadeVideo(new File(interval.get(j))));
                 } else {
                     segVideoPaths.add(interval.get(j));
                 }
@@ -127,7 +122,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     }
 
     @Override
-    public boolean mergeMultiWithFadeV2(List<List<String>> intervals, File targetVideo) {
+    public boolean mergeMultiWithFadeV2(List<List<String>> intervals, File targetVideo, String title) {
         // 单独一个不处理
         if (intervals.size() == 1) {
             return concatByDemuxer(intervals.get(0), targetVideo);
@@ -142,7 +137,11 @@ public class VideoMergeServiceImpl implements VideoMergeService {
             File tmpFile = new File((tmpSaveDir), "tmp-" + (i + 1) + ".ts");
             boolean success = concatByDemuxer(intervals.get(i), tmpFile);
             if (success) {
-                mergedPaths.add(doFade(tmpFile));
+                if (i == 0) {
+                    mergedPaths.add(genTitleVideo(tmpFile, title));
+                } else {
+                    mergedPaths.add(genFadeVideo(tmpFile));
+                }
             }
         }
 
@@ -153,74 +152,72 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         return success;
     }
 
-    /**
-     * @param oldVideoFile
-     * @return
-     */
-    private String doFade(File oldVideoFile) {
-        File fadedSeg = new File(oldVideoFile.getParent(), FileNameUtil.getPrefix(oldVideoFile) + "-fade.ts");
-        String fadedPath = fadedSeg.getAbsolutePath();
-        String cmd = "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf fade=t=in:st=0:d=" + FADE_DURATION + " -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
-        FfmpegCmd ffmpegCmd = new FfmpegCmd(cmd);
-        Integer resCode = CommandUtil.cmdExec(ffmpegCmd);
-        if (resCode == 0) {
-            log.info("do fade success, path: {}", fadedPath);
+    private String genTitleVideo(File tmpFile, String title) {
+        String tmpDir = tmpFile.getParent();
+        File thumnailFile = new File(tmpDir, "h-thumnail.png");
+        File titledSeg = new File(tmpDir, FileNameUtil.getPrefix(tmpFile) + "-titled.ts");
+
+
+        // 创建封面
+        String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + tmpFile.getAbsolutePath();
+        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(querySizeCmd);
+        detectCmd.execute();
+        int width = detectCmd.getWidth();
+        int height = detectCmd.getHeight();
+        PictureFileUtil.createTextOverlayImage(title, width, height, 80, thumnailFile.getAbsolutePath());
+
+        // 合并封面和视频
+        String fadedPath = titledSeg.getAbsolutePath();
+        String cmd = "ffmpeg -y -loglevel error -i " + tmpFile.getAbsolutePath() + " -i " + thumnailFile.getAbsolutePath() +
+                " -filter_complex \"[0][1]overlay=enable='between(t,0,1)':format=auto\" -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
+        processCmd.execute();
+        if (processCmd.isEndNormal()) {
+            log.info("add title success, path: {}, title: {}", fadedPath, title);
             return fadedPath;
         } else {
-            log.info("do fade fail, will use origin video, path: {}, resCode: {}", fadedPath, resCode);
-            return oldVideoFile.getAbsolutePath();
+            log.info("add title fail, will use origin video, path: {}", fadedPath);
+            return tmpFile.getAbsolutePath();
         }
     }
 
     /**
-     * @param videoFilePaths
+     * @param oldVideoFile
      * @return
      */
-    private static String genFadeConcatFilterCmd(List<String> videoFilePaths, File targetVideo) {
-        StringBuilder ffmpegCommand = new StringBuilder("-y ");
-        // 添加输入文件路径
-        for (int i = 0; i < videoFilePaths.size(); i++) {
-            ffmpegCommand.append("-i \"").append(videoFilePaths.get(i)).append("\" ");
+    private String genFadeVideo(File oldVideoFile) {
+        File fadedSeg = new File(oldVideoFile.getParent(), FileNameUtil.getPrefix(oldVideoFile) + "-fade.ts");
+        String fadedPath = fadedSeg.getAbsolutePath();
+        String cmd = "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf fade=t=in:st=0:d=" + FADE_DURATION + " -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
+        processCmd.execute();
+        if (processCmd.isEndNormal()) {
+            log.info("do fade success, path: {}", fadedPath);
+            return fadedPath;
+        } else {
+            log.info("do fade fail, will use origin video, path: {}", fadedPath);
+            return oldVideoFile.getAbsolutePath();
         }
+    }
 
-        // 视频淡入/淡出效果（假设对每个视频片段都做淡入）
-        ffmpegCommand.append("-filter_complex \"");
-        for (int i = 1; i < videoFilePaths.size(); i++) {
-            ffmpegCommand.append("[")
-                    .append(i)
-                    .append(":v]fade=t=in:st=0:d=" + FADE_DURATION + "[v")
-                    .append(i)
-                    .append("];");
-        }
-
-        // 合并视频流
-        ffmpegCommand.append("[0:v]");
-        for (int i = 1; i < videoFilePaths.size(); i++) {
-            ffmpegCommand.append("[");
-            ffmpegCommand.append("v")
-                    .append(i)
-                    .append("]");
-        }
-        ffmpegCommand.append("concat=n=").append(videoFilePaths.size()).append(":v=1:a=0[outv];");
-
-        // 合并音频流
-        for (int i = 0; i < videoFilePaths.size(); i++) {
-            ffmpegCommand.append("[").append(i).append(":a]");
-        }
-        ffmpegCommand.append("concat=n=").append(videoFilePaths.size()).append(":v=0:a=1[outa]\" ");
-
-        // 输出映射
-        ffmpegCommand.append("-map \"[outv]\" ");
-        ffmpegCommand.append("-map \"[outa]\" ");
-
-        // 编码参数设置
-        ffmpegCommand.append("-c:v libx264 -crf 24 -preset superfast ");
-        ffmpegCommand.append("-c:a aac ");
-
-        // 输出文件路径
-        ffmpegCommand.append(targetVideo.getAbsolutePath());
-
-        return ffmpegCommand.toString();
+    public static void main(String[] args) {
+        VideoMergeServiceImpl videoMergeService = new VideoMergeServiceImpl();
+        File targetFile = new File("G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\highlight.mp4");
+        List<List<String>> intervals = Lists.newArrayList(
+                Lists.newArrayList(
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-458.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-459.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-460.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-461.ts"
+                ),
+                Lists.newArrayList(
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-627.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-628.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-629.ts",
+                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-630.ts"
+                )
+        );
+        videoMergeService.mergeMultiWithFadeV2(intervals, targetFile, "Thesy精彩直播\n2929-98-1晚上");
     }
 }
 

@@ -1,0 +1,69 @@
+version: '3.3'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    volumes:
+      - /data/redis:/data
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=123456
+    command: [ "redis-server", "--requirepass", "123456", "--appendonly", "yes" ]
+    networks:
+      - stream-docker
+
+  stream-ocr:
+    image: stream-ocr:latest
+    container_name: stream-ocr
+    volumes:
+      - /home/admin/stream/download:/home/admin/stream/download
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    networks:
+      - stream-docker
+
+  stream-move:
+    image: stream-move:latest
+    container_name: stream-move
+    privileged: true
+    tty: true
+    volumes:
+      - /home/admin/stream/download:/home/admin/stream/download
+      - /home/admin/stream/logs:/home/admin/stream/logs
+      - /home/admin/stream/config:/home/admin/stream/config
+      - /home/admin/stream/dump:/home/admin/stream/dump
+      - /home/admin/stream/account:/home/admin/stream/account
+      - /home/admin/stream/thumbnail:/home/admin/stream/thumbnail
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - stream-ocr
+    networks:
+      - stream-docker
+
+  stream-shadowsocks:
+    image: easypi/shadowsocks-libev
+    container_name: stream-shadowsocks
+    command:
+      ss-local -s 1.2.3.4
+      -p 8388
+      -m chacha20-ietf-poly1305
+      -k test1234
+      -b 0.0.0.0
+      -l 1080
+      -t 60
+      --fast-open
+    ports:
+      - "1080:1080"
+    restart: "no"
+    networks:
+      - stream-docker
+
+networks:
+  stream-docker:
+    external: false
