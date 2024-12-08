@@ -44,7 +44,7 @@ public class StreamLinkRecorder extends Recorder {
     }
 
     @Override
-    public void doRecord() throws Exception {
+    public void doRecord() {
         // 执行录制，长时间
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
         int totalCnt = RecordConstant.FFMPEG_RETRY_CNT;
@@ -63,12 +63,7 @@ public class StreamLinkRecorder extends Recorder {
             }
 
             // 录制直播，但是由于网络原因进行重试
-            Integer endIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
-                    .stream()
-                    .map(file -> VideoFileUtil.genIndex(file.getName()))
-                    .max(Integer::compare)
-                    .orElse(1);
-            log.info("download stream timeout, will reconnect, savePath: {}, endIndex: {}, {}/{}", savePath, endIndex, i + 1, totalCnt);
+            log.info("download stream timeout, will reconnect, savePath: {}, {}/{}", savePath, i + 1, totalCnt);
         }
     }
 

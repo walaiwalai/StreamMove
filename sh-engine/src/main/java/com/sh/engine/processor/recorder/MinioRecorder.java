@@ -28,7 +28,7 @@ public class MinioRecorder extends Recorder {
     }
 
     @Override
-    public void doRecord() throws Exception {
+    public void doRecord() {
         List<String> objNames = MinioManager.listObjectNames(objDir);
         if (CollectionUtils.isEmpty(objNames)) {
             return;
@@ -50,6 +50,9 @@ public class MinioRecorder extends Recorder {
                         countDownLatch.countDown();
                     });
         }
-        countDownLatch.await();
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+        }
     }
 }

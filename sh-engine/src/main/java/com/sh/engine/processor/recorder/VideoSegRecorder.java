@@ -14,11 +14,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 视频切片
+ *
  * @Author caiwen
  * @Date 2024 09 28 10 18
  **/
@@ -35,7 +38,7 @@ public class VideoSegRecorder extends Recorder {
     }
 
     @Override
-    public void doRecord() throws Exception{
+    public void doRecord() {
         String dirName = savePath;
         int total = tsViews.stream().mapToInt(TsRecordInfo::getCount).sum();
 
@@ -64,7 +67,10 @@ public class VideoSegRecorder extends Recorder {
         }
 
         // 等待视频下载完成
-        downloadLatch.await();
+        try {
+            downloadLatch.await();
+        } catch (InterruptedException e) {
+        }
     }
 
     private boolean downloadTsSeg(String targetUrl, File targetFile) {

@@ -4,6 +4,7 @@ import java.util.Date;
 
 /**
  * 抽象的录像机
+ *
  * @Author caiwen
  * @Date 2024 09 28 10 10
  **/
@@ -35,6 +36,6 @@ public abstract class Recorder {
     /**
      * 进行录制
      */
-    public abstract void doRecord() throws Exception;
+    public abstract void doRecord();
 
 }

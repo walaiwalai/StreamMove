@@ -53,6 +53,7 @@ public enum ErrorEnum {
      * 录制分片失败
      */
     RECORD_SEG_ERROR(8, "record seg error"),
+    RECORD_CLOSING_END(8, "record closing end"),
 
     ;
     private int errorCode;

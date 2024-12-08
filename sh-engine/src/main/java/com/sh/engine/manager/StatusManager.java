@@ -9,15 +9,20 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 直播，投稿，录播的状态统一在这维护
+ *
  * @author caiWen
  * @date 2023/1/24 16:28
  */
 @Slf4j
 @Component
 public class StatusManager {
+    @Resource
+    private CacheManager cacheManager;
+
     /**
      * 直播间录像存放文件夹地址记录，按进行时间分段（当天日期）
      * key为streamer，value当前上传的所在目录文件
@@ -54,9 +59,21 @@ public class StatusManager {
         }
     }
 
+    public void setRecordClosingEndPath(String recordPath) {
+        cacheManager.set("recordEnd_" + StreamerInfoHolder.getCurStreamerName(), recordPath, 15, TimeUnit.MINUTES);
+    }
+
+    public void deleteRecordEndPath() {
+        cacheManager.delete("recordEnd_" + StreamerInfoHolder.getCurStreamerName());
+    }
+
+    public String getRecordEndClosingPath() {
+        return cacheManager.get("recordEnd_" + StreamerInfoHolder.getCurStreamerName());
+    }
 
     /**
      * 录像是否在往某个平台投稿中
+     *
      * @return 是否在投稿中
      */
     public boolean isRecordOnSubmission(String recordPath) {
@@ -66,8 +83,8 @@ public class StatusManager {
     /**
      * 锁住当前录像路径正在被某个平台投递
      *
-     * @param recordPath    录像存储路径
-     * @param platform      投稿平台
+     * @param recordPath 录像存储路径
+     * @param platform   投稿平台
      */
     public void lockRecordForSubmission(String recordPath, String platform) {
         uploadStatusMap.put(recordPath, platform);
