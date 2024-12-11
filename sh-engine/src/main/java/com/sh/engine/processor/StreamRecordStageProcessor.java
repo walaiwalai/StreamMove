@@ -62,13 +62,15 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         }
 
         if (context.getRecorder() != null) {
-            String recordPath = StringUtils.isNotBlank(recordEndPath) ? recordEndPath : context.getRecorder().getSavePath();
-            doRecord(context.getRecorder(), recordPath);
-            statusManager.setRecordClosingEndPath(recordPath);
+            String savePath = StringUtils.isNotBlank(recordEndPath) ?
+                    recordEndPath :
+                    VideoFileUtil.genRegPathByRegDate(context.getRecorder().getRegDate(), name);
+            doRecord(context.getRecorder(), savePath);
+            statusManager.setRecordClosingEndPath(savePath);
 
             // 检查以下视频切片是否合法
-            if (!checkRecordSeg(recordPath)) {
-                FileUtils.deleteQuietly(new File(recordPath));
+            if (!checkRecordSeg(savePath)) {
+                FileUtils.deleteQuietly(new File(savePath));
                 throw new StreamerRecordException(ErrorEnum.RECORD_SEG_ERROR);
             }
 
@@ -83,27 +85,27 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         }
     }
 
-    private void doRecord(Recorder recorder, String recordPath) {
+    private void doRecord(Recorder recorder, String savePath) {
         String name = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(name);
 
         // 发消息
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         String msg = BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline()) ?
-                "主播" + streamerName + "开播了，即将开始录制.." + "存储位置：" + recordPath :
-                "主播" + streamerName + "有新的视频上传，即将开始录制.." + "存储位置：" + recordPath;
+                "主播" + streamerName + "开播了，即将开始录制.." + "存储位置：" + savePath :
+                "主播" + streamerName + "有新的视频上传，即将开始录制.." + "存储位置：" + savePath;
         msgSendService.sendText(msg);
 
         // 真正录制视频
-        statusManager.addRoomPathStatus(recordPath);
+        statusManager.addRoomPathStatus(savePath);
         try {
             // 1. 前期准备
-            recordPreProcess(streamerConfig, recordPath);
+            recordPreProcess(streamerConfig, savePath);
 
             // 2 录像(长时间)
-            recorder.doRecord();
+            recorder.doRecord(savePath);
         } catch (Exception e) {
-            log.error("record error, savePath: {}", recordPath, e);
+            log.error("record error, savePath: {}", savePath, e);
         } finally {
             statusManager.deleteRoomPathStatus();
         }

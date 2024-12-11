@@ -32,24 +32,24 @@ public class StreamLinkRecorder extends Recorder {
     private StreamChannelTypeEnum channel;
     private boolean useProxy;
 
-    public StreamLinkRecorder(String savePath, Date regDate, String url) {
-        this(savePath, regDate, url, false);
+    public StreamLinkRecorder(Date regDate, String url) {
+        this(regDate, url, false);
     }
 
-    public StreamLinkRecorder(String savePath, Date regDate, String url, boolean useProxy) {
-        super(savePath, regDate);
+    public StreamLinkRecorder(Date regDate, String url, boolean useProxy) {
+        super(regDate);
         this.url = url;
         this.channel = StreamChannelTypeEnum.findChannelByUrl(url);
         this.useProxy = useProxy;
     }
 
     @Override
-    public void doRecord() {
+    public void doRecord(String savePath) {
         // 执行录制，长时间
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
         int totalCnt = RecordConstant.FFMPEG_RETRY_CNT;
         for (int i = 0; i < totalCnt; i++) {
-            FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd());
+            FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
             rfCmd.execute();
 
             if (!rfCmd.isExitNormal()) {
@@ -67,7 +67,7 @@ public class StreamLinkRecorder extends Recorder {
         }
     }
 
-    private String buildCmd() {
+    private String buildCmd(String savePath) {
         List<String> extraArgs = Lists.newArrayList();
 
         // twitch额外参数

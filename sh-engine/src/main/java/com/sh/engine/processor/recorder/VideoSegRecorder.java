@@ -32,13 +32,13 @@ public class VideoSegRecorder extends Recorder {
 
     private List<TsRecordInfo> tsViews;
 
-    public VideoSegRecorder(String savePath, Date regDate, List<TsRecordInfo> tsViews) {
-        super(savePath, regDate);
+    public VideoSegRecorder(Date regDate, List<TsRecordInfo> tsViews) {
+        super(regDate);
         this.tsViews = tsViews;
     }
 
     @Override
-    public void doRecord() {
+    public void doRecord(String savePath) {
         String dirName = savePath;
         int total = tsViews.stream().mapToInt(TsRecordInfo::getCount).sum();
 

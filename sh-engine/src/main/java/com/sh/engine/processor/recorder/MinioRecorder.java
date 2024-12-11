@@ -22,13 +22,13 @@ public class MinioRecorder extends Recorder {
     private String objDir;
 
 
-    public MinioRecorder(String savePath, Date regDate, String objDir) {
-        super(savePath, regDate);
+    public MinioRecorder(Date regDate, String objDir) {
+        super(regDate);
         this.objDir = objDir;
     }
 
     @Override
-    public void doRecord() {
+    public void doRecord(String savePath) {
         List<String> objNames = MinioManager.listObjectNames(objDir);
         if (CollectionUtils.isEmpty(objNames)) {
             return;

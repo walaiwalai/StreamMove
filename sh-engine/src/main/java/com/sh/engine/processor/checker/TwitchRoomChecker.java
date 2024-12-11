@@ -17,12 +17,12 @@ import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -45,7 +45,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         boolean isLiving = checkIsLivingByStreamLink(roomUrl);
 
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(genRegPathByRegDate(date), date, roomUrl) : null;
+        return isLiving ? new StreamLinkRecorder(date, roomUrl) : null;
     }
 
     private Recorder fetchLatestRecord(StreamerConfig streamerConfig) {
@@ -67,7 +67,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         // 最近视频链接
         String videoUrl = "https://www.twitch.tv/videos/" + videoItem.getId();
 
-        return new StreamLinkRecorder(genRegPathByRegDate(date), date, videoUrl);
+        return new StreamLinkRecorder(date, videoUrl);
     }
 
     @Override
@@ -75,7 +75,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         return StreamChannelTypeEnum.TWITCH;
     }
 
-    private VideoShelvesItem findLatestVideoItem( String channelName ) {
+    private VideoShelvesItem findLatestVideoItem(String channelName) {
         JSONObject varObj = new JSONObject();
         varObj.put("channelLogin", channelName);
         varObj.put("first", 5);

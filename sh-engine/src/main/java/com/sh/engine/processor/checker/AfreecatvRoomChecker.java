@@ -24,10 +24,10 @@ import java.util.Date;
 import java.util.List;
 
 /**
- *
  * 视频相关信息：videoimg.afreecatv.com/php/SnapshotLoad.php?rowKey=20231228_E8F3995E_250550585_1_r
  * 分片视频：https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/vod/20231228/585/250550585/REGL_E8F3995E_250550585_1.smil/original/both/seg-3.ts
  * 总分片数地址：https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/vod/20231228/585/250550585/REGL_E8F3995E_250550585_1.smil/hd/both/playlist.m3u8
+ *
  * @author caiWen
  * @date 2023/2/18 21:24
  */
@@ -42,7 +42,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
     private static final String USER_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0";
 
     @Override
-    public Recorder getStreamRecorder( StreamerConfig streamerConfig) {
+    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             return fetchOnlineLivingInfo(streamerConfig);
         } else {
@@ -71,7 +71,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         Long titleNo = lastedRecord.getLong("title_no");
         List<VideoSegRecorder.TsRecordInfo> tsRecordInfos = fetchTsViews(titleNo);
 
-        return new VideoSegRecorder(genRegPathByRegDate(date), date, tsRecordInfos);
+        return new VideoSegRecorder(date, tsRecordInfos);
     }
 
     private List<VideoSegRecorder.TsRecordInfo> fetchTsViews(Long nTitleNo) {
@@ -187,6 +187,6 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
     private Recorder fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
         boolean isLiving = checkIsLivingByStreamLink(streamerConfig.getRoomUrl());
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(genRegPathByRegDate(date), date, streamerConfig.getRoomUrl()) : null;
+        return isLiving ? new StreamLinkRecorder(date, streamerConfig.getRoomUrl()) : null;
     }
 }

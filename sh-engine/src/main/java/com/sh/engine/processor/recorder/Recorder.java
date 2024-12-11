@@ -10,23 +10,12 @@ import java.util.Date;
  **/
 public abstract class Recorder {
     /**
-     * 录播视频保存路径
-     * 如：...download/TheShy/2023-02-12
-     */
-    protected String savePath;
-
-    /**
      * 录像时间
      */
     protected Date regDate;
 
-    public Recorder(String savePath, Date regDate) {
-        this.savePath = savePath;
+    public Recorder(Date regDate) {
         this.regDate = regDate;
-    }
-
-    public String getSavePath() {
-        return savePath;
     }
 
     public Date getRegDate() {
@@ -36,6 +25,6 @@ public abstract class Recorder {
     /**
      * 进行录制
      */
-    public abstract void doRecord();
+    public abstract void doRecord(String savePath);
 
 }

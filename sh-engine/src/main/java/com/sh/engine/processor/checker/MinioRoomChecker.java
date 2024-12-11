@@ -42,7 +42,7 @@ public class MinioRoomChecker extends AbstractRoomChecker {
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
         String timeV = dateFormat.format(date);
-        return new MinioRecorder(genRegPathByRegDate(date), date, dirPath + "/" + timeV + "/");
+        return new MinioRecorder(date, dirPath + "/" + timeV + "/");
     }
 
     @Override

@@ -15,7 +15,7 @@ import java.util.Map;
 @Slf4j
 public class BiliRoomChecker extends AbstractRoomChecker {
     private static final String STREAMER_INFO_REFEX = "<script>window.__NEPTUNE_IS_MY_WAIFU__=(.*?)</script><script>";
-    private static final String QUALITY_REGEX ="_\\d+(?=\\.m3u8\\?)";
+    private static final String QUALITY_REGEX = "_\\d+(?=\\.m3u8\\?)";
     private static final Map<String, String> QUALITY_MAP = Maps.newHashMap();
 
     static {
@@ -31,7 +31,7 @@ public class BiliRoomChecker extends AbstractRoomChecker {
         boolean isLiving = checkIsLivingByStreamLink(roomUrl);
 
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(genRegPathByRegDate(date), date, roomUrl, true) : null;
+        return isLiving ? new StreamLinkRecorder(date, roomUrl, true) : null;
     }
 
     @Override

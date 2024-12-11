@@ -1,6 +1,6 @@
 package com.sh.config.utils;
 
-import org.springframework.util.CollectionUtils;
+import com.sh.config.manager.ConfigFetcher;
 
 import java.io.File;
 import java.io.IOException;
@@ -8,9 +8,8 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * @author caiWen
@@ -72,5 +71,21 @@ public class VideoFileUtil {
             hashString.append(String.format("%02X", b));
         }
         return hashString.toString();
+    }
+
+    /**
+     * 生成录像保存地址
+     *
+     * @param date
+     * @return
+     */
+    public static String genRegPathByRegDate(Date date, String name) {
+        String savePath = ConfigFetcher.getInitConfig().getVideoSavePath();
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        String timeV = dateFormat.format(date);
+
+        File regFile = new File(new File(savePath, name), timeV);
+        return regFile.getAbsolutePath();
     }
 }

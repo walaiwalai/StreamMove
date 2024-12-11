@@ -53,7 +53,7 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
         boolean isLiving = checkIsLivingByStreamLink(roomUrl);
 
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(genRegPathByRegDate(date), date, roomUrl) : null;
+        return isLiving ? new StreamLinkRecorder(date, roomUrl) : null;
     }
 
     private Recorder fetchReplayStream(StreamerConfig streamerConfig) {
@@ -71,7 +71,6 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
         }
 
         return new StreamLinkRecorder(
-                genRegPathByRegDate(date),
                 date,
                 "chzzk.naver.com/video/" + videoObj.getString("videoNo")
         );
