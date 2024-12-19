@@ -52,9 +52,17 @@ public enum ErrorEnum {
     /**
      * 录制分片失败
      */
-    RECORD_SEG_ERROR(8, "record seg error"),
-    RECORD_CLOSING_END(8, "record closing end"),
+    RECORD_SEG_ERROR(9, "record seg error"),
 
+    /**
+     * 暂停录制一段时间
+     */
+    RECORD_PUNISH_FOR_BAD_QUALITY(10, "record_punish_for_bad_quality"),
+
+    /**
+     * 录制删除
+     */
+    RECORD_DELETE_FOR_BAD_QUALITY(10, "record_delete_for_bad_quality"),
     ;
     private int errorCode;
     private String message;

@@ -2,6 +2,7 @@ package com.sh.engine.processor;
 
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
+import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author caiwen
@@ -35,6 +37,8 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
     private StatusManager statusManager;
     @Autowired
     private MsgSendService msgSendService;
+    @Autowired
+    private CacheManager cacheManager;
 
     @Override
     public void processInternal(RecordContext context) {
@@ -56,22 +60,33 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         }
 
         // 是否已经结束录制
-        String recordEndPath = statusManager.getRecordEndClosingPath();
+        String punishKey = getRecordPunishKey();
+        String closingEndKey = getClosingEndKey();
+        String recordEndPath = cacheManager.get(closingEndKey);
         if (context.getRecorder() == null && StringUtils.isBlank(recordEndPath)) {
             return;
+        }
+
+        if (StringUtils.isNotBlank(cacheManager.get(punishKey))) {
+            throw new StreamerRecordException(ErrorEnum.RECORD_PUNISH_FOR_BAD_QUALITY);
         }
 
         if (context.getRecorder() != null) {
             String savePath = StringUtils.isNotBlank(recordEndPath) ?
                     recordEndPath :
                     VideoFileUtil.genRegPathByRegDate(context.getRecorder().getRegDate(), name);
+
+            // 录制
             doRecord(context.getRecorder(), savePath);
-            statusManager.setRecordClosingEndPath(savePath);
+
+            // 结束的录制地址
+            cacheManager.set(closingEndKey, savePath, 15, TimeUnit.MINUTES);
 
             // 检查以下视频切片是否合法
             if (!checkRecordSeg(savePath)) {
                 FileUtils.deleteQuietly(new File(savePath));
-                throw new StreamerRecordException(ErrorEnum.RECORD_SEG_ERROR);
+                cacheManager.set(punishKey, "true", 30, TimeUnit.MINUTES);
+                throw new StreamerRecordException(ErrorEnum.RECORD_DELETE_FOR_BAD_QUALITY);
             }
 
             // 后置操作
@@ -79,10 +94,17 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         }
 
         // 是否录播刚结束
-        recordEndPath = statusManager.getRecordEndClosingPath();
-        if (StringUtils.isNotBlank(recordEndPath)) {
+        if (StringUtils.isNotBlank(cacheManager.get(closingEndKey))) {
             throw new StreamerRecordException(ErrorEnum.RECORD_SEG_ERROR);
         }
+    }
+
+    private String getRecordPunishKey() {
+        return "punishRecord_" + StreamerInfoHolder.getCurStreamerName();
+    }
+
+    private String getClosingEndKey() {
+        return "recordEnd_" + StreamerInfoHolder.getCurStreamerName();
     }
 
     private void doRecord(Recorder recorder, String savePath) {
