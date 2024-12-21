@@ -1,9 +1,5 @@
 package com.sh.engine.constant;
 
-import com.google.common.collect.Lists;
-
-import java.util.List;
-
 /**
  * @author caiWen
  * @date 2023/1/25 19:07
@@ -47,17 +43,10 @@ public class RecordConstant {
      */
     public static final int KDA_SEQ_WINDOW_SIZE = 5;
 
-    /**
-     * ffmpeg错误关键字
-     */
-    public static final List<String> FFMPEG_RETRY_KEY_WORDS = Lists.newArrayList(
-            "error", "missing", "Invalid"
-    );
-
     public static final String FFMPEG_NORM_END_LINE = "Closing currently open stream";
 
     /**
-     * ffmpeg重试次数
+     * 录制重试次数
      */
-    public static final int FFMPEG_RETRY_CNT = 5;
+    public static final int RECORD_RETRY_CNT = 5;
 }

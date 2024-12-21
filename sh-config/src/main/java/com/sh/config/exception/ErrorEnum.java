@@ -60,9 +60,9 @@ public enum ErrorEnum {
     RECORD_PUNISH_FOR_BAD_QUALITY(10, "record_punish_for_bad_quality"),
 
     /**
-     * 录制删除
+     * 录像分辨率太低
      */
-    RECORD_DELETE_FOR_BAD_QUALITY(10, "record_delete_for_bad_quality"),
+    RECORD_BAD_QUALITY(10, "record_bad_quality"),
     ;
     private int errorCode;
     private String message;

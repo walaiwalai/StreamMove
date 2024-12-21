@@ -112,38 +112,12 @@ public abstract class CommonCmd {
                 } catch (Exception e) {
                 }
             });
-            return CompletableFuture.allOf(infoFuture, errorFuture);
+            return CompletableFuture.allOf(infoFuture, errorFuture)
+                    .thenRun(() -> prEnd = true);
         } catch (Exception e) {
             log.error("run ffmpeg error!, cmd: {}", command, e);
             return CompletableFuture.allOf();
         }
-    }
-
-    /**
-     * Returns a stream reading from the ffmpeg process standard output channel.
-     *
-     * @return A stream reading from the ffmpeg process standard output channel.
-     */
-    protected InputStream getInputStream() {
-        return inputStream;
-    }
-
-    /**
-     * Returns a stream writing in the ffmpeg process standard input channel.
-     *
-     * @return A stream writing in the ffmpeg process standard input channel.
-     */
-    protected OutputStream getOutputStream() {
-        return outputStream;
-    }
-
-    /**
-     * Returns a stream reading from the ffmpeg process standard error channel.
-     *
-     * @return A stream reading from the ffmpeg process standard error channel.
-     */
-    protected InputStream getErrorStream() {
-        return errorStream;
     }
 
     /**
@@ -200,13 +174,14 @@ public abstract class CommonCmd {
         if (code != 0) {
             log.warn("process exit code: {}, command: {}", code, command);
         }
+        prEnd = true;
         return code;
     }
 
     /**
      * close
      **/
-    protected void close() {
+    public void close() {
         prEnd = true;
         destroy();
     }

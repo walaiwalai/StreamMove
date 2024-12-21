@@ -11,4 +11,8 @@ public class StreamerRecordException extends RuntimeException {
         super(errorEnum.getMessage());
         this.errorEnum = errorEnum;
     }
+
+    public ErrorEnum getErrorEnum() {
+        return errorEnum;
+    }
 }

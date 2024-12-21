@@ -1,7 +1,8 @@
 package com.sh.engine.model.ffmpeg;
 
-import com.sh.engine.constant.RecordConstant;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @Author caiwen
@@ -10,14 +11,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class FfmpegRecordCmd extends CommonCmd {
     /**
-     * 录像是否正常结束
+     * 命令执行结果
      */
-    private boolean endNormal = true;
+    private CompletableFuture<Void> future;
 
     /**
-     * 是否推出
+     * 是否推出正常
      */
     private boolean exitNormal = false;
+
 
     public FfmpegRecordCmd(String command) {
         super(command, false, true);
@@ -26,19 +28,29 @@ public class FfmpegRecordCmd extends CommonCmd {
     @Override
     protected void doExecute() {
         // 后台执行命令
-        super.start(null, (line) -> {
-            // 监听输出流，判断是否正常结束
-//            2024-10-27 17:11:31.611 [Thread-6] [] INFO  com.sh.engine.model.ffmpeg.StreamGobbler:48 - ERROR>>>>[h264 @ 0xaaaaccfec860] Invalid NAL unit size (255266 > 65472).
-//            2024-10-27 17:11:31.611 [Thread-6] [] INFO  com.sh.engine.model.ffmpeg.StreamGobbler:48 - ERROR>>>>[h264 @ 0xaaaaccfec860] missing picture in access unit with size 65520
-            endNormal = line.contains(RecordConstant.FFMPEG_NORM_END_LINE);
-        }).join();
+        this.future = super.start(null, null);
+
+        // 同步等待完成
+        this.future.join();
 
         // 同步等待
-        exitNormal = super.getPrExitCode() == 0;
+        this.exitNormal = super.getPrExitCode() == 0;
     }
 
-    public boolean isEndNormal() {
-        return endNormal;
+    public CompletableFuture<Void> executeAsync() {
+        this.future = super.start(null, null);
+        return this.future;
+    }
+
+    public void waitForEnd() {
+        try {
+            this.future.join();
+
+            // 同步等待
+            this.exitNormal = super.getPrExitCode() == 0;
+        } finally {
+            close();
+        }
     }
 
     public boolean isExitNormal() {

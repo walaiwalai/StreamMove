@@ -10,6 +10,8 @@ import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
+import com.sh.engine.model.ffmpeg.StreamLinkCheckCmd;
+import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -45,27 +47,103 @@ public class StreamLinkRecorder extends Recorder {
 
     @Override
     public void doRecord(String savePath) {
-        // 执行录制，长时间
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
-        int totalCnt = RecordConstant.FFMPEG_RETRY_CNT;
+        if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
+            // 录制在线视频
+            recordOnline(savePath);
+        } else {
+            // 录制回放
+            recordReplay(savePath);
+        }
+    }
+
+    private void recordReplay(String savePath) {
+        // 如果是在线的录制，再次检查是否在线
+        log.info("replay stream record begin, savePath: {}", savePath);
+        FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
+        rfCmd.executeAsync();
+
+        // 检查分辨率
+        checkResolution(rfCmd, savePath);
+
+        // 等待结束
+        rfCmd.waitForEnd();
+
+        try {
+            // 执行录制，长时间
+            rfCmd.execute();
+        } catch (StreamerRecordException e) {
+            if (e.getErrorEnum().getErrorCode() == ErrorEnum.RECORD_BAD_QUALITY.getErrorCode()) {
+                FileUtils.deleteQuietly(new File(savePath));
+                throw e;
+            }
+        }
+
+        if (!rfCmd.isExitNormal()) {
+            log.error("replay stream record fail, savePath: {}", savePath);
+            throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);
+        }
+
+        log.info("replay stream record end, savePath: {}", savePath);
+    }
+
+
+    private void recordOnline(String savePath) {
+        int totalCnt = RecordConstant.RECORD_RETRY_CNT;
         for (int i = 0; i < totalCnt; i++) {
+            // 如果是在线的录制，再次检查是否在线
+            StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("streamlink " + this.url);
+            checkCmd.execute();
+            if (!checkCmd.isStreamOnline()) {
+                try {
+                    // 睡40s防止重试太快
+                    Thread.sleep(40 * 1000);
+                } catch (InterruptedException e) {
+                }
+                log.info("living stream offline confirm, savePath: {}, retry: {}/{}", savePath, i + 1, totalCnt);
+                continue;
+            }
+
+            log.info("living stream record begin or reconnect, savePath: {}, retry: {}/{}", savePath, i + 1, totalCnt);
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
+            // 执行录制，长时间
             rfCmd.execute();
 
             if (!rfCmd.isExitNormal()) {
-                log.error("download stream fail, savePath: {}", savePath);
+                log.error("living stream record fail, savePath: {}", savePath);
                 throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);
             }
+        }
+        log.info("living stream record end, savePath: {}", savePath);
+    }
 
-            if (rfCmd.isEndNormal() || BooleanUtils.isNotTrue(streamerConfig.isRecordWhenOnline())) {
-                log.info("download stream completed, savePath: {}", savePath);
-                return;
+    private void checkResolution(FfmpegRecordCmd rfCmd, String savePath) {
+        File firstSeg = new File(savePath, VideoFileUtil.genSegName(1));
+
+        int i = 0;
+        while (i++ < 10) {
+            try {
+                Thread.sleep(5 * 1000);
+            } catch (InterruptedException e) {
             }
 
-            // 录制直播，但是由于网络原因进行重试
-            log.info("download stream timeout, will reconnect, savePath: {}, {}/{}", savePath, i + 1, totalCnt);
+            if (firstSeg.exists()) {
+                String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + firstSeg.getAbsolutePath();
+                VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(querySizeCmd);
+                detectCmd.execute();
+                int width = detectCmd.getWidth();
+                int height = detectCmd.getHeight();
+
+                if (width < 1280 || height < 720) {
+                    log.error("Resolution is too low ({}x{}), stopping recording...", width, height);
+                    rfCmd.close();
+                    throw new StreamerRecordException(ErrorEnum.RECORD_BAD_QUALITY);
+                }
+                break;
+            }
         }
     }
+
 
     private String buildCmd(String savePath) {
         List<String> extraArgs = Lists.newArrayList();
