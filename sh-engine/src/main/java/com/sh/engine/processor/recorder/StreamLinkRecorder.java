@@ -69,16 +69,6 @@ public class StreamLinkRecorder extends Recorder {
         // 等待结束
         rfCmd.waitForEnd();
 
-        try {
-            // 执行录制，长时间
-            rfCmd.execute();
-        } catch (StreamerRecordException e) {
-            if (e.getErrorEnum().getErrorCode() == ErrorEnum.RECORD_BAD_QUALITY.getErrorCode()) {
-                FileUtils.deleteQuietly(new File(savePath));
-                throw e;
-            }
-        }
-
         if (!rfCmd.isExitNormal()) {
             log.error("replay stream record fail, savePath: {}", savePath);
             throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);
@@ -139,6 +129,7 @@ public class StreamLinkRecorder extends Recorder {
                     rfCmd.close();
                     throw new StreamerRecordException(ErrorEnum.RECORD_BAD_QUALITY);
                 }
+                log.info("Resolution is OK ({}x{}), continue recording...", width, height);
                 break;
             }
         }
