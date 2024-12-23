@@ -127,12 +127,14 @@ public class StreamLinkRecorder extends Recorder {
                 if (width < 1280 || height < 720) {
                     log.error("Resolution is too low ({}x{}), stopping recording...", width, height);
                     rfCmd.close();
+                    FileUtils.deleteQuietly(new File(savePath));
                     throw new StreamerRecordException(ErrorEnum.RECORD_BAD_QUALITY);
                 }
                 log.info("Resolution is OK ({}x{}), continue recording...", width, height);
                 break;
             }
         }
+        throw new StreamerRecordException(ErrorEnum.RECORD_BAD_QUALITY);
     }
 
 
