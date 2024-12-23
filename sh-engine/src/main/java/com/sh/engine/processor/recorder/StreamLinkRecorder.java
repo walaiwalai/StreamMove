@@ -111,6 +111,7 @@ public class StreamLinkRecorder extends Recorder {
         File firstSeg = new File(savePath, VideoFileUtil.genSegName(1));
 
         int i = 0;
+        boolean segExisted = false;
         while (i++ < 10) {
             try {
                 Thread.sleep(5 * 1000);
@@ -118,6 +119,7 @@ public class StreamLinkRecorder extends Recorder {
             }
 
             if (firstSeg.exists()) {
+                segExisted = true;
                 String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + firstSeg.getAbsolutePath();
                 VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(querySizeCmd);
                 detectCmd.execute();
@@ -134,7 +136,12 @@ public class StreamLinkRecorder extends Recorder {
                 break;
             }
         }
-        throw new StreamerRecordException(ErrorEnum.RECORD_BAD_QUALITY);
+        if (!segExisted) {
+            log.error("no seg downloaded, stopping recording..., savePath: {}", savePath);
+            rfCmd.close();
+            FileUtils.deleteQuietly(new File(savePath));
+            throw new StreamerRecordException(ErrorEnum.RECORD_SEG_ERROR);
+        }
     }
 
 

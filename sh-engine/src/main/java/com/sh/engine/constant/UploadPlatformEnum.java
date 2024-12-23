@@ -13,6 +13,7 @@ public enum UploadPlatformEnum {
     DOU_YIN("DOU_YIN", "抖音"),
     WECHAT_VIDEO("WECHAT_VIDEO", "腾讯视频号"),
     MEI_TUAN_VIDEO("MEI_TUAN_VIDEO", "美团视频号"),
+    MEI_TUAN_API_VIDEO("MEI_TUAN_API_VIDEO", "美团api视频号"),
     MINIO("MINIO", "MINIO存储"),
     WECHAT_VIDEO_V2("WECHAT_VIDEO_V2", "腾讯视频号三方"),
 
