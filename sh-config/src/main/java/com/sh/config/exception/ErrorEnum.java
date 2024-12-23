@@ -55,11 +55,6 @@ public enum ErrorEnum {
     RECORD_SEG_ERROR(9, "record seg error"),
 
     /**
-     * 暂停录制一段时间
-     */
-    RECORD_PUNISH_FOR_BAD_QUALITY(10, "record_punish_for_bad_quality"),
-
-    /**
      * 录像分辨率太低
      */
     RECORD_BAD_QUALITY(10, "record_bad_quality"),
