@@ -1,7 +1,6 @@
 package com.sh.engine.processor.uploader;
 
 import com.alibaba.fastjson.TypeReference;
-import com.google.common.collect.ImmutableMap;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Cookie;
 import com.sh.config.exception.ErrorEnum;
@@ -109,7 +108,7 @@ public class DouyinUploader extends Uploader {
             page.setInputFiles("div[class^='container'] input", Paths.get(workFilePath));
 
             // 等待上回完成
-            page.waitForURL("https://creator.douyin.com/creator-micro/content/publish?enter_from=publish_page");
+//            page.waitForURL("https://creator.douyin.com/creator-micro/content/publish?enter_from=publish_page");
 
             // 填写标题
             fillTitle(page, metaData);
@@ -121,14 +120,14 @@ public class DouyinUploader extends Uploader {
             waitingVideoUploadFinish(page, workFilePath);
 
             // 保存封面
-            if (StringUtils.isNotBlank(metaData.getPreViewFilePath()) && new File(metaData.getPreViewFilePath()).exists()) {
-                try {
-                    fillThumbnail(page, metaData);
-                    log.info("upload thumbnail success, path: {}, thumbnail: {}", workFilePath, metaData.getPreViewFilePath());
-                } catch (Exception e) {
-                    log.error("upload thumbnail failed, will skip, path: {}, thumbnail: {}", workFilePath, metaData.getPreViewFilePath());
-                }
-            }
+//            if (StringUtils.isNotBlank(metaData.getPreViewFilePath()) && new File(metaData.getPreViewFilePath()).exists()) {
+//                try {
+//                    fillThumbnail(page, metaData);
+//                    log.info("upload thumbnail success, path: {}, thumbnail: {}", workFilePath, metaData.getPreViewFilePath());
+//                } catch (Exception e) {
+//                    log.error("upload thumbnail failed, will skip, path: {}, thumbnail: {}", workFilePath, metaData.getPreViewFilePath());
+//                }
+//            }
 
             // 填写位置
             if (StringUtils.isNotBlank(metaData.getLocation())) {
@@ -194,6 +193,7 @@ public class DouyinUploader extends Uploader {
 
     /**
      * 填充视频标签
+     *
      * @param page
      * @param metaData
      */
@@ -217,6 +217,7 @@ public class DouyinUploader extends Uploader {
 
     /**
      * 填充标签
+     *
      * @param page
      * @param metaData
      */
@@ -231,14 +232,15 @@ public class DouyinUploader extends Uploader {
 
     /**
      * 等待视频上传完成
+     *
      * @param page
      * @param workFilePath
      */
     private void waitingVideoUploadFinish(Page page, String workFilePath) {
-        while (page.locator("div label+div:has-text('重新上传')").count() == 0) {
+        while (page.locator("text=重新上传").count() == 0) {
             log.info("video is uploading, video: {}", workFilePath);
             page.waitForTimeout(2000);
-            if (page.locator("div.progress-div > div:has-text('上传失败')").count() > 0) {
+            if (page.locator("text=上传失败").count() > 0) {
                 handleUploadError(page, workFilePath);
             }
         }
@@ -247,6 +249,7 @@ public class DouyinUploader extends Uploader {
 
     /**
      * 上传地址位置
+     *
      * @param page
      * @param metaData
      */
@@ -265,6 +268,7 @@ public class DouyinUploader extends Uploader {
 
     /**
      * 保存视频封面
+     *
      * @param page
      * @param metaData
      */
@@ -301,7 +305,6 @@ public class DouyinUploader extends Uploader {
             }
         }
     }
-
 
 
     /**
@@ -356,7 +359,8 @@ public class DouyinUploader extends Uploader {
                     while (true) {
                         page.waitForTimeout(3000);
                         // 检查缓存中是否有验证码
-                        String authNumber = cacheManager.get(AUTH_CODE_KEY, new TypeReference<String>() {});
+                        String authNumber = cacheManager.get(AUTH_CODE_KEY, new TypeReference<String>() {
+                        });
                         if (authNumber != null) {
                             page.locator("input[placeholder='请输入验证码']").nth(1).fill(authNumber);
                             page.getByText("验证", new Page.GetByTextOptions().setExact(true)).filter().click();
@@ -385,11 +389,11 @@ public class DouyinUploader extends Uploader {
                 // 获取用户信息
                 String thirdIdCont = page.locator("text=抖音号：").innerText();
                 String thirdId = thirdIdCont.split("：")[1];
-                userInfo = ImmutableMap.of(
-                        "account_id", thirdId, // 抖音号
-                        "username", page.locator("div.rNsML").innerText(), // 用户名
-                        "avatar", page.locator("div.t4cTN img").first().getAttribute("src") // 头像
-                );
+//                userInfo = ImmutableMap.of(
+//                        "account_id", thirdId, // 抖音号
+//                        "username", page.locator("div.rNsML").innerText(), // 用户名
+//                        "avatar", page.locator("div.t4cTN img").first().getAttribute("src") // 头像
+//                );
                 // 保存 cookie 到文件
                 context.storageState(new BrowserContext.StorageStateOptions().setPath(Paths.get(accountFile.getAbsolutePath())));
                 log.info("gen cookies for {} success", getType());
@@ -405,7 +409,8 @@ public class DouyinUploader extends Uploader {
 
     /**
      * 账号是否生效
-     * @return  true/false
+     *
+     * @return true/false
      */
     private boolean checkAccountValid() {
         File accountFile = getAccoutFile();
