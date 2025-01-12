@@ -41,6 +41,11 @@ public enum StreamChannelTypeEnum {
      * minio
      */
     MINIO(7, "minio", "minio"),
+
+    /**
+     * 抖音
+     */
+    DOU_YIN(8, "抖音", "live.douyin.com"),
     ;
 
     private int type;
@@ -79,6 +84,7 @@ public enum StreamChannelTypeEnum {
 
     /**
      * 根据url找到对应的平台
+     *
      * @param url
      * @return
      */
