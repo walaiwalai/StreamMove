@@ -94,7 +94,7 @@ public class StreamLinkRecorder extends Recorder {
                 continue;
             }
 
-            log.info("living stream record begin or reconnect, savePath: {}, retry: {}/{}", savePath, i + 1, totalCnt);
+            log.info("living stream record begin, savePath: {}, retry: {}/{}", savePath, i + 1, totalCnt);
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
             // 执行录制，长时间
             rfCmd.execute();

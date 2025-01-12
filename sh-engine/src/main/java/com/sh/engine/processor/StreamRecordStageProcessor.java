@@ -84,6 +84,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
             recorder.doRecord(savePath);
         } catch (Exception e) {
             log.error("record error, savePath: {}", savePath, e);
+            throw e;
         } finally {
             statusManager.deleteRoomPathStatus();
         }
