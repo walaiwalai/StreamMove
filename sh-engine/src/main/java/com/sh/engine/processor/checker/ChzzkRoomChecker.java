@@ -63,6 +63,11 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
             return null;
         }
 
+        // 时长小于10分钟太短不要（还在直播就已经有直播录像了）
+        if (videoObj.getInteger("duration") < 60 * 10) {
+            return null;
+        }
+
         // 2 最新发布时间, 已经录过跳过
         Date date = DateUtil.covertStr2Date(videoObj.getString("publishDate"), DateUtil.YYYY_MM_DD_HH_MM_SS);
         boolean isNewTs = checkVodIsNew(streamerConfig, date);
