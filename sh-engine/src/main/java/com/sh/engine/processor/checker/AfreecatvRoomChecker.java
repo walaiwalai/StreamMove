@@ -34,10 +34,9 @@ import java.util.List;
 @Component
 @Slf4j
 public class AfreecatvRoomChecker extends AbstractRoomChecker {
-    private static final String USER_URL = "http://api.m.afreecatv.com/broad/a/watch";
     private static final String BID_REGEX = "(?<=com/)([^/]+)$";
     private static final String TS_COUNT_REGEX = "seg-(\\d+)\\.ts";
-    private static final String RECORD_HISTORY_URL = "https://bjapi.afreecatv.com/api/%s/vods/review?page=1&per_page=20&orderby=reg_date";
+    private static final String RECORD_HISTORY_URL = "https://chapi.sooplive.co.kr/api/%s/home";
 
     private static final String USER_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0";
 
@@ -75,7 +74,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
     }
 
     private List<VideoSegRecorder.TsRecordInfo> fetchTsViews(Long nTitleNo) {
-        String playlistUrl = "https://api.m.afreecatv.com/station/video/a/view";
+        String playlistUrl = "https://api.m.sooplive.co.kr/station/video/a/view";
         RequestBody body = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("nTitleNo", nTitleNo + "")
@@ -118,7 +117,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         String file = fileObj.getJSONArray("quality_info").getJSONObject(0).getString("file");
         int index1 = file.lastIndexOf(":");
         int index2 = file.indexOf("/playlist.m3u8");
-        String tsPrefix = "https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/" + file.substring(index1 + 1, index2);
+        String tsPrefix = "https://vod-archive-global-cdn-z02.sooplive.co.kr/v101/hls/" + file.substring(index1 + 1, index2);
         return fetchTsInfo(tsPrefix);
     }
 
@@ -136,7 +135,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
             response = CLIENT.newCall(requestBuilder.build()).execute();
             if (response.isSuccessful()) {
                 String resp = response.body().string();
-                return JSONObject.parseObject(resp).getJSONArray("data").getJSONObject(0);
+                return JSONObject.parseObject(resp).getJSONArray("vods").getJSONObject(0);
             } else {
                 String message = response.message();
                 String bodyStr = response.body() != null ? response.body().string() : null;
