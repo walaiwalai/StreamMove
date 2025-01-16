@@ -7,17 +7,19 @@ package com.sh.engine.constant;
 public enum RecordTaskStateEnum {
     INIT(0),
 
-    ROOM_CHECK_FINISH(1),
+    STATUS_CHECK_FINISH(1),
 
-    STREAM_RECORD_FINISH(2),
+    ROOM_CHECK_FINISH(2),
 
-    VIDEO_PROCESS_FINISH(3),
+    STREAM_RECORD_FINISH(3),
 
-    VIDEO_UPLOAD_FINISH(4),
+    VIDEO_PROCESS_FINISH(4),
 
-    ERROR(5),
+    VIDEO_UPLOAD_FINISH(5),
 
-    END(6),
+    ERROR(6),
+
+    END(7),
     ;
 
     private int code;

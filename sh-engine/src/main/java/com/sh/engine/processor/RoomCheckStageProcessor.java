@@ -3,13 +3,13 @@ package com.sh.engine.processor;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.engine.constant.RecordStageEnum;
-import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.base.StreamerInfoHolder;
-import com.sh.engine.model.RecordContext;
+import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
-import com.sh.engine.processor.recorder.Recorder;
+import com.sh.engine.constant.StreamChannelTypeEnum;
+import com.sh.engine.model.RecordContext;
 import com.sh.engine.processor.checker.AbstractRoomChecker;
+import com.sh.engine.processor.recorder.Recorder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -29,6 +29,7 @@ public class RoomCheckStageProcessor extends AbstractStageProcessor {
     ApplicationContext applicationContext;
 
     Map<StreamChannelTypeEnum, AbstractRoomChecker> streamerServiceMap = Maps.newHashMap();
+
     @PostConstruct
     private void init() {
         Map<String, AbstractRoomChecker> beansOfType = applicationContext.getBeansOfType(AbstractRoomChecker.class);
@@ -66,7 +67,7 @@ public class RoomCheckStageProcessor extends AbstractStageProcessor {
 
     @Override
     public RecordTaskStateEnum acceptState() {
-        return RecordTaskStateEnum.INIT;
+        return RecordTaskStateEnum.STATUS_CHECK_FINISH;
     }
 
     @Override

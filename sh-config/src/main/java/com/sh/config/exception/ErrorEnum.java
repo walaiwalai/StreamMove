@@ -58,6 +58,11 @@ public enum ErrorEnum {
      * 录像分辨率太低
      */
     RECORD_BAD_QUALITY(10, "record_bad_quality"),
+
+    /**
+     * 快速结束
+     */
+    FAST_END(11, "fast end"),
     ;
     private int errorCode;
     private String message;

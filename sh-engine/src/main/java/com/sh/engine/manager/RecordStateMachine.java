@@ -2,6 +2,8 @@ package com.sh.engine.manager;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.base.Streamer;
@@ -19,10 +21,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -50,11 +49,13 @@ public class RecordStateMachine {
     );
 
     private Map<RecordTaskStateEnum, AbstractStageProcessor> processorMap;
+
     @PostConstruct
     public void init() {
         processorMap = processors.stream()
-                .collect(Collectors.toMap(AbstractStageProcessor::acceptState, Function.identity(), ( a, b) -> b));
+                .collect(Collectors.toMap(AbstractStageProcessor::acceptState, Function.identity(), (a, b) -> b));
     }
+
     public void start(StreamerConfig config) {
         Map<String, String> contextMap = MDC.getCopyOfContextMap();
         RecordContext context = new RecordContext();
@@ -104,6 +105,13 @@ public class RecordStateMachine {
             AbstractStageProcessor processor = processorMap.get(context.getState());
             try {
                 processor.process(context);
+            } catch (StreamerRecordException recordException) {
+                if (Objects.equals(ErrorEnum.FAST_END.getErrorCode(), recordException.getErrorEnum().getErrorCode())) {
+                    context.setState(RecordTaskStateEnum.END);
+                } else {
+                    log.info("record error, state: {}", processor.getStage().getCode(), recordException);
+                    context.setState(RecordTaskStateEnum.ERROR);
+                }
             } catch (Throwable e) {
                 log.error("record error, state: {}", processor.getStage().getCode(), e);
                 context.setState(RecordTaskStateEnum.ERROR);

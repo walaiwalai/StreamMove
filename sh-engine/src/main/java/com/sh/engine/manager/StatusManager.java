@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * 直播，投稿，录播的状态统一在这维护
@@ -27,22 +27,22 @@ public class StatusManager {
      * 直播间录像存放文件夹地址记录，按进行时间分段（当天日期）
      * key为streamer，value当前上传的所在目录文件
      */
-    private static Map<String, String> roomPathStatusMap = Maps.newConcurrentMap();
+    private static ConcurrentMap<String, String> recordStatusMap = Maps.newConcurrentMap();
 
     /**
      * 录播完的录像上传状态（文件按时间粒度划分），key为streamer，value录播文件地址
      */
-    private static Map<String, String> uploadStatusMap = Maps.newConcurrentMap();
+    private static ConcurrentMap<String, String> uploadStatusMap = Maps.newConcurrentMap();
 
     /**
      * 当前录完的录像是否在被处理，key为录播文件地址，value当前处理的阶段
      */
-    private static Map<String, String> postProcessMap = Maps.newConcurrentMap();
+    private static ConcurrentMap<String, String> postProcessMap = Maps.newConcurrentMap();
 
 
     public void printInfo() {
-        log.info("There are {} streamers recoding, they are: ", roomPathStatusMap.keySet().size());
-        for (Map.Entry<String, String> entry : roomPathStatusMap.entrySet()) {
+        log.info("There are {} streamers recoding, they are: ", recordStatusMap.keySet().size());
+        for (Map.Entry<String, String> entry : recordStatusMap.entrySet()) {
             log.info("name: {}，path: {}", entry.getKey(), entry.getValue());
         }
 
@@ -57,18 +57,6 @@ public class StatusManager {
         for (Map.Entry<String, String> entry : uploadStatusMap.entrySet()) {
             log.info("name: {}, path: {}", entry.getKey(), entry.getValue());
         }
-    }
-
-    public void setRecordClosingEndPath(String recordPath) {
-        cacheManager.set("recordEnd_" + StreamerInfoHolder.getCurStreamerName(), recordPath, 15, TimeUnit.MINUTES);
-    }
-
-    public void deleteRecordEndPath() {
-        cacheManager.delete("recordEnd_" + StreamerInfoHolder.getCurStreamerName());
-    }
-
-    public String getRecordEndClosingPath() {
-        return cacheManager.get("recordEnd_" + StreamerInfoHolder.getCurStreamerName());
     }
 
     /**
@@ -106,23 +94,24 @@ public class StatusManager {
      * 直播间录像是否正在被下载
      */
     public boolean isRoomPathFetchStream() {
-        return roomPathStatusMap.containsKey(StreamerInfoHolder.getCurStreamerName());
+        return recordStatusMap.containsKey(StreamerInfoHolder.getCurStreamerName());
     }
 
     public void addRoomPathStatus(String pathWithTimeV) {
-        roomPathStatusMap.put(StreamerInfoHolder.getCurStreamerName(), pathWithTimeV);
+        recordStatusMap.put(StreamerInfoHolder.getCurStreamerName(), pathWithTimeV);
     }
 
     public String getCurRecordPath() {
-        return roomPathStatusMap.get(StreamerInfoHolder.getCurStreamerName());
+        return recordStatusMap.get(StreamerInfoHolder.getCurStreamerName());
     }
 
     public void deleteRoomPathStatus() {
-        roomPathStatusMap.remove(StreamerInfoHolder.getCurStreamerName());
+        recordStatusMap.remove(StreamerInfoHolder.getCurStreamerName());
     }
 
     public Integer count() {
-        return roomPathStatusMap.keySet().size() + postProcessMap.keySet().size() + uploadStatusMap.keySet().size();
+//        return roomPathStatusMap.keySet().size() + postProcessMap.keySet().size() + uploadStatusMap.keySet().size();
+        return recordStatusMap.keySet().size();
     }
 
 
@@ -144,7 +133,7 @@ public class StatusManager {
 
 
     public boolean isPathOccupied(String recordPath) {
-        String onRecordPath = roomPathStatusMap.get(StreamerInfoHolder.getCurStreamerName());
+        String onRecordPath = recordStatusMap.get(StreamerInfoHolder.getCurStreamerName());
         boolean isPathOnRecording = StringUtils.equals(recordPath, onRecordPath);
 
         return isRecordOnSubmission(recordPath) || isPathOnRecording || isDoPostProcess(recordPath);

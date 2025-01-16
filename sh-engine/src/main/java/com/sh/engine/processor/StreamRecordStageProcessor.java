@@ -35,59 +35,28 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
     public void processInternal(RecordContext context) {
         String name = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(name);
-
-        // 是否正在录制
-        boolean isLastRecording = statusManager.isRoomPathFetchStream();
-        if (isLastRecording) {
-            log.info("{} is recording...", name);
-            return;
-        }
-
-        // 录播最大个数限制
-        if (!streamerConfig.isRecordWhenOnline() && statusManager.count() >= ConfigFetcher.getInitConfig().getMaxRecordingCount()) {
-            // 录像拦截，直播不拦截
-            log.info("hit max recoding count, will return, name: {}.", name);
-            return;
-        }
-
         // 是否已经结束录制
         if (context.getRecorder() == null) {
             return;
         }
-
         String savePath = VideoFileUtil.genRegPathByRegDate(context.getRecorder().getRegDate(), name);
 
         // 1. 前期准备
         recordPreProcess(streamerConfig, savePath);
 
         // 2. 录制
-        doRecord(context.getRecorder(), savePath);
-
-        // 3. 后置操作
-        recordPostProcess(context.getRecorder(), name);
-    }
-
-    private void doRecord(Recorder recorder, String savePath) {
-        String name = StreamerInfoHolder.getCurStreamerName();
-        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(name);
-
-        // 发消息
-        String streamerName = StreamerInfoHolder.getCurStreamerName();
-        String msg = BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline()) ?
-                "主播" + streamerName + "开播了，即将开始录制.." + "存储位置：" + savePath :
-                "主播" + streamerName + "有新的视频上传，即将开始录制.." + "存储位置：" + savePath;
-        msgSendService.sendText(msg);
-
         statusManager.addRoomPathStatus(savePath);
         try {
             // 录像(长时间)
-            recorder.doRecord(savePath);
+            context.getRecorder().doRecord(savePath);
         } catch (Exception e) {
             log.error("record error, savePath: {}", savePath, e);
             throw e;
         } finally {
             statusManager.deleteRoomPathStatus();
         }
+        // 3. 后置操作
+        recordPostProcess(context.getRecorder(), name);
     }
 
     private void recordPreProcess(StreamerConfig streamerConfig, String recordPath) {
@@ -104,6 +73,13 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
 
         // 3.将录像文件加到threadLocal
         StreamerInfoHolder.addRecordPath(recordPath);
+
+        // 4. 发送消息
+        String streamerName = StreamerInfoHolder.getCurStreamerName();
+        String msg = BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline()) ?
+                "主播" + streamerName + "开播了，即将开始录制.." + "存储位置：" + recordPath :
+                "主播" + streamerName + "有新的视频上传，即将开始录制.." + "存储位置：" + recordPath;
+        msgSendService.sendText(msg);
     }
 
     private void recordPostProcess(Recorder recorder, String name) {
