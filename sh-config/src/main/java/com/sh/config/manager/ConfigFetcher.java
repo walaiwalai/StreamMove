@@ -1,24 +1,19 @@
 package com.sh.config.manager;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
 import com.sh.config.model.config.InitConfig;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.config.utils.EnvUtil;
 import com.sh.config.utils.FileStoreUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
@@ -53,7 +48,8 @@ public class ConfigFetcher {
         log.info("load init config success, path: {}", initConfigPath);
 
         name2StreamerMap = loadStreamConfig();
-        log.info("load {} streamers success, path: {}", name2StreamerMap.keySet().size(), streamerConfigPath);
+        log.info("load {} streamers success, path: {}, streamers: {}", name2StreamerMap.keySet().size(), streamerConfigPath, JSON.toJSONString(name2StreamerMap));
+
     }
 
     /**
