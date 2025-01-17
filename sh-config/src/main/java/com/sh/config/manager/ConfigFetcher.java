@@ -48,8 +48,7 @@ public class ConfigFetcher {
         log.info("load init config success, path: {}", initConfigPath);
 
         name2StreamerMap = loadStreamConfig();
-        log.info("load {} streamers success, path: {}, streamers: {}", name2StreamerMap.keySet().size(), streamerConfigPath, JSON.toJSONString(name2StreamerMap));
-
+        log.info("load {} streamers success, path: {}", name2StreamerMap.keySet().size(), streamerConfigPath);
     }
 
     /**

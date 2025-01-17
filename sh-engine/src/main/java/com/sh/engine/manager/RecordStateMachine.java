@@ -116,7 +116,6 @@ public class RecordStateMachine {
                 log.error("record error, state: {}", processor.getStage().getCode(), e);
                 context.setState(RecordTaskStateEnum.ERROR);
             }
-            log.info("state: {}, target: {}", context.getState().getCode(), processor.targetState().getCode());
         }
 
         if (loop == 100) {
