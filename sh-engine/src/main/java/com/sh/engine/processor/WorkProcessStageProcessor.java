@@ -1,17 +1,16 @@
 package com.sh.engine.processor;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.RecordStageEnum;
-import com.sh.engine.base.StreamerInfoHolder;
+import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
-import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.processor.plugin.VideoProcessPlugin;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -22,6 +21,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @Author caiwen
@@ -61,8 +61,8 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
             }
 
             // 1. 解析处理对应插件，并处理, 加上系统的对应的插件
-            List<String> videoPlugins = Lists.newArrayList(streamerConfig.getVideoPlugins());
-            videoPlugins.add(0, ProcessPluginEnum.META_DATA_GEN.getType());
+            Set<String> videoPlugins = ProcessPluginEnum.getSystemPlugins();
+            videoPlugins.addAll(streamerConfig.getVideoPlugins());
 
             for (String pluginName : videoPlugins) {
                 if (plugins.get(pluginName) == null) {

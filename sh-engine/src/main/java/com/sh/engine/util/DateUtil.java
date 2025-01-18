@@ -17,7 +17,6 @@ public class DateUtil {
     public static final String YYYY_MM_DD_HH_MM_SS_V2 = "yyyy-MM-dd-HH-mm-ss";
     public static final String YYYY_MM_DD = "yyyy-MM-dd";
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
     private static final DateTimeFormatter DATE_ONLY_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     public static Date covertStr2Date(String dateStr, String format) {

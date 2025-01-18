@@ -17,6 +17,7 @@ import com.sh.config.utils.ExecutorPoolUtil;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.bili.BiliWebPreUploadCommand;
 import com.sh.engine.model.bili.web.BiliClientPreUploadParams;
@@ -40,6 +41,7 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +74,8 @@ public class BiliClientUploader extends Uploader {
 
     private static final String CLIENT_POST_VIDEO_URL
             = "https://member.bilibili.com/x/vu/client/add?access_key=%s";
+    private static final String CLIENT_COVER_UPLOAD_URL
+            = "https://member.bilibili.com/x/vu/client/cover/up?access_key=%s";
     private static final String SUCCESS_UPLOAD_VIDEO_KEY = "bili_client_upload_succeed";
     private static final Map<String, String> CLIENT_HEADERS = Maps.newHashMap();
 
@@ -93,7 +97,7 @@ public class BiliClientUploader extends Uploader {
 
     @Override
     public boolean upload(String recordPath) throws Exception {
-        // 0. 获取要上传的文件
+        // 获取要上传的文件
         List<LocalVideo> localVideos = fetchLocalVideos(recordPath);
         if (CollectionUtils.isEmpty(localVideos)) {
             return true;
@@ -365,7 +369,7 @@ public class BiliClientUploader extends Uploader {
         });
 
         JSONObject params = new JSONObject();
-        params.put("cover", workMetaData.getCover());
+        params.put("cover", uploadThumbnail(recordPath));
         params.put("build", 1088);
         params.put("title", workMetaData.getTitle());
         params.put("tid", workMetaData.getTid());
@@ -379,5 +383,48 @@ public class BiliClientUploader extends Uploader {
         params.put("open_elec", 1);
 
         return params;
+    }
+
+    /**
+     * 上传视频封面
+     *
+     * @param recordPath
+     * @return
+     */
+    private String uploadThumbnail(String recordPath) {
+        // 从meta文件读取连接
+        File metaFile = new File(recordPath, UploaderFactory.getMetaFileName(getType()));
+        BiliClientWorkMetaData workMetaData = FileStoreUtil.loadFromFile(metaFile, new TypeReference<BiliClientWorkMetaData>() {
+        });
+
+        File file = new File(recordPath, RecordConstant.THUMBNAIL_FILE_NAME);
+        if (!file.exists()) {
+            return workMetaData.getCover();
+        }
+
+        byte[] bytes = new byte[(int) file.length()];
+        try (InputStream inputStream = new FileInputStream(file)) {
+            inputStream.read(bytes);
+        } catch (IOException e) {
+            log.error("read thumbnail file error", e);
+            return null;
+        }
+
+        // 上传封面
+        String accessToken = ConfigFetcher.getInitConfig().getAccessToken();
+        String coverUploadUrl = String.format(CLIENT_COVER_UPLOAD_URL, accessToken);
+        HttpEntity requestEntity = MultipartEntityBuilder.create()
+                .addPart(FormBodyPartBuilder.create()
+                        .setName("file")
+                        .setBody(new ByteArrayBody(bytes, ContentType.IMAGE_PNG, "cover.png"))
+                        .build())
+                .build();
+        String respStr = HttpClientUtil.sendPost(coverUploadUrl, null, requestEntity, true);
+        JSONObject respObj = JSONObject.parseObject(respStr);
+        try {
+            return respObj.getJSONObject("data").getString("url");
+        } catch (Exception e) {
+            return workMetaData.getCover();
+        }
     }
 }
