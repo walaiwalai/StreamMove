@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.File;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * streamlink录像机
@@ -61,13 +62,20 @@ public class StreamLinkRecorder extends Recorder {
         // 如果是在线的录制，再次检查是否在线
         log.info("replay stream record begin, savePath: {}", savePath);
         FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
+
+        // 开始录制
         rfCmd.executeAsync();
 
-        // 检查分辨率
-        checkResolution(rfCmd, savePath);
+        // 检查分辨率否正常
+        boolean isValid = checkResolution(savePath);
+        if (!isValid) {
+            rfCmd.kill();
+            FileUtils.deleteQuietly(new File(savePath));
+            throw new StreamerRecordException(ErrorEnum.RECORD_BAD_QUALITY);
+        }
 
-        // 等待结束
-        rfCmd.waitForEnd();
+        // 长时间录播（阻塞）
+        rfCmd.waitTillEnd(24, TimeUnit.HOURS);
 
         if (!rfCmd.isExitNormal()) {
             log.error("replay stream record fail, savePath: {}", savePath);
@@ -83,7 +91,7 @@ public class StreamLinkRecorder extends Recorder {
         for (int i = 0; i < totalCnt; i++) {
             // 如果是在线的录制，再次检查是否在线
             StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("streamlink " + this.url);
-            checkCmd.execute();
+            checkCmd.execute(10, TimeUnit.SECONDS);
             if (!checkCmd.isStreamOnline()) {
                 try {
                     // 睡40s防止重试太快
@@ -97,7 +105,7 @@ public class StreamLinkRecorder extends Recorder {
             log.info("living stream record begin, savePath: {}, retry: {}/{}", savePath, i + 1, totalCnt);
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
             // 执行录制，长时间
-            rfCmd.execute();
+            rfCmd.execute(24, TimeUnit.HOURS);
 
             if (!rfCmd.isExitNormal()) {
                 log.error("living stream record fail, savePath: {}", savePath);
@@ -107,14 +115,14 @@ public class StreamLinkRecorder extends Recorder {
         log.info("living stream record end, savePath: {}", savePath);
     }
 
-    private void checkResolution(FfmpegRecordCmd rfCmd, String savePath) {
+    private boolean checkResolution(String savePath) {
         File firstSeg = new File(savePath, VideoFileUtil.genSegName(1));
 
         int i = 0;
         boolean segExisted = false;
         while (i++ < 10) {
             try {
-                Thread.sleep(5 * 1000);
+                Thread.sleep(10 * 1000);
             } catch (InterruptedException e) {
             }
 
@@ -122,15 +130,13 @@ public class StreamLinkRecorder extends Recorder {
                 segExisted = true;
                 String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + firstSeg.getAbsolutePath();
                 VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(querySizeCmd);
-                detectCmd.execute();
+                detectCmd.execute(10, TimeUnit.SECONDS);
                 int width = detectCmd.getWidth();
                 int height = detectCmd.getHeight();
 
                 if (width < 1280 || height < 720) {
                     log.error("Resolution is too low ({}x{}), stopping recording...", width, height);
-                    rfCmd.close();
-                    FileUtils.deleteQuietly(new File(savePath));
-                    throw new StreamerRecordException(ErrorEnum.RECORD_BAD_QUALITY);
+                    return false;
                 }
                 log.info("Resolution is OK ({}x{}), continue recording...", width, height);
                 break;
@@ -138,10 +144,9 @@ public class StreamLinkRecorder extends Recorder {
         }
         if (!segExisted) {
             log.error("no seg downloaded, stopping recording..., savePath: {}", savePath);
-            rfCmd.close();
-            FileUtils.deleteQuietly(new File(savePath));
-            throw new StreamerRecordException(ErrorEnum.RECORD_SEG_ERROR);
+            return false;
         }
+        return true;
     }
 
 

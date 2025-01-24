@@ -331,7 +331,7 @@ public class WechatVideoV2Uploader extends Uploader {
         // 尺寸
         String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + workFilePath;
         VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(querySizeCmd);
-        detectCmd.execute();
+        detectCmd.execute(10, TimeUnit.SECONDS);
         int width = detectCmd.getWidth();
         int height = detectCmd.getHeight();
 

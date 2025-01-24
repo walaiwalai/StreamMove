@@ -3,6 +3,7 @@ package com.sh.engine.model.ffmpeg;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author caiwen
@@ -15,45 +16,37 @@ public class FfmpegRecordCmd extends CommonCmd {
      */
     private CompletableFuture<Void> future;
 
-    /**
-     * 是否推出正常
-     */
-    private boolean exitNormal = false;
-
 
     public FfmpegRecordCmd(String command) {
         super(command, false, true);
     }
 
     @Override
-    protected void doExecute() {
+    protected void doExecute(long timeout, TimeUnit unit) throws Exception {
         // 后台执行命令
         this.future = super.start(null, null);
-
-        // 同步等待完成
-        this.future.join();
-
-        // 同步等待
-        this.exitNormal = super.getPrExitCode() == 0;
+        future.get(timeout, unit);
+        super.waitExit();
     }
 
-    public CompletableFuture<Void> executeAsync() {
+    public void executeAsync() {
         this.future = super.start(null, null);
-        return this.future;
     }
 
-    public void waitForEnd() {
+    public void waitTillEnd(long timeout, TimeUnit unit) {
         try {
-            this.future.join();
-
-            // 同步等待
-            this.exitNormal = super.getPrExitCode() == 0;
-        } finally {
+            this.future.get(timeout, unit);
+            super.waitExit();
+        } catch (Exception e) {
             close();
         }
     }
 
+    public void kill() {
+        close();
+    }
+
     public boolean isExitNormal() {
-        return exitNormal;
+        return getExitCode() == 0;
     }
 }
