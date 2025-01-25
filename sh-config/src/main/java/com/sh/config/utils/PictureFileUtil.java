@@ -80,9 +80,9 @@ public class PictureFileUtil {
      * 生成带透明背景、指定文本的图片
      *
      * @param text           要绘制的文本，支持换行
-     * @param outputFilePath 图片保存路径
+     * @param toFile 输出图片
      */
-    public static void createTextOverlayImage(String text, int width, int height, int fontSize, String outputFilePath) {
+    public static void createTextOverlayImage(String text, int width, int height, int fontSize, File toFile) {
         // 创建空白图片，并开启透明度 (TYPE_INT_ARGB 支持透明度)
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
@@ -126,9 +126,9 @@ public class PictureFileUtil {
 
         // 保存图片
         try {
-            ImageIO.write(image, "png", new File(outputFilePath));
+            ImageIO.write(image, "png", toFile);
         } catch (IOException e) {
-            log.error("Error saving textOverlayImage: {}", outputFilePath);
+            log.error("Error saving textOverlayImage: {}", toFile.getAbsolutePath());
         }
     }
 }

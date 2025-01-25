@@ -165,7 +165,8 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         detectCmd.execute(5, TimeUnit.MINUTES);
         int width = detectCmd.getWidth();
         int height = detectCmd.getHeight();
-        PictureFileUtil.createTextOverlayImage(title, width, height, 80, thumnailFile.getAbsolutePath());
+        int fontSize = Math.max((int) height / 13, 20);
+        PictureFileUtil.createTextOverlayImage(title, width, height, fontSize, thumnailFile);
 
         // 合并封面和视频
         String fadedPath = titledSeg.getAbsolutePath();

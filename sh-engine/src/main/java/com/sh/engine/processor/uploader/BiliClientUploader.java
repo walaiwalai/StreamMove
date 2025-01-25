@@ -42,6 +42,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -368,8 +369,9 @@ public class BiliClientUploader extends Uploader {
         BiliClientWorkMetaData workMetaData = FileStoreUtil.loadFromFile(metaFile, new TypeReference<BiliClientWorkMetaData>() {
         });
 
+        String thumbnailUrl = uploadThumbnail(recordPath);
         JSONObject params = new JSONObject();
-        params.put("cover", uploadThumbnail(recordPath));
+        params.put("cover", StringUtils.isBlank(thumbnailUrl) ? workMetaData.getCover() : thumbnailUrl);
         params.put("build", 1088);
         params.put("title", workMetaData.getTitle());
         params.put("tid", workMetaData.getTid());
@@ -392,39 +394,30 @@ public class BiliClientUploader extends Uploader {
      * @return
      */
     private String uploadThumbnail(String recordPath) {
-        // 从meta文件读取连接
-        File metaFile = new File(recordPath, UploaderFactory.getMetaFileName(getType()));
-        BiliClientWorkMetaData workMetaData = FileStoreUtil.loadFromFile(metaFile, new TypeReference<BiliClientWorkMetaData>() {
-        });
-
         File file = new File(recordPath, RecordConstant.THUMBNAIL_FILE_NAME);
         if (!file.exists()) {
-            return workMetaData.getCover();
-        }
-
-        byte[] bytes = new byte[(int) file.length()];
-        try (InputStream inputStream = new FileInputStream(file)) {
-            inputStream.read(bytes);
-        } catch (IOException e) {
-            log.error("read thumbnail file error", e);
             return null;
         }
 
-        // 上传封面
-        String accessToken = ConfigFetcher.getInitConfig().getAccessToken();
-        String coverUploadUrl = String.format(CLIENT_COVER_UPLOAD_URL, accessToken);
-        HttpEntity requestEntity = MultipartEntityBuilder.create()
-                .addPart(FormBodyPartBuilder.create()
-                        .setName("file")
-                        .setBody(new ByteArrayBody(bytes, ContentType.IMAGE_PNG, "cover.png"))
-                        .build())
-                .build();
-        String respStr = HttpClientUtil.sendPost(coverUploadUrl, null, requestEntity, true);
-        JSONObject respObj = JSONObject.parseObject(respStr);
-        try {
+        try (InputStream inputStream = Files.newInputStream(file.toPath())) {
+            byte[] bytes = new byte[(int) file.length()];
+            inputStream.read(bytes);
+
+            // 上传封面
+            String accessToken = ConfigFetcher.getInitConfig().getAccessToken();
+            String coverUploadUrl = String.format(CLIENT_COVER_UPLOAD_URL, accessToken);
+            HttpEntity requestEntity = MultipartEntityBuilder.create()
+                    .addPart(FormBodyPartBuilder.create()
+                            .setName("file")
+                            .setBody(new ByteArrayBody(bytes, ContentType.IMAGE_PNG, "cover.png"))
+                            .build())
+                    .build();
+            String respStr = HttpClientUtil.sendPost(coverUploadUrl, null, requestEntity, true);
+            JSONObject respObj = JSONObject.parseObject(respStr);
             return respObj.getJSONObject("data").getString("url");
         } catch (Exception e) {
-            return workMetaData.getCover();
+            log.error("upload thumbnail failed,recordPath: {}", recordPath, e);
+            return null;
         }
     }
 }

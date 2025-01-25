@@ -47,7 +47,8 @@ public enum ProcessPluginEnum {
     public static Set<String> getSystemPlugins() {
         return Sets.newLinkedHashSet(Lists.newArrayList(
                 META_DATA_GEN.getType(),
-                THUMBNAIL_GEN.getType()
+                THUMBNAIL_GEN.getType(),
+                BATCH_SEG_MERGE.getType()
         ));
     }
 }
