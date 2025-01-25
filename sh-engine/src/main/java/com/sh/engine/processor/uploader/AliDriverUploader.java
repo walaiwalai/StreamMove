@@ -3,11 +3,14 @@ package com.sh.engine.processor.uploader;
 import cn.hutool.extra.spring.SpringUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
+import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.FileChunkIterator;
 import com.sh.config.utils.HttpClientUtil;
@@ -19,6 +22,7 @@ import com.sh.engine.util.AliDriverUtil;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ByteArrayEntity;
@@ -29,6 +33,7 @@ import java.io.File;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -43,6 +48,8 @@ import java.util.stream.Collectors;
 public class AliDriverUploader extends Uploader {
     @Resource
     private MsgSendService msgSendService;
+    @Resource
+    private CacheManager cacheManager;
 
     private static AliStoreBucket STORE_BUCKET;
     /**
@@ -53,7 +60,8 @@ public class AliDriverUploader extends Uploader {
     private static final String FILE_GET_UPLOAD_URL = "https://api.aliyundrive.com/v2/file/get_upload_url";
     private static final String FILE_COMPLETE_URL = "https://api.aliyundrive.com/v2/file/complete";
     private static final int RETRY_COUNT = 3;
-    public static final int CHUNK_RETRY_DELAY = 500;
+    private static final int CHUNK_RETRY_DELAY = 500;
+    private static final String ALI_DRIVER_SUCCESS_UPLOAD_VIDEO_KEY = "ali_driver_success_upload";
 
     @Override
     public String getType() {
@@ -75,17 +83,29 @@ public class AliDriverUploader extends Uploader {
     @Override
     public boolean upload(String recordPath) throws Exception {
         String targetFileId = ConfigFetcher.getInitConfig().getTargetFileId();
-        File targetFile = new File(recordPath, "highlight.mp4");
-        if (!targetFile.exists()) {
+        Collection<File> files = FileUtils.listFiles(new File(recordPath), new String[]{"mp4"}, false);
+        if (CollectionUtils.isEmpty(files)) {
             return true;
         }
+        for (File targetFile : files) {
+            String fileName = cacheManager.getHash(ALI_DRIVER_SUCCESS_UPLOAD_VIDEO_KEY, targetFile.getAbsolutePath(), new TypeReference<String>() {
+            });
+            if (StringUtils.isNotBlank(fileName)) {
+                log.info("video has been uploaded to ali driver, file: {}", targetFile.getAbsolutePath());
+                continue;
+            }
+            boolean success = uploadFile(targetFileId, targetFile);
+            if (success) {
+                msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传阿里云盘成功！");
+                cacheManager.setHash(ALI_DRIVER_SUCCESS_UPLOAD_VIDEO_KEY, targetFile.getAbsolutePath(), targetFile.getName());
+            } else {
+                msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传阿里云盘失败！");
+                throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
+            }
+        }
 
-        boolean success = uploadFile(targetFileId, targetFile);
-        if (success) {
-            msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传阿里云盘成功！");
-        } else {
-            msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传阿里云盘失败！");
-            throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
+        for (File targetFile : files) {
+            cacheManager.deleteHashTag(ALI_DRIVER_SUCCESS_UPLOAD_VIDEO_KEY, targetFile.getAbsolutePath());
         }
 
         return true;
