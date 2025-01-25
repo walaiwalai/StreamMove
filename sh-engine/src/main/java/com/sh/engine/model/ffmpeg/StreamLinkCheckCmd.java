@@ -2,6 +2,9 @@ package com.sh.engine.model.ffmpeg;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 /**
  * 直播是否在线命令
  *
@@ -20,14 +23,13 @@ public class StreamLinkCheckCmd extends CommonCmd {
     }
 
     @Override
-    protected void doExecute() {
+    protected void doExecute(long timeout, TimeUnit unit) throws Exception {
         StringBuilder output = new StringBuilder();
-        super.start((line) -> {
+        CompletableFuture<Void> future = super.start((line) -> {
             output.append(line).append("\n");
-        }, null).join();
-
-        super.getPrExitCode();
-
+        }, null);
+        future.get(timeout, unit);
+        super.waitExit();
         streamOnline = output.toString().contains("Available");
     }
 
@@ -36,8 +38,8 @@ public class StreamLinkCheckCmd extends CommonCmd {
     }
 
     public static void main(String[] args) {
-        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("streamlink https://www.huya.com/572329");
-        checkCmd.execute();
+        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("streamlink https://www.huya.com/chuhe");
+        checkCmd.execute(10, TimeUnit.SECONDS);
 
         System.out.println(checkCmd.isStreamOnline());
     }

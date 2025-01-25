@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
@@ -45,6 +46,7 @@ public abstract class CommonCmd {
      * 进程是否结束
      */
     private boolean prEnd = false;
+    private int exitCode = -1;
 
     public CommonCmd(String command, boolean printInfo, boolean printError) {
         this.command = command;
@@ -52,14 +54,16 @@ public abstract class CommonCmd {
         this.printError = printError;
     }
 
-    protected abstract void doExecute();
+    protected abstract void doExecute(long timeout, TimeUnit unit) throws Exception;
 
     /**
      * 执行命令
      */
-    public void execute() {
+    public void execute(long timeout, TimeUnit unit) {
         try {
-            doExecute();
+            doExecute(timeout, unit);
+        } catch (Throwable e) {
+            log.error("execute command error, cmd: {}", command, e);
         } finally {
             close();
         }
@@ -112,8 +116,7 @@ public abstract class CommonCmd {
                 } catch (Exception e) {
                 }
             });
-            return CompletableFuture.allOf(infoFuture, errorFuture)
-                    .thenRun(() -> prEnd = true);
+            return CompletableFuture.allOf(infoFuture, errorFuture);
         } catch (Exception e) {
             log.error("run ffmpeg error!, cmd: {}", command, e);
             return CompletableFuture.allOf();
@@ -157,36 +160,27 @@ public abstract class CommonCmd {
         }
     }
 
-    /**
-     * Return the exit code of the ffmpeg process If the process is not yet terminated, it waits for
-     * the termination of the process
-     *
-     * @return process exit code
-     */
-    protected int getPrExitCode() {
-        // Make sure it's terminated
-        try {
-            pr.waitFor();
-        } catch (InterruptedException ex) {
-            log.warn("Interrupted during waiting on process, forced shutdown", ex);
+    protected void waitExit() throws Exception {
+        pr.waitFor();
+        this.exitCode = pr.exitValue();
+        if (this.exitCode != 0) {
+            log.warn("process exit code: {}, command: {}", this.exitCode, command);
         }
-        int code = pr.exitValue();
-        if (code != 0) {
-            log.warn("process exit code: {}, command: {}", code, command);
-        }
-        prEnd = true;
-        return code;
+        this.prEnd = true;
     }
 
     /**
      * close
      **/
-    public void close() {
-        prEnd = true;
+    protected void close() {
+        if (prEnd) {
+            return;
+        }
         destroy();
+        prEnd = true;
     }
 
-    public boolean isPrEnd() {
-        return prEnd;
+    public int getExitCode() {
+        return exitCode;
     }
 }
