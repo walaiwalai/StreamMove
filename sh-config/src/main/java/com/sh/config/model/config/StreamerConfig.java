@@ -29,6 +29,9 @@ public class StreamerConfig {
     private String desc;
     private List<String> tags;
 
+    private int segMergeCnt;
+    private int lastVodCnt;
+
     /**
      * b站投稿相关
      */

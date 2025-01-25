@@ -1,8 +1,11 @@
 package com.sh.engine.processor.plugin;
 
 import com.google.common.collect.Lists;
+import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.EnvUtil;
 import com.sh.config.utils.VideoFileUtil;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.message.service.MsgSendService;
 import com.sh.engine.service.VideoMergeService;
@@ -52,7 +55,10 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
                 .boxed()
                 .collect(Collectors.toList());
 
-        for (List<Integer> batchIndexes : Lists.partition(segIndexes, BATCH_RECORD_TS_COUNT)) {
+        String streamerName = StreamerInfoHolder.getCurStreamerName();
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
+        int batchSize = Math.max(streamerConfig.getSegMergeCnt(), BATCH_RECORD_TS_COUNT);
+        for (List<Integer> batchIndexes : Lists.partition(segIndexes, batchSize)) {
             File targetMergedVideo = new File(recordPath, "P" + videoIndex + ".mp4");
             List<String> segNames = batchIndexes.stream()
                     .map(i -> new File(recordPath, VideoFileUtil.genSegName(i)))

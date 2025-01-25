@@ -15,6 +15,7 @@ import okhttp3.MultipartBody;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -36,7 +37,7 @@ import java.util.List;
 public class AfreecatvRoomChecker extends AbstractRoomChecker {
     private static final String BID_REGEX = "(?<=com/)([^/]+)$";
     private static final String TS_COUNT_REGEX = "seg-(\\d+)\\.ts";
-    private static final String RECORD_HISTORY_URL = "https://chapi.sooplive.co.kr/api/%s/home";
+    private static final String RECORD_HISTORY_URL = "https://chapi.sooplive.co.kr/api/%s/vods/all?page=1&per_page=50&orderby=reg_date&created=false";
 
     private static final String USER_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0";
 
@@ -59,17 +60,16 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
 
         // 1. 获取历史直播列表
-        JSONObject lastedRecord = fetchLastedRecord(bid);
-        Date date = DateUtil.covertStr2Date(lastedRecord.getString("reg_date"), DateUtil.YYYY_MM_DD_HH_MM_SS);
-        boolean isNewTs = checkVodIsNew(streamerConfig, date);
-        if (!isNewTs) {
+        JSONObject curVod = fetchCurVod(bid, streamerConfig);
+        if (curVod == null) {
             return null;
         }
 
         // 2. 解析切片成链接格式
-        Long titleNo = lastedRecord.getLong("title_no");
+        Long titleNo = curVod.getLong("title_no");
         List<VideoSegRecorder.TsRecordInfo> tsRecordInfos = fetchTsViews(titleNo);
 
+        Date date = DateUtil.covertStr2Date(curVod.getString("reg_date"), DateUtil.YYYY_MM_DD_HH_MM_SS);
         return new VideoSegRecorder(date, tsRecordInfos);
     }
 
@@ -121,21 +121,19 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         return fetchTsInfo(tsPrefix);
     }
 
-    private JSONObject fetchLastedRecord(String bid) {
+    private JSONObject fetchCurVod( String bid, StreamerConfig streamerConfig ) {
         Request.Builder requestBuilder = new Request.Builder()
                 .url(String.format(RECORD_HISTORY_URL, bid))
                 .get()
                 .addHeader("User-Agent", USER_HEADER)
                 .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
-//        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
-//            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
-//        }
         Response response = null;
         try {
             response = CLIENT.newCall(requestBuilder.build()).execute();
             if (response.isSuccessful()) {
                 String resp = response.body().string();
-                return JSONObject.parseObject(resp).getJSONArray("vods").getJSONObject(0);
+                JSONArray vodObjs = JSONObject.parseObject(resp).getJSONArray("data");
+                return filterCurHistoryVod(streamerConfig, vodObjs);
             } else {
                 String message = response.message();
                 String bodyStr = response.body() != null ? response.body().string() : null;
@@ -146,6 +144,40 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
             log.error("query user info error, bid: {}", bid, e);
             return null;
         }
+    }
+
+    /**
+     * 根据当前用户配置获取当前需要录制的视频
+     *
+     * @param streamerConfig 用户配置
+     * @param vodObjs        用户的历史视频列表
+     * @return 当前需要录制的视频
+     */
+    private JSONObject filterCurHistoryVod( StreamerConfig streamerConfig, JSONArray vodObjs ) {
+        if (CollectionUtils.isEmpty(vodObjs)) {
+            return null;
+        }
+
+        List<JSONObject> lastedVods = Lists.newArrayList();
+        for (Object vodObj : vodObjs) {
+            JSONObject vodInfo = (JSONObject) vodObj;
+            Date date = DateUtil.covertStr2Date(vodInfo.getString("reg_date"), DateUtil.YYYY_MM_DD_HH_MM_SS);
+            if (checkVodIsNew(streamerConfig, date)) {
+                lastedVods.add(vodInfo);
+            }
+        }
+        if (CollectionUtils.isEmpty(lastedVods)) {
+            return null;
+        }
+        // 根据获取的数量获取这个数量最前的lastedVods
+
+        int lastVodCnt = 1;
+        if (streamerConfig.getLastVodCnt() > 0) {
+            lastVodCnt = streamerConfig.getLastVodCnt();
+        }
+
+        int index = lastedVods.size() <= lastVodCnt ? lastedVods.size() - 1 : lastVodCnt - 1;
+        return lastedVods.get(index);
     }
 
     private VideoSegRecorder.TsRecordInfo fetchTsInfo(String tsPrefix) {
