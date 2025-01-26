@@ -104,14 +104,6 @@ public class AliDriverUploader extends Uploader {
         // 1. 进行pre_hash
         STORE_BUCKET.preHash(targetFile, fileName, parentId);
 
-        // 2. 进行content_hash
-        CreateFileResponse fileInfo = STORE_BUCKET.contentHash(targetFile, fileName, parentId);
-        if (fileInfo.isRapidUpload() || fileInfo.isExist()) {
-            // 极速上传或文件已经存在，跳过
-            log.info("rapid upload targetFile or targetFile existed, targetFile: {}", targetFile.getAbsolutePath());
-            return new RemoteSeverVideo("", targetFile.getAbsolutePath());
-        }
-
         // 2.分块进行上传
         return uploadByChunk(targetFile, fileSize);
     }
@@ -134,6 +126,7 @@ public class AliDriverUploader extends Uploader {
             log.info("rapid upload targetFile or targetFile existed, targetFile: {}", localVideo.getAbsolutePath());
             return new RemoteSeverVideo("", localVideo.getAbsolutePath());
         }
+
         // 2. 分快上传
         int partCount = (int) Math.ceil(fileSize * 1.0 / UPLOAD_CHUNK_SIZE);
         log.info("video size is {}M, seg {} parts to upload.", fileSize / 1024 / 1024, partCount);
