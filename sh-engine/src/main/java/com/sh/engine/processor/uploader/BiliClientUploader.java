@@ -1,7 +1,6 @@
 package com.sh.engine.processor.uploader;
 
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.io.file.FileNameUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
@@ -45,6 +44,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -178,6 +178,8 @@ public class BiliClientUploader extends Uploader {
         log.info("video size is {}M, seg {} parts to upload.", fileSize / 1024 / 1024, partCount);
         CountDownLatch countDownLatch = new CountDownLatch(partCount);
         List<Integer> failChunkNums = Lists.newCopyOnWriteArrayList();
+        AtomicBoolean hasFailed = new AtomicBoolean(false);
+
         for (int i = 0; i < partCount; i++) {
             //当前分段起始位置
             long curChunkStart = (long) i * CHUNK_SIZE;
@@ -186,11 +188,13 @@ public class BiliClientUploader extends Uploader {
 
             int finalI = i;
             CompletableFuture.supplyAsync(() -> {
-                        return uploadChunk(uploadUrl, videoFile, finalI, partCount,
-                                (int) curChunkSize, curChunkStart);
+                        if (hasFailed.get()) {
+                            return false;
+                        }
+                        return uploadChunk(uploadUrl, videoFile, finalI, partCount, (int) curChunkSize, curChunkStart);
                     }, ExecutorPoolUtil.getUploadPool())
                     .whenComplete((isSuccess, throwbale) -> {
-                        if (!isSuccess) {
+                        if (!isSuccess && hasFailed.compareAndSet(false, true)) {
                             failChunkNums.add(finalI);
                         }
                         countDownLatch.countDown();

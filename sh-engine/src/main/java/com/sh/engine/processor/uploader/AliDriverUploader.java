@@ -1,21 +1,17 @@
 package com.sh.engine.processor.uploader;
 
-import cn.hutool.extra.spring.SpringUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
-import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.video.RemoteSeverVideo;
-import com.sh.config.utils.FileChunkIterator;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
-import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.base.StreamerInfoHolder;
+import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.alidriver.*;
 import com.sh.engine.util.AliDriverUtil;
 import com.sh.message.service.MsgSendService;
@@ -29,13 +25,15 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.File;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 阿里云盘上传器
@@ -165,7 +163,7 @@ public class AliDriverUploader extends Uploader {
     }
 
     /**
-     * 不能多线程上传，会报错
+     * 不能多线程上传，必须顺序上传，会报错
      *
      * @param localVideo
      * @param fileSize
@@ -173,31 +171,35 @@ public class AliDriverUploader extends Uploader {
      * @return
      * @throws Exception
      */
-    private RemoteSeverVideo uploadByChunk(File localVideo, long fileSize, CreateFileResponse fileInfo) {
+    private RemoteSeverVideo uploadByChunk( File localVideo, long fileSize, CreateFileResponse fileInfo ) throws Exception {
         int partCount = (int) Math.ceil(fileSize * 1.0 / UPLOAD_CHUNK_SIZE);
         log.info("video size is {}M, seg {} parts to upload.", fileSize / 1024 / 1024, partCount);
+        CountDownLatch countDownLatch = new CountDownLatch(partCount);
+        List<Integer> failChunkNums = Lists.newCopyOnWriteArrayList();
+        // 用于标记是否有任务失败
+        AtomicBoolean hasFailed = new AtomicBoolean(false);
 
-        List<Integer> failChunkNos = Lists.newCopyOnWriteArrayList();
-        int i = 0;
-        try (FileChunkIterator chunkIterator = new FileChunkIterator(localVideo.getAbsolutePath(), (int) UPLOAD_CHUNK_SIZE)) {
-            for (byte[] chunk : chunkIterator.iterateChunks()) {
-                if (chunk == null) {
-                    break;
-                }
-                boolean uploadChunkSuccess = uploadChunk(fileInfo, i, chunk, partCount);
-                if (!uploadChunkSuccess) {
-                    failChunkNos.add(i);
-                }
-                i++;
+        for (int i = 0; i < partCount; i++) {
+            //当前分段起始位置
+            long curChunkStart = (long) i * UPLOAD_CHUNK_SIZE;
+            // 当前分段大小  如果为最后一个大小为fileSize-curChunkStart  其他为partSize
+            long curChunkSize = (i + 1 == partCount) ? (fileSize - curChunkStart) : UPLOAD_CHUNK_SIZE;
+            String uploadUrl = fileInfo.getPartInfoList().get(i).getUploadUrl();
+
+            boolean uploadChunkSuccess = uploadChunk(uploadUrl, localVideo, i, partCount, (int) curChunkSize, curChunkStart);
+            if (!uploadChunkSuccess) {
+                failChunkNums.add(i);
+                break;
             }
         }
 
-        if (CollectionUtils.isEmpty(failChunkNos)) {
+        if (CollectionUtils.isEmpty(failChunkNums)) {
             log.info("video chunks upload success, videoPath: {}", localVideo.getAbsolutePath());
         } else {
-            log.error("video chunks upload fail, failed chunkNos: {}", JSON.toJSONString(failChunkNos));
+            log.error("video chunks upload fail, failed chunkNos: {}", JSON.toJSONString(failChunkNums));
             return null;
         }
+
 
         // 2. 调用完成整个视频上传
         CompleteFileRequest completeFileRequest = new CompleteFileRequest();
@@ -216,36 +218,45 @@ public class AliDriverUploader extends Uploader {
         return new RemoteSeverVideo(aliFile.getFileId(), localVideo.getAbsolutePath());
     }
 
-    private boolean uploadChunk(CreateFileResponse fileInfo, int index, byte[] bytes, Integer totalChunks) {
+    private boolean uploadChunk( String uploadUrl, File targetFile, int index, Integer totalChunks, Integer curChunkSize, Long curChunkStart ) {
+        int chunkShowNo = index + 1;
         long startTime = System.currentTimeMillis();
+
+        byte[] bytes = null;
+        try {
+            bytes = VideoFileUtil.fetchBlock(targetFile, curChunkStart, curChunkSize);
+        } catch (IOException e) {
+            log.error("fetch chunk error", e);
+            return false;
+        }
         HttpEntity requestEntity = new ByteArrayEntity(bytes);
 
         for (int i = 0; i < RETRY_COUNT; i++) {
-            String uploadUrl = fileInfo.getPartInfoList().get(index).getUploadUrl();
             try {
                 String resp = HttpClientUtil.sendPut(uploadUrl, null, requestEntity, false);
                 if (StringUtils.isBlank(resp)) {
-                    log.info("{} chunk upload success, progress: {}/{}, time cost: {}s.", getType(), index + 1, totalChunks,
-                            (System.currentTimeMillis() - startTime) / 1000);
+                    log.info("{} chunk upload success, progress: {}/{}, time cost: {}s.", getType(), chunkShowNo,
+                            totalChunks, (System.currentTimeMillis() - startTime) / 1000);
                     return true;
                 } else {
-                    log.error("{}th chunk upload error, retry: {}/{}, resp: {}", index + 1, i + 1, RETRY_COUNT, resp);
+                    log.error("{}th chunk upload failed, retry: {}/{}, resp: {}", chunkShowNo, i + 1, RETRY_COUNT, resp);
                 }
             } catch (Exception e) {
-                try {
-                    Thread.sleep(CHUNK_RETRY_DELAY);
-                } catch (InterruptedException ex) {
-                }
-                GetUploadUrlRequest uploadUrlRequest = new GetUploadUrlRequest();
-                uploadUrlRequest.setDriverId(fileInfo.getDriveId());
-                uploadUrlRequest.setFileId(fileInfo.getFileId());
-                uploadUrlRequest.setUploadId(fileInfo.getUploadId());
-                uploadUrlRequest.setPartInfoList(fileInfo.getPartInfoList().stream()
-                        .map(p -> new UploadPartInfo(p.getPartNumber()))
-                        .collect(Collectors.toList()));
-
-                fileInfo = getAuthRequestBody(FILE_GET_UPLOAD_URL, JSONObject.parseObject(JSON.toJSONString(uploadUrlRequest)))
-                        .toJavaObject(CreateFileResponse.class);
+                log.error("{}th chunk upload error, retry: {}/{}", chunkShowNo, i + 1, RETRY_COUNT, e);
+//                try {
+//                    Thread.sleep(CHUNK_RETRY_DELAY);
+//                } catch (InterruptedException ex) {
+//                }
+//                GetUploadUrlRequest uploadUrlRequest = new GetUploadUrlRequest();
+//                uploadUrlRequest.setDriverId(fileInfo.getDriveId());
+//                uploadUrlRequest.setFileId(fileInfo.getFileId());
+//                uploadUrlRequest.setUploadId(fileInfo.getUploadId());
+//                uploadUrlRequest.setPartInfoList(fileInfo.getPartInfoList().stream()
+//                        .map(p -> new UploadPartInfo(p.getPartNumber()))
+//                        .collect(Collectors.toList()));
+//
+//                fileInfo = getAuthRequestBody(FILE_GET_UPLOAD_URL, JSONObject.parseObject(JSON.toJSONString(uploadUrlRequest)))
+//                        .toJavaObject(CreateFileResponse.class);
             }
         }
         return false;
