@@ -48,6 +48,11 @@ public class RecordConstant {
      */
     public static final int RECORD_RETRY_CNT = 5;
 
+    /**
+     * 英雄联盟精彩视频
+     */
+    public static final String LOL_HL_VIDEO = "highlight.mp4";
+
 
     /**
      * 封面文件

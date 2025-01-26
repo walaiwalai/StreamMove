@@ -16,6 +16,7 @@ import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.OkHttpClientUtil;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import com.sh.engine.processor.uploader.meta.WechatVideoMetaData;
@@ -123,7 +124,7 @@ public class WechatVideoV2Uploader extends Uploader {
 
     @Override
     public boolean upload(String recordPath) throws Exception {
-        File targetFile = new File(recordPath, "highlight.mp4");
+        File targetFile = new File(recordPath, RecordConstant.LOL_HL_VIDEO);
         if (!targetFile.exists()) {
             // 不存在也当作上传成功
             return true;
@@ -343,7 +344,7 @@ public class WechatVideoV2Uploader extends Uploader {
         params.put("imgUrl", imageUrl);
         params.put("topic", StringUtils.join(metaData.getTags().stream().map(tag -> "#" + tag).collect(Collectors.toList()), ","));
         params.put("videoType", 1);
-        params.put("videoKey", System.currentTimeMillis() + "highlight.mp4");
+        params.put("videoKey", System.currentTimeMillis() + RecordConstant.LOL_HL_VIDEO);
         params.put("imgKey", System.currentTimeMillis() + "highlight.jpg");
 
         okhttp3.Request request = new okhttp3.Request.Builder()
@@ -374,7 +375,7 @@ public class WechatVideoV2Uploader extends Uploader {
 
 
     private boolean doUpload(String recordPath) {
-        File targetFile = new File(recordPath, "highlight.mp4");
+        File targetFile = new File(recordPath, RecordConstant.LOL_HL_VIDEO);
         String workFilePath = targetFile.getAbsolutePath();
         String cookiesPath = getAccoutFile().getAbsolutePath();
         WechatVideoMetaData metaData = FileStoreUtil.loadFromFile(
