@@ -12,8 +12,9 @@ import java.util.Set;
  */
 public enum ProcessPluginEnum {
     META_DATA_GEN("META_DATA_GEN", "视频元数据生成", true),
-    THUMBNAIL_GEN("THUMBNAIL_GEN", "视频封面生成", true),
     BATCH_SEG_MERGE("BATCH_SEG_MERGE", "视频切片合并", true),
+
+    THUMBNAIL_GEN("THUMBNAIL_GEN", "视频封面生成", false),
     LOL_HL_VOD_CUT("LOL_HL_VOD_CUT", "lol精彩片段剪辑", false),
     ;
 
@@ -47,7 +48,6 @@ public enum ProcessPluginEnum {
     public static Set<String> getSystemPlugins() {
         return Sets.newLinkedHashSet(Lists.newArrayList(
                 META_DATA_GEN.getType(),
-                THUMBNAIL_GEN.getType(),
                 BATCH_SEG_MERGE.getType()
         ));
     }
