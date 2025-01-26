@@ -1,7 +1,6 @@
 package com.sh.config.model.config;
 
 import com.google.common.collect.Lists;
-import com.sh.config.manager.ConfigFetcher;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,19 +17,71 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class StreamerConfig {
+    /**
+     * 直播间姓名
+     */
     private String name;
+
+    /**
+     * 直播间地址
+     */
     private String roomUrl;
+
+    /**
+     * 是否直播时录制
+     * true直播录制，false直播完成录制录像
+     */
     private boolean recordWhenOnline;
+
+    /**
+     * 上次录制时间
+     * vod时上一次上传的视频的中的时间
+     * live时本地开始的录制时间
+     */
     private String lastRecordTime;
+
+    /**
+     * vod时录制视频的数量
+     */
+    private int lastVodCnt;
+
+    /**
+     * 视频处理插件
+     *
+     * @see ProcessPluginEnum
+     */
     private List<String> videoPlugins;
+
+    /**
+     * 视频上传平台
+     * @see UploadPlatformEnum
+     */
     private List<String> uploadPlatforms = Lists.newArrayList();
 
+    /**
+     * 视频标题模板
+     */
     private String templateTitle;
+
+    /**
+     * 视频描述
+     */
     private String desc;
+
+    /**
+     * 视频标签
+     */
     private List<String> tags;
 
+    /**
+     * 多少个频分片合成一个视频
+     */
     private int segMergeCnt;
-    private int lastVodCnt;
+
+    /**
+     * 视频封面
+     */
+    private String coverFilePath;
 
     /**
      * b站投稿相关
@@ -44,5 +95,4 @@ public class StreamerConfig {
      * 抖音投稿相关
      */
     private String location;
-    private String preViewFilePath;
 }

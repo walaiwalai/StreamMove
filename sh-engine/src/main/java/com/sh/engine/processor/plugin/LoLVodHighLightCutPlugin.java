@@ -9,6 +9,7 @@ import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.ProcessPluginEnum;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
 import com.sh.engine.model.lol.LoLPicData;
 import com.sh.engine.model.lol.LolSequenceStatistic;
@@ -83,7 +84,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
     @Override
     public boolean process(String recordPath) {
-        File highlightFile = new File(recordPath, "highlight.mp4");
+        File highlightFile = new File(recordPath, RecordConstant.LOL_HL_VIDEO);
         if (highlightFile.exists()) {
             log.info("highlight file already existed, will skip, path: {}", recordPath);
             return true;

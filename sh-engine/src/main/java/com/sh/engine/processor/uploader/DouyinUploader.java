@@ -8,6 +8,7 @@ import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.PictureFileUtil;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
 import com.sh.message.service.MsgSendService;
@@ -67,7 +68,7 @@ public class DouyinUploader extends Uploader {
 
     @Override
     public boolean upload(String recordPath) {
-        File targetFile = new File(recordPath, "highlight.mp4");
+        File targetFile = new File(recordPath, RecordConstant.LOL_HL_VIDEO);
         if (!targetFile.exists()) {
             // 不存在也当作上传成功
             return true;
@@ -81,7 +82,7 @@ public class DouyinUploader extends Uploader {
     }
 
     private boolean doUpload(String recordPath) {
-        File targetFile = new File(recordPath, "highlight.mp4");
+        File targetFile = new File(recordPath, RecordConstant.LOL_HL_VIDEO);
         String workFilePath = targetFile.getAbsolutePath();
 
         // 加载元数据

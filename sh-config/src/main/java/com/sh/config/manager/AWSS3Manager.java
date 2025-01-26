@@ -142,14 +142,4 @@ public class AWSS3Manager {
         byte[] rawHmac = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
         return Base64.getEncoder().encodeToString(rawHmac);
     }
-
-
-    public static void main(String[] args) throws Exception {
-        // 1730216466159highlight.mp4
-        // 1730218514849【TheShy直播回放】 2024-10-15 晚上22点.mp4
-        String keyName = System.currentTimeMillis() + "highlight.mp4";
-//        multipartUpload(keyName, new File("G:\\stream_record\\download\\highlight.mp4"));
-//        String s = generateV2PresignedUrl("1730216466159highlight.mp4");
-//        System.out.println(s);
-    }
 }

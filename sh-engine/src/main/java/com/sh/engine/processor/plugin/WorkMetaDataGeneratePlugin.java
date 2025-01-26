@@ -97,7 +97,7 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
         metaData.setDesc(streamerConfig.getDesc());
         metaData.setTags(streamerConfig.getTags());
         metaData.setLocation(streamerConfig.getLocation());
-        metaData.setPreViewFilePath(streamerConfig.getPreViewFilePath());
+        metaData.setPreViewFilePath(streamerConfig.getCoverFilePath());
         return metaData;
     }
 
@@ -106,7 +106,7 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
         metaData.setTitle(genTitle(streamerConfig, recordPath));
         metaData.setDesc(streamerConfig.getDesc());
         metaData.setTags(streamerConfig.getTags());
-        metaData.setPreViewFilePath(streamerConfig.getPreViewFilePath());
+        metaData.setPreViewFilePath(streamerConfig.getCoverFilePath());
         return metaData;
     }
 
@@ -115,7 +115,7 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
         metaData.setTitle(genTitle(streamerConfig, recordPath));
         metaData.setDesc(streamerConfig.getDesc());
         metaData.setTags(streamerConfig.getTags());
-        metaData.setPreViewFilePath(streamerConfig.getPreViewFilePath());
+        metaData.setPreViewFilePath(streamerConfig.getCoverFilePath());
         return metaData;
     }
 

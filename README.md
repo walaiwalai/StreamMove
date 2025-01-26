@@ -8,6 +8,7 @@
 - Bilibili
 - Twitch
 - Chzzk
+- 抖音
 
 **支持视频上传平台**：
 
@@ -141,6 +142,7 @@ B站相关
     "cover": "xxx",
     "recordWhenOnline": false,
     "lastRecordTime": "2024-12-24 12:00:00",
+    "lastVodCnt": 1,
     "videoPlugins": [
       "LOL_HL_VOD_CUT"
     ],
@@ -148,7 +150,7 @@ B站相关
       "BILI_CLIENT"
     ],
     "location": "杭州",
-    "preViewFilePath": "/home/admin/stream/thumbnail/Chovy.jpg"
+    "coverFilePath": "/home/admin/stream/thumbnail/Chovy.jpg"
   }
 ]
 ```
@@ -170,14 +172,14 @@ B站相关
 - preViewFilePath 预览封面文件地址
 
 **其他**
-- recordWhenOnline true为实时录播，false为上传视频后下载（目前仅Afreecatv支持）
-- lastRecordTime 上次录播时间，仅recordWhenOnline为false生效
+- recordWhenOnline true为实时录播，false为上传视频后下载
+- lastRecordTime 上次录播时间
 - videoPlugins 录播视频插件列表，目前有：
     - BATCH_SEG_MERGE recordWhenOnline为true才有效，合并视频切片
     - LOL_HL_VOD_CUT recordWhenOnline为true才有效，英雄联盟精彩视频片段选取，需要用到上面stream-ocr
 - uploadPlatforms 上传的平台列表，目前有：
     - BILI_CLIENT B站客户端方式（可多P上传）
-    - ALI_DRIVER 阿里云盘（只有精彩片段）
+    - ALI_DRIVER 阿里云盘
     - DOU_YIN 抖音（只有精彩片段）
 
 ## 4. 一些参数的抓取

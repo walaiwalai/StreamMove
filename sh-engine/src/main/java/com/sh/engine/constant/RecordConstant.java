@@ -43,10 +43,13 @@ public class RecordConstant {
      */
     public static final int KDA_SEQ_WINDOW_SIZE = 5;
 
-    public static final String FFMPEG_NORM_END_LINE = "Closing currently open stream";
-
     /**
      * 录制重试次数
      */
     public static final int RECORD_RETRY_CNT = 5;
+
+    /**
+     * 英雄联盟精彩视频
+     */
+    public static final String LOL_HL_VIDEO = "highlight.mp4";
 }

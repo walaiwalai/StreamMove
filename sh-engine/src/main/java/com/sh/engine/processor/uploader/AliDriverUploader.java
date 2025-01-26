@@ -10,7 +10,6 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.video.LocalVideo;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.FileChunkIterator;
 import com.sh.config.utils.HttpClientUtil;
@@ -48,8 +47,6 @@ import java.util.stream.Collectors;
 public class AliDriverUploader extends Uploader {
     @Resource
     private MsgSendService msgSendService;
-    @Resource
-    private CacheManager cacheManager;
 
     private static AliStoreBucket STORE_BUCKET;
     /**
@@ -61,7 +58,6 @@ public class AliDriverUploader extends Uploader {
     private static final String FILE_COMPLETE_URL = "https://api.aliyundrive.com/v2/file/complete";
     private static final int RETRY_COUNT = 3;
     private static final int CHUNK_RETRY_DELAY = 500;
-    private static final String ALI_DRIVER_SUCCESS_UPLOAD_VIDEO_KEY = "ali_driver_success_upload";
 
     @Override
     public String getType() {
@@ -88,30 +84,29 @@ public class AliDriverUploader extends Uploader {
             return true;
         }
         for (File targetFile : files) {
-            String fileName = cacheManager.getHash(ALI_DRIVER_SUCCESS_UPLOAD_VIDEO_KEY, targetFile.getAbsolutePath(), new TypeReference<String>() {
-            });
-            if (StringUtils.isNotBlank(fileName)) {
+            RemoteSeverVideo remoteSeverVideo = getUploadedVideo(targetFile);
+            if (remoteSeverVideo != null) {
                 log.info("video has been uploaded to ali driver, file: {}", targetFile.getAbsolutePath());
                 continue;
             }
-            boolean success = uploadFile(targetFileId, targetFile);
-            if (success) {
+
+            remoteSeverVideo = uploadFile(targetFileId, targetFile);
+            if (remoteSeverVideo != null) {
                 msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传阿里云盘成功！");
-                cacheManager.setHash(ALI_DRIVER_SUCCESS_UPLOAD_VIDEO_KEY, targetFile.getAbsolutePath(), targetFile.getName());
+                saveUploadedVideo(remoteSeverVideo);
             } else {
                 msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传阿里云盘失败！");
                 throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
             }
         }
 
-        for (File targetFile : files) {
-            cacheManager.deleteHashTag(ALI_DRIVER_SUCCESS_UPLOAD_VIDEO_KEY, targetFile.getAbsolutePath());
-        }
+        // 清理上传过的视频
+        clearUploadedVideos();
 
         return true;
     }
 
-    private boolean uploadFile(String parentId, File targetFile) throws Exception {
+    private RemoteSeverVideo uploadFile(String parentId, File targetFile) throws Exception {
         long fileSize = targetFile.length();
         String fileName = StreamerInfoHolder.getCurStreamerName() + "-" + targetFile.getParentFile().getName() + ".mp4";
 
@@ -123,11 +118,11 @@ public class AliDriverUploader extends Uploader {
         if (response.isRapidUpload() || response.isExist()) {
             // 极速上传或文件已经存在，跳过
             log.info("rapid upload targetFile or targetFile existed, targetFile: {}", targetFile.getAbsolutePath());
-            return true;
+            return new RemoteSeverVideo("", targetFile.getAbsolutePath());
         }
 
         // 3.分块进行上传
-        return uploadByChunk(targetFile, fileSize, response) != null;
+        return uploadByChunk(targetFile, fileSize, response);
     }
 
     private JSONObject preHash(File uploadFile, String fileName, String targetParentFileId) throws Exception {
@@ -218,7 +213,7 @@ public class AliDriverUploader extends Uploader {
             return null;
         }
 
-        return new RemoteSeverVideo(localVideo.getName(), aliFile.getFileId());
+        return new RemoteSeverVideo(aliFile.getFileId(), localVideo.getAbsolutePath());
     }
 
     private boolean uploadChunk(CreateFileResponse fileInfo, int index, byte[] bytes, Integer totalChunks) {
