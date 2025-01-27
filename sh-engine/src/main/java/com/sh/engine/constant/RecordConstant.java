@@ -58,4 +58,6 @@ public class RecordConstant {
      * 封面文件
      */
     public static final String THUMBNAIL_FILE_NAME = "work-thumbnail.jpg";
+
+    public static final String DEFAULT_THUMBNAIL_URL = "/home/admin/stream/thumbnail/default.jpg";
 }
