@@ -39,14 +39,20 @@ public class ThumbnailGeneratePlugin implements VideoProcessPlugin {
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
         String coverFilePath = streamerConfig.getCoverFilePath();
+
+        File coverFile;
         if (StringUtils.isBlank(coverFilePath)) {
-            coverFilePath = RecordConstant.DEFAULT_THUMBNAIL_URL;
+            coverFile = new File(RecordConstant.DEFAULT_THUMBNAIL_URL);
+        } else {
+            File tmpFile = new File(coverFilePath);
+            if (tmpFile.exists()) {
+                coverFile = new File(coverFilePath);
+            } else {
+                coverFile = new File(RecordConstant.DEFAULT_THUMBNAIL_URL);
+            }
         }
 
-        File coverFile = new File(coverFilePath);
-        if (coverFile.exists()) {
-            genThumbnail(recordPath, coverFile);
-        }
+        genThumbnail(recordPath, coverFile);
         return true;
     }
 
