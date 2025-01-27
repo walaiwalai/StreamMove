@@ -160,8 +160,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
 
         // 创建封面
-        String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + tmpFile.getAbsolutePath();
-        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(querySizeCmd);
+        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(tmpFile.getAbsolutePath());
         detectCmd.execute(5, TimeUnit.MINUTES);
         int width = detectCmd.getWidth();
         int height = detectCmd.getHeight();

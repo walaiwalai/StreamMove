@@ -128,8 +128,7 @@ public class StreamLinkRecorder extends Recorder {
 
             if (firstSeg.exists()) {
                 segExisted = true;
-                String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + firstSeg.getAbsolutePath();
-                VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(querySizeCmd);
+                VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(firstSeg.getAbsolutePath());
                 detectCmd.execute(10, TimeUnit.SECONDS);
                 int width = detectCmd.getWidth();
                 int height = detectCmd.getHeight();

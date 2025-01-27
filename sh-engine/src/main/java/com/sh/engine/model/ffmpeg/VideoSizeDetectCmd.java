@@ -3,6 +3,7 @@ package com.sh.engine.model.ffmpeg;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -17,8 +18,8 @@ public class VideoSizeDetectCmd extends CommonCmd {
     private int width;
     private int height;
 
-    public VideoSizeDetectCmd(String command) {
-        super(command, true, true);
+    public VideoSizeDetectCmd(String filePath) {
+        super("ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + filePath, true, true);
     }
 
     @Override
@@ -45,9 +46,8 @@ public class VideoSizeDetectCmd extends CommonCmd {
     }
 
     public static void main(String[] args) {
-        String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 G:\\stream_record\\download\\TheShy\\2025-01-24-23-54-30\\seg-00001.ts";
-
-        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(querySizeCmd);
+        File file = new File("G:\\stream_record\\download\\TheShy\\2025-01-24-23-54-30\\seg-00001.ts");
+        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(file.getAbsolutePath());
         detectCmd.execute(2, TimeUnit.SECONDS);
 
         System.out.println(detectCmd.getWidth());

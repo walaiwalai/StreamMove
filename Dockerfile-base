@@ -7,8 +7,8 @@ RUN apt-get update && \
     python3-venv \
     openjdk-8-jre \
     fonts-noto-cjk \
-    fonts-wqy-microhei \
-    fonts-wqy-zenhei \
+#    fonts-wqy-microhei \
+#    fonts-wqy-zenhei \
     libxkbcommon0 \
     libgbm1 \
     libgtk-3-0t64 \

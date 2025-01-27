@@ -3,6 +3,7 @@ package com.sh.engine.processor.plugin;
 import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.PictureFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.RecordConstant;
@@ -54,16 +55,24 @@ public class ThumbnailGeneratePlugin implements VideoProcessPlugin {
      * @param recordPath     录制路径
      * @param coverFile 封面本地文件
      */
-    private void genThumbnail(String recordPath, File coverFile) {
-        String targetThumbPath = new File(recordPath, RecordConstant.THUMBNAIL_FILE_NAME).getAbsolutePath();
+    public void genThumbnail(String recordPath, File coverFile) {
+        File thumbFile = new File(recordPath, RecordConstant.THUMBNAIL_FILE_NAME);
+        File bgFile = new File(recordPath, "bg-thumbnail.jpg");
 
-        String querySizeCmd = "ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + coverFile.getAbsolutePath();
-        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(querySizeCmd);
+        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(coverFile.getAbsolutePath());
         detectCmd.execute(10, TimeUnit.SECONDS);
         int height = detectCmd.getHeight();
 
-        // 合并封面
-        String cmd = genThumbnailCmd(coverFile.getAbsolutePath(), targetThumbPath, buildThumbTitle(recordPath), (int) height / 10, "wh");
+        // 生成背景图片
+        PictureFileUtil.createTextOverlayImage(
+                StringUtils.join(buildThumbTitle(recordPath), "\n"),
+                detectCmd.getWidth(),
+                detectCmd.getHeight(),
+                (int) height / 10,
+                bgFile);
+
+        // 合并背景图片和封面
+        String cmd = genThumbnailMergeCmd(bgFile, coverFile, thumbFile);
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
         processCmd.execute(20, TimeUnit.SECONDS);
     }
@@ -73,7 +82,7 @@ public class ThumbnailGeneratePlugin implements VideoProcessPlugin {
 
         List<String> res = Lists.newArrayList();
         LocalDateTime dateTime = LocalDateTime.parse(timeV, DateTimeFormatter.ofPattern(DateUtil.YYYY_MM_DD_HH_MM_SS_V2));
-        res.add(dateTime.getYear() + "-" + dateTime.getMonthValue() + "-" + dateTime.getDayOfMonth() + "- " + dateTime.getHour() + "时");
+        res.add(dateTime.getYear() + "-" + dateTime.getMonthValue() + "-" + dateTime.getDayOfMonth() + " " + dateTime.getHour() + "时");
         res.add(StreamerInfoHolder.getCurStreamerName() + " 直播回放");
         return res;
     }
@@ -96,6 +105,15 @@ public class ThumbnailGeneratePlugin implements VideoProcessPlugin {
         return command.toString();
     }
 
+    private static String genThumbnailMergeCmd(File bgFile, File coverFile, File thumbFile) {
+        StringBuilder command = new StringBuilder();
+        command.append("ffmpeg -y -i ").append(bgFile.getAbsolutePath());
+        command.append(" -i ").append(coverFile.getAbsolutePath());
+        command.append(" -filter_complex ").append("\"[1:v]format=rgba,colorchannelmixer=aa=0.3[over];[0:v][over]overlay=0:0\"");
+        command.append(" ").append(thumbFile.getAbsolutePath());
+        return command.toString();
+    }
+
     // 这个方法根据字体大小和行数计算合适的y轴偏移量
     private static int[] calculateYOffsets(int fontSize, int lineCount) {
         int[] yOffsets = new int[lineCount];
@@ -106,5 +124,11 @@ public class ThumbnailGeneratePlugin implements VideoProcessPlugin {
             baseY += lineSpacing;
         }
         return yOffsets;
+    }
+
+    public static void main( String[] args ) {
+        ThumbnailGeneratePlugin plugin = new ThumbnailGeneratePlugin();
+        plugin.genThumbnail("/Users/caiwen/Desktop/download/TheShy/2024-01-31-03-31-43", new File("/Users/caiwen/Desktop/jakons.jpg"));
+
     }
 }

@@ -89,7 +89,7 @@ public class PictureFileUtil {
 
         // 设置背景透明度 80% (alpha = 0.2 表示 80% 透明)
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
-        g2d.setColor(Color.WHITE);
+        g2d.setColor(Color.GRAY);
         g2d.fillRect(0, 0, width, height);
 
         // 重置透明度为完全不透明，用于绘制文本
@@ -114,9 +114,9 @@ public class PictureFileUtil {
             int x = (width - textWidth) / 2;
             int y = yStart + i * lineHeight + fontMetrics.getAscent();
             if (i % 2 == 0) {
-                g2d.setColor(Color.YELLOW);
+                g2d.setColor(Color.BLUE);
             } else {
-                g2d.setColor(Color.RED);
+                g2d.setColor(Color.WHITE);
             }
             g2d.drawString(line, x, y);
         }
