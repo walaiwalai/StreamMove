@@ -56,6 +56,9 @@ public class InitConfig {
     // *********************twitchApi请求header Authorization**********************
     private String twitchAuthorization;
 
+    // *********************小红书cookies**********************
+    private String xhsCookies;
+
     // *********************B站视频上传**********************
     private String biliCookies;
     private String accessToken;

@@ -46,6 +46,8 @@ public enum StreamChannelTypeEnum {
      * 抖音
      */
     DOU_YIN(8, "抖音", "live.douyin.com"),
+
+    XHS(9, "小红书", "xiaohongshu.com"),
     ;
 
     private int type;
