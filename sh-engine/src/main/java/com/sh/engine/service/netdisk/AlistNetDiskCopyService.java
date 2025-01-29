@@ -101,7 +101,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
     public boolean checkCopyTaskFinish(String taskId) {
         Request request = new Request.Builder()
                 .url(getDomainUrl() + "/api/task/copy/info?tid=" + taskId)
-                .post(RequestBody.create(MediaType.parse("application/json"), "{}"))
+                .post(RequestBody.create(MediaType.parse("application/json"), JSON.toJSONString(Maps.newHashMap())))
                 .addHeader("Authorization", getToken())
                 .addHeader("Content-Type", "application/json")
                 .build();
