@@ -14,6 +14,22 @@ services:
     networks:
       - stream-docker
 
+  alist:
+    image: 'xhofe/alist:latest'
+    container_name: alist
+    volumes:
+      - "/etc/alist:/opt/alist/data"
+      - "/home/admin/stream/download:/home/admin/stream/download"
+    ports:
+      - "5244:5244"
+    environment:
+      - PUID=0
+      - PGID=0
+      - UMASK=022
+    restart: unless-stopped
+    networks:
+      - stream-docker
+
   stream-ocr:
     image: stream-ocr:latest
     container_name: stream-ocr
