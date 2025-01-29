@@ -129,7 +129,7 @@ public class StreamLinkRecorder extends Recorder {
             if (firstSeg.exists()) {
                 segExisted = true;
                 VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(firstSeg.getAbsolutePath());
-                detectCmd.execute(10, TimeUnit.SECONDS);
+                detectCmd.execute(30, TimeUnit.SECONDS);
                 int width = detectCmd.getWidth();
                 int height = detectCmd.getHeight();
 

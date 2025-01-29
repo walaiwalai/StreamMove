@@ -157,6 +157,7 @@ public abstract class CommonCmd {
         if (pr != null) {
             pr.destroy();
             pr = null;
+            log.info("destroy process success!");
         }
     }
 
