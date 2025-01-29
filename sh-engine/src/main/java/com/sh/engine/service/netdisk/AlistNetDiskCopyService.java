@@ -99,25 +99,22 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
 
     @Override
     public boolean checkCopyTaskFinish(String taskId) {
-        Map<String, String> params = ImmutableMap.of(
-                "tid", taskId
-        );
         Request request = new Request.Builder()
-                .url(getDomainUrl() + "/api/task/upload/info")
-                .post(RequestBody.create(MediaType.parse("application/json"), JSON.toJSONString(params)))
+                .url(getDomainUrl() + "/api/task/copy/info?tid=" + taskId)
+                .post(RequestBody.create(MediaType.parse("application/json"), "{}"))
                 .addHeader("Authorization", getToken())
                 .addHeader("Content-Type", "application/json")
                 .build();
 
         String resp = OkHttpClientUtil.execute(request);
         JSONObject respObj = JSON.parseObject(resp);
-        if (CollectionUtils.isEmpty(respObj.getJSONArray("data"))) {
+        JSONObject dataObj = respObj.getJSONObject("data");
+        if (dataObj == null) {
             log.info("taskId: {} not found", taskId);
             return false;
         } else {
-            JSONObject dataObj = respObj.getJSONArray("data").getJSONObject(0);
-            log.info("progress for {} is {}/100", taskId, dataObj.getInteger("progress"));
-            return StringUtils.equals(dataObj.getString("state"), "succeeded");
+            log.info("progress for {} is {}/100", taskId, dataObj.getFloat("progress"));
+            return dataObj.getInteger("state") == 2 && StringUtils.isNotBlank(dataObj.getString("end_time"));
         }
     }
 
