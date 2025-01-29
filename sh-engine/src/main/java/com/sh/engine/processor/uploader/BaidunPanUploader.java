@@ -86,7 +86,7 @@ public class BaidunPanUploader extends Uploader {
 
             try {
                 // 30秒check一次
-                Thread.sleep(1000 * 30);
+                Thread.sleep(1000 * 10);
             } catch (InterruptedException e) {
                 log.error("check task finish error", e);
             }
