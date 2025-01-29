@@ -13,7 +13,6 @@ import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.processor.plugin.VideoProcessPlugin;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -49,20 +48,15 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
     public void processInternal(RecordContext context) {
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
-        if (CollectionUtils.isEmpty(streamerConfig.getVideoPlugins())) {
-            return;
-        }
 
+        // 1. 解析处理对应插件，并处理, 加上系统的对应的插件
+        List<String> videoPlugins = ProcessPluginEnum.getAllPlugins(streamerConfig.getVideoPlugins());
         List<String> curRecordPaths = StreamerInfoHolder.getCurRecordPaths();
         for (String curRecordPath : curRecordPaths) {
             if (statusManager.isPathOccupied(curRecordPath)) {
                 log.info("{} is doing other process, plugin: {}.", streamerName, statusManager.getCurPostProcessType(curRecordPath));
                 continue;
             }
-
-            // 1. 解析处理对应插件，并处理, 加上系统的对应的插件
-            Set<String> videoPlugins = ProcessPluginEnum.getSystemPlugins();
-            videoPlugins.addAll(streamerConfig.getVideoPlugins());
 
             for (String pluginName : videoPlugins) {
                 if (plugins.get(pluginName) == null) {

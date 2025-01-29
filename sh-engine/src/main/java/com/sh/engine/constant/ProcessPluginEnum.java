@@ -2,30 +2,36 @@ package com.sh.engine.constant;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @Author : caiwen
  * @Date: 2024/9/30
  */
 public enum ProcessPluginEnum {
-    META_DATA_GEN("META_DATA_GEN", "视频元数据生成", true),
-    BATCH_SEG_MERGE("BATCH_SEG_MERGE", "视频切片合并", true),
-
-    THUMBNAIL_GEN("THUMBNAIL_GEN", "视频封面生成", false),
-    LOL_HL_VOD_CUT("LOL_HL_VOD_CUT", "lol精彩片段剪辑", false),
+    LOL_HL_VOD_CUT("LOL_HL_VOD_CUT", "lol精彩片段剪辑", false, 1),
+    BATCH_SEG_MERGE("BATCH_SEG_MERGE", "视频切片合并", true, 5),
+    META_DATA_GEN("META_DATA_GEN", "视频元数据生成", true, 10),
+    THUMBNAIL_GEN("THUMBNAIL_GEN", "视频封面生成", false, 15),
     ;
 
     final String type;
     final String desc;
     final boolean system;
 
-    ProcessPluginEnum(String type, String desc, boolean system) {
+    /**
+     * 越小越先处理
+     */
+    final int order;
+
+    ProcessPluginEnum(String type, String desc, boolean system, int order) {
         this.type = type;
         this.desc = desc;
         this.system = system;
+        this.order = order;
     }
 
     public String getType() {
@@ -36,6 +42,11 @@ public enum ProcessPluginEnum {
         return system;
     }
 
+    public int getOrder() {
+        return order;
+    }
+
+
     public static ProcessPluginEnum of(String type) {
         for (ProcessPluginEnum value : ProcessPluginEnum.values()) {
             if (Objects.equals(value.getType(), type)) {
@@ -45,10 +56,22 @@ public enum ProcessPluginEnum {
         return null;
     }
 
-    public static Set<String> getSystemPlugins() {
-        return Sets.newLinkedHashSet(Lists.newArrayList(
-                META_DATA_GEN.getType(),
-                BATCH_SEG_MERGE.getType()
-        ));
+    public static List<String> getAllPlugins(List<String> plugins) {
+        List<ProcessPluginEnum> allPlugins  = Arrays.stream(ProcessPluginEnum.values())
+                .filter(ProcessPluginEnum::isSystem)
+                .collect(Collectors.toList());
+
+        if (CollectionUtils.isNotEmpty(plugins)) {
+            for (String plugin : plugins) {
+                allPlugins.add(ProcessPluginEnum.of(plugin));
+            }
+        }
+
+        // 按照order排序
+        return allPlugins.stream()
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparingInt(ProcessPluginEnum::getOrder))
+                .map(ProcessPluginEnum::getType)
+                .collect(Collectors.toList());
     }
 }

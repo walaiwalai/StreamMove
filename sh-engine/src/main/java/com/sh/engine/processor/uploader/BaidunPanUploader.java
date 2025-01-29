@@ -39,6 +39,7 @@ public class BaidunPanUploader extends Uploader {
         if (!isExisted) {
             throw new StreamerRecordException(ErrorEnum.INVALID_PARAM);
         }
+        log.info("baidu pan uploader init success");
     }
 
     @Override

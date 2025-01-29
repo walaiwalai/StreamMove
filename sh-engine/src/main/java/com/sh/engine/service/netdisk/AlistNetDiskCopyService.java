@@ -84,7 +84,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
                 "names", Lists.newArrayList(targetFile.getName())
         );
         Request request = new Request.Builder()
-                .url(getDomainUrl() + "/api/fs/mkdir")
+                .url(getDomainUrl() + "/api/fs/copy")
                 .post(RequestBody.create(MediaType.parse("application/json"), JSON.toJSONString(params)))
                 .addHeader("Authorization", getToken())
                 .addHeader("Content-Type", "application/json")
