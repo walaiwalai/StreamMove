@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sh.config.mapper.StreamerMapper">
+    <!-- 定义 resultMap -->
+    <resultMap id="StreamerResultMap" type="com.sh.config.model.dao.StreamerDO">
+        <result column="id" property="id"/>
+        <result column="gmt_create" property="gmtCreate"/>
+        <result column="gmt_modified" property="gmtModified"/>
+        <result column="name" property="name"/>
+        <result column="room_url" property="roomUrl"/>
+        <result column="record_type" property="recordType"/>
+        <result column="last_record_time" property="lastRecordTime"/>
+        <result column="expire_time" property="expireTime"/>
+        <result column="last_vod_cnt" property="lastVodCnt"/>
+        <result column="seg_merge_cnt" property="segMergeCnt"/>
+        <result column="template_title" property="templateTitle"/>
+        <result column="cover_path" property="coverPath"/>
+        <result column="desc" property="desc"/>
+        <result column="upload_platforms" property="uploadPlatforms"/>
+        <result column="process_plugins" property="processPlugins"/>
+        <result column="tags" property="tags"/>
+        <result column="extra" property="extra"/>
+    </resultMap>
+
+    <select id="selectByName" resultMap="StreamerResultMap">
+        SELECT `id`,
+               `gmt_create`,
+               `gmt_modified`,
+               `name`,
+               `room_url`,
+               `record_type`,
+               `last_record_time`,
+               `expire_time`,
+               `last_vod_cnt`,
+               `seg_merge_cnt`,
+               `template_title`,
+               `cover_path`,
+               `desc`,
+               `upload_platforms`,
+               `process_plugins`,
+               `tags`,
+               `extra`
+        FROM `streamer`
+        WHERE `name` = #{name}
+    </select>
+
+    <select id="batchSelectByName" resultMap="StreamerResultMap">
+        SELECT
+        `id`,
+        `gmt_create`,
+        `gmt_modified`,
+        `name`,
+        `room_url`,
+        `record_type`,
+        `last_record_time`,
+        `expire_time`,
+        `last_vod_cnt`,
+        `seg_merge_cnt`,
+        `template_title`,
+        `cover_path`,
+        `desc`,
+        `upload_platforms`,
+        `process_plugins`,
+        `tags`,
+        `extra`
+        FROM
+        `streamer`
+        WHERE
+        `name` IN
+        <foreach collection="names" item="name" open="(" separator="," close=")">
+            #{name}
+        </foreach>
+    </select>
+
+    <!-- 插入语句 -->
+    <insert id="insert" parameterType="com.sh.config.model.dao.StreamerDO">
+        INSERT INTO `streamer` (`name`,
+                                `room_url`,
+                                `record_type`,
+                                `last_record_time`,
+                                `expire_time`,
+                                `last_vod_cnt`,
+                                `seg_merge_cnt`,
+                                `template_title`,
+                                `cover_path`,
+                                `desc`,
+                                `upload_platforms`,
+                                `process_plugins`,
+                                `tags`,
+                                `extra`)
+        VALUES (#{name},
+                #{roomUrl},
+                #{recordType},
+                #{lastRecordTime},
+                #{expireTime},
+                #{lastVodCnt},
+                #{segMergeCnt},
+                #{templateTitle},
+                #{coverPath},
+                #{desc},
+                #{uploadPlatforms}, #{processPlugins}, #{tags},
+                #{extra})
+    </insert>
+
+    <!-- 更新语句（根据 name 修改各个字段） -->
+    <update id="updateByName" parameterType="com.sh.config.model.dao.StreamerDO">
+        UPDATE `streamer`
+        SET
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="roomUrl != null">
+                `room_url` = #{roomUrl},
+            </if>
+            <if test="recordType != null">
+                `record_type` = #{recordType},
+            </if>
+            <if test="lastRecordTime != null">
+                `last_record_time` = #{lastRecordTime},
+            </if>
+            <if test="expireTime != null">
+                `expire_time` = #{expireTime},
+            </if>
+            <if test="lastVodCnt != null">
+                `last_vod_cnt` = #{lastVodCnt},
+            </if>
+            <if test="segMergeCnt != null">
+                `seg_merge_cnt` = #{segMergeCnt},
+            </if>
+            <if test="templateTitle != null">
+                `template_title` = #{templateTitle},
+            </if>
+            <if test="coverpath != null">
+                `cover_path` = #{coverPath},
+            </if>
+            <if test="desc != null">
+                `desc` = #{desc},
+            </if>
+            <if test="uploadPlatforms != null">
+                `upload_platforms` = #{uploadPlatforms},
+            </if>
+            <if test="processPlugins != null">
+                `process_plugins` = #{processPlugins},
+            </if>
+            <if test="tags != null">
+                `tags` = #{tags},
+            </if>
+            <if test="extra != null">
+                `extra` = #{extra}
+            </if>
+        </trim>
+        WHERE
+        `name` = #{name}
+    </update>
+
+    <update id="updateLastRecordTime">
+        UPDATE `streamer`
+        SET `last_record_time` = #{lastRecordTime}
+        WHERE `name` = #{name}
+    </update>
+
+    <delete id="deleteByName">
+        DELETE
+        FROM `streamer`
+        WHERE `name` = #{name}
+    </delete>
+</mapper>

@@ -43,7 +43,7 @@ public class DouyinUploader extends Uploader {
     private boolean headless;
 
     public static final String AUTH_CODE_KEY = "douyin_login_authcode";
-    private static final String IS_SETTING_UP = "wechat_set_up_flag";
+    private static final String IS_SETTING_UP = "douyin_set_up_flag";
 
     @Override
     public String getType() {
@@ -55,7 +55,7 @@ public class DouyinUploader extends Uploader {
         if (cacheManager.hasKey(IS_SETTING_UP)) {
             throw new StreamerRecordException(ErrorEnum.UPLOAD_COOKIES_IS_FETCHING);
         }
-        cacheManager.set(IS_SETTING_UP, 1, 300, TimeUnit.SECONDS);
+        cacheManager.localSet(IS_SETTING_UP, 1, 300, TimeUnit.SECONDS);
 
         try {
             if (!checkAccountValid()) {

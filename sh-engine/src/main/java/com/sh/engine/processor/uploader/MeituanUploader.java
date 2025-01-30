@@ -56,7 +56,7 @@ public class MeituanUploader extends Uploader {
             throw new StreamerRecordException(ErrorEnum.UPLOAD_COOKIES_IS_FETCHING);
         }
 
-        cacheManager.set(IS_SETTING_UP, 1, 300, TimeUnit.SECONDS);
+        cacheManager.localSet(IS_SETTING_UP, 1, 300, TimeUnit.SECONDS);
         try {
             if (!checkAccountValid()) {
                 genCookies();

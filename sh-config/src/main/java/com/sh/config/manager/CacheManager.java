@@ -2,6 +2,7 @@ package com.sh.config.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import com.sh.config.utils.IPUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
@@ -21,9 +22,12 @@ public class CacheManager {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
     private HashOperations<String, String, String> hashOps;
+    private String localIp;
+
     @PostConstruct
     private void init() {
         hashOps = redisTemplate.opsForHash();
+        localIp = IPUtil.getIp();
     }
 
     /**
@@ -46,6 +50,10 @@ public class CacheManager {
      */
     public void set(String key, Object value, long timeout, TimeUnit timeUnit) {
         redisTemplate.opsForValue().set(key, obj2String(value), timeout, timeUnit);
+    }
+
+    public void localSet(String key, Object value, long timeout, TimeUnit timeUnit) {
+        set(localIp + ":" + key, value, timeout, timeUnit);
     }
 
     /**

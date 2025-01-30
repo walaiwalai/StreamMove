@@ -3,6 +3,7 @@ package com.sh.engine.processor;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
+import com.sh.config.repo.StreamerRepoService;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordStageEnum;
@@ -30,6 +31,10 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
     private StatusManager statusManager;
     @Autowired
     private MsgSendService msgSendService;
+    @Autowired
+    private StreamerRepoService streamerRepoService;
+    @Autowired
+    private ConfigFetcher configFetcher;
 
     @Override
     public void processInternal(RecordContext context) {
@@ -83,11 +88,11 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
     }
 
     private void recordPostProcess(Recorder recorder, String name) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String lastRecordTime = dateFormat.format(recorder.getRegDate());
-        ConfigFetcher.refreshStreamer(name, StreamerConfig.builder()
-                .lastRecordTime(lastRecordTime)
-                .build());
+        // 更新数据库
+        streamerRepoService.updateLastRecordTime(name, recorder.getRegDate());
+
+        // 重新刷一下内存
+        configFetcher.refreshStreamer(name);
     }
 
     @Override

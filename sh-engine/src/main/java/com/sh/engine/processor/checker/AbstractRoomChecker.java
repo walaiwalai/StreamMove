@@ -41,17 +41,11 @@ public abstract class AbstractRoomChecker {
      * @return
      */
     protected boolean checkVodIsNew(StreamerConfig streamerConfig, Date tsRegDate) {
-        if (StringUtils.isBlank(streamerConfig.getLastRecordTime())) {
+        if (streamerConfig.getLastRecordTime() == null) {
             return true;
         }
-        String lastRecordTime = streamerConfig.getLastRecordTime();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        try {
-            Date date1 = dateFormat.parse(lastRecordTime);
-            return date1.getTime() < tsRegDate.getTime();
-        } catch (Exception e) {
-        }
-        return false;
+        Date lastRecordTime = streamerConfig.getLastRecordTime();
+        return lastRecordTime.getTime() < tsRegDate.getTime();
     }
 
     protected boolean checkIsLivingByStreamLink(String url) {

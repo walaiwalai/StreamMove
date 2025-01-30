@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * @Author caiwen
  * @Date 2023 12 17 16 31
@@ -37,6 +39,11 @@ public class InitConfig {
      * 用户在各个平台的账户保存地址
      */
     private String accountSavePath;
+
+    /**
+     * 录制的主播
+     */
+    private List<String> streamerNames;
 
     // *********************录制配置**********************
     private Integer maxRecordingCount = 2;

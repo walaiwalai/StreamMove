@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -38,7 +39,12 @@ public class StreamerConfig {
      * vod时上一次上传的视频的中的时间
      * live时本地开始的录制时间
      */
-    private String lastRecordTime;
+    private Date lastRecordTime;
+
+    /**
+     * 过期时间
+     */
+    private Date expireTime;
 
     /**
      * vod时录制视频的数量
@@ -56,7 +62,7 @@ public class StreamerConfig {
      * 视频上传平台
      * @see UploadPlatformEnum
      */
-    private List<String> uploadPlatforms = Lists.newArrayList();
+    private List<String> uploadPlatforms;
 
     /**
      * 视频标题模板
@@ -87,7 +93,6 @@ public class StreamerConfig {
      * b站投稿相关
      */
     private String source;
-    private String dynamic;
     private Integer tid;
     private String cover;
 

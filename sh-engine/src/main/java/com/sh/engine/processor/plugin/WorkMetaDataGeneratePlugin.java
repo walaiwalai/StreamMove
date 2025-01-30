@@ -87,7 +87,7 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
         metaData.setCover(streamerConfig.getCover());
         metaData.setTid(streamerConfig.getTid());
         metaData.setSource(streamerConfig.getSource());
-        metaData.setDynamic(Optional.ofNullable(streamerConfig.getDynamic()).orElse(title));
+        metaData.setDynamic(title);
         return metaData;
     }
 

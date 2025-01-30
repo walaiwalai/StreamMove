@@ -186,7 +186,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
         token = JSON.parseObject(resp).getJSONObject("data").getString("token");
 
         // 48小时有效
-        cacheManager.set(ALIST_TOKEN_KEY, token, 47, TimeUnit.HOURS);
+        cacheManager.localSet(ALIST_TOKEN_KEY, token, 47, TimeUnit.HOURS);
         return token;
     }
 

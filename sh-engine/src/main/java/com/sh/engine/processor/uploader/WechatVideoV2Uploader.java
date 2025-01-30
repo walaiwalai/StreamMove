@@ -68,7 +68,7 @@ public class WechatVideoV2Uploader extends Uploader {
             throw new StreamerRecordException(ErrorEnum.UPLOAD_COOKIES_IS_FETCHING);
         }
 
-        cacheManager.set(IS_SETTING_UP, 1, 300, TimeUnit.SECONDS);
+        cacheManager.localSet(IS_SETTING_UP, 1, 300, TimeUnit.SECONDS);
         try {
             if (!checkAccountValid()) {
                 genCookies();
@@ -440,7 +440,7 @@ public class WechatVideoV2Uploader extends Uploader {
             AWSS3Manager.multipartUpload(objKey, targetFile);
             log.info("upload video {} to oos finish", objKey);
             videoUrl = AWSS3Manager.generateV2PresignedUrl(objKey, 365);
-            cacheManager.set(key, videoUrl, 6, TimeUnit.HOURS);
+            cacheManager.localSet(key, videoUrl, 6, TimeUnit.HOURS);
         }
 
         log.info("get videoUrl: {} success", videoUrl);
@@ -456,7 +456,7 @@ public class WechatVideoV2Uploader extends Uploader {
             AWSS3Manager.multipartUpload(objKey, new File(preViewFilePath));
             imageUrl = AWSS3Manager.generateV2PresignedUrl(objKey, 365);
 
-            cacheManager.set(key, imageUrl, 6, TimeUnit.HOURS);
+            cacheManager.localSet(key, imageUrl, 6, TimeUnit.HOURS);
         }
         log.info("get imageUrl: {} success", imageUrl);
 
