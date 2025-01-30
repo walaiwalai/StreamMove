@@ -27,7 +27,7 @@ public interface StreamerMapper {
       * @param names
      * @return
      */
-    List<StreamerDO> batchSelectByName( @Param("names") List<String> names );
+    List<StreamerDO> batchSelectByNames( @Param("names") List<String> names );
 
     /**
      * 插入新的流媒体信息

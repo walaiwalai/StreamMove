@@ -56,7 +56,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
 
     @Override
     public List<StreamerConfig> getByNames( List<String> names ) {
-        List<StreamerDO> streamerDOList = streamerMapper.batchSelectByName(names);
+        List<StreamerDO> streamerDOList = streamerMapper.batchSelectByNames(names);
         return streamerDOList.stream()
                 .map(this::convertToStreamerConfig)
                 .filter(Objects::nonNull)

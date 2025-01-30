@@ -47,7 +47,7 @@
         WHERE `name` = #{name}
     </select>
 
-    <select id="batchSelectByName" resultMap="StreamerResultMap">
+    <select id="batchSelectByNames" resultMap="StreamerResultMap">
         SELECT
         `id`,
         `gmt_create`,
