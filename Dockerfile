@@ -17,7 +17,7 @@ RUN mkdir -p ${APP_HOME}/download && \
     mkdir -p ${APP_HOME}/thumbnail
 
 # 占位符替换
-python3 replace_placeholders.py
+python replace_placeholders.py
 
 # 运行 jar 包和本地shadowsocks
 ENTRYPOINT ["sh", "-c", "java -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dspring.profiles.active=prod -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/home/admin/stream/dump/ -Xms1g -Xmx1g -jar /home/admin/stream/sh-start-1.0-SNAPSHOT.jar --spring.config.location=file:/home/admin/stream/application-prod.properties"]
