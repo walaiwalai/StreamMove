@@ -13,7 +13,7 @@ import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
 import com.sh.engine.model.lol.LoLPicData;
 import com.sh.engine.model.lol.LolSequenceStatistic;
-import com.sh.engine.service.VideoMergeService;
+import com.sh.engine.service.process.VideoMergeService;
 import com.sh.engine.util.DateUtil;
 import com.sh.engine.util.RegexUtil;
 import com.sh.message.service.MsgSendService;

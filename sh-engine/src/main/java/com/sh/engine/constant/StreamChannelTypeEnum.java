@@ -38,15 +38,13 @@ public enum StreamChannelTypeEnum {
     CHZZK(6, "chzzk", "chzzk.naver.com"),
 
     /**
-     * minio
-     */
-    MINIO(7, "minio", "minio"),
-
-    /**
      * 抖音
      */
     DOU_YIN(8, "抖音", "live.douyin.com"),
 
+    /**
+     * 小红书
+     */
     XHS(9, "小红书", "xiaohongshu.com"),
     ;
 

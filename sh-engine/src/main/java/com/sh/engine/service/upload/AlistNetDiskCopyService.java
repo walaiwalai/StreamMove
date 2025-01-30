@@ -1,4 +1,4 @@
-package com.sh.engine.service.netdisk;
+package com.sh.engine.service.upload;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -54,6 +53,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
     static {
         UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.BAIDU_PAN.getType(), "/百度网盘");
         UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.ALI_DRIVER.getType(), "/阿里云盘");
+        UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.QUARK_PAN.getType(), "/夸克云盘");
     }
 
     @Override
@@ -101,7 +101,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
     public boolean checkCopyTaskFinish(String taskId) {
         Request request = new Request.Builder()
                 .url(getDomainUrl() + "/api/task/copy/info?tid=" + taskId)
-                .post(RequestBody.create(MediaType.parse("application/json"), JSON.toJSONString(Maps.newHashMap())))
+                .post(RequestBody.create(MediaType.parse("application/json"), "{}"))
                 .addHeader("Authorization", getToken())
                 .addHeader("Content-Type", "application/json")
                 .build();

@@ -16,13 +16,12 @@ import java.io.File;
 import java.util.Collection;
 
 /**
- * 百度云盘上传
  * @Author : caiwen
- * @Date: 2025/1/29
+ * @Date: 2025/1/30
  */
 @Slf4j
 @Component
-public class BaidunPanUploader extends Uploader {
+public class QuarkPanUploader extends Uploader {
     @Resource
     private MsgSendService msgSendService;
     @Resource
@@ -30,18 +29,17 @@ public class BaidunPanUploader extends Uploader {
 
     @Override
     public String getType() {
-        return UploadPlatformEnum.BAIDU_PAN.getType();
+        return UploadPlatformEnum.QUARK_PAN.getType();
     }
 
     @Override
     public void setUp() {
         // 检查一下文件
-        boolean isExisted = netDiskCopyService.checkBasePathExist(UploadPlatformEnum.BAIDU_PAN);
+        boolean isExisted = netDiskCopyService.checkBasePathExist(UploadPlatformEnum.QUARK_PAN);
         if (!isExisted) {
             throw new StreamerRecordException(ErrorEnum.INVALID_PARAM);
         }
-        log.info("baidu pan uploader init success");
-    }
+        log.info("quark pan uploader init success");    }
 
     @Override
     public boolean upload(String recordPath) throws Exception {
@@ -52,16 +50,16 @@ public class BaidunPanUploader extends Uploader {
         for (File targetFile : files) {
             RemoteSeverVideo remoteSeverVideo = getUploadedVideo(targetFile);
             if (remoteSeverVideo != null) {
-                log.info("video has been uploaded to baidu pan, file: {}", targetFile.getAbsolutePath());
+                log.info("video has been uploaded to quark pan, file: {}", targetFile.getAbsolutePath());
                 continue;
             }
 
             remoteSeverVideo = uploadFile(targetFile);
             if (remoteSeverVideo != null) {
-                msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传百度云盘成功！");
+                msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传夸克云盘成功！");
                 saveUploadedVideo(remoteSeverVideo);
             } else {
-                msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传百度云盘失败！");
+                msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传夸克云盘失败！");
                 throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
             }
         }
@@ -74,7 +72,7 @@ public class BaidunPanUploader extends Uploader {
 
     private RemoteSeverVideo uploadFile(File targetFile) {
         // 1. 发起网盘copy请求
-        String taskId = netDiskCopyService.copyFileToNetDisk(UploadPlatformEnum.BAIDU_PAN, targetFile);
+        String taskId = netDiskCopyService.copyFileToNetDisk(UploadPlatformEnum.QUARK_PAN, targetFile);
 
         // 2. 死循环调用查询copy状态
         int i = 0;
@@ -86,7 +84,7 @@ public class BaidunPanUploader extends Uploader {
             }
 
             try {
-                // 30秒check一次
+                // 10秒check一次
                 Thread.sleep(1000 * 10);
             } catch (InterruptedException e) {
                 log.error("check task finish error", e);

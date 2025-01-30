@@ -1,4 +1,4 @@
-package com.sh.engine.service.netdisk;
+package com.sh.engine.service.upload;
 
 import com.sh.engine.constant.UploadPlatformEnum;
 

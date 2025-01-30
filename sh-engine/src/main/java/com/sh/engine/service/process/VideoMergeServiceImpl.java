@@ -1,4 +1,4 @@
-package com.sh.engine.service;
+package com.sh.engine.service.process;
 
 import cn.hutool.core.io.file.FileNameUtil;
 import com.google.common.collect.Lists;
@@ -165,7 +165,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         int width = detectCmd.getWidth();
         int height = detectCmd.getHeight();
         int fontSize = Math.max((int) height / 13, 20);
-        PictureFileUtil.createTextOverlayImage(title, width, height, fontSize, thumnailFile);
+        PictureFileUtil.createTextWithVeil(title, width, height, fontSize, thumnailFile);
 
         // 合并封面和视频
         String fadedPath = titledSeg.getAbsolutePath();
