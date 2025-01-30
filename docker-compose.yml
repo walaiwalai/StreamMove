@@ -24,8 +24,6 @@ services:
       - /home/admin/stream/download:/home/admin/stream/download
     ports:
       - "5000:5000"
-    depends_on:
-      - redis
     networks:
       - stream-docker
 
@@ -44,7 +42,6 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - redis
       - stream-ocr
     networks:
       - stream-docker
