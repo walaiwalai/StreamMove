@@ -30,9 +30,7 @@ public class AWSS3Manager {
     private static AmazonS3 s3Client;
     private static final String BUCKET_NAME = "wx-channel";
     private static final long PART_SIZE = 5 * 1024 * 1024;
-    private static String secretAccessKey = "6033fecf4768ad49c85eaaaac541ad60d51874d9";
     private static String endpoint = "oos-sccd.ctyunapi.cn";
-    private static String accessKeyId = "e14b8966201775518bce";
 
 
     public static AmazonS3 getClient() {
@@ -127,9 +125,9 @@ public class AWSS3Manager {
             String endpoint2 = String.format("http://%s/%s/%s", endpoint, BUCKET_NAME, URLEncoder.encode(objectKey, "UTF-8"));
             String expires = String.valueOf((System.currentTimeMillis() / 1000) + 60L * 24 * 60 * days);
             String canonicalString = String.format("GET\n\n\n%s\n/%s/%s", expires, BUCKET_NAME, objectKey);
-            String signature = sign(canonicalString, secretAccessKey);
+            String signature = sign(canonicalString, ConfigFetcher.getInitConfig().getOosSecretAccessKey());
 
-            url = String.format("%s?AWSAccessKeyId=%s&Expires=%s&Signature=%s", endpoint2, accessKeyId, expires, URLEncoder.encode(signature, "UTF-8"));
+            url = String.format("%s?AWSAccessKeyId=%s&Expires=%s&Signature=%s", endpoint2, ConfigFetcher.getInitConfig().getOosAccessKeyId(), expires, URLEncoder.encode(signature, "UTF-8"));
         } catch (Exception e) {
             log.error("gen presigned url error, objKey: {}", objectKey);
         }

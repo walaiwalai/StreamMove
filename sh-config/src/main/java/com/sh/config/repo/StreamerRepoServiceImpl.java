@@ -13,10 +13,8 @@ import com.sh.config.utils.FileStoreUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.File;
 import java.util.Date;
@@ -55,8 +53,8 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
     }
 
     @Override
-    public List<StreamerConfig> getByNames( List<String> names ) {
-        List<StreamerDO> streamerDOList = streamerMapper.batchSelectByNames(names);
+    public List<StreamerConfig> getByEnv( String env) {
+        List<StreamerDO> streamerDOList = streamerMapper.batchSelectByEnv(env);
         return streamerDOList.stream()
                 .map(this::convertToStreamerConfig)
                 .filter(Objects::nonNull)

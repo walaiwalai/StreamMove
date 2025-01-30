@@ -12,7 +12,7 @@ import java.util.List;
 public interface StreamerRepoService {
     StreamerConfig getByName( String name );
 
-    List<StreamerConfig> getByNames( List<String> names );
+    List<StreamerConfig> getByEnv( String env );
 
     void updateByName( String name, StreamerConfig updated );
 

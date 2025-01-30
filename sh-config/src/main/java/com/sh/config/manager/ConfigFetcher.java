@@ -1,6 +1,5 @@
 package com.sh.config.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -9,16 +8,14 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.repo.StreamerRepoService;
 import com.sh.config.utils.FileStoreUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +33,8 @@ public class ConfigFetcher {
     private Environment environment;
     @Resource
     private StreamerRepoService streamerRepoService;
+    @Value("${system.env.flag}")
+    private String systemEnvFlag;
 
     private static String initConfigPath;
 
@@ -49,7 +48,7 @@ public class ConfigFetcher {
         initConfig = loadInitConfig();
         log.info("load init config success, path: {}", initConfigPath);
 
-        name2StreamerMap = loadStreamConfig(initConfig.getStreamerNames());
+        name2StreamerMap = loadStreamConfig(systemEnvFlag);
         log.info("load {} streamers success", name2StreamerMap.keySet().size());
     }
 
@@ -80,7 +79,7 @@ public class ConfigFetcher {
     }
 
     public void refresh() {
-        name2StreamerMap = loadStreamConfig(getInitConfig().getStreamerNames());
+        name2StreamerMap = loadStreamConfig(systemEnvFlag);
         log.info("refresh config success");
     }
 
@@ -95,11 +94,11 @@ public class ConfigFetcher {
         });
     }
 
-    private Map<String, StreamerConfig> loadStreamConfig( List<String> streamerNames ) {
-        if (CollectionUtils.isEmpty(streamerNames)) {
+    private Map<String, StreamerConfig> loadStreamConfig( String env ) {
+        if (StringUtils.isBlank(env)) {
             return Maps.newHashMap();
         }
-        List<StreamerConfig> streamerConfigs = streamerRepoService.getByNames(streamerNames);
+        List<StreamerConfig> streamerConfigs = streamerRepoService.getByEnv(env);
         return streamerConfigs.stream()
                 .peek(ConfigFetcher::fillDefaultValueForStreamerInfo)
                 .collect(Collectors.toMap(StreamerConfig::getName, Function.identity(), ( a, b ) -> b));

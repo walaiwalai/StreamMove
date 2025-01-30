@@ -22,33 +22,12 @@
         <result column="upload_platforms" property="uploadPlatforms"/>
         <result column="process_plugins" property="processPlugins"/>
         <result column="tags" property="tags"/>
+        <result column="env" property="env"/>
         <result column="extra" property="extra"/>
     </resultMap>
 
-    <select id="selectByName" resultMap="StreamerResultMap">
-        SELECT `id`,
-               `gmt_create`,
-               `gmt_modified`,
-               `name`,
-               `room_url`,
-               `record_type`,
-               `last_record_time`,
-               `expire_time`,
-               `last_vod_cnt`,
-               `seg_merge_cnt`,
-               `template_title`,
-               `cover_path`,
-               `desc`,
-               `upload_platforms`,
-               `process_plugins`,
-               `tags`,
-               `extra`
-        FROM `streamer`
-        WHERE `name` = #{name}
-    </select>
-
-    <select id="batchSelectByNames" resultMap="StreamerResultMap">
-        SELECT
+    <!-- 定义 SQL 片段 -->
+    <sql id="allFields">
         `id`,
         `gmt_create`,
         `gmt_modified`,
@@ -65,14 +44,23 @@
         `upload_platforms`,
         `process_plugins`,
         `tags`,
+        `env`,
         `extra`
+    </sql>
+
+    <select id="selectByName" resultMap="StreamerResultMap">
+        SELECT
+        <include refid="allFields"/>
+        FROM `streamer`
+        WHERE `name` = #{name}
+    </select>
+
+    <select id="batchSelectByEnv" resultMap="StreamerResultMap">
+        SELECT
+        <include refid="allFields"/>
         FROM
         `streamer`
-        WHERE
-        `name` IN
-        <foreach collection="names" item="name" open="(" separator="," close=")">
-            #{name}
-        </foreach>
+        WHERE env = #{env}
     </select>
 
     <!-- 插入语句 -->
@@ -90,6 +78,7 @@
                                 `upload_platforms`,
                                 `process_plugins`,
                                 `tags`,
+                                `env`,
                                 `extra`)
         VALUES (#{name},
                 #{roomUrl},
@@ -102,6 +91,7 @@
                 #{coverPath},
                 #{desc},
                 #{uploadPlatforms}, #{processPlugins}, #{tags},
+                #{env},
                 #{extra})
     </insert>
 
@@ -145,6 +135,9 @@
             </if>
             <if test="tags != null">
                 `tags` = #{tags},
+            </if>
+            <if test="env != null">
+                `env` = #{env},
             </if>
             <if test="extra != null">
                 `extra` = #{extra}

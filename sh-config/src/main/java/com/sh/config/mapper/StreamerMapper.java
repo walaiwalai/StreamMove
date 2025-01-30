@@ -23,11 +23,11 @@ public interface StreamerMapper {
     StreamerDO selectByName( @Param("name") String name );
 
     /**
-     * 根据name批量查询
-      * @param names
+     * 根据env批量查询
+      * @param env
      * @return
      */
-    List<StreamerDO> batchSelectByNames( @Param("names") List<String> names );
+    List<StreamerDO> batchSelectByEnv( @Param("env") String env );
 
     /**
      * 插入新的流媒体信息

@@ -76,6 +76,8 @@ public class StreamerDO {
     private String processPlugins;
     private String tags;
 
+    private String env;
+
     /**
      * 额外信息
      *
