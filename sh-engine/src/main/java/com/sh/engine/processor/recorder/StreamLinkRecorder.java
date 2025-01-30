@@ -162,10 +162,10 @@ public class StreamLinkRecorder extends Recorder {
         }
 
         // 录制代理
-        String httpProxy = ConfigFetcher.getInitConfig().getHttpProxy();
-        if (useProxy && StringUtils.isNotBlank(httpProxy)) {
-            extraArgs.add(String.format("--http-proxy \"%s\"", httpProxy));
-        }
+//        String httpProxy = ConfigFetcher.getInitConfig().getHttpProxy();
+//        if (useProxy && StringUtils.isNotBlank(httpProxy)) {
+//            extraArgs.add(String.format("--http-proxy \"%s\"", httpProxy));
+//        }
 
         // 计算分端视频开始index(默认从1开始)
         Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)

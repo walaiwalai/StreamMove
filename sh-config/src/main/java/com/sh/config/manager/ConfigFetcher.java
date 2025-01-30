@@ -43,7 +43,7 @@ public class ConfigFetcher {
 
     @PostConstruct
     private void init() {
-        initConfigPath = environment.getProperty("init.config.path");
+        initConfigPath = environment.getProperty("sh.init-config.path");
 
         initConfig = loadInitConfig();
         log.info("load init config success, path: {}", initConfigPath);

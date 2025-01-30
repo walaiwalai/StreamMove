@@ -30,29 +30,8 @@ public class InitConfig {
      */
     private String configRefreshCron;
 
-    /**
-     * 直播保存路径
-     */
-    private String videoSavePath;
-
-    /**
-     * 用户在各个平台的账户保存地址
-     */
-    private String accountSavePath;
-
-    /**
-     * 录制的主播
-     */
-    private List<String> streamerNames;
-
     // *********************录制配置**********************
     private Integer maxRecordingCount = 2;
-
-    /**
-     * 代理服务地址
-     * 如：socks5h://address:port
-     */
-    private String httpProxy;
 
     // *********************投稿配置**********************
     /**
@@ -74,31 +53,7 @@ public class InitConfig {
     private String refreshToken;
     private String targetFileId = "root";
 
-
-    // *********************企业微信消息通知**********************
-    private String weComWebhookSecret;
-
-    /**
-     * 微应用相关token
-     */
-    private String weComAgentId;
-    private String weComSecret;
-    /**
-     * 消息事件token
-     */
-    private String weComEventToken;
-    private String weComEncodingAesKey;
-    private String weComCorpId;
-
-
     // *********************用户登录小关**********************
     private String phoneNumber;
     private String password;
-
-    // *********************天翼云存储相关参数**********************
-    private String oosAccessKeyId;
-    private String oosSecretAccessKey;
-    private String oosEndpoint;
-    private String oosBucketName;
-    private String oosRegion;
 }

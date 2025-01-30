@@ -7,6 +7,7 @@ import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.video.RemoteSeverVideo;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.annotation.Resource;
 import java.io.File;
@@ -19,6 +20,8 @@ import java.nio.file.Paths;
 public abstract class Uploader {
     @Resource
     private CacheManager cacheManager;
+    @Value("${sh.account-save.path}")
+    private String accountSavePath;
 
     public abstract String getType();
 
@@ -56,12 +59,10 @@ public abstract class Uploader {
      * @return  账号文件
      */
     protected File getAccoutFile() {
-        String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
         return new File(accountSavePath, UploaderFactory.getAccountFileName(getType()));
     }
 
     protected void snapshot(Page page) {
-        String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
         File sapshotFile = new File(accountSavePath, getType() + "-" + System.currentTimeMillis() + ".png");
         page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(sapshotFile.getAbsolutePath())).setFullPage(true));
     }

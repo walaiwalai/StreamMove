@@ -9,7 +9,8 @@ package com.sh.engine.constant;
 public enum UploadPlatformEnum {
     BILI_CLIENT("BILI_CLIENT", "bilibili客户端"),
     BILI_WEB("BILI_WEB", "bilibili网页"),
-    ALI_DRIVER("ALI_DRIVER", "阿里云盘"),
+    ALI_DRIVER("ALI_DRIVER", "阿里云盘-api版本"),
+    ALI_PAN("ALI_PAN", "阿里云盘-alist版本"),
     BAIDU_PAN("BAIDU_PAN", "百度云盘"),
     QUARK_PAN("QUARK_PAN", "夸克云盘"),
     DOU_YIN("DOU_YIN", "抖音"),

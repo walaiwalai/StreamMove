@@ -19,9 +19,7 @@ import java.util.List;
 @Slf4j
 public class PictureFileUtil {
 
-    public static File saveBase64Image(String base64Image, String fileName) {
-        String accountSavePath = ConfigFetcher.getInitConfig().getAccountSavePath();
-
+    public static void saveBase64Image(String base64Image, File targetQrFile) {
         try {
             // 去掉 Base64 字符串的前缀（如果有，如 "data:image/png;base64,"）
             if (base64Image.startsWith("data:image")) {
@@ -31,12 +29,9 @@ public class PictureFileUtil {
             byte[] imageBytes = Base64.getDecoder().decode(base64Image);
             InputStream inputStream = new ByteArrayInputStream(imageBytes);
             BufferedImage bufferedImage = ImageIO.read(inputStream);
-            File outputFile = new File(accountSavePath, fileName);
-            ImageIO.write(bufferedImage, "png", outputFile);
-            return outputFile;
+            ImageIO.write(bufferedImage, "png", targetQrFile);
         } catch (IOException e) {
-            log.error("Failed to save image: {}", accountSavePath, e);
-            return null;
+            log.error("Failed to save image: {}", targetQrFile.getAbsolutePath(), e);
         }
     }
 

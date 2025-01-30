@@ -17,6 +17,7 @@ import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -36,6 +37,8 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class RecordStateMachine {
+    @Value("${sh.video-save.path}")
+    private String videoSavePath;
     @Autowired
     List<AbstractStageProcessor> processors;
     private static final ExecutorService POOL = new ThreadPoolExecutor(
@@ -80,10 +83,9 @@ public class RecordStateMachine {
     private void init(StreamerConfig config) {
         String name = config.getName();
         List<String> recordPaths = Lists.newArrayList();
-        String savePath = ConfigFetcher.getInitConfig().getVideoSavePath();
 
         // 搜索当前streamer下的所有文件夹中的fileStatus.json文件
-        File streamerFile = new File(savePath, name);
+        File streamerFile = new File(videoSavePath, name);
         if (streamerFile.exists()) {
             Collection<File> statusFiles = FileUtils.listFiles(streamerFile, new NameFileFilter("fileStatus.json"),
                     DirectoryFileFilter.INSTANCE);

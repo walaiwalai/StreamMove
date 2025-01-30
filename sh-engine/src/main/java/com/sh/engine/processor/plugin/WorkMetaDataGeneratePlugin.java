@@ -71,7 +71,7 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
             FileStoreUtil.saveToFile(new File(recordPath, metaFileName), buildMetaDataForBiliClient(streamerConfig, recordPath));
         } else if (platformEnum == UploadPlatformEnum.DOU_YIN) {
             FileStoreUtil.saveToFile(new File(recordPath, metaFileName), buildMetaDataForDouyin(streamerConfig, recordPath));
-        } else if (platformEnum == UploadPlatformEnum.WECHAT_VIDEO || platformEnum == UploadPlatformEnum.WECHAT_VIDEO_V2) {
+        } else if (platformEnum == UploadPlatformEnum.WECHAT_VIDEO) {
             FileStoreUtil.saveToFile(new File(recordPath, metaFileName), buildMetaDataForWechatVideo(streamerConfig, recordPath));
         } else if (platformEnum == UploadPlatformEnum.MEI_TUAN_VIDEO) {
             FileStoreUtil.saveToFile(new File(recordPath, metaFileName), buildMetaDataForMeituanVideo(streamerConfig, recordPath));

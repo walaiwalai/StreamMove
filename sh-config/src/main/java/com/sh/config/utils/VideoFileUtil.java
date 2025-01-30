@@ -72,20 +72,4 @@ public class VideoFileUtil {
         }
         return hashString.toString();
     }
-
-    /**
-     * 生成录像保存地址
-     *
-     * @param date
-     * @return
-     */
-    public static String genRegPathByRegDate(Date date, String name) {
-        String savePath = ConfigFetcher.getInitConfig().getVideoSavePath();
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        String timeV = dateFormat.format(date);
-
-        File regFile = new File(new File(savePath, name), timeV);
-        return regFile.getAbsolutePath();
-    }
 }

@@ -7,6 +7,7 @@ import com.sh.config.utils.PictureFileUtil;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -23,6 +24,9 @@ public class MsgSendServiceImpl implements MsgSendService {
     private static final OkHttpClient client = new OkHttpClient().newBuilder().build();
     private static final String WECOM_WEBHOOK_URL = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=";
 
+    @Value("${wecom.webhook.secret}")
+    private String weComSecret;
+
     @Override
     public void sendText(String message) {
         sendWeComTestMsg(message);
@@ -34,11 +38,6 @@ public class MsgSendServiceImpl implements MsgSendService {
     }
 
     private void sendWeComTestMsg(String message) {
-        String weComSecret = ConfigFetcher.getInitConfig().getWeComWebhookSecret();
-        if (StringUtils.isBlank(weComSecret)) {
-            return;
-        }
-
         MediaType mediaType = MediaType.parse("application/json");
 
         Map<String, String> msg = Maps.newHashMap();
@@ -65,11 +64,6 @@ public class MsgSendServiceImpl implements MsgSendService {
     }
 
     private void sendWeComImageMsg(File imageFile) {
-        String weComSecret = ConfigFetcher.getInitConfig().getWeComWebhookSecret();
-        if (StringUtils.isBlank(weComSecret)) {
-            return;
-        }
-
         MediaType mediaType = MediaType.parse("application/json");
 
         Map<String, String> msg = Maps.newHashMap();

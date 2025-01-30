@@ -13,6 +13,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.quartz.JobExecutionContext;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +29,7 @@ import java.util.List;
 @Slf4j
 public class FileCleanWorker extends ProcessWorker {
     private final StatusManager statusManager = SpringUtil.getBean(StatusManager.class);
+    public static final Environment environment = SpringUtil.getBean(Environment.class);
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {
@@ -57,9 +60,10 @@ public class FileCleanWorker extends ProcessWorker {
     }
 
     private void init(StreamerConfig streamerConfig) {
+        String videoSavePath = environment.getProperty("sh.video-save.path");
         String name = streamerConfig.getName();
         List<String> recordPaths = Lists.newArrayList();
-        File streamerFile = new File(ConfigFetcher.getInitConfig().getVideoSavePath(), name);
+        File streamerFile = new File(videoSavePath, name);
         if (streamerFile.exists()) {
             Collection<File> statusFiles = FileUtils.listFiles(streamerFile, new NameFileFilter("fileStatus.json"),
                     DirectoryFileFilter.INSTANCE);

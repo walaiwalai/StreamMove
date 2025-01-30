@@ -300,10 +300,10 @@ public class MeituanUploader extends Uploader {
                 .setHeadless(headless)
                 .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--enable-font-antialiasing"));
 
-        String httpProxy = ConfigFetcher.getInitConfig().getHttpProxy();
-        if (StringUtils.isNotBlank(httpProxy)) {
-            options.setProxy(httpProxy);
-        }
+//        String httpProxy = ConfigFetcher.getInitConfig().getHttpProxy();
+//        if (StringUtils.isNotBlank(httpProxy)) {
+//            options.setProxy(httpProxy);
+//        }
         return options;
     }
 }

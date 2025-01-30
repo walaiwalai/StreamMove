@@ -15,10 +15,12 @@ import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * @Author caiwen
@@ -27,6 +29,9 @@ import java.text.SimpleDateFormat;
 @Component
 @Slf4j
 public class StreamRecordStageProcessor extends AbstractStageProcessor {
+    @Value("${sh.video-save.path}")
+    private String videoSavePath;
+
     @Autowired
     private StatusManager statusManager;
     @Autowired
@@ -44,7 +49,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         if (context.getRecorder() == null) {
             return;
         }
-        String savePath = VideoFileUtil.genRegPathByRegDate(context.getRecorder().getRegDate(), name);
+        String savePath = genRegPathByRegDate(context.getRecorder().getRegDate(), name);
 
         // 1. 前期准备
         recordPreProcess(streamerConfig, savePath);
@@ -93,6 +98,20 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
 
         // 重新刷一下内存
         configFetcher.refreshStreamer(name);
+    }
+
+    /**
+     * 生成录像保存地址
+     *
+     * @param date
+     * @return
+     */
+    private String genRegPathByRegDate( Date date, String name) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        String timeV = dateFormat.format(date);
+
+        File regFile = new File(new File(videoSavePath, name), timeV);
+        return regFile.getAbsolutePath();
     }
 
     @Override

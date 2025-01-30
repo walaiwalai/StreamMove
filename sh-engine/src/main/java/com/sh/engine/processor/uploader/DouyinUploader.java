@@ -41,6 +41,8 @@ public class DouyinUploader extends Uploader {
 
     @Value("${playwright.headless}")
     private boolean headless;
+    @Value("${sh.account-save.path}")
+    private String accountSavePath;
 
     public static final String AUTH_CODE_KEY = "douyin_login_authcode";
     private static final String IS_SETTING_UP = "douyin_set_up_flag";
@@ -333,7 +335,8 @@ public class DouyinUploader extends Uploader {
             String imgElementSrc = imgElement.getAttribute("src");
 
             // 保存二维码图片
-            File qrCodeFile = PictureFileUtil.saveBase64Image(imgElementSrc, UploaderFactory.getQrCodeFileName(getType()));
+            File qrCodeFile = new File(accountSavePath, UploaderFactory.getQrCodeFileName(getType()));
+            PictureFileUtil.saveBase64Image(imgElementSrc, qrCodeFile);
             msgSendService.sendText("需要扫码验证，扫描下方二维码");
             msgSendService.sendImage(qrCodeFile);
 
