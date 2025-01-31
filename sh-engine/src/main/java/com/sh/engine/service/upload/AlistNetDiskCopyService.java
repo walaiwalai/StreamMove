@@ -8,6 +8,7 @@ import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
+import com.sh.config.manager.LocalCacheManager;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.UploadPlatformEnum;
@@ -42,9 +43,8 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
     private String username;
     @Value("${alist.server.password}")
     private String password;
-
     @Resource
-    private CacheManager cacheManager;
+    private LocalCacheManager localCacheManager;
 
     private static final Map<String, String> UPLOAD_PLATFORM_TO_ALIST_PATH_MAP = Maps.newHashMap();
     private static final String ALIST_TOKEN_KEY = "alist_token";
@@ -52,7 +52,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
 
     static {
         UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.BAIDU_PAN.getType(), "/百度网盘");
-        UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.ALI_DRIVER.getType(), "/阿里云盘");
+        UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.ALI_PAN.getType(), "/阿里云盘");
         UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.QUARK_PAN.getType(), "/夸克云盘");
     }
 
@@ -167,7 +167,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
 
 
     private String getToken() {
-        String token = cacheManager.get(ALIST_TOKEN_KEY);
+        String token = localCacheManager.get(ALIST_TOKEN_KEY);
         if (StringUtils.isNotBlank(token)) {
             return token;
         }
@@ -186,7 +186,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
         token = JSON.parseObject(resp).getJSONObject("data").getString("token");
 
         // 48小时有效
-        cacheManager.localSet(ALIST_TOKEN_KEY, token, 47, TimeUnit.HOURS);
+        localCacheManager.set(ALIST_TOKEN_KEY, token, 47, TimeUnit.HOURS);
         return token;
     }
 

@@ -6,6 +6,7 @@ import com.microsoft.playwright.Page;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.video.RemoteSeverVideo;
+import com.sh.engine.base.StreamerInfoHolder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -68,6 +69,6 @@ public abstract class Uploader {
     }
 
     private String buildFinishKey() {
-        return getType() + "_uploaded_videos";
+        return StreamerInfoHolder.getCurStreamerName() + "_" + getType() + "_uploaded_videos";
     }
 }

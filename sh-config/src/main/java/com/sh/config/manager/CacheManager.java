@@ -22,12 +22,10 @@ public class CacheManager {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
     private HashOperations<String, String, String> hashOps;
-    private String localIp;
 
     @PostConstruct
     private void init() {
         hashOps = redisTemplate.opsForHash();
-        localIp = IPUtil.getIp();
     }
 
     /**
@@ -50,10 +48,6 @@ public class CacheManager {
      */
     public void set(String key, Object value, long timeout, TimeUnit timeUnit) {
         redisTemplate.opsForValue().set(key, obj2String(value), timeout, timeUnit);
-    }
-
-    public void localSet(String key, Object value, long timeout, TimeUnit timeUnit) {
-        set(localIp + ":" + key, value, timeout, timeUnit);
     }
 
     /**

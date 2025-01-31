@@ -6,6 +6,7 @@ import com.microsoft.playwright.options.Cookie;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
+import com.sh.config.manager.LocalCacheManager;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.PictureFileUtil;
 import com.sh.engine.constant.RecordConstant;
@@ -37,6 +38,8 @@ public class DouyinUploader extends Uploader {
     @Resource
     private CacheManager cacheManager;
     @Resource
+    private LocalCacheManager localCacheManager;
+    @Resource
     private MsgSendService msgSendService;
 
     @Value("${playwright.headless}")
@@ -54,17 +57,17 @@ public class DouyinUploader extends Uploader {
 
     @Override
     public void setUp() {
-        if (cacheManager.hasKey(IS_SETTING_UP)) {
+        if (localCacheManager.hasKey(IS_SETTING_UP)) {
             throw new StreamerRecordException(ErrorEnum.UPLOAD_COOKIES_IS_FETCHING);
         }
-        cacheManager.localSet(IS_SETTING_UP, 1, 300, TimeUnit.SECONDS);
+        localCacheManager.set(IS_SETTING_UP, 1, 300, TimeUnit.SECONDS);
 
         try {
             if (!checkAccountValid()) {
                 genCookies();
             }
         } finally {
-            cacheManager.delete(IS_SETTING_UP);
+            localCacheManager.delete(IS_SETTING_UP);
         }
     }
 
