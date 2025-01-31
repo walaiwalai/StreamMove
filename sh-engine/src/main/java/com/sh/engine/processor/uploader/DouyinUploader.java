@@ -80,10 +80,9 @@ public class DouyinUploader extends Uploader {
         try {
             setUp();
             return doUpload(recordPath);
-        } catch (Exception e) {
+        } finally {
             localCacheManager.delete(IS_SETTING_UP);
         }
-        return false;
     }
 
     private boolean doUpload(String recordPath) {
@@ -245,7 +244,11 @@ public class DouyinUploader extends Uploader {
     private void waitingVideoUploadFinish(Page page, String workFilePath) {
         while (page.locator("text=重新上传").count() == 0) {
             // 进度获取
-            String progress = page.getByText("%").textContent();
+            String progress = "";
+            try {
+                progress = page.getByText("%").textContent();
+            } catch (Exception ignored) {
+            }
             log.info("video is uploading, video: {}, progress: {}", workFilePath, progress);
             page.waitForTimeout(2000);
             if (page.locator("text=上传失败").count() > 0) {
