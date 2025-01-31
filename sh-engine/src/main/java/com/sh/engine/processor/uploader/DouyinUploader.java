@@ -242,12 +242,19 @@ public class DouyinUploader extends Uploader {
      * @param workFilePath
      */
     private void waitingVideoUploadFinish(Page page, String workFilePath) {
-        while (page.locator("text=重新上传").count() == 0) {
+        String progress = "";
+        while (true) {
+            // 预览按钮
+            ElementHandle preViewEle = page.querySelector(".preview-button-r8SQPD");
+            if (preViewEle != null) {
+                break;
+            }
+
             // 进度获取
-            String progress = "";
             try {
                 progress = page.getByText("%").textContent();
             } catch (Exception ignored) {
+                progress = "";
                 snapshot(page);
             }
             log.info("video is uploading, video: {}, progress: {}", workFilePath, progress);
@@ -299,6 +306,10 @@ public class DouyinUploader extends Uploader {
     private void publishVideo(Page page, String workFilePath) {
         while (true) {
             Locator publishButton = page.locator("role=button[name='发布']");
+            Locator enPublishButton = page.locator("role=button[name='Post']");
+            if (enPublishButton.count() > 0) {
+                enPublishButton.click();
+            }
             if (publishButton.count() > 0) {
                 publishButton.click();
             }
