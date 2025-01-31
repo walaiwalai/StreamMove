@@ -248,6 +248,7 @@ public class DouyinUploader extends Uploader {
             try {
                 progress = page.getByText("%").textContent();
             } catch (Exception ignored) {
+                snapshot(page);
             }
             log.info("video is uploading, video: {}, progress: {}", workFilePath, progress);
             page.waitForTimeout(2000);
