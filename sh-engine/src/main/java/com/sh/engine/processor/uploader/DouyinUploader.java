@@ -57,17 +57,9 @@ public class DouyinUploader extends Uploader {
 
     @Override
     public void setUp() {
-        if (localCacheManager.hasKey(IS_SETTING_UP)) {
-            throw new StreamerRecordException(ErrorEnum.UPLOAD_COOKIES_IS_FETCHING);
-        }
-        localCacheManager.set(IS_SETTING_UP, 1, 300, TimeUnit.SECONDS);
-
-        try {
-            if (!checkAccountValid()) {
-                genCookies();
-            }
-        } finally {
-            localCacheManager.delete(IS_SETTING_UP);
+        // cookies有效性检测
+        if (!checkAccountValid()) {
+            genCookies();
         }
     }
 
@@ -79,11 +71,19 @@ public class DouyinUploader extends Uploader {
             return true;
         }
 
-        // cookies有效性检测
-        setUp();
+        // 卡一下，只允许同时只有一个抖音视频上传
+        if (localCacheManager.hasKey(IS_SETTING_UP)) {
+            throw new StreamerRecordException(ErrorEnum.UPLOAD_COOKIES_IS_FETCHING);
+        }
 
-        // 真正上传
-        return doUpload(recordPath);
+        localCacheManager.set(IS_SETTING_UP, 1, 1, TimeUnit.HOURS);
+        try {
+            setUp();
+            return doUpload(recordPath);
+        } catch (Exception e) {
+            localCacheManager.delete(IS_SETTING_UP);
+        }
+        return false;
     }
 
     private boolean doUpload(String recordPath) {
@@ -244,7 +244,9 @@ public class DouyinUploader extends Uploader {
      */
     private void waitingVideoUploadFinish(Page page, String workFilePath) {
         while (page.locator("text=重新上传").count() == 0) {
-            log.info("video is uploading, video: {}", workFilePath);
+            // 进度获取
+            String progress = page.getByText("%").textContent();
+            log.info("video is uploading, video: {}, progress: {}", workFilePath, progress);
             page.waitForTimeout(2000);
             if (page.locator("text=上传失败").count() > 0) {
                 handleUploadError(page, workFilePath);
