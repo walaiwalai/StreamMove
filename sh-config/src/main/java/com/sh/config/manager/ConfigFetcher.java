@@ -1,5 +1,6 @@
 package com.sh.config.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -49,7 +50,7 @@ public class ConfigFetcher {
         log.info("load init config success, path: {}", initConfigPath);
 
         name2StreamerMap = loadStreamConfig(systemEnvFlag);
-        log.info("load {} streamers success", name2StreamerMap.keySet().size());
+        log.info("load {} streamers success, they are: {}", name2StreamerMap.keySet().size(), JSON.toJSONString(name2StreamerMap.keySet()));
     }
 
     /**
@@ -80,7 +81,7 @@ public class ConfigFetcher {
 
     public void refresh() {
         name2StreamerMap = loadStreamConfig(systemEnvFlag);
-        log.info("refresh config success");
+        log.info("refresh {} streamers success, they are: {}", name2StreamerMap.keySet().size(), JSON.toJSONString(name2StreamerMap.keySet()));
     }
 
     public void refreshStreamer( String name ) {
@@ -100,6 +101,12 @@ public class ConfigFetcher {
         }
         List<StreamerConfig> streamerConfigs = streamerRepoService.getByEnv(env);
         return streamerConfigs.stream()
+                .filter(streamerConfig -> {
+                    if (streamerConfig == null) {
+                        return false;
+                    }
+                    return streamerConfig.getExpireTime().getTime() > System.currentTimeMillis();
+                })
                 .peek(ConfigFetcher::fillDefaultValueForStreamerInfo)
                 .collect(Collectors.toMap(StreamerConfig::getName, Function.identity(), ( a, b ) -> b));
     }

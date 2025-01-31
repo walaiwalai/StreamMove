@@ -20,5 +20,5 @@ public interface StreamerRepoService {
 
     void deleteByName( String name );
 
-    void insert( StreamerConfig streamer );
+    void insert( StreamerConfig streamer, String env );
 }

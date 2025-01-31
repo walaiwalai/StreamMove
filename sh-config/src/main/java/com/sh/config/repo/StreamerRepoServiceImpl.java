@@ -13,8 +13,10 @@ import com.sh.config.utils.FileStoreUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.File;
 import java.util.Date;
@@ -35,10 +37,15 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
 //        });
 //        Date date = new Date();
 //        for (StreamerConfig config : streamerConfigs) {
+//            StreamerConfig saved = getByName(config.getName());
+//            if (saved != null) {
+//                log.info("streamer: {} already exists, skip", config.getName());
+//                continue;
+//            }
 //            config.setExpireTime(DateUtils.addYears(date, 50));
 //            config.setLastRecordTime(date);
-//            insert(config);
-//            StreamerConfig saved = getByName(config.getName());
+//            insert(config, "o2");
+//            saved = getByName(config.getName());
 //            log.info("insert streamer: {} success, saved: {}", config.getName(), JSON.toJSONString(saved));
 //        }
 //    }
@@ -78,20 +85,10 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
     }
 
     @Override
-    public void insert(StreamerConfig streamer) {
+    public void insert(StreamerConfig streamer, String env) {
         StreamerDO streamerDO = convertToStreamerDO(streamer);
+        streamerDO.setEnv(env);
         streamerMapper.insert(streamerDO);
-    }
-
-    public void insertFromJsonFile() {
-        List<StreamerConfig> streamerConfigs = FileStoreUtil.loadFromFile(new File("/Users/caiwen/Documents/streamer.json "), new TypeReference<List<StreamerConfig>>() {
-        });
-        for (StreamerConfig config : streamerConfigs) {
-            insert(config);
-            StreamerConfig saved = getByName(config.getName());
-            log.info("insert streamer: {} success, saved: {}", config.getName(), JSON.toJSONString(saved));
-
-        }
     }
 
     private StreamerConfig convertToStreamerConfig(StreamerDO streamerDO) {
