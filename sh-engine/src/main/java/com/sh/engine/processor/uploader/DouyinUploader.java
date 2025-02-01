@@ -255,7 +255,6 @@ public class DouyinUploader extends Uploader {
                 progress = page.getByText("%").textContent();
             } catch (Exception ignored) {
                 progress = "";
-                snapshot(page);
             }
             log.info("video is uploading, video: {}, progress: {}", workFilePath, progress);
             page.waitForTimeout(2000);
@@ -313,19 +312,22 @@ public class DouyinUploader extends Uploader {
             if (publishButton.count() > 0) {
                 publishButton.click();
             }
-            try {
-                page.waitForURL("https://creator.douyin.com/creator-micro/content/manage", new Page.WaitForURLOptions().setTimeout(5000));
-                log.info("video is upload success, video: {}", workFilePath);
-                break;
-            } catch (Exception e) {
-                String currentUrl = page.url();
-                if (currentUrl.contains("https://creator.douyin.com/creator-micro/content/manage")) {
-                    log.info("video is upload success, video: {}", workFilePath);
-                    break;
-                }
-                log.info("video is uploading..., video: {}", workFilePath);
-                page.waitForTimeout(500);
-            }
+//            try {
+//                page.waitForURL("https://creator.douyin.com/creator-micro/content/manage", new Page.WaitForURLOptions().setTimeout(10000));
+//                log.info("video is upload success, video: {}", workFilePath);
+//                break;
+//            } catch (Exception e) {
+//                String currentUrl = page.url();
+//                if (currentUrl.contains("https://creator.douyin.com/creator-micro/content/manage")) {
+//                    log.info("video is upload success, video: {}", workFilePath);
+//                    break;
+//                }
+//                log.info("video is uploading..., video: {}", workFilePath);
+//                page.waitForTimeout(500);
+//            }
+            page.waitForURL("https://creator.douyin.com/creator-micro/content/manage", new Page.WaitForURLOptions().setTimeout(10000));
+            log.info("video is upload success, video: {}", workFilePath);
+            break;
         }
     }
 

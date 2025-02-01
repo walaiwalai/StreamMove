@@ -1,7 +1,6 @@
 package com.sh.config.repo;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
 import com.sh.config.mapper.StreamerMapper;
 import com.sh.config.model.config.StreamerConfig;
@@ -9,16 +8,13 @@ import com.sh.config.model.dao.StreamerDO;
 import com.sh.config.model.dao.StreamerExtraDO;
 import com.sh.config.model.dao.StreamerExtraDO.BiliUploadInfoDO;
 import com.sh.config.model.dao.StreamerExtraDO.DouyinUploadInfoDO;
-import com.sh.config.utils.FileStoreUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.io.File;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -103,13 +99,22 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                 .expireTime(streamerDO.getExpireTime())
                 .lastVodCnt(streamerDO.getLastVodCnt() != null ? streamerDO.getLastVodCnt() : 1)
                 .videoPlugins(StringUtils.isNotBlank(streamerDO.getProcessPlugins()) ?
-                        Lists.newArrayList(StringUtils.split(streamerDO.getProcessPlugins(), ",")) : Lists.newArrayList())
+                        Arrays.stream(StringUtils.split(streamerDO.getProcessPlugins(), ","))
+                                .map(String::trim)
+                                .collect(Collectors.toList())
+                        : Lists.newArrayList())
                 .uploadPlatforms(StringUtils.isNotBlank(streamerDO.getUploadPlatforms()) ?
-                        Lists.newArrayList(StringUtils.split(streamerDO.getUploadPlatforms(), ",")) : Lists.newArrayList())
+                        Arrays.stream(StringUtils.split(streamerDO.getUploadPlatforms(), ","))
+                                .map(String::trim)
+                                .collect(Collectors.toList())
+                        : Lists.newArrayList())
                 .templateTitle(streamerDO.getTemplateTitle())
                 .desc(streamerDO.getDesc())
                 .tags(StringUtils.isNotBlank(streamerDO.getTags()) ?
-                        Lists.newArrayList(StringUtils.split(streamerDO.getTags(), ",")) : Lists.newArrayList())
+                        Arrays.stream(StringUtils.split(streamerDO.getTags(), ","))
+                                .map(String::trim)
+                                .collect(Collectors.toList())
+                        : Lists.newArrayList())
                 .segMergeCnt(streamerDO.getSegMergeCnt())
                 .coverFilePath(streamerDO.getCoverPath())
                 .build();

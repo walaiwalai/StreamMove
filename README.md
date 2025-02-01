@@ -1,19 +1,20 @@
 ## 1. 介绍
 
-该项目用java、python（借助streamlink）实现直播/录像下载、视频剪辑、视频上传。
+该项目用借助streamlink和alist，用java实现直播（录像）下载、视频剪辑、视频上传，一体化流程。
 **支持录播平台**：
-
-- Huya
-- Afreecatv
-- Bilibili
-- Twitch
-- Chzzk
-- 抖音
+- streamlink支持的平台
+- Huya（直播）
+- Afreecatv（直播 & 录像）
+- Bilibili（直播）
+- Twitch（直播 & 录像）
+- Chzzk（直播 & 录像）
+- 抖音（直播）
+- 小红书（直播）
 
 **支持视频上传平台**：
 
+- 各大网盘，采用alist进行本地存储 -> 目标网盘（百度云盘、阿里云盘、夸克网盘等）
 - Bilibili
-- 阿里云盘
 - 抖音
 
 ## 2. 启动
@@ -23,25 +24,21 @@
 ### 1. 创建项目路径
 ```shell
 mkdir -p /home/admin/stream/{download,logs,dump,account,thumbnail}
-
 ```
 
-### 2. 创建项目初始化配置文件 & 直播用户配置
+### 2. 创建项目参数 & 初始化配置文件
 ```shell
-cd /home/admin
 git clone https://github.com/walaiwalai/StreamMove.git
 cd StreamMove
-
-
-# 填写init.json和streamer.json配置信息（见下）
-cd /home/admin/StreamMove/sh-config/src/main/resources/config
-vim init.json
-vim streamer.json
+cp config.properties /home/admin/stream/config/config.properties
+cp init.json /home/admin/stream/config/init.json
 ```
+填写config.properties和init.json配置项目基本参数
+
 
 ### 3. 编译
 ```shell
-# 没有maven安装以下：apt intall maven
+# 没有maven安装以下：apt install maven
 mvn package
 
 # 拷贝到项目目录

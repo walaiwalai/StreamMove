@@ -167,7 +167,7 @@ public class PictureFileUtil {
             int x = (width - textWidth) / 2;
             int y = yStart + i * lineHeight + fontMetrics.getAscent();
             if (i % 2 == 0) {
-                g2d.setColor(Color.BLUE);
+                g2d.setColor(Color.WHITE);
             } else {
                 g2d.setColor(Color.WHITE);
             }
