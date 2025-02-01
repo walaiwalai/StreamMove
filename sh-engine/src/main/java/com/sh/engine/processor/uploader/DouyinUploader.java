@@ -325,7 +325,7 @@ public class DouyinUploader extends Uploader {
 //                log.info("video is uploading..., video: {}", workFilePath);
 //                page.waitForTimeout(500);
 //            }
-            page.waitForURL("https://creator.douyin.com/creator-micro/content/manage", new Page.WaitForURLOptions().setTimeout(10000));
+//            page.waitForURL("https://creator.douyin.com/creator-micro/content/manage", new Page.WaitForURLOptions().setTimeout(10000));
             log.info("video is upload success, video: {}", workFilePath);
             break;
         }
