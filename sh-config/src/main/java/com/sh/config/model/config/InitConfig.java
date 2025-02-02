@@ -45,6 +45,9 @@ public class InitConfig {
     // *********************小红书cookies**********************
     private String xhsCookies;
 
+    // *********************youtube的cookies**********************
+    private String youtubeCookies;
+
     // *********************B站视频上传**********************
     private String biliCookies;
     private String accessToken;

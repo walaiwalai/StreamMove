@@ -10,4 +10,6 @@ public interface MsgSendService {
     void sendText(String message);
 
     void sendImage(File imageFile);
+
+//    void sendTextToUser( String userId, String message );
 }

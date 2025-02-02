@@ -10,6 +10,7 @@ import com.sh.message.model.wecom.CorpWxEventReceiverModel;
 import com.sh.message.model.wecom.aes.AesException;
 import com.sh.message.model.wecom.aes.WXBizMsgCrypt;
 import com.sh.message.service.MessageProcessHandler;
+import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
@@ -32,6 +33,9 @@ public class WeComMsgEventManager {
     private static final String EVENT_CONTENT = "Content";
 
     private Map<String, MessageProcessHandler> msgHandlerMap = Maps.newHashMap();
+
+    @Resource
+    private MsgSendService msgSendService;
 
     @Resource
     private ApplicationContext applicationContext;
@@ -65,10 +69,11 @@ public class WeComMsgEventManager {
         }
 
         String msgContent = wxEventJson.getString(EVENT_CONTENT);
+        String fromUserName = wxEventJson.getString("FromUserName");
         if (StringUtils.isBlank(msgContent)) {
             return;
         }
-        log.info("receive question in corpWx msgContent : {}", msgContent);
+        log.info("receive question in corpWx fromUserName: {}, msgContent : {}", fromUserName, msgContent);
 
         // 后置处理
         doPostProcess(msgContent);
@@ -80,9 +85,10 @@ public class WeComMsgEventManager {
      */
     private void doPostProcess(String msgContent) {
         if (!StringUtils.startsWith(msgContent, "#")) {
+            msgSendService.sendText("形式是#streamerAdd__{name, roomUrl, recordWhenOnline, lastVodCnt, uploadPlatforms, templateTitle, segMergeCnt}, 其中ALI_DRIVER，BAIDU_PAN， QUARK_PAN");
             return;
         }
-        String[] splited = StringUtils.split(msgContent," ");
+        String[] splited = StringUtils.split(msgContent,"__");
         if (splited.length < 2) {
             return;
         }

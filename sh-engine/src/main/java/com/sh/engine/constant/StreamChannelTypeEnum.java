@@ -46,6 +46,8 @@ public enum StreamChannelTypeEnum {
      * 小红书
      */
     XHS(9, "小红书", "xiaohongshu.com"),
+
+    YOUTUBE(10, "youTube", "youtube.com"),
     ;
 
     private int type;
