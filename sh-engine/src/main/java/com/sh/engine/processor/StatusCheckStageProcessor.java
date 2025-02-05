@@ -2,8 +2,6 @@ package com.sh.engine.processor;
 
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
-import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
@@ -30,22 +28,12 @@ public class StatusCheckStageProcessor extends AbstractStageProcessor {
     @Override
     public void processInternal(RecordContext context) {
         String name = StreamerInfoHolder.getCurStreamerName();
-        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(name);
-        Integer maxRecordingCount = ConfigFetcher.getInitConfig().getMaxRecordingCount();
 
         // 直播正在录制
         boolean isLastRecording = statusManager.isRoomPathFetchStream();
         if (isLastRecording) {
             log.info("{} is recording...", name);
             throw new StreamerRecordException(ErrorEnum.FAST_END);
-        }
-
-        // 录播达到最大个数限制（直播不拦截）
-        if (statusManager.count() >= maxRecordingCount) {
-            if (!streamerConfig.isRecordWhenOnline()) {
-                log.info("hit max recoding count, will return, name: {}.", name);
-                throw new StreamerRecordException(ErrorEnum.FAST_END);
-            }
         }
     }
 
