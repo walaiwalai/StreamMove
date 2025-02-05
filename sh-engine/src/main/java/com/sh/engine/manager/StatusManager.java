@@ -110,7 +110,7 @@ public class StatusManager {
     }
 
     public Integer count() {
-//        return roomPathStatusMap.keySet().size() + postProcessMap.keySet().size() + uploadStatusMap.keySet().size();
+        // 录制和处理占用空间，上传不用
         return recordStatusMap.keySet().size() + +postProcessMap.keySet().size();
     }
 

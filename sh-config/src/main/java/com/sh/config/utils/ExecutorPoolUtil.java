@@ -32,8 +32,15 @@ public class ExecutorPoolUtil {
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
 
-    private static final ScheduledExecutorService scheduledPool = Executors.newScheduledThreadPool(1);
-
+    private static final ExecutorService dynamicPool = new ThreadPoolExecutor(
+            0,
+            Integer.MAX_VALUE,
+            30,
+            TimeUnit.SECONDS,
+            new SynchronousQueue<Runnable>(),
+            new ThreadFactoryBuilder().setNameFormat("dynamic-thread-%d").build(),
+            new ThreadPoolExecutor.CallerRunsPolicy()
+    );
 
     public static ExecutorService getDownloadPool() {
         return downloadPool;
@@ -43,7 +50,7 @@ public class ExecutorPoolUtil {
         return uploadPool;
     }
 
-    public static ScheduledExecutorService getScheduledPool() {
-        return scheduledPool;
+    public static ExecutorService getDynamicPool() {
+        return dynamicPool;
     }
 }
