@@ -32,6 +32,16 @@ public class FileCleanWorker extends ProcessWorker {
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {
+        // 新建一个线程运行clear方法
+        try {
+            Thread thread = new Thread(this::clear);
+            thread.start();
+            thread.join();
+        } catch (InterruptedException e) {
+        }
+    }
+
+    private void clear() {
         List<StreamerConfig> streamerConfigs = ConfigFetcher.getStreamerInfoList();
         for (StreamerConfig streamerConfig : streamerConfigs) {
             init(streamerConfig);
