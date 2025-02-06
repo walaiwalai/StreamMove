@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
-import com.sh.config.utils.ExecutorPoolUtil;
 import com.sh.engine.base.Streamer;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.manager.StatusManager;
@@ -33,8 +32,7 @@ public class FileCleanWorker extends ProcessWorker {
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {
-        // 删除了文件，需要线程销毁才能释放空间
-        ExecutorPoolUtil.getDynamicPool().execute(this::clear);
+        clear();
     }
 
     private void clear() {

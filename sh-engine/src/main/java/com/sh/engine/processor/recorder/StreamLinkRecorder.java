@@ -5,7 +5,6 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.config.utils.ExecutorPoolUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
@@ -71,9 +70,7 @@ public class StreamLinkRecorder extends Recorder {
         boolean isValid = checkResolution(savePath);
         if (!isValid) {
             rfCmd.kill();
-            ExecutorPoolUtil.getDynamicPool().execute(() -> {
-                FileUtils.deleteQuietly(new File(savePath));
-            });
+            FileUtils.deleteQuietly(new File(savePath));
             throw new StreamerRecordException(ErrorEnum.RECORD_BAD_QUALITY);
         }
 

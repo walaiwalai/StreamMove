@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.EnvUtil;
-import com.sh.config.utils.ExecutorPoolUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.ProcessPluginEnum;
@@ -76,9 +75,7 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
 
             if (success) {
                 if (EnvUtil.isProd()) {
-                    ExecutorPoolUtil.getDynamicPool().execute(() -> {
-                        deleteSegs(segNames);
-                    });
+                    deleteSegs(segNames);
                 }
                 msgSendService.sendText("合并视频完成！路径为：" + targetMergedVideo.getAbsolutePath());
             } else {
