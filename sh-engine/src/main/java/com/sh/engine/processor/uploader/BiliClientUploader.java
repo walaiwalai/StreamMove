@@ -37,10 +37,9 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +73,6 @@ public class BiliClientUploader extends Uploader {
             = "https://member.bilibili.com/x/vu/client/add?access_key=%s";
     private static final String CLIENT_COVER_UPLOAD_URL
             = "https://member.bilibili.com/x/vu/client/cover/up?access_key=%s";
-    private static final String SUCCESS_UPLOAD_VIDEO_KEY = "bili_client_upload_succeed";
     private static final Map<String, String> CLIENT_HEADERS = Maps.newHashMap();
 
     static {

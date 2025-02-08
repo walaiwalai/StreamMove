@@ -1,15 +1,11 @@
 package com.sh.config.utils;
 
-import com.sh.config.manager.ConfigFetcher;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.security.MessageDigest;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
  * @author caiWen
@@ -35,17 +31,9 @@ public class VideoFileUtil {
 
     public static byte[] fetchBlock(File targetFile, long start, int blockSize) throws IOException {
         byte[] b = new byte[blockSize];
-        RandomAccessFile raf = null;
-        try {
-            raf = new RandomAccessFile(targetFile, "r");
+        try (RandomAccessFile raf = new RandomAccessFile(targetFile, "r")) {
             raf.seek(start);
             raf.read(b, 0, blockSize);
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (raf != null) {
-                raf.close();
-            }
         }
         return b;
     }

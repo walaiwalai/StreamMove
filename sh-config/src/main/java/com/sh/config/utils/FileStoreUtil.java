@@ -2,14 +2,12 @@ package com.sh.config.utils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sh.config.model.config.StreamerConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 
 /**
@@ -30,8 +28,8 @@ public class FileStoreUtil {
 
     public static <T> T loadFromFile(File targetFile, TypeReference<T> typeReference) {
         String contentStr = null;
-        try {
-            contentStr = IOUtils.toString(Files.newInputStream(targetFile.toPath()), "utf-8");
+        try (InputStream inputStream = Files.newInputStream(targetFile.toPath())) {
+            contentStr = IOUtils.toString(inputStream, "utf-8");
         } catch (IOException e) {
             log.error("open file fail, savePath: {}", targetFile.getAbsolutePath(), e);
         }
