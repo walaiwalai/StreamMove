@@ -11,12 +11,6 @@ import java.util.concurrent.TimeUnit;
  **/
 @Slf4j
 public class FfmpegRecordCmd extends CommonCmd {
-    /**
-     * 命令执行结果
-     */
-    private CompletableFuture<Void> future;
-
-
     public FfmpegRecordCmd(String command) {
         super(command, false, true);
     }
@@ -24,26 +18,9 @@ public class FfmpegRecordCmd extends CommonCmd {
     @Override
     protected void doExecute(long timeout, TimeUnit unit) throws Exception {
         // 后台执行命令
-        this.future = super.start(null, null);
+        CompletableFuture<Void> future = super.start(null, null);
         future.get(timeout, unit);
         super.waitExit();
-    }
-
-    public void executeAsync() {
-        this.future = super.start(null, null);
-    }
-
-    public void waitTillEnd(long timeout, TimeUnit unit) {
-        try {
-            this.future.get(timeout, unit);
-            super.waitExit();
-        } catch (Exception e) {
-            close();
-        }
-    }
-
-    public void kill() {
-        close();
     }
 
     public boolean isExitNormal() {

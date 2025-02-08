@@ -9,9 +9,7 @@ import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
-import com.sh.engine.model.ffmpeg.StreamLinkCheckCmd;
-import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
+import com.sh.engine.model.ffmpeg.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -60,23 +58,20 @@ public class StreamLinkRecorder extends Recorder {
 
     private void recordReplay(String savePath) {
         // 如果是在线的录制，再次检查是否在线
-        log.info("replay stream record begin, savePath: {}", savePath);
-        FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
-
-        // 开始录制
-        rfCmd.executeAsync();
-
-        // 检查分辨率否正常
-        boolean isValid = checkResolution(savePath);
-        if (!isValid) {
-            rfCmd.kill();
+        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("streamlink " + this.url);
+        checkCmd.execute(10, TimeUnit.SECONDS);
+        String bestResolution = checkCmd.getBestResolution();
+        if (!StringUtils.contains(bestResolution, "720") && !StringUtils.contains(bestResolution, "1080")) {
+            log.error("Resolution is too low {}, stopping recording...", bestResolution);
             FileUtils.deleteQuietly(new File(savePath));
             throw new StreamerRecordException(ErrorEnum.RECORD_BAD_QUALITY);
         }
 
-        // 长时间录播（阻塞）
-        rfCmd.waitTillEnd(24, TimeUnit.HOURS);
+        log.info("Resolution is OK {}, start recording...", bestResolution);
+        FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
 
+        // 长时间录播（阻塞）
+        rfCmd.execute(24, TimeUnit.HOURS);
         if (!rfCmd.isExitNormal()) {
             log.error("replay stream record fail, savePath: {}", savePath);
             throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);
