@@ -33,7 +33,7 @@ end_used_space=$(df -h / | awk 'NR==2 {print $3}')
 start_used_space_num=$(echo $start_used_space | sed 's/[^0-9.]//g')
 end_used_space_num=$(echo $end_used_space | sed 's/[^0-9.]//g')
 unit=$(echo $start_used_space | sed 's/[0-9.]*//')
-freed_space=$(echo "$start_used_space_num - $end_used_space_num" | bc)
+freed_space=$(echo "$start_used_space_num $end_used_space_num" | awk '{printf "%.2f", $1 - $2}')
 
 # 打印释放的空间
 echo "总共释放了 $freed_space$unit 磁盘空间"
