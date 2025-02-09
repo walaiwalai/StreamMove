@@ -1,6 +1,5 @@
 package com.sh.config.utils;
 
-import com.sh.config.manager.ConfigFetcher;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.imageio.ImageIO;
@@ -74,7 +73,7 @@ public class PictureFileUtil {
     /**
      * 生成带透明背景、指定文本的图片
      *
-     * @param text           要绘制的文本，支持换行
+     * @param text   要绘制的文本，支持换行
      * @param toFile 输出图片
      */
     public static void createTextWithVeil(String text, int width, int height, int fontSize, File toFile) {
@@ -129,9 +128,10 @@ public class PictureFileUtil {
 
     /**
      * 在已有图片上添加标题文本
+     *
      * @param bgFile 原始图片文件
      * @param toFile 保存修改后图片的文件
-     * @param lines 要添加的标题文本
+     * @param lines  要添加的标题文本
      */
     public static void createTextOnImage(File bgFile, File toFile, List<String> lines) {
         // 读取原始图片
@@ -167,9 +167,9 @@ public class PictureFileUtil {
             int x = (width - textWidth) / 2;
             int y = yStart + i * lineHeight + fontMetrics.getAscent();
             if (i % 2 == 0) {
-                g2d.setColor(Color.WHITE);
+                g2d.setColor(Color.BLACK);
             } else {
-                g2d.setColor(Color.WHITE);
+                g2d.setColor(Color.BLACK);
             }
             g2d.drawString(line, x, y);
         }

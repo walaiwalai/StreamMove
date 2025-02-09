@@ -4,7 +4,6 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.repo.StreamerRepoService;
-import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
@@ -50,6 +49,15 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
             return;
         }
         String savePath = genRegPathByRegDate(context.getRecorder().getRegDate(), name);
+
+        // 录播达到最大个数限制（直播不拦截）
+        Integer maxRecordingCount = ConfigFetcher.getInitConfig().getMaxRecordingCount();
+        if (statusManager.count() >= maxRecordingCount) {
+            if (!streamerConfig.isRecordWhenOnline()) {
+                log.info("hit max recoding count, will return, name: {}.", name);
+                return;
+            }
+        }
 
         // 1. 前期准备
         recordPreProcess(streamerConfig, savePath);
@@ -106,7 +114,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
      * @param date
      * @return
      */
-    private String genRegPathByRegDate( Date date, String name) {
+    private String genRegPathByRegDate(Date date, String name) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
         String timeV = dateFormat.format(date);
 

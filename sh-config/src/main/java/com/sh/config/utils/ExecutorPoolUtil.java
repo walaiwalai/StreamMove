@@ -2,7 +2,10 @@ package com.sh.config.utils;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 线程池工具类
@@ -32,18 +35,11 @@ public class ExecutorPoolUtil {
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
 
-    private static final ScheduledExecutorService scheduledPool = Executors.newScheduledThreadPool(1);
-
-
     public static ExecutorService getDownloadPool() {
         return downloadPool;
     }
 
     public static ExecutorService getUploadPool() {
         return uploadPool;
-    }
-
-    public static ScheduledExecutorService getScheduledPool() {
-        return scheduledPool;
     }
 }

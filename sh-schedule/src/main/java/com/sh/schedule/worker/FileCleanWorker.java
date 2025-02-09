@@ -13,7 +13,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.quartz.JobExecutionContext;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 
 import java.io.File;
@@ -33,6 +32,10 @@ public class FileCleanWorker extends ProcessWorker {
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {
+        clear();
+    }
+
+    private void clear() {
         List<StreamerConfig> streamerConfigs = ConfigFetcher.getStreamerInfoList();
         for (StreamerConfig streamerConfig : streamerConfigs) {
             init(streamerConfig);
