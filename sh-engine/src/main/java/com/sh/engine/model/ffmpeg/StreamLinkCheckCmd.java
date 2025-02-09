@@ -1,5 +1,6 @@
 package com.sh.engine.model.ffmpeg;
 
+import com.sh.config.exception.StreamerRecordException;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,7 +30,15 @@ public class StreamLinkCheckCmd extends AbstractCmd {
     }
 
     public void execute(long timeoutSeconds) {
-        super.execute(timeoutSeconds);
+        try {
+            super.execute(timeoutSeconds);
+        } catch (StreamerRecordException recordException) {
+            if (getExitCode() == 1) {
+                // 直播流没有开播，正常退出
+                return;
+            }
+            throw recordException;
+        }
 
         // 执行完成后
         if (streamOnline) {
@@ -38,6 +47,7 @@ public class StreamLinkCheckCmd extends AbstractCmd {
                 worstResolution = matchList.get(0);
                 bestResolution = matchList.get(1);
             } catch (Exception ignored) {
+                log.error("parse stream quality error, output: {}", infoOutSb);
             }
         }
     }
@@ -73,8 +83,6 @@ public class StreamLinkCheckCmd extends AbstractCmd {
 
     @Override
     protected void processOutputLine(String line) {
-        log.info("OT-STREAM>>>>" + line);
-
         streamOnline = line.contains("Available");
         infoOutSb.append(line);
     }

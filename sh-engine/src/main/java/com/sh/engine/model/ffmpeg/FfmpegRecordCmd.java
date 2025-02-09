@@ -21,7 +21,10 @@ public class FfmpegRecordCmd extends AbstractCmd {
     }
 
     public void execute(long timeoutSeconds) {
-        super.execute(timeoutSeconds);
+        try {
+            super.execute(timeoutSeconds);
+        } catch (Exception ignored) {
+        }
     }
 
     public boolean isExitNormal() {

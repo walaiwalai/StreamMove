@@ -1,5 +1,7 @@
 package com.sh.engine.model.ffmpeg;
 
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.*;
 
@@ -61,18 +63,23 @@ public abstract class AbstractCmd {
             long endTime = System.currentTimeMillis();
             log.info("Command executed successfully in {}s, command: {}", (endTime - startTime) / 1000, command);
         } catch (ExecuteException e) {
+            exitCode = e.getExitValue();
             long endTime = System.currentTimeMillis();
             if (watchdog.killedProcess()) {
                 isTimeout.set(true);
-                handleTimeout();
                 log.info("Command timed out after {}s, command: {}", (endTime - startTime) / 1000, command);
+                handleTimeout();
             } else {
-                log.info("Command execution failed with exit code: {}, command: {}", e.getExitValue(), command);
+                log.info("Command execution failed with exit code: {}, command: {}", exitCode, command);
+                throw new StreamerRecordException(ErrorEnum.CMD_EXIT_CODE_UN_NORMAL);
             }
         } catch (IOException e) {
             log.error("IO error occurred while executing command: {}", command, e);
+            throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
         } catch (Exception e) {
             log.error("Unexpected error occurred while executing command: {}", command, e);
+            throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
+
         }
     }
 
@@ -91,8 +98,12 @@ public abstract class AbstractCmd {
      *
      * @return true 如果命令正常退出，false 如果命令超时、抛出异常或退出码非零
      */
-    public boolean isNormalExit() {
+    protected boolean isNormalExit() {
         return !isTimeout.get() && exitCode == 0;
+    }
+
+    protected int getExitCode() {
+        return exitCode;
     }
 
     /**

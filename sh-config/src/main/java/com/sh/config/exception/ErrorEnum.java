@@ -67,6 +67,17 @@ public enum ErrorEnum {
 
     CMD_EXECUTE_TIMEOUT(12, "cmd execute timeout"),
 
+    /**
+     * 命令线程推出异常
+     */
+    CMD_EXIT_CODE_UN_NORMAL(13, "cmd exit code unNormal"),
+
+    /**
+     * 命令线程推出异常
+     */
+    CMD_EXECUTE_ERROR(14, "cmd execute error"),
+
+
     ;
     private int errorCode;
     private String message;
