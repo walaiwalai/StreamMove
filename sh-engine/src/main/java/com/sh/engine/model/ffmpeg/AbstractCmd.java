@@ -4,6 +4,7 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.*;
+import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -32,7 +33,17 @@ public abstract class AbstractCmd {
     }
 
     protected void execute(long timeoutSeconds) {
-        CommandLine cmdLine = CommandLine.parse(command);
+        CommandLine cmdLine;
+        if (SystemUtils.IS_OS_WINDOWS) {
+            cmdLine = CommandLine.parse("cmd.exe");
+            cmdLine.addArgument("/c");
+        } else {
+            cmdLine = CommandLine.parse("/bin/sh");
+            cmdLine.addArgument("-c");
+        }
+
+        // 处理管道命令会报错，所以不解析
+        cmdLine.addArgument(command, false);
         log.info("final command is: {}", command);
 
         DefaultExecutor executor = new DefaultExecutor();
