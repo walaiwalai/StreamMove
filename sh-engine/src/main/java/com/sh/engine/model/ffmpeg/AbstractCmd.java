@@ -25,7 +25,7 @@ public abstract class AbstractCmd {
     private int exitCode = -1;
 
 
-    private final String command;
+    protected String command;
 
     protected AbstractCmd(String command) {
         this.command = command;
@@ -98,7 +98,7 @@ public abstract class AbstractCmd {
      *
      * @return true 如果命令正常退出，false 如果命令超时、抛出异常或退出码非零
      */
-    protected boolean isNormalExit() {
+    public boolean isNormalExit() {
         return !isTimeout.get() && exitCode == 0;
     }
 
