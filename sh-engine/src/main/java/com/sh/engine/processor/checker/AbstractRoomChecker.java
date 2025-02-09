@@ -5,11 +5,8 @@ import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.StreamLinkCheckCmd;
 import com.sh.engine.processor.recorder.Recorder;
 import okhttp3.OkHttpClient;
-import org.apache.commons.lang3.StringUtils;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author caiWen
@@ -49,8 +46,8 @@ public abstract class AbstractRoomChecker {
     }
 
     protected boolean checkIsLivingByStreamLink(String url) {
-        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("streamlink " + url);
-        checkCmd.execute(10, TimeUnit.SECONDS);
+        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(url);
+        checkCmd.execute(10);
 
         return checkCmd.isStreamOnline();
     }

@@ -4,8 +4,6 @@ import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 直播是否在线命令
@@ -14,8 +12,9 @@ import java.util.concurrent.TimeUnit;
  * @Date 2024 10 26 10 45
  **/
 @Slf4j
-public class StreamLinkCheckCmd extends CommonCmd {
-    public static final String regex = "(\\w+)\\s*\\((?:worst|best)\\)";
+public class StreamLinkCheckCmd extends AbstractCmd {
+    private static final String regex = "(\\w+)\\s*\\((?:worst|best)\\)";
+    private final StringBuilder infoOutSb = new StringBuilder();
 
     /**
      * 流是否在线
@@ -24,23 +23,18 @@ public class StreamLinkCheckCmd extends CommonCmd {
     private String worstResolution;
     private String bestResolution;
 
-    public StreamLinkCheckCmd(String command) {
-        super(command, true, false);
+
+    public StreamLinkCheckCmd(String url) {
+        super("streamlink " + url);
     }
 
-    @Override
-    protected void doExecute(long timeout, TimeUnit unit) throws Exception {
-        StringBuilder output = new StringBuilder();
-        CompletableFuture<Void> future = super.start((line) -> {
-            output.append(line).append("\n");
-        }, null);
-        future.get(timeout, unit);
-        super.waitExit();
+    public void execute(long timeoutSeconds) {
+        super.execute(timeoutSeconds);
 
-        streamOnline = output.toString().contains("Available");
+        // 执行完成后
         if (streamOnline) {
             try {
-                List<String> matchList = RegexUtil.getMatchList(output.toString(), regex, false);
+                List<String> matchList = RegexUtil.getMatchList(infoOutSb.toString(), regex, false);
                 worstResolution = matchList.get(0);
                 bestResolution = matchList.get(1);
             } catch (Exception ignored) {
@@ -61,19 +55,32 @@ public class StreamLinkCheckCmd extends CommonCmd {
     }
 
     public static void main(String[] args) {
-//        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("streamlink https://www.huya.com/chuhe");
-        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("streamlink https://www.twitch.tv/videos/2374769396");
-        checkCmd.execute(10, TimeUnit.SECONDS);
+//        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("https://www.huya.com/chuhe");
+        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("https://www.twitch.tv/videos/2374769396");
+        checkCmd.execute(10);
 
         System.out.println(checkCmd.isStreamOnline());
         System.out.println(checkCmd.getBestResolution());
         System.out.println(checkCmd.getWorstResolution());
 
-        StreamLinkCheckCmd checkCmd1 = new StreamLinkCheckCmd("streamlink chzzk.naver.com/video/5691790");
-        checkCmd1.execute(10, TimeUnit.SECONDS);
+        StreamLinkCheckCmd checkCmd1 = new StreamLinkCheckCmd("chzzk.naver.com/video/5691790");
+        checkCmd1.execute(10);
 
         System.out.println(checkCmd1.isStreamOnline());
         System.out.println(checkCmd1.getBestResolution());
         System.out.println(checkCmd1.getWorstResolution());
+    }
+
+    @Override
+    protected void processOutputLine(String line) {
+        log.info("OT-STREAM>>>>" + line);
+
+        streamOnline = line.contains("Available");
+        infoOutSb.append(line);
+    }
+
+    @Override
+    protected void processErrorLine(String line) {
+        log.info("ER-STREAM>>>>" + line);
     }
 }

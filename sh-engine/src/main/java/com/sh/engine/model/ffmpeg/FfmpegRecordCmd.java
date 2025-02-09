@@ -2,28 +2,29 @@ package com.sh.engine.model.ffmpeg;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-
 /**
  * @Author caiwen
  * @Date 2024 10 25 22 57
  **/
 @Slf4j
-public class FfmpegRecordCmd extends CommonCmd {
+public class FfmpegRecordCmd extends AbstractCmd {
     public FfmpegRecordCmd(String command) {
-        super(command, false, true);
+        super(command);
     }
 
     @Override
-    protected void doExecute(long timeout, TimeUnit unit) throws Exception {
-        // 后台执行命令
-        CompletableFuture<Void> future = super.start(null, null);
-        future.get(timeout, unit);
-        super.waitExit();
+    protected void processOutputLine(String line) {
+    }
+
+    @Override
+    protected void processErrorLine(String line) {
+    }
+
+    public void execute(long timeoutSeconds) {
+        super.execute(timeoutSeconds);
     }
 
     public boolean isExitNormal() {
-        return getExitCode() == 0;
+        return super.isNormalExit();
     }
 }

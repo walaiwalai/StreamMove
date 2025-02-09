@@ -34,7 +34,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -164,7 +163,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
                 targetFile.getAbsolutePath()
         );
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(StringUtils.join(params, " "), false, false);
-        processCmd.execute(10, TimeUnit.SECONDS);
+        processCmd.execute(10);
         if (processCmd.isEndNormal()) {
             log.info("get pic success, path: {}", sourceFile.getAbsolutePath());
         } else {

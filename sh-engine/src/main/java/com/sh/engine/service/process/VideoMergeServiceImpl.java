@@ -20,7 +20,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -72,7 +71,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         String command = "ffmpeg -y -loglevel error -f concat -safe 0 -i " + mergeListFile.getAbsolutePath() +
                 " -c:v copy -c:a copy " + targetPath;
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(command);
-        processCmd.execute(3, TimeUnit.HOURS);
+        processCmd.execute(3 * 3600L);
         return processCmd.isEndNormal();
     }
 
@@ -84,7 +83,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         String targetPath = targetVideo.getAbsolutePath();
         String cmd = "ffmpeg -loglevel error -i " + "concat:" + StringUtils.join(mergedFileNames, "|") + " -c copy " + targetPath;
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
-        processCmd.execute(3, TimeUnit.HOURS);
+        processCmd.execute(3 * 3600L);
         if (processCmd.isEndNormal()) {
             msgSendService.sendText("按照concat协议合并视频完成！路径为：" + targetPath);
             return true;
@@ -161,7 +160,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
         // 创建封面
         VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(tmpFile.getAbsolutePath());
-        detectCmd.execute(5, TimeUnit.MINUTES);
+        detectCmd.execute(5);
         int width = detectCmd.getWidth();
         int height = detectCmd.getHeight();
         int fontSize = Math.max((int) height / 13, 20);
@@ -172,7 +171,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         String cmd = "ffmpeg -y -loglevel error -i " + tmpFile.getAbsolutePath() + " -i " + thumnailFile.getAbsolutePath() +
                 " -filter_complex \"[0][1]overlay=enable='between(t,0,1)':format=auto\" -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
-        processCmd.execute(3, TimeUnit.HOURS);
+        processCmd.execute(3 * 3600L);
         if (processCmd.isEndNormal()) {
             log.info("add title success, path: {}, title: {}", fadedPath, title);
             return fadedPath;
@@ -191,7 +190,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         String fadedPath = fadedSeg.getAbsolutePath();
         String cmd = "ffmpeg -y -loglevel error -i " + oldVideoFile.getAbsolutePath() + " -vf fade=t=in:st=0:d=" + FADE_DURATION + " -c:v libx264 -crf 24 -preset superfast -c:a aac " + fadedPath;
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
-        processCmd.execute(3, TimeUnit.HOURS);
+        processCmd.execute(3 * 3600L);
         if (processCmd.isEndNormal()) {
             log.info("do fade success, path: {}", fadedPath);
             return fadedPath;

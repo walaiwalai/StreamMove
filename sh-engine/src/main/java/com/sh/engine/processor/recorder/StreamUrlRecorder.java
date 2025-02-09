@@ -13,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.File;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @Author : caiwen
@@ -37,7 +36,7 @@ public class StreamUrlRecorder extends Recorder {
         log.info("living stream record begin, savePath: {}, retry: {}/{}", savePath, 1, RecordConstant.RECORD_RETRY_CNT);
         FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
         // 执行录制，长时间
-        rfCmd.execute(24, TimeUnit.HOURS);
+        rfCmd.execute(24 * 3600L);
 
         if (!rfCmd.isExitNormal()) {
             log.error("living stream record fail, savePath: {}", savePath);

@@ -9,7 +9,9 @@ import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.model.ffmpeg.*;
+import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
+import com.sh.engine.model.ffmpeg.StreamLinkCheckCmd;
+import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -18,7 +20,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.File;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * streamlink录像机
@@ -58,8 +59,8 @@ public class StreamLinkRecorder extends Recorder {
 
     private void recordReplay(String savePath) {
         // 如果是在线的录制，再次检查是否在线
-        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("streamlink " + this.url);
-        checkCmd.execute(10, TimeUnit.SECONDS);
+        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.url);
+        checkCmd.execute(10);
         String bestResolution = checkCmd.getBestResolution();
         if (!StringUtils.contains(bestResolution, "720") && !StringUtils.contains(bestResolution, "1080")) {
             log.error("Resolution is too low {}, stopping recording...", bestResolution);
@@ -71,7 +72,7 @@ public class StreamLinkRecorder extends Recorder {
         FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
 
         // 长时间录播（阻塞）
-        rfCmd.execute(24, TimeUnit.HOURS);
+        rfCmd.execute(24 * 3600L);
         if (!rfCmd.isExitNormal()) {
             log.error("replay stream record fail, savePath: {}", savePath);
             throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);
@@ -85,8 +86,8 @@ public class StreamLinkRecorder extends Recorder {
         int totalCnt = RecordConstant.RECORD_RETRY_CNT;
         for (int i = 0; i < totalCnt; i++) {
             // 如果是在线的录制，再次检查是否在线
-            StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("streamlink " + this.url);
-            checkCmd.execute(10, TimeUnit.SECONDS);
+            StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.url);
+            checkCmd.execute(10);
             if (!checkCmd.isStreamOnline()) {
                 try {
                     // 睡40s防止重试太快
@@ -100,7 +101,7 @@ public class StreamLinkRecorder extends Recorder {
             log.info("living stream record begin, savePath: {}, retry: {}/{}", savePath, i + 1, totalCnt);
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
             // 执行录制，长时间
-            rfCmd.execute(24, TimeUnit.HOURS);
+            rfCmd.execute(24 * 3600L);
 
             if (!rfCmd.isExitNormal()) {
                 log.error("living stream record fail, savePath: {}", savePath);
@@ -124,7 +125,7 @@ public class StreamLinkRecorder extends Recorder {
             if (firstSeg.exists()) {
                 segExisted = true;
                 VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(firstSeg.getAbsolutePath());
-                detectCmd.execute(30, TimeUnit.SECONDS);
+                detectCmd.execute(30);
                 int width = detectCmd.getWidth();
                 int height = detectCmd.getHeight();
 
