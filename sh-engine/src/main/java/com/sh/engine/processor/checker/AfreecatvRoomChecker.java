@@ -3,6 +3,7 @@ package com.sh.engine.processor.checker;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.Recorder;
@@ -86,9 +87,9 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
                 .post(body)
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
                 .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
-//        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
-//            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
-//        }
+        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getSoopliveCookies())) {
+            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getSoopliveCookies());
+        }
 
         List<VideoSegRecorder.TsRecordInfo> views = Lists.newArrayList();
         Response response = null;
@@ -121,7 +122,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         return fetchTsInfo(tsPrefix);
     }
 
-    private JSONObject fetchCurVod( String bid, StreamerConfig streamerConfig ) {
+    private JSONObject fetchCurVod(String bid, StreamerConfig streamerConfig) {
         Request.Builder requestBuilder = new Request.Builder()
                 .url(String.format(RECORD_HISTORY_URL, bid))
                 .get()
@@ -153,7 +154,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
      * @param vodObjs        用户的历史视频列表
      * @return 当前需要录制的视频
      */
-    private JSONObject filterCurHistoryVod( StreamerConfig streamerConfig, JSONArray vodObjs ) {
+    private JSONObject filterCurHistoryVod(StreamerConfig streamerConfig, JSONArray vodObjs) {
         if (CollectionUtils.isEmpty(vodObjs)) {
             return null;
         }

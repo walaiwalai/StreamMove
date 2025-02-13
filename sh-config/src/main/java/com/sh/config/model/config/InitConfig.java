@@ -5,8 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 /**
  * @Author caiwen
  * @Date 2023 12 17 16 31
@@ -47,6 +45,10 @@ public class InitConfig {
 
     // *********************youtube的cookies**********************
     private String youtubeCookies;
+
+    // *********************youtube的cookies**********************
+
+    private String soopliveCookies;
 
     // *********************B站视频上传**********************
     private String biliCookies;

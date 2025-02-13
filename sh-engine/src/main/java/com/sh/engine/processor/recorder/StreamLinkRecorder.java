@@ -11,7 +11,6 @@ import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import com.sh.engine.model.ffmpeg.StreamLinkCheckCmd;
-import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -109,39 +108,6 @@ public class StreamLinkRecorder extends Recorder {
             }
         }
         log.info("living stream record end, savePath: {}", savePath);
-    }
-
-    private boolean checkResolution(String savePath) {
-        File firstSeg = new File(savePath, VideoFileUtil.genSegName(1));
-
-        int i = 0;
-        boolean segExisted = false;
-        while (i++ < 10) {
-            try {
-                Thread.sleep(10 * 1000);
-            } catch (InterruptedException e) {
-            }
-
-            if (firstSeg.exists()) {
-                segExisted = true;
-                VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(firstSeg.getAbsolutePath());
-                detectCmd.execute(30);
-                int width = detectCmd.getWidth();
-                int height = detectCmd.getHeight();
-
-                if (width < 1280 || height < 720) {
-                    log.error("Resolution is too low ({}x{}), stopping recording...", width, height);
-                    return false;
-                }
-                log.info("Resolution is OK ({}x{}), continue recording...", width, height);
-                break;
-            }
-        }
-        if (!segExisted) {
-            log.error("no seg downloaded, stopping recording..., savePath: {}", savePath);
-            return false;
-        }
-        return true;
     }
 
 

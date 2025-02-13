@@ -3,6 +3,8 @@ package com.sh.engine.listener;
 import com.alibaba.fastjson.JSON;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.engine.processor.uploader.Uploader;
+import com.sh.engine.processor.uploader.UploaderFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
@@ -27,12 +29,12 @@ public class UploaderInitListener implements ApplicationListener<ApplicationRead
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
         for (String platform : platforms) {
-//            try {
-//                Uploader uploader = UploaderFactory.getUploader(platform);
-//                uploader.setUp();
-//            } catch (Exception e) {
-//                log.error("init uploader failed, platform: {}", platform, e);
-//            }
+            try {
+                Uploader uploader = UploaderFactory.getUploader(platform);
+                uploader.setUp();
+            } catch (Exception e) {
+                log.error("init uploader failed, platform: {}", platform, e);
+            }
         }
         log.info("init uploader finish, uploaders: {}", JSON.toJSONString(platforms));
     }
