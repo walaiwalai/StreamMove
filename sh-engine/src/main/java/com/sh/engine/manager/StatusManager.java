@@ -111,7 +111,7 @@ public class StatusManager {
 
     public Integer count() {
         // 录制和处理占用空间，上传不用
-        return recordStatusMap.keySet().size() + +postProcessMap.keySet().size();
+        return recordStatusMap.keySet().size() + +postProcessMap.keySet().size() + uploadStatusMap.keySet().size();
     }
 
 
