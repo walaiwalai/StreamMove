@@ -39,6 +39,8 @@ public class InitConfig {
 
     // *********************twitchApi请求header Authorization**********************
     private String twitchAuthorization;
+    private String soopUserName;
+    private String soopPassword;
 
     // *********************小红书cookies**********************
     private String xhsCookies;

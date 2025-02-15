@@ -1,8 +1,11 @@
 package com.sh.engine.model.ffmpeg;
 
 import com.sh.config.exception.StreamerRecordException;
+import com.sh.config.manager.ConfigFetcher;
+import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
@@ -26,7 +29,19 @@ public class StreamLinkCheckCmd extends AbstractCmd {
 
 
     public StreamLinkCheckCmd(String url) {
-        super("streamlink " + url);
+        super("");
+        StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(url);
+        if (channelEnum == StreamChannelTypeEnum.AFREECA_TV) {
+            String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
+            String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
+            if (StringUtils.isNotBlank(soopUserName) && StringUtils.isNotBlank(soopPassword)) {
+                this.command = "streamlink --soop-username " + soopUserName + " --soop-password " + soopPassword + " " + url;
+            } else {
+                this.command = "streamlink " + url;
+            }
+        } else {
+            this.command = "streamlink " + url;
+        }
     }
 
     public void execute(long timeoutSeconds) {

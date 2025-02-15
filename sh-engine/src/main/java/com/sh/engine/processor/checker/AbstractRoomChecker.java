@@ -47,7 +47,7 @@ public abstract class AbstractRoomChecker {
 
     protected boolean checkIsLivingByStreamLink(String url) {
         StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(url);
-        checkCmd.execute(10);
+        checkCmd.execute(40);
 
         return checkCmd.isStreamOnline();
     }

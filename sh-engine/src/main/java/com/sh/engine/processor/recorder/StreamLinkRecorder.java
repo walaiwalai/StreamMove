@@ -59,7 +59,7 @@ public class StreamLinkRecorder extends Recorder {
     private void recordReplay(String savePath) {
         // 如果是在线的录制，再次检查是否在线
         StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.url);
-        checkCmd.execute(10);
+        checkCmd.execute(40);
         String bestResolution = checkCmd.getBestResolution();
         if (!StringUtils.contains(bestResolution, "720") && !StringUtils.contains(bestResolution, "1080")) {
             log.error("Resolution is too low {}, stopping recording...", bestResolution);
@@ -86,7 +86,7 @@ public class StreamLinkRecorder extends Recorder {
         for (int i = 0; i < totalCnt; i++) {
             // 如果是在线的录制，再次检查是否在线
             StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.url);
-            checkCmd.execute(10);
+            checkCmd.execute(40);
             if (!checkCmd.isStreamOnline()) {
                 try {
                     // 睡40s防止重试太快
@@ -124,10 +124,12 @@ public class StreamLinkRecorder extends Recorder {
         }
 
         // 录制代理
-//        String httpProxy = ConfigFetcher.getInitConfig().getHttpProxy();
-//        if (useProxy && StringUtils.isNotBlank(httpProxy)) {
-//            extraArgs.add(String.format("--http-proxy \"%s\"", httpProxy));
-//        }
+        String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
+        String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
+        if (StringUtils.isNotBlank(soopUserName) && StringUtils.isNotBlank(soopPassword)) {
+            extraArgs.add(String.format("--soop-username \"%s\"", soopUserName));
+            extraArgs.add(String.format("--soop-password \"%s\"", soopPassword));
+        }
 
         // 计算分端视频开始index(默认从1开始)
         Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
