@@ -56,7 +56,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
     }
 
     @Override
-    public List<StreamerConfig> getByEnv( String env) {
+    public List<StreamerConfig> getByEnv(String env) {
         List<StreamerDO> streamerDOList = streamerMapper.batchSelectByEnv(env);
         return streamerDOList.stream()
                 .map(this::convertToStreamerConfig)
@@ -70,7 +70,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
         streamerMapper.updateByName(streamerDO);
     }
 
-    public void updateLastRecordTime( String name, Date lastRecordTime ) {
+    public void updateLastRecordTime(String name, Date lastRecordTime) {
         streamerMapper.updateLastRecordTime(name, lastRecordTime);
     }
 
@@ -116,6 +116,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                                 .collect(Collectors.toList())
                         : Lists.newArrayList())
                 .segMergeCnt(streamerDO.getSegMergeCnt())
+                .maxMergeSize(streamerDO.getMaxMergeSize())
                 .coverFilePath(streamerDO.getCoverPath())
                 .build();
 
@@ -160,6 +161,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                 .expireTime(streamerConfig.getExpireTime())
                 .lastVodCnt(streamerConfig.getLastVodCnt())
                 .segMergeCnt(streamerConfig.getSegMergeCnt())
+                .maxMergeSize(streamerConfig.getMaxMergeSize())
                 .templateTitle(streamerConfig.getTemplateTitle())
                 .coverPath(streamerConfig.getCoverFilePath())
                 .desc(streamerConfig.getDesc())

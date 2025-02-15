@@ -1,6 +1,5 @@
 package com.sh.config.model.config;
 
-import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -60,6 +59,7 @@ public class StreamerConfig {
 
     /**
      * 视频上传平台
+     *
      * @see UploadPlatformEnum
      */
     private List<String> uploadPlatforms;
@@ -83,6 +83,11 @@ public class StreamerConfig {
      * 多少个频分片合成一个视频
      */
     private int segMergeCnt;
+
+    /**
+     * 一个视频分片大小（M）
+     */
+    private Integer maxMergeSize;
 
     /**
      * 视频封面

@@ -28,7 +28,8 @@
 
     <!-- 定义 SQL 片段 -->
     <sql id="allFields">
-        `id`,
+        `id`
+        ,
         `gmt_create`,
         `gmt_modified`,
         `name`,
@@ -38,6 +39,7 @@
         `expire_time`,
         `last_vod_cnt`,
         `seg_merge_cnt`,
+        `max_merge_size`,
         `template_title`,
         `cover_path`,
         `desc`,
@@ -72,6 +74,7 @@
                                 `expire_time`,
                                 `last_vod_cnt`,
                                 `seg_merge_cnt`,
+                                `max_merge_size`,
                                 `template_title`,
                                 `cover_path`,
                                 `desc`,
@@ -87,6 +90,7 @@
                 #{expireTime},
                 #{lastVodCnt},
                 #{segMergeCnt},
+                #{maxMergeSize},
                 #{templateTitle},
                 #{coverPath},
                 #{desc},
@@ -117,6 +121,9 @@
             </if>
             <if test="segMergeCnt != null">
                 `seg_merge_cnt` = #{segMergeCnt},
+            </if>
+            <if test="maxMergeSize != null">
+                `max_merge_size` = #{maxMergeSize},
             </if>
             <if test="templateTitle != null">
                 `template_title` = #{templateTitle},

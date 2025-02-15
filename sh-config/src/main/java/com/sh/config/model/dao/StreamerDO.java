@@ -56,6 +56,7 @@ public class StreamerDO {
      * 多少个频分片合成一个视频
      */
     private int segMergeCnt;
+    private int maxMergeSize;
 
     /**
      * 视频标题模板

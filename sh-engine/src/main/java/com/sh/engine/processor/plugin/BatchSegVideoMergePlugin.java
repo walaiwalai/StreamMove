@@ -57,7 +57,16 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
 
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
-        int batchSize = Math.max(streamerConfig.getSegMergeCnt(), BATCH_RECORD_TS_COUNT);
+        int batchSize;
+        if (streamerConfig.getMaxMergeSize() > 0) {
+            // 计算搜友的tsFiles的size综合
+            long totalSize = tsFiles.stream()
+                    .mapToLong(File::length)
+                    .sum();
+            batchSize = tsFiles.size() / ((int) Math.ceil((double) totalSize / 1024 / 1024 / streamerConfig.getMaxMergeSize()));
+        } else {
+            batchSize = Math.max(streamerConfig.getSegMergeCnt(), BATCH_RECORD_TS_COUNT);
+        }
         for (List<Integer> batchIndexes : Lists.partition(segIndexes, batchSize)) {
             File targetMergedVideo = new File(recordPath, "P" + videoIndex + ".mp4");
             List<String> segNames = batchIndexes.stream()

@@ -32,13 +32,7 @@ public class StreamLinkCheckCmd extends AbstractCmd {
         super("");
         StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(url);
         if (channelEnum == StreamChannelTypeEnum.AFREECA_TV) {
-            String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
-            String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
-            if (StringUtils.isNotBlank(soopUserName) && StringUtils.isNotBlank(soopPassword)) {
-                this.command = "streamlink --soop-username " + soopUserName + " --soop-password " + soopPassword + " " + url;
-            } else {
-                this.command = "streamlink " + url;
-            }
+            this.command = buildSoopCommand(url);
         } else {
             this.command = "streamlink " + url;
         }
@@ -77,6 +71,16 @@ public class StreamLinkCheckCmd extends AbstractCmd {
 
     public String getBestResolution() {
         return bestResolution;
+    }
+
+    private String buildSoopCommand(String url) {
+        String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
+        String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
+        if (StringUtils.isNotBlank(soopUserName) && StringUtils.isNotBlank(soopPassword)) {
+            return "streamlink --soop-username " + soopUserName + " --soop-password " + soopPassword + " " + url;
+        } else {
+            return "streamlink " + url;
+        }
     }
 
     public static void main(String[] args) {
