@@ -16,6 +16,7 @@
         <result column="expire_time" property="expireTime"/>
         <result column="last_vod_cnt" property="lastVodCnt"/>
         <result column="seg_merge_cnt" property="segMergeCnt"/>
+        <result column="max_merge_size" property="maxMergeSize"/>
         <result column="template_title" property="templateTitle"/>
         <result column="cover_path" property="coverPath"/>
         <result column="desc" property="desc"/>
