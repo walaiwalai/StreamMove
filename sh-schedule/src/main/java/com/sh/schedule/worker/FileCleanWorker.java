@@ -40,18 +40,16 @@ public class FileCleanWorker extends ProcessWorker {
         for (StreamerConfig streamerConfig : streamerConfigs) {
             init(streamerConfig);
             for (String curRecordPath : StreamerInfoHolder.getCurRecordPaths()) {
-                FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
-                if (!fileStatusModel.allPost()) {
-                    // 没有上传的
-                    continue;
-                }
-
-                if (statusManager.isPathOccupied(curRecordPath)) {
-                    continue;
-                }
-
-                log.info("Begin to delete file {}", curRecordPath);
                 try {
+                    FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
+                    if (!fileStatusModel.allPost()) {
+                        // 没有上传的
+                        continue;
+                    }
+                    if (statusManager.isPathOccupied(curRecordPath)) {
+                        continue;
+                    }
+                    log.info("Begin to delete file {}", curRecordPath);
                     FileUtils.deleteDirectory(new File(curRecordPath));
                 } catch (IOException e) {
                     log.error("fuck!", e);

@@ -1,5 +1,10 @@
 #!/bin/bash
 
+print_with_time() {
+    current_time=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "$current_time $1"
+}
+
 # 记录脚本开始前的磁盘使用情况
 start_used_space=$(df -h / | awk 'NR==2 {print $3}')
 
@@ -8,8 +13,6 @@ pids=$(ps -ef | awk '$8 == "java" && /sh-start/ {print $2}')
 
 # 遍历每个 PID
 for pid in $pids; do
-    echo "处理进程 PID: $pid"
-
     # 进入 /proc/{pid}/fd 目录
     fd_dir="/proc/$pid/fd"
     if [ -d "$fd_dir" ]; then
@@ -22,7 +25,7 @@ for pid in $pids; do
             echo > "/proc/$pid/fd/$fd"
         done
     else
-        echo "进程 $pid 的文件描述符目录 $fd_dir 不存在"
+        print_with_time "进程 $pid 的文件描述符目录 $fd_dir 不存在"
     fi
 done
 
@@ -36,4 +39,4 @@ unit=$(echo $start_used_space | sed 's/[0-9.]*//')
 freed_space=$(echo "$start_used_space_num $end_used_space_num" | awk '{printf "%.2f", $1 - $2}')
 
 # 打印释放的空间
-echo "总共释放了 $freed_space$unit 磁盘空间"
+print_with_time "总共释放了 $freed_space$unit 磁盘空间"

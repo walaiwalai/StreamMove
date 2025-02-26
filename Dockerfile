@@ -15,7 +15,7 @@ RUN mkdir -p ${APP_HOME}/download ${APP_HOME}/logs ${APP_HOME}/dump ${APP_HOME}/
 
 # 定时任务
 RUN chmod +x ${APP_HOME}/release_disk_space.sh
-RUN echo "*/30 * * * * root ${APP_HOME}/release_disk_space.sh >> ${APP_HOME}/logs/release_disk_space.log 2>&1" > /tmp/cron_task
+RUN echo "*/15 * * * * root ${APP_HOME}/release_disk_space.sh >> ${APP_HOME}/logs/release_disk_space.log 2>&1" > /tmp/cron_task
 
 # 追加临时文件内容到 crontab 并重启 cron 服务
 RUN cat /tmp/cron_task >> /etc/crontab && rm /tmp/cron_task && service cron restart
