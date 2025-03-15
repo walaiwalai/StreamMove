@@ -195,9 +195,14 @@ public class BiliClientUploader extends Uploader {
 
 
         // 专属文件夹(优先替换)
-        Collection<File> exclusiveFiles = FileUtils.listFiles(new File(recordPath, getType()), FileFilterUtils.suffixFileFilter("mp4"), null);
+        File exclusiveDir = new File(recordPath, getType());
+        Collection<File> exclusiveFiles;
+        if (exclusiveDir.exists()) {
+            exclusiveFiles = FileUtils.listFiles(exclusiveDir, FileFilterUtils.suffixFileFilter("mp4"), null);
+        } else {
+            exclusiveFiles = Collections.emptyList();
+        }
         Map<String, File> exclusiveFileMap = exclusiveFiles.stream().collect(Collectors.toMap(File::getName, Function.identity(), (v1, v2) -> v2));
-
         List<File> res = Lists.newArrayList();
         for (File video : allVideos) {
             File addVideo = exclusiveFileMap.getOrDefault(video.getName(), video);
