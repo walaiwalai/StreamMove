@@ -1,5 +1,6 @@
 package com.sh.engine.service.process;
 
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import com.google.common.collect.Lists;
 import com.sh.config.utils.PictureFileUtil;
@@ -41,30 +42,9 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     private static final int FADE_DURATION = 1;
 
     @Override
-    public boolean concatByDemuxer(List<String> mergedFileNames, File targetVideo) {
-        File mergeListFile = new File(targetVideo.getParent(), FileNameUtil.getPrefix(targetVideo) + "-merge.txt");
-        List<String> lines = mergedFileNames.stream()
-                .map(name -> {
-                    File segFile = new File(name);
-                    if (!segFile.exists()) {
-                        return null;
-                    }
-                    return "file " + segFile.getAbsolutePath();
-                })
-                .filter(Objects::nonNull)
-                .map(s -> SystemUtils.IS_OS_WINDOWS ? s.replace("\\", "\\\\") : s)
-                .collect(Collectors.toList());
-
-        if (CollectionUtils.isEmpty(lines)) {
-            return false;
-        }
-
-        // 1. 写入merge.txt
-        try {
-            IOUtils.write(StringUtils.join(lines, "\n"), new FileOutputStream(mergeListFile), "utf-8");
-        } catch (IOException e) {
-            log.error("write merge list file fail, savePath: {}", mergeListFile.getAbsolutePath(), e);
-        }
+    public boolean concatWithSameVideo(List<String> mergedFps, File targetVideo) {
+        // 1. 写mergeList
+        File mergeListFile = saveMergeFileList(mergedFps, targetVideo);
 
         // 2. 使用FFmpeg合并视频
         String targetPath = targetVideo.getAbsolutePath();
@@ -72,6 +52,36 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                 " -c:v copy -c:a copy " + targetPath;
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(command);
         processCmd.execute(3 * 3600L);
+        return processCmd.isEndNormal();
+    }
+
+    @Override
+    public boolean concatDiffVideos(List<String> mergedFps, File targetVideo) {
+        List<String> processFps = Lists.newArrayList();
+        for (String fp : mergedFps) {
+            File processedFile = genProcessVideo(fp, targetVideo);
+            if (processedFile != null) {
+                processFps.add(processedFile.getAbsolutePath());
+            }
+        }
+
+        if (CollectionUtils.isEmpty(processFps)) {
+            return false;
+        }
+
+        // 1. 写mergeList
+        File mergeListFile = saveMergeFileList(processFps, targetVideo);
+
+        // 2. 执行合并
+        String command = "ffmpeg -y -loglevel error -f concat -safe 0 -i " + mergeListFile.getAbsolutePath() +
+                " -c copy -c:a aac " + targetVideo.getAbsolutePath();
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(command);
+        processCmd.execute(3 * 3600L);
+
+        // 3. 删除处理的中间文件
+        for (String fp : processFps) {
+            FileUtil.del(fp);
+        }
         return processCmd.isEndNormal();
     }
 
@@ -94,38 +104,10 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     }
 
     @Override
-    public boolean mergeMultiWithFade(List<List<String>> intervals, File targetVideo) {
-        // 单独一个不处理
-        if (intervals.size() == 1) {
-            return concatByDemuxer(intervals.get(0), targetVideo);
-        }
-
-        // 先合并小的seg文件
-        List<String> segVideoPaths = Lists.newArrayList();
-        for (int i = 0; i < intervals.size(); i++) {
-            if (i == 0) {
-                segVideoPaths.addAll(intervals.get(i));
-                continue;
-            }
-
-            // 针对片段开头的视频做淡入操作
-            List<String> interval = intervals.get(i);
-            for (int j = 0; j < interval.size(); j++) {
-                if (j == 0) {
-                    segVideoPaths.add(genFadeVideo(new File(interval.get(j))));
-                } else {
-                    segVideoPaths.add(interval.get(j));
-                }
-            }
-        }
-        return concatByProtocol(segVideoPaths, targetVideo);
-    }
-
-    @Override
     public boolean mergeMultiWithFadeV2(List<List<String>> intervals, File targetVideo, String title) {
         // 单独一个不处理
         if (intervals.size() == 1) {
-            return concatByDemuxer(intervals.get(0), targetVideo);
+            return concatWithSameVideo(intervals.get(0), targetVideo);
         }
         File tmpSaveDir = new File(targetVideo.getParent(), "tmp");
         if (!tmpSaveDir.exists()) {
@@ -135,7 +117,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         List<String> mergedPaths = Lists.newArrayList();
         for (int i = 0; i < intervals.size(); i++) {
             File tmpFile = new File((tmpSaveDir), "tmp-" + (i + 1) + ".ts");
-            boolean success = concatByDemuxer(intervals.get(i), tmpFile);
+            boolean success = concatWithSameVideo(intervals.get(i), tmpFile);
             if (success) {
                 if (i == 0) {
                     mergedPaths.add(genTitleVideo(tmpFile, title));
@@ -145,11 +127,47 @@ public class VideoMergeServiceImpl implements VideoMergeService {
             }
         }
 
-        boolean success = concatByDemuxer(mergedPaths, targetVideo);
+        boolean success = concatWithSameVideo(mergedPaths, targetVideo);
         if (success) {
             FileUtils.deleteQuietly(tmpSaveDir);
         }
         return success;
+    }
+
+
+    private File saveMergeFileList(List<String> mergedFileNames, File targetVideo) {
+        File mergeListFile = new File(targetVideo.getParent(), FileNameUtil.getPrefix(targetVideo) + "-merge.txt");
+        List<String> lines = mergedFileNames.stream()
+                .map(name -> {
+                    File segFile = new File(name);
+                    if (!segFile.exists()) {
+                        return null;
+                    }
+                    return "file " + segFile.getAbsolutePath();
+                })
+                .filter(Objects::nonNull)
+                .map(s -> SystemUtils.IS_OS_WINDOWS ? s.replace("\\", "\\\\") : s)
+                .collect(Collectors.toList());
+
+        // 写入merge.txt
+        try {
+            IOUtils.write(StringUtils.join(lines, "\n"), new FileOutputStream(mergeListFile), "utf-8");
+        } catch (IOException e) {
+            log.error("write merge list file fail, savePath: {}", mergeListFile.getAbsolutePath(), e);
+        }
+
+        return mergeListFile;
+    }
+
+    private File genProcessVideo(String filePath, File targetVideo) {
+        File originalFile = new File(filePath);
+        String processFileName = FileNameUtil.getPrefix(originalFile) + "-processd." + FileNameUtil.getSuffix(originalFile);
+        File processedFile = new File(targetVideo.getParent(), processFileName);
+
+        String command = "ffmpeg -y -loglevel error -i " + filePath + " -c copy -bsf:v h264_mp4toannexb -f mpegts " + processedFile.getAbsolutePath();
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(command);
+        processCmd.execute(3 * 3600L);
+        return processCmd.isEndNormal() ? processedFile : null;
     }
 
     private String genTitleVideo(File tmpFile, String title) {

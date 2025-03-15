@@ -124,10 +124,8 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         boolean success = videoMergeService.mergeMultiWithFadeV2(buildMergeFileNames(potentialIntervals, videos), highlightFile, title);
 
         // 5. 发消息
-        String msg = success ?
-                "合并视频完成！路径为：" + highlightFile.getAbsolutePath() :
-                "合并视频失败！路径为：" + highlightFile.getAbsolutePath();
-        msgSendService.sendText(msg);
+        String msgPrefix = success ? "合并视频完成！路径为：" : "合并视频失败！路径为：";
+        msgSendService.sendText(msgPrefix + highlightFile.getAbsolutePath());
 
         return success;
     }
@@ -146,13 +144,13 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
             snapShotDir.mkdir();
         }
 
+        int videoIndex = VideoFileUtil.genIndex(segFileName);
         File sourceFile = new File(recordPath, segFileName);
-        File targetFile = new File(snapShotDir, VideoFileUtil.genSnapshotName(VideoFileUtil.genIndex(segFileName)));
+        File targetFile = new File(snapShotDir, VideoFileUtil.genSnapshotName(videoIndex));
         if (targetFile.exists()) {
             log.info("target snap file existed, will skip, path: {}", targetFile.getAbsolutePath());
             return;
         }
-
 
         List<String> params = Lists.newArrayList(
                 "ffmpeg", "-y",
@@ -165,9 +163,11 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(StringUtils.join(params, " "), false, false);
         processCmd.execute(10);
         if (processCmd.isEndNormal()) {
-            log.info("get pic success, path: {}", sourceFile.getAbsolutePath());
+            if (videoIndex % 20 == 0) {
+                log.info("get pic success, path: {}", sourceFile.getAbsolutePath());
+            }
         } else {
-            log.info("get pic fail, path: {}", sourceFile.getAbsolutePath());
+            log.error("get pic fail, path: {}", sourceFile.getAbsolutePath());
         }
     }
 
@@ -323,7 +323,6 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         String ocrStr = JSON.parseObject(resp).getString("text");
         String score = JSON.parseObject(resp).getString("score");
         if (StringUtils.isBlank(ocrStr)) {
-            // 空字符传说明没有kda
             log.info("parse no kad, file: {}.", snapShotFile.getAbsolutePath());
             return BLANK_KADS;
         }

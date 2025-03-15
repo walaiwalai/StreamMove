@@ -9,16 +9,19 @@ import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.ExecutorPoolUtil;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.bili.BiliWebPreUploadCommand;
 import com.sh.engine.model.bili.web.BiliClientPreUploadParams;
 import com.sh.engine.processor.uploader.meta.BiliClientWorkMetaData;
+import com.sh.engine.service.process.VideoMergeService;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -40,13 +43,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -58,6 +59,8 @@ import java.util.stream.Collectors;
 public class BiliClientUploader extends Uploader {
     @Resource
     private MsgSendService msgSendService;
+    @Resource
+    private VideoMergeService videoMergeService;
 
     /**
      * 视频上传分块大小为5M
@@ -92,9 +95,46 @@ public class BiliClientUploader extends Uploader {
     }
 
     @Override
+    public void preProcess(String recordPath) {
+        // 特殊逻辑： 如果带有b站片头视频，再合成一份新的视频
+        String streamerName = StreamerInfoHolder.getCurStreamerName();
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
+        List<String> biliOpeningAnimations = streamerConfig.getBiliOpeningAnimations();
+        List<File> localFiles = FileUtils.listFiles(new File(recordPath), FileFilterUtils.suffixFileFilter("mp4"), null)
+                .stream()
+                .sorted(Comparator.comparingLong(File::lastModified))
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(biliOpeningAnimations) || CollectionUtils.isEmpty(localFiles)) {
+            return;
+        }
+
+        // 根据streamerName的hash随机取BiliOpeningAnimations的片头
+        int index = Math.abs(recordPath.hashCode() % biliOpeningAnimations.size());
+        String biliOpeningAnimation = biliOpeningAnimations.get(index);
+        File firstFile = localFiles.get(0);
+
+        // 目标合成视频
+        File exclusiveDir = new File(recordPath, getType());
+        if (!exclusiveDir.exists()) {
+            exclusiveDir.mkdirs();
+        }
+
+        File targetFile = new File(exclusiveDir, firstFile.getName());
+        if (targetFile.exists()) {
+            return;
+        }
+
+        // 合并视频片头
+        boolean success = videoMergeService.concatDiffVideos(
+                Lists.newArrayList(biliOpeningAnimation, firstFile.getAbsolutePath()), targetFile);
+        String msgPrefix = success ? "合并视频片头完成！路径为：" : "合并视频片头失败！路径为：";
+        msgSendService.sendText(msgPrefix + targetFile.getAbsolutePath());
+    }
+
+    @Override
     public boolean upload(String recordPath) throws Exception {
         // 0. 获取要上传的文件
-        List<File> localVideos = fetchLocalVideos(recordPath);
+        List<File> localVideos = fetchUploadVideos(recordPath);
         if (CollectionUtils.isEmpty(localVideos)) {
             return true;
         }
@@ -140,29 +180,31 @@ public class BiliClientUploader extends Uploader {
     /**
      * 获取要上传的视频
      *
-     * @param dirName 文件地址
+     * @param recordPath 文件地址
      * @return 要上传的视频
      */
-    private List<File> fetchLocalVideos(String dirName) {
+    private List<File> fetchUploadVideos(String recordPath) {
         long videoPartLimitSize = ConfigFetcher.getInitConfig().getVideoPartLimitSize() * 1024L * 1024L;
 
         // 遍历本地的视频文件
-        List<File> localVideos = FileUtils.listFiles(new File(dirName), FileFilterUtils.suffixFileFilter("mp4"), null)
+        List<File> allVideos = FileUtils.listFiles(new File(recordPath), FileFilterUtils.suffixFileFilter("mp4"), null)
                 .stream()
                 .sorted(Comparator.comparingLong(File::lastModified))
-                .map(file -> {
-                    if (FileUtil.size(file) < videoPartLimitSize) {
-                        return null;
-                    }
-                    return file;
-                })
-                .filter(Objects::nonNull)
+                .filter(file -> FileUtil.size(file) >= videoPartLimitSize)
                 .collect(Collectors.toList());
-        List<String> filePaths = localVideos.stream()
-                .map(File::getAbsolutePath)
-                .collect(Collectors.toList());
-        log.info("Final videoParts: {}", JSON.toJSONString(filePaths));
-        return localVideos;
+
+
+        // 专属文件夹(优先替换)
+        Collection<File> exclusiveFiles = FileUtils.listFiles(new File(recordPath, getType()), FileFilterUtils.suffixFileFilter("mp4"), null);
+        Map<String, File> exclusiveFileMap = exclusiveFiles.stream().collect(Collectors.toMap(File::getName, Function.identity(), (v1, v2) -> v2));
+
+        List<File> res = Lists.newArrayList();
+        for (File video : allVideos) {
+            File addVideo = exclusiveFileMap.getOrDefault(video.getName(), video);
+            res.add(addVideo);
+            log.info("Final added video: {}", addVideo.getAbsolutePath());
+        }
+        return res;
     }
 
     private RemoteSeverVideo uploadOnClient(File videoFile) throws Exception {

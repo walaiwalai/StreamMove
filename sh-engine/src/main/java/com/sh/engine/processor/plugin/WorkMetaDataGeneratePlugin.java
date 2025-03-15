@@ -19,7 +19,6 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * 作品元数据生成，上传到各个平台需要填写的元数据
@@ -48,6 +47,12 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
 
         // 2. 根据上传平台生成元数据
         for (String platform : uploadPlatforms) {
+            String metaFileName = UploaderFactory.getMetaFileName(platform);
+            File metaFile = new File(recordPath, metaFileName);
+            if (metaFile.exists()) {
+                log.info("{} video meta file existed, will skip", metaFile.getAbsolutePath());
+                continue;
+            }
             saveMetaData(platform, streamerConfig, recordPath);
         }
         return true;

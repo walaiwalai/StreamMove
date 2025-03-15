@@ -1,10 +1,8 @@
 package com.sh.engine.processor.uploader;
 
-import cn.hutool.core.io.FileUtil;
 import com.alibaba.fastjson.TypeReference;
 import com.microsoft.playwright.Page;
 import com.sh.config.manager.CacheManager;
-import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.engine.base.StreamerInfoHolder;
 import org.apache.commons.lang3.StringUtils;
@@ -32,6 +30,9 @@ public abstract class Uploader {
      */
     public abstract void setUp();
 
+    public void preProcess(String recordPath) {
+    }
+
     /**
      * 上传
      *
@@ -39,7 +40,7 @@ public abstract class Uploader {
      */
     public abstract boolean upload(String recordPath) throws Exception;
 
-    protected RemoteSeverVideo getUploadedVideo( File videoFile ) {
+    protected RemoteSeverVideo getUploadedVideo(File videoFile) {
         String path = videoFile.getAbsolutePath();
         String remoteFileName = cacheManager.getHash(buildFinishKey(), path, new TypeReference<String>() {
         });
@@ -47,7 +48,7 @@ public abstract class Uploader {
                 new RemoteSeverVideo(remoteFileName, path) : null;
     }
 
-    protected void saveUploadedVideo( RemoteSeverVideo remoteSeverVideo ) {
+    protected void saveUploadedVideo(RemoteSeverVideo remoteSeverVideo) {
         cacheManager.setHash(buildFinishKey(), remoteSeverVideo.getLocalFilePath(), remoteSeverVideo.getServerFileName());
     }
 
@@ -57,7 +58,8 @@ public abstract class Uploader {
 
     /**
      * 获取账号保存文件
-     * @return  账号文件
+     *
+     * @return 账号文件
      */
     protected File getAccoutFile() {
         return new File(accountSavePath, UploaderFactory.getAccountFileName(getType()));

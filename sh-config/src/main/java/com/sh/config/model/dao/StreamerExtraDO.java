@@ -1,6 +1,5 @@
 package com.sh.config.model.dao;
 
-import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -47,6 +46,11 @@ public class StreamerExtraDO {
          * 上传封面Url
          */
         private String cover;
+
+        /**
+         * 开场动画
+         */
+        private List<String> openingAnimations;
     }
 
     @Data

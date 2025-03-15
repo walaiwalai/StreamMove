@@ -56,6 +56,10 @@ public class StreamerDO {
      * 多少个频分片合成一个视频
      */
     private int segMergeCnt;
+
+    /**
+     * 单个视频最大合并大小（M）
+     */
     private int maxMergeSize;
 
     /**
@@ -73,10 +77,28 @@ public class StreamerDO {
      */
     private String desc;
 
+    /**
+     * 上传平台
+     *
+     * @see UploadPlatformEnum
+     */
     private String uploadPlatforms;
+
+    /**
+     * 处理插件
+     *
+     * @see ProcessPluginEnum
+     */
     private String processPlugins;
+
+    /**
+     * 视频标签
+     */
     private String tags;
 
+    /**
+     * 环境
+     */
     private String env;
 
     /**

@@ -3,11 +3,11 @@ package com.sh.engine.processor;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
-import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.base.StreamerInfoHolder;
+import com.sh.engine.constant.RecordStageEnum;
+import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
-import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.processor.uploader.Uploader;
 import com.sh.engine.processor.uploader.UploaderFactory;
 import com.sh.message.service.MsgSendService;
@@ -61,6 +61,7 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                 statusManager.lockRecordForSubmission(curRecordPath, platform);
                 boolean success = false;
                 try {
+                    service.preProcess(curRecordPath);
                     success = service.upload(curRecordPath);
                 } catch (Exception e) {
                     log.error("upload error, platform: {}", platform, e);

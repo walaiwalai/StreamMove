@@ -79,7 +79,7 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
                 success = true;
             } else {
                 // 合并视频
-                success = videoMergeService.concatByDemuxer(segNames, targetMergedVideo);
+                success = videoMergeService.concatWithSameVideo(segNames, targetMergedVideo);
             }
 
             if (success) {

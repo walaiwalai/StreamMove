@@ -95,11 +95,24 @@ public class StreamerConfig {
     private String coverFilePath;
 
     /**
-     * b站投稿相关
+     * b站来源
      */
     private String source;
+
+    /**
+     * b站投稿分区
+     */
     private Integer tid;
+
+    /**
+     * b站投稿封面
+     */
     private String cover;
+
+    /**
+     * b站投稿开片动画
+     */
+    private List<String> biliOpeningAnimations;
 
     /**
      * 抖音投稿相关
