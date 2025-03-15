@@ -101,58 +101,56 @@
     </insert>
 
     <!-- 更新语句（根据 name 修改各个字段） -->
-    <update id="updateByName" parameterType="com.sh.config.model.dao.StreamerDO">
+    <update id="updateByName">
         UPDATE `streamer`
         SET
-        <trim prefix="SET" suffixOverrides=",">
-            <if test="roomUrl != null">
-                `room_url` = #{roomUrl},
-            </if>
-            <if test="recordType != null">
-                `record_type` = #{recordType},
-            </if>
-            <if test="lastRecordTime != null">
-                `last_record_time` = #{lastRecordTime},
-            </if>
-            <if test="expireTime != null">
-                `expire_time` = #{expireTime},
-            </if>
-            <if test="lastVodCnt != null">
-                `last_vod_cnt` = #{lastVodCnt},
-            </if>
-            <if test="segMergeCnt != null">
-                `seg_merge_cnt` = #{segMergeCnt},
-            </if>
-            <if test="maxMergeSize != null">
-                `max_merge_size` = #{maxMergeSize},
-            </if>
-            <if test="templateTitle != null">
-                `template_title` = #{templateTitle},
-            </if>
-            <if test="coverpath != null">
-                `cover_path` = #{coverPath},
-            </if>
-            <if test="desc != null">
-                `desc` = #{desc},
-            </if>
-            <if test="uploadPlatforms != null">
-                `upload_platforms` = #{uploadPlatforms},
-            </if>
-            <if test="processPlugins != null">
-                `process_plugins` = #{processPlugins},
-            </if>
-            <if test="tags != null">
-                `tags` = #{tags},
-            </if>
-            <if test="env != null">
-                `env` = #{env},
-            </if>
-            <if test="extra != null">
-                `extra` = #{extra}
-            </if>
-        </trim>
-        WHERE
-        `name` = #{name}
+        <if test="updated.roomUrl != null">
+            `room_url` = #{updated.roomUrl},
+        </if>
+        <if test="updated.recordType != null">
+            `record_type` = #{updated.recordType},
+        </if>
+        <if test="updated.lastRecordTime != null">
+            `last_record_time` = #{updated.lastRecordTime},
+        </if>
+        <if test="updated.expireTime != null">
+            `expire_time` = #{updated.expireTime},
+        </if>
+        <if test="updated.lastVodCnt != null">
+            `last_vod_cnt` = #{updated.lastVodCnt},
+        </if>
+        <if test="updated.segMergeCnt != null">
+            `seg_merge_cnt` = #{updated.segMergeCnt},
+        </if>
+        <if test="updated.maxMergeSize != null">
+            `max_merge_size` = #{updated.maxMergeSize},
+        </if>
+        <if test="updated.templateTitle != null">
+            `template_title` = #{updated.templateTitle},
+        </if>
+        <if test="updated.coverPath != null">
+            `cover_path` = #{updated.coverPath},
+        </if>
+        <if test="updated.desc != null">
+            `desc` = #{updated.desc},
+        </if>
+        <if test="updated.uploadPlatforms != null">
+            `upload_platforms` = #{updated.uploadPlatforms},
+        </if>
+        <if test="updated.processPlugins != null">
+            `process_plugins` = #{updated.processPlugins},
+        </if>
+        <if test="updated.tags != null">
+            `tags` = #{updated.tags},
+        </if>
+        <if test="updated.env != null">
+            `env` = #{updated.env},
+        </if>
+        <if test="updated.extra != null">
+            `extra` = #{updated.extra},
+        </if>
+        gmt_modified = now()
+        WHERE name = #{name}
     </update>
 
     <update id="updateLastRecordTime">

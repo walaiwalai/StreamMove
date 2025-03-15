@@ -29,20 +29,21 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
 
 //    @PostConstruct
 //    public void init() {
-//        List<StreamerConfig> streamerConfigs = FileStoreUtil.loadFromFile(new File("/Users/caiwen/Documents/streamer.json"), new TypeReference<List<StreamerConfig>>() {
-//        });
-//        Date date = new Date();
-//        for (StreamerConfig config : streamerConfigs) {
-//            StreamerConfig saved = getByName(config.getName());
-//            if (saved != null) {
-//                log.info("streamer: {} already exists, skip", config.getName());
+//        List<StreamerConfig> streamerConfigs = getByEnv("shy");
+//        for (StreamerConfig streamerConfig : streamerConfigs) {
+//            List<String> videoPlugins = streamerConfig.getVideoPlugins();
+//            if (!videoPlugins.contains("LOL_HL_VOD_CUT")) {
 //                continue;
 //            }
-//            config.setExpireTime(DateUtils.addYears(date, 50));
-//            config.setLastRecordTime(date);
-//            insert(config, "o2");
-//            saved = getByName(config.getName());
-//            log.info("insert streamer: {} success, saved: {}", config.getName(), JSON.toJSONString(saved));
+//
+//            String name = streamerConfig.getName();
+//            streamerConfig.setBiliOpeningAnimations(
+//                    Lists.newArrayList()
+////                    Lists.newArrayList("/home/admin/stream/thumbnail/raybet3.mp4")
+//
+//            );
+//            updateByName(name, streamerConfig);
+//            log.info("{} updated success", name);
 //        }
 //    }
 
@@ -67,7 +68,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
     @Override
     public void updateByName(String name, StreamerConfig updated) {
         StreamerDO streamerDO = convertToStreamerDO(updated);
-        streamerMapper.updateByName(streamerDO);
+        streamerMapper.updateByName(name, streamerDO);
     }
 
     public void updateLastRecordTime(String name, Date lastRecordTime) {

@@ -20,36 +20,37 @@ public interface StreamerMapper {
      * @param name 流媒体名称
      * @return 流媒体信息
      */
-    StreamerDO selectByName( @Param("name") String name );
+    StreamerDO selectByName(@Param("name") String name);
 
     /**
      * 根据env批量查询
-      * @param env
+     *
+     * @param env
      * @return
      */
-    List<StreamerDO> batchSelectByEnv( @Param("env") String env );
+    List<StreamerDO> batchSelectByEnv(@Param("env") String env);
 
     /**
      * 插入新的流媒体信息
      *
      * @param streamerDO 流媒体信息对象
      */
-    void insert( StreamerDO streamerDO );
+    void insert(StreamerDO streamerDO);
 
     /**
      * 根据名称更新流媒体信息
      *
-     * @param streamerDO 流媒体信息对象
+     * @param updated 流媒体信息对象
      */
-    void updateByName( StreamerDO streamerDO );
+    void updateByName(@Param("name") String name, @Param("updated") StreamerDO updated);
 
-    void updateLastRecordTime( @Param("name") String name, @Param("lastRecordTime") Date lastRecordTime );
+    void updateLastRecordTime(@Param("name") String name, @Param("lastRecordTime") Date lastRecordTime);
 
     /**
      * 根据名称删除流媒体信息
      *
      * @param name 流媒体名称
      */
-    void deleteByName( @Param("name") String name );
+    void deleteByName(@Param("name") String name);
 }
 
