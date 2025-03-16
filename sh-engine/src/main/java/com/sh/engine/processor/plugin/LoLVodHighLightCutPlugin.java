@@ -1,6 +1,7 @@
 package com.sh.engine.processor.plugin;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
@@ -67,12 +68,18 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
     public static final List<Integer> BLANK_KADS = Lists.newArrayList(-1, -1, -1);
 
     /**
+     * 测试的kad大概位置
+     */
+    private static final String KAD_TEST_CORP_EXP = "crop=in_w/2:100:in_w/2:0";
+
+    /**
      * kda + 击杀细节 截图位置参数
      */
     private static final String KAD_CORP_EXP = "crop=80:30:in_w*867/1000:0";
     private static final String KILL_DETAIL_CORP_EXP = "crop=270:290:in_w*86/100:in_h*3/16";
 
     private static final String KAD_SNAPSHOT_DIR_NAME = "kda-snapshot";
+    private static final String KAD_TEST_SNAPSHOT_DIR_NAME = "kda-test-snapshot";
     private static final String DETAIL_SNAPSHOT_DIR_NAME = "detail-snapshot";
 
 
@@ -89,7 +96,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
             return true;
         }
 
-        Collection<File> videos = FileUtils.listFiles(new File(recordPath), new String[]{"ts"}, false)
+        List<File> videos = FileUtils.listFiles(new File(recordPath), new String[]{"ts"}, false)
                 .stream()
                 .sorted(Comparator.comparingInt(v -> VideoFileUtil.genIndex(v.getName())))
                 .collect(Collectors.toList());
@@ -100,9 +107,11 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
 
         // 1. 截图
+        String kadCorpExp = findAccurateKdaCorpExp(recordPath, videos);
+
         // 1.1 kda的截图
         for (File video : videos) {
-            doSnapShot(recordPath, video.getName(), KAD_SNAPSHOT_DIR_NAME, KAD_CORP_EXP);
+            doSnapShot(recordPath, video.getName(), KAD_SNAPSHOT_DIR_NAME, kadCorpExp);
         }
 
         // 1.2 ocr + 位置识别
@@ -134,8 +143,74 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         return new File(new File(recordPath, KAD_SNAPSHOT_DIR_NAME), VideoFileUtil.genSnapshotName(index)).getAbsolutePath();
     }
 
+    private String genKdaTestSnapshotPath(String recordPath, Integer index) {
+        return new File(new File(recordPath, KAD_TEST_SNAPSHOT_DIR_NAME), VideoFileUtil.genSnapshotName(index)).getAbsolutePath();
+    }
+
     private String genKillDetailSnapshotPath(String recordPath, Integer index) {
         return new File(new File(recordPath, DETAIL_SNAPSHOT_DIR_NAME), VideoFileUtil.genSnapshotName(index)).getAbsolutePath();
+    }
+
+    /**
+     * 找出精确的kda截图位置
+     *
+     * @param recordPath
+     * @param videos
+     * @return
+     */
+    private String findAccurateKdaCorpExp(String recordPath, List<File> videos) {
+//        File firstVideo = videos.get(0);
+//        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(firstVideo.getAbsolutePath());
+//        detectCmd.execute(10);
+//
+//        int width = detectCmd.getWidth();
+//        String testCorpExp = width / 2 + ":100:" + width / 2 + ":0";
+
+        for (int i = 0; i < videos.size(); i++) {
+            File video = videos.get(i);
+            if (i % 10 != 0) {
+                continue;
+            }
+            // 截图
+            doSnapShot(recordPath, video.getName(), KAD_TEST_SNAPSHOT_DIR_NAME, KAD_TEST_CORP_EXP);
+            String testPath = genKdaTestSnapshotPath(recordPath, VideoFileUtil.genIndex(video.getName()));
+            // 获取精确的kadbox
+            List<List<Integer>> kdaBoxes = detectKDABox(testPath);
+            if (CollectionUtils.isEmpty(kdaBoxes)) {
+                continue;
+            }
+            // 精确的裁剪参数
+            String corpExp = genAccurateCorpExpByBox(kdaBoxes);
+            if (StringUtils.isNotBlank(corpExp)) {
+                log.info("find accurate kda corp exp: {}", corpExp);
+                return corpExp;
+            }
+        }
+
+        return KAD_CORP_EXP;
+    }
+
+    private static String genAccurateCorpExpByBox(List<List<Integer>> boxes) {
+        if (boxes == null || boxes.size() != 4) {
+            log.error("The boxes list must contain exactly 4 points, boxes: {}", boxes);
+            return null;
+        }
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        for (List<Integer> point : boxes) {
+            int x = point.get(0);
+            int y = point.get(1);
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+        }
+
+        int width = maxX - minX + 15;
+        int height = maxY - minY + 5;
+        return String.format("crop=%d:%d:in_w/2+%d:%d", width, height, minX, minY);
     }
 
     private void doSnapShot(String recordPath, String segFileName, String snapshotDirName, String corpExp) {
@@ -360,5 +435,46 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
         log.info("parse detail image success, file: {}, labelIds: {}.", snapShotFile.getAbsolutePath(), JSON.toJSONString(labelIds));
         return new LoLPicData.HeroKillOrAssistDetail(boxes, labelIds);
+    }
+
+
+    private List<List<Integer>> detectKDABox(String filePath) {
+        File snapShotFile = new File(filePath);
+        if (!snapShotFile.exists()) {
+            return Lists.newArrayList();
+        }
+
+        MediaType mediaType = MediaType.parse("application/json");
+        Map<String, String> params = Maps.newHashMap();
+        params.put("path", filePath);
+        RequestBody body = RequestBody.create(mediaType, JSON.toJSONString(params));
+        Request request = new Request.Builder()
+                .url("http://" + ocrHost + ":" + ocrPort + "/ocrDet")
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .build();
+        String resp = OkHttpClientUtil.execute(request);
+        JSONArray detectArrays = JSON.parseArray(resp);
+        for (Object detectObj : detectArrays) {
+            JSONObject detObj = (JSONObject) detectObj;
+
+            String boxesStr = detObj.getString("boxes");
+            String ocrText = detObj.getString("text");
+            float score = detObj.getFloat("score");
+            if (isValidKadStr(ocrText)) {
+                List<List<Integer>> boxes = JSON.parseObject(boxesStr, new TypeReference<List<List<Integer>>>() {
+                });
+                log.info("find kda boxed success, boxes: {}, text: {}, confidence: {}.", boxesStr, ocrText, score);
+                return boxes;
+            }
+        }
+        return Lists.newArrayList();
+    }
+
+    private boolean isValidKadStr(String text) {
+        if (StringUtils.isBlank(text)) {
+            return false;
+        }
+        return StringUtils.split(text, "/").length == 3;
     }
 }
