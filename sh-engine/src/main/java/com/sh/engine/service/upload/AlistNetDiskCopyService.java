@@ -7,7 +7,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
-import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.LocalCacheManager;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.base.StreamerInfoHolder;
@@ -54,6 +53,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
         UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.BAIDU_PAN.getType(), "/百度网盘");
         UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.ALI_PAN.getType(), "/阿里云盘");
         UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.QUARK_PAN.getType(), "/夸克云盘");
+        UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.UC_PAN.getType(), "/UC网盘");
     }
 
     @Override
@@ -64,6 +64,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
 
     /**
      * 从本地存储拷贝到目标网盘
+     *
      * @param platform
      * @param targetFile
      * @return 任务id
