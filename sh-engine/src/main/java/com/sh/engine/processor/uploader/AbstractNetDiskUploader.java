@@ -32,7 +32,7 @@ public abstract class AbstractNetDiskUploader extends Uploader {
         if (!isExisted) {
             throw new StreamerRecordException(ErrorEnum.INVALID_PARAM);
         }
-        log.info("uc pan uploader init success");
+        log.info(getType() + " uploader init success");
     }
 
     @Override

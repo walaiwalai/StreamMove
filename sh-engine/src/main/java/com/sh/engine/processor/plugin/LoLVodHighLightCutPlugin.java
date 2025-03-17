@@ -159,13 +159,6 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
      * @return
      */
     private String findAccurateKdaCorpExp(String recordPath, List<File> videos) {
-//        File firstVideo = videos.get(0);
-//        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(firstVideo.getAbsolutePath());
-//        detectCmd.execute(10);
-//
-//        int width = detectCmd.getWidth();
-//        String testCorpExp = width / 2 + ":100:" + width / 2 + ":0";
-
         for (int i = 0; i < videos.size(); i++) {
             File video = videos.get(i);
             if (i % 10 != 0) {
@@ -208,9 +201,9 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
             maxY = Math.max(maxY, y);
         }
 
-        int width = maxX - minX + 15;
-        int height = maxY - minY + 5;
-        return String.format("crop=%d:%d:in_w/2+%d:%d", width, height, minX, minY);
+        int width = maxX - minX;
+        int height = maxY - minY;
+        return String.format("crop=%d:%d:in_w/2+%d:%d", width + 20, height + 10, minX, minY - 5);
     }
 
     private void doSnapShot(String recordPath, String segFileName, String snapshotDirName, String corpExp) {
@@ -453,19 +446,26 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
                 .post(body)
                 .addHeader("Content-Type", "application/json")
                 .build();
-        String resp = OkHttpClientUtil.execute(request);
+
+        String resp;
+        try {
+            resp = OkHttpClientUtil.execute(request);
+        } catch (Exception e) {
+            log.error("detect kda box error, file: {}.", snapShotFile.getAbsolutePath(), e);
+            return Lists.newArrayList();
+        }
         JSONArray detectArrays = JSON.parseArray(resp);
         for (Object detectObj : detectArrays) {
             JSONObject detObj = (JSONObject) detectObj;
 
-            String boxesStr = detObj.getString("boxes");
+            List<Integer> boxes = detObj.getJSONArray("boxes").toJavaList(Integer.class);
             String ocrText = detObj.getString("text");
             float score = detObj.getFloat("score");
             if (isValidKadStr(ocrText)) {
-                List<List<Integer>> boxes = JSON.parseObject(boxesStr, new TypeReference<List<List<Integer>>>() {
-                });
-                log.info("find kda boxed success, boxes: {}, text: {}, confidence: {}.", boxesStr, ocrText, score);
-                return boxes;
+                List<List<Integer>> fourPoints = Lists.partition(boxes, 2);
+                log.info("find kda boxed success, boxes: {}, text: {}, confidence: {}.",
+                        JSON.toJSONString(fourPoints), ocrText, score);
+                return fourPoints;
             }
         }
         return Lists.newArrayList();

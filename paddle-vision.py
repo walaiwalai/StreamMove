@@ -57,32 +57,20 @@ async def ocr(request: Request):
     path = data['path']
     im = cv2.imread(path)
 
+    result_list = []
     try:
-        result = str(ppocr_v3.predict(im))
+        result = ppocr_v3.predict(im)
     except:
         print("fuck")
-        result = ""
+        return result_list
 
-    result_list = []
-    lines = result.strip().split('\n')
+    size = min(len(result.text), len(result.boxes), len(result.rec_scores))
+    for i in range(size):
+        text_str = result.text[i]
+        boxes = result.boxes[i]
+        score = float(result.rec_scores[i])
+        result_list.append({"boxes": boxes,"text": text_str,"score": score})
 
-    for line in lines:
-        # 提取检测框信息
-        start_box = line.find("[[")
-        end_box = line.find("]]") + 2
-        box_str = line[start_box:end_box]
-        box = eval(box_str)
-
-        # 提取识别文本信息
-        start_text = line.find("rec text: ") + len("rec text: ")
-        end_text = line.find(" rec score:")
-        text_str = line[start_text:end_text]
-
-        # 提取识别得分信息
-        start_score = line.find("rec score:") + len("rec score:")
-        score_str = line[start_score:].strip()
-        score = float(score_str)
-        result_list.append({"boxes": box,"text": text_str,"score": score})
     return result_list
 
 @app.post('/lolKillVisDet')
