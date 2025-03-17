@@ -112,7 +112,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
         JSONObject dataObj = respObj.getJSONObject("data");
         if (dataObj == null) {
             log.info("taskId: {} not found", taskId);
-            return false;
+            return true;
         } else {
             log.info("progress for {} is {}/100", taskId, dataObj.getFloat("progress"));
             return dataObj.getInteger("state") == 2 && StringUtils.isNotBlank(dataObj.getString("end_time"));
