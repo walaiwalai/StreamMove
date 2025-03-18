@@ -109,14 +109,14 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         if (intervals.size() == 1) {
             return concatWithSameVideo(intervals.get(0), targetVideo);
         }
-        File tmpSaveDir = new File(targetVideo.getParent(), "tmp");
+        File tmpSaveDir = new File(targetVideo.getParent(), "tmp-h");
         if (!tmpSaveDir.exists()) {
             tmpSaveDir.mkdir();
         }
 
         List<String> mergedPaths = Lists.newArrayList();
         for (int i = 0; i < intervals.size(); i++) {
-            File tmpFile = new File((tmpSaveDir), "tmp-" + (i + 1) + ".ts");
+            File tmpFile = new File(tmpSaveDir, "tmp-" + (i + 1) + ".ts");
             boolean success = concatWithSameVideo(intervals.get(i), tmpFile);
             if (success) {
                 if (i == 0) {
@@ -124,13 +124,14 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                 } else {
                     mergedPaths.add(genFadeVideo(tmpFile));
                 }
+                FileUtils.deleteQuietly(tmpFile);
             }
         }
 
         boolean success = concatWithSameVideo(mergedPaths, targetVideo);
-        if (success) {
-            FileUtils.deleteQuietly(tmpSaveDir);
-        }
+//        if (success) {
+//            FileUtils.deleteQuietly(tmpSaveDir);
+//        }
         return success;
     }
 

@@ -61,7 +61,11 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                 statusManager.lockRecordForSubmission(curRecordPath, platform);
                 boolean success = false;
                 try {
-                    service.preProcess(curRecordPath);
+                    try {
+                        service.preProcess(curRecordPath);
+                    } catch (Exception e) {
+                        log.error("pre process error, platform: {}", platform, e);
+                    }
                     success = service.upload(curRecordPath);
                 } catch (Exception e) {
                     log.error("upload error, platform: {}", platform, e);

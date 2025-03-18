@@ -100,18 +100,10 @@ public class BiliClientUploader extends Uploader {
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
         List<String> biliOpeningAnimations = streamerConfig.getBiliOpeningAnimations();
-        List<File> localFiles = FileUtils.listFiles(new File(recordPath), FileFilterUtils.suffixFileFilter("mp4"), null)
-                .stream()
-                .sorted(Comparator.comparingLong(File::lastModified))
-                .collect(Collectors.toList());
-        if (CollectionUtils.isEmpty(biliOpeningAnimations) || CollectionUtils.isEmpty(localFiles)) {
+        File highlightTmpDir = new File(recordPath, "tmp-h");
+        if (CollectionUtils.isEmpty(biliOpeningAnimations) || !highlightTmpDir.exists()) {
             return;
         }
-
-        // 根据streamerName的hash随机取BiliOpeningAnimations的片头
-        int index = Math.abs(recordPath.hashCode() % biliOpeningAnimations.size());
-        String biliOpeningAnimation = biliOpeningAnimations.get(index);
-        File firstFile = localFiles.get(0);
 
         // 目标合成视频
         File exclusiveDir = new File(recordPath, getType());
@@ -119,14 +111,25 @@ public class BiliClientUploader extends Uploader {
             exclusiveDir.mkdirs();
         }
 
-        File targetFile = new File(exclusiveDir, firstFile.getName());
+        File targetFile = new File(exclusiveDir, RecordConstant.LOL_HL_VIDEO);
         if (targetFile.exists()) {
             return;
         }
 
+        // 根据streamerName的hash随机取BiliOpeningAnimations的片头
+        int index = Math.abs(recordPath.hashCode() % biliOpeningAnimations.size());
+        String biliOpeningAnimation = biliOpeningAnimations.get(index);
+        List<String> localFps = FileUtils.listFiles(highlightTmpDir, FileFilterUtils.suffixFileFilter("ts"), null)
+                .stream()
+                .sorted(Comparator.comparingLong(File::lastModified))
+                .map(File::getAbsolutePath)
+                .collect(Collectors.toList());
+        int insertIndex = localFps.size() / 4;
+        localFps.add(insertIndex, biliOpeningAnimation);
+
+
         // 合并视频片头
-        boolean success = videoMergeService.concatDiffVideos(
-                Lists.newArrayList(biliOpeningAnimation, firstFile.getAbsolutePath()), targetFile);
+        boolean success = videoMergeService.concatDiffVideos(localFps, targetFile);
         String msgPrefix = success ? "合并视频片头完成！路径为：" : "合并视频片头失败！路径为：";
         msgSendService.sendText(msgPrefix + targetFile.getAbsolutePath());
     }
