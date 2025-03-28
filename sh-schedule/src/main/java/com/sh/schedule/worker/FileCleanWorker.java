@@ -16,7 +16,6 @@ import org.quartz.JobExecutionContext;
 import org.springframework.core.env.Environment;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
@@ -51,8 +50,8 @@ public class FileCleanWorker extends ProcessWorker {
                     }
                     log.info("Begin to delete file {}", curRecordPath);
                     FileUtils.deleteDirectory(new File(curRecordPath));
-                } catch (IOException e) {
-                    log.error("fuck!", e);
+                } catch (Exception e) {
+                    log.error("fuck!, recordPath: {}", curRecordPath, e);
                 } finally {
                     StreamerInfoHolder.clear();
                 }
