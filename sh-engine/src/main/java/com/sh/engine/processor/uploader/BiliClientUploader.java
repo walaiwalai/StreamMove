@@ -124,7 +124,8 @@ public class BiliClientUploader extends Uploader {
                 .sorted(Comparator.comparingLong(File::lastModified))
                 .map(File::getAbsolutePath)
                 .collect(Collectors.toList());
-        int insertIndex = localFps.size() / 4;
+        int insertIndex = 0;
+//        int insertIndex = localFps.size() / 4;
         localFps.add(insertIndex, biliOpeningAnimation);
 
 

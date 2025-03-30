@@ -84,7 +84,6 @@ public class StreamLinkCheckCmd extends AbstractCmd {
     }
 
     public static void main(String[] args) {
-//        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("https://www.huya.com/chuhe");
         StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("https://www.twitch.tv/videos/2374769396");
         checkCmd.execute(10);
 
