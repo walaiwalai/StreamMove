@@ -57,17 +57,14 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
 
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
-        int batchSize;
+        List<List<Integer>> indexParts;
         if (streamerConfig.getMaxMergeSize() > 0) {
-            // 计算搜友的tsFiles的size综合
-            long totalSize = tsFiles.stream()
-                    .mapToLong(File::length)
-                    .sum();
-            batchSize = tsFiles.size() / ((int) Math.ceil((double) totalSize / 1024 / 1024 / streamerConfig.getMaxMergeSize()));
+            // 按照视频大小划分分片
+            indexParts = splitByVideoSize(recordPath, segIndexes, streamerConfig.getMaxMergeSize());
         } else {
-            batchSize = Math.max(streamerConfig.getSegMergeCnt(), BATCH_RECORD_TS_COUNT);
+            indexParts = Lists.partition(segIndexes, BATCH_RECORD_TS_COUNT);
         }
-        for (List<Integer> batchIndexes : Lists.partition(segIndexes, batchSize)) {
+        for (List<Integer> batchIndexes : indexParts) {
             File targetMergedVideo = new File(recordPath, "P" + videoIndex + ".mp4");
             List<String> segNames = batchIndexes.stream()
                     .map(i -> new File(recordPath, VideoFileUtil.genSegName(i)))
@@ -101,5 +98,42 @@ public class BatchSegVideoMergePlugin implements VideoProcessPlugin {
             File file = new File(segName);
             FileUtils.deleteQuietly(file);
         }
+    }
+
+    /**
+     * 根据视频大小进行分片
+     *
+     * @param recordPath
+     * @param segIndexes
+     * @param maxVideoSize
+     * @return
+     */
+    private List<List<Integer>> splitByVideoSize(String recordPath, List<Integer> segIndexes, int maxVideoSize) {
+        long sizeLimitPerVideo = (long) (maxVideoSize * 1024L * 1024L * 0.8);
+        List<List<Integer>> indexParts = Lists.newArrayList();
+        List<Integer> currentBatch = Lists.newArrayList();
+        long curSize = 0L;
+
+        for (Integer segIndex : segIndexes) {
+            File tsFile = new File(recordPath, VideoFileUtil.genSegName(segIndex));
+            if (!tsFile.exists()) {
+                continue;
+            }
+
+            long fileSize = tsFile.length();
+            if (curSize + fileSize > sizeLimitPerVideo) {
+                indexParts.add(currentBatch);
+                currentBatch = Lists.newArrayList();
+                curSize = 0L;
+            }
+
+            currentBatch.add(segIndex);
+            curSize += fileSize;
+        }
+
+        if (!currentBatch.isEmpty()) {
+            indexParts.add(currentBatch);
+        }
+        return indexParts;
     }
 }
