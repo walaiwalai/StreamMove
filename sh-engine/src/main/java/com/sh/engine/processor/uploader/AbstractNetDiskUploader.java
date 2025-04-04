@@ -13,6 +13,8 @@ import org.apache.commons.io.FileUtils;
 import javax.annotation.Resource;
 import java.io.File;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.stream.Collectors;
 
 /**
  * @Author caiwen
@@ -38,7 +40,9 @@ public abstract class AbstractNetDiskUploader extends Uploader {
     @Override
     public boolean upload(String recordPath) throws Exception {
         UploadPlatformEnum uploadPlatformEnum = UploadPlatformEnum.of(getType());
-        Collection<File> files = FileUtils.listFiles(new File(recordPath), new String[]{"mp4"}, false);
+        Collection<File> files = FileUtils.listFiles(new File(recordPath), new String[]{"mp4"}, false).stream()
+                .sorted(Comparator.comparingLong(File::lastModified))
+                .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(files)) {
             return true;
         }

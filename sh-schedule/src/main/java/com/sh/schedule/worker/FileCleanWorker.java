@@ -45,9 +45,6 @@ public class FileCleanWorker extends ProcessWorker {
                         // 没有上传的
                         continue;
                     }
-                    if (statusManager.isPathOccupied(curRecordPath)) {
-                        continue;
-                    }
                     log.info("Begin to delete file {}", curRecordPath);
                     FileUtils.deleteDirectory(new File(curRecordPath));
                 } catch (Exception e) {

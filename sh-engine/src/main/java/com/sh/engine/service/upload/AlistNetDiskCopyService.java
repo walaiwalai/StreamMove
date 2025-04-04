@@ -113,10 +113,9 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
         if (dataObj == null) {
             log.info("taskId: {} not found", taskId);
             return true;
-        } else {
-            log.info("progress for {} is {}/100", taskId, dataObj.getFloat("progress"));
-            return dataObj.getInteger("state") == 2 && StringUtils.isNotBlank(dataObj.getString("end_time"));
         }
+        log.info("progress for {} is {}/100", taskId, dataObj.getFloat("progress"));
+        return dataObj.getInteger("state") == 2 && StringUtils.isNotBlank(dataObj.getString("end_time"));
     }
 
     private String createFolder(UploadPlatformEnum platform, String recordPath) {

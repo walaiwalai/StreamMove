@@ -7,8 +7,8 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.LocalCacheManager;
+import com.sh.config.utils.EnvUtil;
 import com.sh.config.utils.FileStoreUtil;
-import com.sh.config.utils.PictureFileUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
@@ -57,8 +57,10 @@ public class DouyinUploader extends Uploader {
 
     @Override
     public void setUp() {
-        // cookies有效性检测
-        if (!checkAccountValid()) {
+        if (checkAccountValid()) {
+            return;
+        }
+        if (!EnvUtil.isProd()) {
             genCookies();
         }
     }
@@ -351,60 +353,61 @@ public class DouyinUploader extends Uploader {
             // 访问指定的 URL
             page.navigate("https://creator.douyin.com/", new Page.NavigateOptions().setTimeout(20000));
 
-            // 查找二维码元素并获取其 src 属性
-            Locator imgElement = page.locator("div.account-qrcode-QvXsyd div.qrcode-image-QrGzx7 img:first-child");
-            imgElement.waitFor(new Locator.WaitForOptions().setTimeout(10000));
-            String imgElementSrc = imgElement.getAttribute("src");
-
-            // 保存二维码图片
-            File qrCodeFile = new File(accountSavePath, UploaderFactory.getQrCodeFileName(getType()));
-            PictureFileUtil.saveBase64Image(imgElementSrc, qrCodeFile);
-            msgSendService.sendText("需要扫码验证，扫描下方二维码");
-            msgSendService.sendImage(qrCodeFile);
-
-            int num = 1;
-            while (true) {
-                // 等待 3 秒
-                page.waitForTimeout(3000);
-
-                // 检查是否已登录
-                if (page.url().contains("creator.douyin.com/creator-micro/home")) {
-                    break;
-                }
-
-                // 检查是否需要身份验证
-                Locator authDiv = page.locator("text=身份验证");
-                if (authDiv.isVisible()) {
-                    // 需要短信验证码验证
-                    page.locator("text=接收短信验证").click();
-                    page.waitForTimeout(1000);
-                    page.locator("text=获取验证码").click();
-                    msgSendService.sendText("微信视频号需要进行验证码验证，验证码已发出，请在60s内在微应用回复验证码");
-
-                    int numTwo = 1;
-                    while (true) {
-                        page.waitForTimeout(3000);
-                        // 检查缓存中是否有验证码
-                        String authNumber = cacheManager.get(AUTH_CODE_KEY, new TypeReference<String>() {
-                        });
-                        if (authNumber != null) {
-                            page.locator("input[placeholder='请输入验证码']").nth(1).fill(authNumber);
-                            page.getByText("验证", new Page.GetByTextOptions().setExact(true)).filter().click();
-                            page.waitForTimeout(2000);
-
-                            break;
-                        }
-                        if (numTwo > 20) {
-                            break;
-                        }
-                        numTwo++;
-                    }
-                }
-                if (num > 13) {
-                    break;
-                }
-                num++;
-            }
+//            // 查找二维码元素并获取其 src 属性
+//            Locator imgElement = page.locator("div.account-qrcode-QvXsyd div.qrcode-image-QrGzx7 img:first-child");
+//            imgElement.waitFor(new Locator.WaitForOptions().setTimeout(10000));
+//            String imgElementSrc = imgElement.getAttribute("src");
+//
+//            // 保存二维码图片
+//            File qrCodeFile = new File(accountSavePath, UploaderFactory.getQrCodeFileName(getType()));
+//            PictureFileUtil.saveBase64Image(imgElementSrc, qrCodeFile);
+//            msgSendService.sendText("需要扫码验证，扫描下方二维码");
+//            msgSendService.sendImage(qrCodeFile);
+//
+//            int num = 1;
+//            while (true) {
+//                // 等待 3 秒
+//                page.waitForTimeout(3000);
+//
+//                // 检查是否已登录
+//                if (page.url().contains("creator.douyin.com/creator-micro/home")) {
+//                    break;
+//                }
+//
+//                // 检查是否需要身份验证
+//                Locator authDiv = page.locator("text=身份验证");
+//                if (authDiv.isVisible()) {
+//                    // 需要短信验证码验证
+//                    page.locator("text=接收短信验证").click();
+//                    page.waitForTimeout(1000);
+//                    page.locator("text=获取验证码").click();
+//                    msgSendService.sendText("微信视频号需要进行验证码验证，验证码已发出，请在60s内在微应用回复验证码");
+//
+//                    int numTwo = 1;
+//                    while (true) {
+//                        page.waitForTimeout(3000);
+//                        // 检查缓存中是否有验证码
+//                        String authNumber = cacheManager.get(AUTH_CODE_KEY, new TypeReference<String>() {
+//                        });
+//                        if (authNumber != null) {
+//                            page.locator("input[placeholder='请输入验证码']").nth(1).fill(authNumber);
+//                            page.getByText("验证", new Page.GetByTextOptions().setExact(true)).filter().click();
+//                            page.waitForTimeout(2000);
+//
+//                            break;
+//                        }
+//                        if (numTwo > 20) {
+//                            break;
+//                        }
+//                        numTwo++;
+//                    }
+//                }
+//                if (num > 13) {
+//                    break;
+//                }
+//                num++;
+//            }
+            page.pause();
 
             // 获取 cookie
             List<Cookie> cookies = context.cookies();
