@@ -35,12 +35,10 @@ public class InitConfig {
     /**
      * 投稿时忽略小于此大小的文件(M)
      */
-    private Integer videoPartLimitSize = 100;
+    private Integer videoPartLimitSize = 0;
 
     // *********************twitchApi请求header Authorization**********************
     private String twitchAuthorization;
-    private String soopUserName;
-    private String soopPassword;
 
     // *********************小红书cookies**********************
     private String xhsCookies;
@@ -48,19 +46,13 @@ public class InitConfig {
     // *********************youtube的cookies**********************
     private String youtubeCookies;
 
-    // *********************youtube的cookies**********************
-
-    private String soopliveCookies;
+    // *********************sooplive的cookies**********************
+    private String soopCookies;
+    private String soopUserName;
+    private String soopPassword;
 
     // *********************B站视频上传**********************
     private String biliCookies;
     private String accessToken;
     private Long mid;
-    // *********************阿里云云盘上传**********************
-    private String refreshToken;
-    private String targetFileId = "root";
-
-    // *********************用户登录小关**********************
-    private String phoneNumber;
-    private String password;
 }

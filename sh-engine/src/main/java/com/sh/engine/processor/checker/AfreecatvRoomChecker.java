@@ -87,8 +87,8 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
                 .post(body)
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
                 .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
-        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getSoopliveCookies())) {
-            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getSoopliveCookies());
+        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getSoopCookies())) {
+            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getSoopCookies());
         }
 
         List<VideoSegRecorder.TsRecordInfo> views = Lists.newArrayList();

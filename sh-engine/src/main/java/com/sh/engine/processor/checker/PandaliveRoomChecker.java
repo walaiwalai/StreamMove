@@ -10,14 +10,12 @@ import org.springframework.stereotype.Component;
 import java.util.Date;
 
 /**
- * 参考：https://github.com/ihmily/DouyinLiveRecorder
- *
- * @author caiWen
- * @date 2023/1/23 13:39
- */
+ * @Author caiwen
+ * @Date 2025 04 04 22 42
+ **/
 @Component
 @Slf4j
-public class HuyaRoomChecker extends AbstractRoomChecker {
+public class PandaliveRoomChecker extends AbstractRoomChecker {
     @Override
     public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
         String roomUrl = streamerConfig.getRoomUrl();
@@ -29,6 +27,6 @@ public class HuyaRoomChecker extends AbstractRoomChecker {
 
     @Override
     public StreamChannelTypeEnum getType() {
-        return StreamChannelTypeEnum.HUYA;
+        return StreamChannelTypeEnum.PANDA_LIVE;
     }
 }

@@ -51,6 +51,12 @@ public enum StreamChannelTypeEnum {
      * youTube
      */
     YOUTUBE(10, "youTube", "youtube.com"),
+
+    /**
+     * pandalive
+     */
+    PANDA_LIVE(11, "pandalive", "pandalive.co.kr"),
+
     ;
 
     private int type;

@@ -21,7 +21,6 @@ import java.util.Map;
  *
  * @Author caiwen
  * @Date 2024 03 17 14 18
- * https://github.com/streamlink/streamlink/blob/master/src/streamlink/plugins/chzzk.py#L101
  **/
 @Component
 @Slf4j
