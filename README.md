@@ -82,13 +82,15 @@ system.env.flag=default
   "videoSavePath": "/home/admin/stream/download",
   "accountSavePath": "/home/admin/stream/account",
   "videoPartLimitSize": 10,
-  "biliCookies": "${哔哩哔哩网页端的cookies}",
-  "accessToken": "${哔哩哔哩投稿工具客户端的accessToken}",
-  "mid": "${哔哩哔哩投稿工具客户端的mid}",
   "twitchAuthorization": "${twitch的authorization}",
+  "xhsCookies": "${小红书的cookies}",
+  "youtubeCookies": "${youtube的cookies}",
   "soopliveCookies": "${sooplive网站的cookies}",
   "soopUserName": "${sooplive网站的用户名}",
-  "soopPassword": "${sooplive网站的密码}"
+  "soopPassword": "${sooplive网站的密码}",
+  "biliCookies": "${哔哩哔哩网页端的cookies}",
+  "accessToken": "${哔哩哔哩投稿工具客户端的accessToken}",
+  "mid": "${哔哩哔哩投稿工具客户端的mid}"
 }
 ```
 
