@@ -57,16 +57,21 @@ public enum StreamChannelTypeEnum {
      */
     PANDA_LIVE(11, "pandalive", "pandalive.co.kr"),
 
+    /**
+     * 淘宝
+     */
+    TAOBAO(12, "淘宝", "tb.cn"),
+
     ;
 
     private int type;
     private String desc;
-    private String regex;
+    private String url;
 
-    StreamChannelTypeEnum(int type, String desc, String regex) {
+    StreamChannelTypeEnum(int type, String desc, String url) {
         this.type = type;
         this.desc = desc;
-        this.regex = regex;
+        this.url = url;
     }
 
     public int getType() {
@@ -85,12 +90,12 @@ public enum StreamChannelTypeEnum {
         this.desc = desc;
     }
 
-    public String getRegex() {
-        return regex;
+    public String getUrl() {
+        return url;
     }
 
-    public void setRegex(String regex) {
-        this.regex = regex;
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     /**
@@ -104,7 +109,7 @@ public enum StreamChannelTypeEnum {
             return null;
         }
         for (StreamChannelTypeEnum channelEnum : StreamChannelTypeEnum.values()) {
-            if (url.contains(channelEnum.getRegex())) {
+            if (url.contains(channelEnum.getUrl())) {
                 return channelEnum;
             }
         }

@@ -51,6 +51,9 @@ public class InitConfig {
     private String soopUserName;
     private String soopPassword;
 
+    // *********************淘宝直播**********************
+    private String taobaoCookies;
+
     // *********************B站视频上传**********************
     private String biliCookies;
     private String accessToken;

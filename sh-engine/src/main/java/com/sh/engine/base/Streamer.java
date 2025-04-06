@@ -1,15 +1,15 @@
 package com.sh.engine.base;
 
-import com.sh.engine.constant.StreamChannelTypeEnum;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
 public class Streamer {
+    /**
+     * 主播名称
+     */
     private String name;
-
-    private StreamChannelTypeEnum channel;
 
     /**
      * 当前streamer的录像文件，可能有多个

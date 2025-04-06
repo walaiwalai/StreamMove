@@ -77,6 +77,11 @@ public enum ErrorEnum {
      */
     CMD_EXECUTE_ERROR(14, "cmd execute error"),
 
+    /**
+     * 直播房间检查参数错误
+     */
+    ROOM_CHECK_PARAM_ERROR(15, "room check param error"),
+
 
     ;
     private int errorCode;

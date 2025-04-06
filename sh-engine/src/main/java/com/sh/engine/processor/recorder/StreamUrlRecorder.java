@@ -60,7 +60,7 @@ public class StreamUrlRecorder extends Recorder {
                 "-v verbose",
                 "-loglevel error",
                 "-hide_banner",
-                "-i", streamUrl,
+                "-i", "\"" + streamUrl + "\"",
                 "-bufsize 10000k",
                 "-c:v copy -c:a copy -c:s mov_text",
                 "-map 0",
