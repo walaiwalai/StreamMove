@@ -98,14 +98,28 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
 
         String resp = OkHttpClientUtil.execute(request);
         try {
-            JSONArray items = JSON.parseArray(resp).getJSONObject(0)
+            JSONArray items = new JSONArray();
+            JSONArray edges = JSON.parseArray(resp).getJSONObject(0)
                     .getJSONObject("data")
                     .getJSONObject("user")
                     .getJSONObject("videoShelves")
-                    .getJSONArray("edges")
-                    .getJSONObject(0)
-                    .getJSONObject("node")
-                    .getJSONArray("items");
+                    .getJSONArray("edges");
+            for (int i = 0; i < edges.size(); i++) {
+                JSONObject edgeObj = edges.getJSONObject(i);
+                JSONObject nodeObj = edgeObj.getJSONObject("node");
+                if (!"ALL_VIDEOS".equals(nodeObj.getString("type"))) {
+                    continue;
+                }
+                items = nodeObj.getJSONArray("items");
+            }
+//            JSONArray items = JSON.parseArray(resp).getJSONObject(0)
+//                    .getJSONObject("data")
+//                    .getJSONObject("user")
+//                    .getJSONObject("videoShelves")
+//                    .getJSONArray("edges")
+//                    .getJSONObject(0)
+//                    .getJSONObject("node")
+//                    .getJSONArray("items");
             List<VideoShelvesItem> videoShelvesItems = JSON.parseArray(items.toJSONString(), VideoShelvesItem.class);
             VideoShelvesItem latestItem = videoShelvesItems.stream()
                     .max(Comparator.comparing(video -> Instant.parse(video.getPublishedAt())))
