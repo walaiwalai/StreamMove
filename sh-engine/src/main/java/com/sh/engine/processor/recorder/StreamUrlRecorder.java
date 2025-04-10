@@ -1,8 +1,6 @@
 package com.sh.engine.processor.recorder;
 
 import com.google.common.collect.Lists;
-import com.sh.config.exception.ErrorEnum;
-import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
@@ -33,16 +31,20 @@ public class StreamUrlRecorder extends Recorder {
     }
 
     private void recordOnline(String savePath) {
-        log.info("living stream record begin, savePath: {}, retry: {}/{}", savePath, 1, RecordConstant.RECORD_RETRY_CNT);
-        FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
-        // 执行录制，长时间
-        rfCmd.execute(24 * 3600L);
-
-        if (!rfCmd.isExitNormal()) {
-            log.error("living stream record fail, savePath: {}", savePath);
-            throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);
+        int totalCnt = RecordConstant.RECORD_RETRY_CNT;
+        for (int i = 0; i < 3; i++) {
+            log.info("living stream record begin, savePath: {}, retry: {}/{}", savePath, i + 1, 3);
+            FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
+            // 执行录制，长时间
+            rfCmd.execute(24 * 3600L);
+            if (rfCmd.isExitNormal()) {
+                log.info("living stream record end, savePath: {}", savePath);
+                break;
+            } else {
+                log.error("living stream record fail, savePath: {}", savePath);
+                continue;
+            }
         }
-        log.info("living stream record end, savePath: {}", savePath);
     }
 
     private String buildCmd(String savePath) {

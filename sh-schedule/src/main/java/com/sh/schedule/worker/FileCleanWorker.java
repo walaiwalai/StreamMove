@@ -2,11 +2,7 @@ package com.sh.schedule.worker;
 
 import cn.hutool.extra.spring.SpringUtil;
 import com.google.common.collect.Lists;
-import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
-import com.sh.engine.base.Streamer;
-import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.manager.StatusManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -35,10 +31,12 @@ public class FileCleanWorker extends ProcessWorker {
     }
 
     private void clear() {
-        List<StreamerConfig> streamerConfigs = ConfigFetcher.getStreamerInfoList();
-        for (StreamerConfig streamerConfig : streamerConfigs) {
-            init(streamerConfig);
-            for (String curRecordPath : StreamerInfoHolder.getCurRecordPaths()) {
+        List<File> streamerFiles = listRecordDir();
+        for (File streamerFile : streamerFiles) {
+            Collection<File> statusFiles = FileUtils.listFiles(streamerFile, new NameFileFilter("fileStatus.json"),
+                    DirectoryFileFilter.INSTANCE);
+            for (File statusFile : statusFiles) {
+                String curRecordPath = statusFile.getParent();
                 try {
                     FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
                     if (!fileStatusModel.allPost()) {
@@ -49,30 +47,20 @@ public class FileCleanWorker extends ProcessWorker {
                     FileUtils.deleteDirectory(new File(curRecordPath));
                 } catch (Exception e) {
                     log.error("fuck!, recordPath: {}", curRecordPath, e);
-                } finally {
-                    StreamerInfoHolder.clear();
                 }
             }
         }
     }
 
-    private void init(StreamerConfig streamerConfig) {
+    private static List<File> listRecordDir() {
         String videoSavePath = environment.getProperty("sh.video-save.path");
-        String name = streamerConfig.getName();
-        List<String> recordPaths = Lists.newArrayList();
-        File streamerFile = new File(videoSavePath, name);
-        if (streamerFile.exists()) {
-            Collection<File> statusFiles = FileUtils.listFiles(streamerFile, new NameFileFilter("fileStatus.json"),
-                    DirectoryFileFilter.INSTANCE);
-            for (File statusFile : statusFiles) {
-                recordPaths.add(statusFile.getParent());
+        File dir = new File(videoSavePath);
+        List<File> res = Lists.newArrayList();
+        for (File file : dir.listFiles()) {
+            if (file.isDirectory()) {
+                res.add(file);
             }
         }
-
-        // threadLocal
-        Streamer streamer = new Streamer();
-        streamer.setName(name);
-        streamer.setRecordPaths(recordPaths);
-        StreamerInfoHolder.addStreamer(streamer);
+        return res;
     }
 }

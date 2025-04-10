@@ -48,6 +48,9 @@ public class WorkMetaDataGeneratePlugin implements VideoProcessPlugin {
         // 2. 根据上传平台生成元数据
         for (String platform : uploadPlatforms) {
             String metaFileName = UploaderFactory.getMetaFileName(platform);
+            if (StringUtils.isBlank(metaFileName)) {
+                continue;
+            }
             File metaFile = new File(recordPath, metaFileName);
             if (metaFile.exists()) {
                 log.info("{} video meta file existed, will skip", metaFile.getAbsolutePath());

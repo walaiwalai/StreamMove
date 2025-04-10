@@ -104,7 +104,7 @@ public class StreamLinkRecorder extends Recorder {
 
             if (!rfCmd.isExitNormal()) {
                 log.error("living stream record fail, savePath: {}", savePath);
-                throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);
+//                throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);
             }
         }
         log.info("living stream record end, savePath: {}", savePath);
