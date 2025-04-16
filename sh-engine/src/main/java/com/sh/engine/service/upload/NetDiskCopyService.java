@@ -32,5 +32,13 @@ public interface NetDiskCopyService {
      * @param taskId
      * @return
      */
-    boolean checkCopyTaskFinish(String taskId);
+    Integer getCopyTaskStatus(String taskId);
+
+    /**
+     * 重试拷贝任务
+     *
+     * @param taskId
+     * @return
+     */
+    boolean retryCopyTask(String taskId);
 }

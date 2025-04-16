@@ -99,7 +99,7 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
     }
 
     @Override
-    public boolean checkCopyTaskFinish(String taskId) {
+    public Integer getCopyTaskStatus(String taskId) {
         Request request = new Request.Builder()
                 .url(getDomainUrl() + "/api/task/copy/info?tid=" + taskId)
                 .post(RequestBody.create(MediaType.parse("application/json"), "{}"))
@@ -112,10 +112,34 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
         JSONObject dataObj = respObj.getJSONObject("data");
         if (dataObj == null) {
             log.info("taskId: {} not found", taskId);
-            return true;
+            return null;
         }
-        log.info("progress for {} is {}/100", taskId, dataObj.getFloat("progress"));
-        return dataObj.getInteger("state") == 2 && StringUtils.isNotBlank(dataObj.getString("end_time"));
+        Integer state = dataObj.getInteger("state");
+        if (state == 1) {
+            // 正在上传
+            log.info("progress for {} is {}/100", taskId, dataObj.getFloat("progress"));
+        } else if (state == 2) {
+            // 上传完成
+            log.info("copy task finished, taskId: {}", taskId);
+        } else if (state == 7) {
+            // 上传失败
+            log.info("copy task failed, taskId: {}, errorMsg: {}", taskId, dataObj.getString("error"));
+        }
+        return state;
+    }
+
+    @Override
+    public boolean retryCopyTask(String taskId) {
+        Request request = new Request.Builder()
+                .url(getDomainUrl() + "/api/task/copy/retry?tid=" + taskId)
+                .post(RequestBody.create(MediaType.parse("application/json"), "{}"))
+                .addHeader("Authorization", getToken())
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        String resp = OkHttpClientUtil.execute(request);
+        JSONObject respObj = JSON.parseObject(resp);
+        return respObj.getInteger("code") == 200;
     }
 
     private String createFolder(UploadPlatformEnum platform, String recordPath) {
@@ -192,5 +216,30 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
 
     private String getDomainUrl() {
         return "http://" + host + ":" + port;
+    }
+
+    public static void main(String[] args) {
+        String taskId = "ooQ-IFzxVIBX5vN3xJDhz";
+        Map<String, String> params = ImmutableMap.of(
+                "username", "admin",
+                "password", "wqcxhqyy151"
+        );
+        Request request = new Request.Builder()
+                .url("http://158.101.28.202:5244/api/auth/login")
+                .post(RequestBody.create(MediaType.parse("application/json"), JSON.toJSONString(params)))
+                .addHeader("Content-Type", "application/json")
+                .build();
+        String resp = OkHttpClientUtil.execute(request);
+        String token = JSON.parseObject(resp).getJSONObject("data").getString("token");
+
+
+        Request request2 = new Request.Builder()
+                .url("http://158.101.28.202:5244" + "/api/task/copy/info?tid=" + taskId)
+                .post(RequestBody.create(MediaType.parse("application/json"), "{}"))
+                .addHeader("Authorization", token)
+                .addHeader("Content-Type", "application/json")
+                .build();
+        String resp2 = OkHttpClientUtil.execute(request2);
+        System.out.println(resp2);
     }
 }

@@ -49,7 +49,7 @@ public abstract class AbstractNetDiskUploader extends Uploader {
         for (File targetFile : files) {
             RemoteSeverVideo remoteSeverVideo = getUploadedVideo(targetFile);
             if (remoteSeverVideo != null) {
-                log.info("video has been uploaded to uc pan, file: {}", targetFile.getAbsolutePath());
+                log.info("video has been uploaded to {}, file: {}", getType(), targetFile.getAbsolutePath());
                 continue;
             }
 
@@ -75,11 +75,21 @@ public abstract class AbstractNetDiskUploader extends Uploader {
 
         // 2. 死循环调用查询copy状态
         int i = 0;
+        int reTryCnt = 0;
         boolean isFinish = false;
-        while (i++ < 10000) {
-            if (netDiskCopyService.checkCopyTaskFinish(taskId)) {
+        while (i++ < 10000 && reTryCnt < 5) {
+            Integer status = netDiskCopyService.getCopyTaskStatus(taskId);
+            if (status == 2) {
+                // 上传任务成功
                 isFinish = true;
                 break;
+            }
+            if (status == 7) {
+                // 失败重新发起任务
+                boolean success = netDiskCopyService.retryCopyTask(taskId);
+                if (success) {
+                    reTryCnt++;
+                }
             }
 
             try {
