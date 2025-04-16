@@ -217,29 +217,4 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
     private String getDomainUrl() {
         return "http://" + host + ":" + port;
     }
-
-    public static void main(String[] args) {
-        String taskId = "ooQ-IFzxVIBX5vN3xJDhz";
-        Map<String, String> params = ImmutableMap.of(
-                "username", "admin",
-                "password", "wqcxhqyy151"
-        );
-        Request request = new Request.Builder()
-                .url("http://158.101.28.202:5244/api/auth/login")
-                .post(RequestBody.create(MediaType.parse("application/json"), JSON.toJSONString(params)))
-                .addHeader("Content-Type", "application/json")
-                .build();
-        String resp = OkHttpClientUtil.execute(request);
-        String token = JSON.parseObject(resp).getJSONObject("data").getString("token");
-
-
-        Request request2 = new Request.Builder()
-                .url("http://158.101.28.202:5244" + "/api/task/copy/info?tid=" + taskId)
-                .post(RequestBody.create(MediaType.parse("application/json"), "{}"))
-                .addHeader("Authorization", token)
-                .addHeader("Content-Type", "application/json")
-                .build();
-        String resp2 = OkHttpClientUtil.execute(request2);
-        System.out.println(resp2);
-    }
 }
