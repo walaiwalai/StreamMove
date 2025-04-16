@@ -86,10 +86,8 @@ public abstract class AbstractNetDiskUploader extends Uploader {
             }
             if (status == 7) {
                 // 失败重新发起任务
-                boolean success = netDiskCopyService.retryCopyTask(taskId);
-                if (success) {
-                    reTryCnt++;
-                }
+                taskId = netDiskCopyService.copyFileToNetDisk(UploadPlatformEnum.of(getType()), targetFile);
+                reTryCnt++;
             }
 
             try {
