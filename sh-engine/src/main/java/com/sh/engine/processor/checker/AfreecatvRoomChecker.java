@@ -11,6 +11,7 @@ import com.sh.engine.processor.recorder.StreamLinkRecorder;
 import com.sh.engine.processor.recorder.VideoSegRecorder;
 import com.sh.engine.util.DateUtil;
 import com.sh.engine.util.RegexUtil;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
 import okhttp3.Request;
@@ -24,6 +25,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 视频相关信息：videoimg.afreecatv.com/php/SnapshotLoad.php?rowKey=20231228_E8F3995E_250550585_1_r
@@ -68,13 +72,11 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
 
         // 2. 解析切片成链接格式
         Long titleNo = curVod.getLong("title_no");
-        List<VideoSegRecorder.TsRecordInfo> tsRecordInfos = fetchTsViews(titleNo);
-
-        Date date = DateUtil.covertStr2Date(curVod.getString("reg_date"), DateUtil.YYYY_MM_DD_HH_MM_SS);
-        return new VideoSegRecorder(date, tsRecordInfos);
+        AfreecatvVodInfo afreecatvVodInfo = fetchTsViews(titleNo);
+        return new VideoSegRecorder(afreecatvVodInfo.getBroadStartDate(), afreecatvVodInfo.getTsRecordInfos());
     }
 
-    private List<VideoSegRecorder.TsRecordInfo> fetchTsViews(Long nTitleNo) {
+    private AfreecatvVodInfo fetchTsViews(Long nTitleNo) {
         String playlistUrl = "https://api.m.sooplive.co.kr/station/video/a/view";
         RequestBody body = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
@@ -92,12 +94,14 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         }
 
         List<VideoSegRecorder.TsRecordInfo> views = Lists.newArrayList();
+        Date broadStartDate = null;
         Response response = null;
         try {
             response = CLIENT.newCall(requestBuilder.build()).execute();
             if (response.isSuccessful()) {
-                String resp = response.body().string();
-                JSONArray files = JSONObject.parseObject(resp).getJSONObject("data").getJSONArray("files");
+                JSONObject respObj = JSONObject.parseObject(response.body().string());
+                JSONArray files = respObj.getJSONObject("data").getJSONArray("files");
+                broadStartDate = DateUtil.covertStr2Date(respObj.getString("broad_start"), DateUtil.YYYY_MM_DD_HH_MM_SS);
                 for (int i = 0; i < files.size(); i++) {
                     views.add(covertSingleView(files.getJSONObject(i)));
                 }
@@ -111,7 +115,10 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
             log.error("query playlist success, playlistUrl: {}", playlistUrl, e);
             return null;
         }
-        return views;
+        AfreecatvVodInfo afreecatvVodInfo = new AfreecatvVodInfo();
+        afreecatvVodInfo.setTsRecordInfos(views);
+        afreecatvVodInfo.setBroadStartDate(broadStartDate);
+        return afreecatvVodInfo;
     }
 
     private VideoSegRecorder.TsRecordInfo covertSingleView(JSONObject fileObj) {
@@ -170,15 +177,24 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         if (CollectionUtils.isEmpty(lastedVods)) {
             return null;
         }
+
+        Map<String, JSONObject> vodMap = lastedVods.stream()
+                .collect(Collectors.toMap(vod -> vod.getString("title_no"), Function.identity(), (v1, v2) -> v2));
         // 根据获取的数量获取这个数量最前的lastedVods
-
-        int lastVodCnt = 1;
-        if (streamerConfig.getLastVodCnt() > 0) {
-            lastVodCnt = streamerConfig.getLastVodCnt();
+        JSONObject curVod = null;
+        if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
+            for (String vodUrl : streamerConfig.getCertainVodUrls()) {
+                String videoId = vodUrl.split("player/")[1];
+                if (vodMap.containsKey(videoId)) {
+                    curVod = vodMap.get(videoId);
+                }
+            }
+        } else {
+            int lastVodCnt = streamerConfig.getLastVodCnt() > 0 ? streamerConfig.getLastVodCnt() : 1;
+            int index = lastedVods.size() <= lastVodCnt ? lastedVods.size() - 1 : lastVodCnt - 1;
+            curVod = lastedVods.get(index);
         }
-
-        int index = lastedVods.size() <= lastVodCnt ? lastedVods.size() - 1 : lastVodCnt - 1;
-        return lastedVods.get(index);
+        return curVod;
     }
 
     private VideoSegRecorder.TsRecordInfo fetchTsInfo(String tsPrefix) {
@@ -221,4 +237,12 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         Date date = new Date();
         return isLiving ? new StreamLinkRecorder(date, streamerConfig.getRoomUrl()) : null;
     }
+
+    @Data
+    private static class AfreecatvVodInfo {
+        private Date broadStartDate;
+        private List<VideoSegRecorder.TsRecordInfo> tsRecordInfos;
+
+    }
+
 }

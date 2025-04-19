@@ -118,4 +118,6 @@ public class StreamerConfig {
      * 抖音投稿相关
      */
     private String location;
+
+    private List<String> certainVodUrls;
 }

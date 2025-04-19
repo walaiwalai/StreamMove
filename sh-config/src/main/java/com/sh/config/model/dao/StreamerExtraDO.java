@@ -25,6 +25,7 @@ public class StreamerExtraDO {
      * 抖音上传信息
      */
     private DouyinUploadInfoDO douyinUploadInfo;
+    private List<String> certainVodUrls;
 
 
     @Data
