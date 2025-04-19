@@ -101,7 +101,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
             if (response.isSuccessful()) {
                 JSONObject respObj = JSONObject.parseObject(response.body().string());
                 JSONArray files = respObj.getJSONObject("data").getJSONArray("files");
-                broadStartDate = DateUtil.covertStr2Date(respObj.getString("broad_start"), DateUtil.YYYY_MM_DD_HH_MM_SS);
+                broadStartDate = DateUtil.covertStr2Date(respObj.getJSONObject("data").getString("broad_start"), DateUtil.YYYY_MM_DD_HH_MM_SS);
                 for (int i = 0; i < files.size(); i++) {
                     views.add(covertSingleView(files.getJSONObject(i)));
                 }
@@ -244,5 +244,4 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         private List<VideoSegRecorder.TsRecordInfo> tsRecordInfos;
 
     }
-
 }
