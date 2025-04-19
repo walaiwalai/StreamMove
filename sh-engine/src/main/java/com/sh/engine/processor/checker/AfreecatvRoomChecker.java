@@ -187,6 +187,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
                 String videoId = vodUrl.split("player/")[1];
                 if (vodMap.containsKey(videoId)) {
                     curVod = vodMap.get(videoId);
+                    break;
                 }
             }
         } else {
