@@ -77,18 +77,18 @@ public class DouyuRoomChecker extends AbstractRoomChecker {
 
         // # 0蓝光、3超清、2高清、-1默认
         InitConfig initConfig = ConfigFetcher.getInitConfig();
-        String apiUrl = "https://www.douyu.com/lapi/live/getH5Play/" + rid + "?"
-                + "v=" + paramsList.get(0)
-                + "&did=" + paramsList.get(1)
-                + "&tt=" + paramsList.get(2)
-                + "&sign=" + paramsList.get(3)
-                + "&ver=22011191"
-                + "&rid=" + rid
-                + "&rate=" + rate;
-
+//        String apiUrl = "https://www.douyu.com/lapi/live/getH5Play/" + rid + "?"
+//                + "v=" + paramsList.get(0)
+//                + "&did=" + paramsList.get(1)
+//                + "&tt=" + paramsList.get(2)
+//                + "&sign=" + paramsList.get(3)
+//                + "&ver=22011191"
+//                + "&rid=" + rid
+//                + "&rate=" + rate;
+        String apiUrl = "https://www.douyu.com/lapi/live/getH5Play/" + rid;
         Request.Builder reBuilder = new Request.Builder()
                 .url(apiUrl)
-                .get()
+                .post(formBody)
                 .addHeader("User-Agent", "ios/7.830 (ios 17.0; ; iPhone 15 (A2846/A3089/A3090/A3092))")
                 .addHeader("Referer", "https://m.douyu.com/3125893?rid=3125893&dyshid=0-96003918aa5365bc6dcb4933000316p1&dyshci=181")
                 .addHeader("Cookie", DEFAULT_DOUYU_COOKIES);
@@ -144,6 +144,7 @@ public class DouyuRoomChecker extends AbstractRoomChecker {
 
     public static void main(String[] args) {
         DouyuRoomChecker douyuRoomChecker = new DouyuRoomChecker();
-        Recorder streamRecorder = douyuRoomChecker.getStreamRecorder(StreamerConfig.builder().roomUrl("https://www.douyu.com/312212").build());
+        Recorder streamRecorder = douyuRoomChecker.getStreamRecorder(StreamerConfig.builder().roomUrl("https://www.douyu.com/664668").build());
+        System.out.println(streamRecorder);
     }
 }
