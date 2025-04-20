@@ -15,28 +15,28 @@ import java.io.InputStreamReader;
  */
 @Slf4j
 public class JavaScriptUtil {
-//    /**
-//     * 初始化CryptoJS
-//     */
-//    private static String cryptoJS = null;
+    /**
+     * 初始化CryptoJS
+     */
+    private static String cryptoJS = null;
 
-//    private static String initCryptoJS() {
-//        if (cryptoJS == null) {
-//            StringBuilder sb = new StringBuilder();
-//            try {
-//                BufferedReader buReader = new BufferedReader(new InputStreamReader(
-//                        JavaScriptUtil.class.getClassLoader().getResource("taobao-sign.js").openStream()));
-//                String line = null;
-//                while ((line = buReader.readLine()) != null) {
-//                    sb.append(line);
-//                }
-//                buReader.close();
-//            } catch (IOException e) {
-//            }
-//            cryptoJS = sb.toString();
-//        }
-//        return cryptoJS;
-//    }
+    private static String initCryptoJS() {
+        if (cryptoJS == null) {
+            StringBuilder sb = new StringBuilder();
+            try {
+                BufferedReader buReader = new BufferedReader(new InputStreamReader(
+                        JavaScriptUtil.class.getClassLoader().getResource("crypto-js.min.js").openStream()));
+                String line = null;
+                while ((line = buReader.readLine()) != null) {
+                    sb.append(line);
+                }
+                buReader.close();
+            } catch (IOException e) {
+            }
+            cryptoJS = sb.toString();
+        }
+        return cryptoJS;
+    }
 
     /**
      * 执行js文件
@@ -49,6 +49,21 @@ public class JavaScriptUtil {
     public static String execJsFromFile(String jsFile, String method, Object... params) {
         String scripts = loadJs(jsFile);
         return execJs(scripts, method, params);
+    }
+
+    public static String execJsScript(String scripts, String method, Object... params) {
+        String back = null;
+        ScriptEngineManager sem = new ScriptEngineManager();
+        ScriptEngine se = sem.getEngineByName("javascript");
+        try {
+            se.eval(scripts);
+            se.eval(initCryptoJS());
+            Invocable inv = (Invocable) se;
+            back = (String) inv.invokeFunction(method, params);
+        } catch (Exception e) {
+            log.error("exec js error", e);
+        }
+        return back;
     }
 
     private static String loadJs(String jsFileName) {

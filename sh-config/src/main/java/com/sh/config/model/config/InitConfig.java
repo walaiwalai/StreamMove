@@ -54,6 +54,9 @@ public class InitConfig {
     // *********************淘宝直播**********************
     private String taobaoCookies;
 
+    // *********************斗鱼移动端直播**********************
+    private String douyuCookies;
+
     // *********************B站视频上传**********************
     private String biliCookies;
     private String accessToken;
