@@ -57,6 +57,9 @@ public class InitConfig {
     // *********************斗鱼移动端直播**********************
     private String douyuCookies;
 
+    // *********************kick**********************
+
+
     // *********************B站视频上传**********************
     private String biliCookies;
     private String accessToken;

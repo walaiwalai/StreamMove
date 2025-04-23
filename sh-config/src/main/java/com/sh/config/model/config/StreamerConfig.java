@@ -119,5 +119,13 @@ public class StreamerConfig {
      */
     private String location;
 
+    /**
+     * 针对录制录像的特定链接
+     */
     private List<String> certainVodUrls;
+
+    /**
+     * 是否只要音频
+     */
+    private boolean onlyAudio;
 }

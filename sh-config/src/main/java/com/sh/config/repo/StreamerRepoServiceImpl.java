@@ -136,6 +136,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                 config.setLocation(douyinUploadInfo.getLocation());
             }
             config.setCertainVodUrls(streamerExtraDO.getCertainVodUrls());
+            config.setOnlyAudio(streamerExtraDO.isOnlyAudio());
         }
 
         return config;
@@ -156,6 +157,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                         .location(streamerConfig.getLocation())
                         .build())
                 .certainVodUrls(streamerConfig.getCertainVodUrls())
+                .onlyAudio(streamerConfig.isOnlyAudio())
                 .build();
 
         return StreamerDO.builder()

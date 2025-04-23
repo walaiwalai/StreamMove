@@ -62,6 +62,11 @@ public enum StreamChannelTypeEnum {
      */
     TAOBAO(12, "淘宝", "tb.cn"),
 
+    /**
+     * kick
+     */
+    KICK(13, "kick", "kick.com"),
+
     ;
 
     private int type;

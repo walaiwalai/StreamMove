@@ -112,24 +112,9 @@ public class StreamLinkRecorder extends Recorder {
 
 
     private String buildCmd(String savePath) {
-        List<String> extraArgs = Lists.newArrayList();
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
 
-        // twitch额外参数
-        if (channel == StreamChannelTypeEnum.TWITCH) {
-            extraArgs.add("--twitch-disable-ads");
-            String authorization = ConfigFetcher.getInitConfig().getTwitchAuthorization();
-            if (StringUtils.isNotBlank(authorization)) {
-                extraArgs.add(String.format("\"--twitch-api-header=Authorization=%s\"", authorization));
-            }
-        }
-
-        // 录制代理
-        String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
-        String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
-        if (StringUtils.isNotBlank(soopUserName) && StringUtils.isNotBlank(soopPassword)) {
-            extraArgs.add(String.format("--soop-username \"%s\"", soopUserName));
-            extraArgs.add(String.format("--soop-password \"%s\"", soopPassword));
-        }
+        List<String> extraArgs = buildStreamlinkChannelParams();
 
         // 计算分端视频开始index(默认从1开始)
         Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
@@ -150,11 +135,11 @@ public class StreamLinkRecorder extends Recorder {
                 "-y",
                 "-v verbose",
                 "-loglevel error",
-//                "-rw_timeout 20000000",
                 "-hide_banner",
                 "-i -",
+                BooleanUtils.isTrue(streamerConfig.isOnlyAudio()) ? "-vn" : "",
                 "-bufsize 10000k",
-                "-c:v copy -c:a copy -c:s mov_text",
+                BooleanUtils.isTrue(streamerConfig.isOnlyAudio()) ? "-c:a copy -c:s mov_text" : "-c:v copy -c:a copy -c:s mov_text",
                 channel == StreamChannelTypeEnum.TWITCH ? "-map 0:v -map 0:a" : "-map 0",
                 "-f segment",
                 "-segment_time 4",
@@ -165,6 +150,30 @@ public class StreamLinkRecorder extends Recorder {
                 "\"" + segFile.getAbsolutePath() + "\""
         );
         return StringUtils.join(commands, " ");
+    }
+
+    private List<String> buildStreamlinkChannelParams() {
+        List<String> extraArgs = Lists.newArrayList();
+        // twitch额外参数
+        if (channel == StreamChannelTypeEnum.TWITCH) {
+            extraArgs.add("--twitch-disable-ads");
+            String authorization = ConfigFetcher.getInitConfig().getTwitchAuthorization();
+            if (StringUtils.isNotBlank(authorization)) {
+                extraArgs.add(String.format("\"--twitch-api-header=Authorization=%s\"", authorization));
+            }
+        } else if (channel == StreamChannelTypeEnum.AFREECA_TV) {
+            String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
+            String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
+            if (StringUtils.isNotBlank(soopUserName) && StringUtils.isNotBlank(soopPassword)) {
+                extraArgs.add(String.format("--soop-username \"%s\"", soopUserName));
+                extraArgs.add(String.format("--soop-password \"%s\"", soopPassword));
+            }
+        } else if (channel == StreamChannelTypeEnum.KICK) {
+
+        }
+
+
+        return extraArgs;
     }
 
 //    private void doSaveMetaData() {
