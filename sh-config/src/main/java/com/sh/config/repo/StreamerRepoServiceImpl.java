@@ -116,7 +116,6 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                                 .map(String::trim)
                                 .collect(Collectors.toList())
                         : Lists.newArrayList())
-                .segMergeCnt(streamerDO.getSegMergeCnt())
                 .maxMergeSize(streamerDO.getMaxMergeSize())
                 .coverFilePath(streamerDO.getCoverPath())
                 .build();
@@ -167,7 +166,6 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                 .lastRecordTime(streamerConfig.getLastRecordTime())
                 .expireTime(streamerConfig.getExpireTime())
                 .lastVodCnt(streamerConfig.getLastVodCnt())
-                .segMergeCnt(streamerConfig.getSegMergeCnt())
                 .maxMergeSize(streamerConfig.getMaxMergeSize())
                 .templateTitle(streamerConfig.getTemplateTitle())
                 .coverPath(streamerConfig.getCoverFilePath())

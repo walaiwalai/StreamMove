@@ -67,6 +67,11 @@ public enum StreamChannelTypeEnum {
      */
     KICK(13, "kick", "kick.com"),
 
+    /**
+     * 快手
+     */
+    KUAISHOU(14, "快手", "kuaishou.com"),
+
     ;
 
     private int type;

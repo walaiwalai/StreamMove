@@ -80,11 +80,6 @@ public class StreamerConfig {
     private List<String> tags;
 
     /**
-     * 多少个频分片合成一个视频
-     */
-    private int segMergeCnt;
-
-    /**
      * 一个视频分片大小（M）
      */
     private Integer maxMergeSize;

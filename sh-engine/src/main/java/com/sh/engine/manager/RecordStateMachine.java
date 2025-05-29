@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
-import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.base.Streamer;
 import com.sh.engine.base.StreamerInfoHolder;
@@ -46,7 +45,7 @@ public class RecordStateMachine {
             8,
             600,
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(64),
+            new ArrayBlockingQueue<>(128),
             new ThreadFactoryBuilder().setNameFormat("record-state-machine").build(),
             new ThreadPoolExecutor.AbortPolicy()
     );
