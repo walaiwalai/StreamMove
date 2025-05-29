@@ -13,6 +13,6 @@ import org.springframework.stereotype.Component;
 public class TianyiPanUploader extends AbstractNetDiskUploader {
     @Override
     public String getType() {
-        return UploadPlatformEnum.UC_PAN.getType();
+        return UploadPlatformEnum.TIAN_YI_PAN.getType();
     }
 }
