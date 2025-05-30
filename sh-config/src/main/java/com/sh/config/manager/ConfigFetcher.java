@@ -80,11 +80,14 @@ public class ConfigFetcher {
     }
 
     public void refresh() {
+        initConfig = loadInitConfig();
+        log.info("refresh init config success, initConfig: {}", JSON.toJSONString(initConfig));
+
         name2StreamerMap = loadStreamConfig(systemEnvFlag);
         log.info("refresh {} streamers success, they are: {}", name2StreamerMap.keySet().size(), JSON.toJSONString(name2StreamerMap.keySet()));
     }
 
-    public void refreshStreamer( String name ) {
+    public void refreshStreamer(String name) {
         StreamerConfig cur = streamerRepoService.getByName(name);
         name2StreamerMap.put(name, cur);
     }
@@ -95,7 +98,7 @@ public class ConfigFetcher {
         });
     }
 
-    private Map<String, StreamerConfig> loadStreamConfig( String env ) {
+    private Map<String, StreamerConfig> loadStreamConfig(String env) {
         if (StringUtils.isBlank(env)) {
             return Maps.newHashMap();
         }
@@ -108,7 +111,7 @@ public class ConfigFetcher {
                     return streamerConfig.getExpireTime().getTime() > System.currentTimeMillis();
                 })
                 .peek(ConfigFetcher::fillDefaultValueForStreamerInfo)
-                .collect(Collectors.toMap(StreamerConfig::getName, Function.identity(), ( a, b ) -> b));
+                .collect(Collectors.toMap(StreamerConfig::getName, Function.identity(), (a, b) -> b));
     }
 
     private static void fillDefaultValueForStreamerInfo(StreamerConfig streamerConfig) {

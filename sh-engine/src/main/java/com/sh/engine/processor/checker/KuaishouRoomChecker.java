@@ -3,7 +3,6 @@ package com.sh.engine.processor.checker;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
@@ -40,7 +39,8 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
         headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0");
         headers.put("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
 
-        String cookies = ConfigFetcher.getInitConfig().getKuaishouCookies();
+//        String cookies = ConfigFetcher.getInitConfig().getKuaishouCookies();
+        String cookies = null;
         if (cookies != null && !cookies.isEmpty()) {
             headers.put("Cookie", cookies);
         }
@@ -50,7 +50,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
                 .headers(Headers.of(headers))
                 .build();
         String resp = OkHttpClientUtil.execute(request);
-        return parseStreamData(resp, roomUrl);
+        return parseStreamData(resp);
     }
 
     @Override
@@ -58,13 +58,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
         return StreamChannelTypeEnum.KUAISHOU;
     }
 
-    private Recorder parseStreamData(String htmlStr, String url) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("type", 2);
-        result.put("is_live", false);
-
-
-        // 提取JSON数据
+    private Recorder parseStreamData(String htmlStr) {
         Matcher initialStateMatcher = INITIAL_STATE_PATTERN.matcher(htmlStr);
         if (!initialStateMatcher.find()) {
             return null;
@@ -125,7 +119,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
 
     public static void main(String[] args) {
         KuaishouRoomChecker kuaishouRoomChecker = new KuaishouRoomChecker();
-        String url = "https://live.kuaishou.com/u/love5201314naw";
+        String url = "https://live.kuaishou.com/u/cjj999999999";
         Recorder streamRecorder = kuaishouRoomChecker.getStreamRecorder(StreamerConfig.builder()
                 .roomUrl(url)
                 .build());
