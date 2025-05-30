@@ -3,6 +3,7 @@ package com.sh.engine.processor.checker;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
@@ -39,8 +40,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
         headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0");
         headers.put("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
 
-//        String cookies = ConfigFetcher.getInitConfig().getKuaishouCookies();
-        String cookies = null;
+        String cookies = ConfigFetcher.getInitConfig().getKuaishouCookies();
         if (cookies != null && !cookies.isEmpty()) {
             headers.put("Cookie", cookies);
         }
