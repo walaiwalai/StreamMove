@@ -3,6 +3,7 @@ package com.sh.config.repo;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import com.sh.config.mapper.StreamerMapper;
+import com.sh.config.mapper.StreamerWorkMapper;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.dao.StreamerDO;
 import com.sh.config.model.dao.StreamerExtraDO;
@@ -26,6 +27,8 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
 
     @Resource
     private StreamerMapper streamerMapper;
+    @Resource
+    private StreamerWorkMapper streamerWorkMapper;
 
 //    @PostConstruct
 //    public void init() {
@@ -65,20 +68,8 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public void updateByName(String name, StreamerConfig updated) {
-        StreamerDO streamerDO = convertToStreamerDO(updated);
-        streamerMapper.updateByName(name, streamerDO);
-    }
-
     public void updateLastRecordTime(String name, Date lastRecordTime) {
         streamerMapper.updateLastRecordTime(name, lastRecordTime);
-    }
-
-
-    @Override
-    public void deleteByName(String name) {
-        streamerMapper.deleteByName(name);
     }
 
     @Override

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sh.config.mapper.StreamerWorkMapper">
+    <!-- 定义 resultMap -->
+    <resultMap id="resultMap" type="com.sh.config.model.dao.StreamerWorkDO">
+        <result column="id" property="id"/>
+        <result column="gmt_create" property="gmtCreate"/>
+        <result column="gmt_modified" property="gmtModified"/>
+        <result column="name" property="name"/>
+        <result column="template_title" property="templateTitle"/>
+        <result column="cover_path" property="coverPath"/>
+        <result column="desc" property="desc"/>
+        <result column="tags" property="tags"/>
+        <result column="extra" property="extra"/>
+    </resultMap>
+
+    <sql id="allFields">
+        `id`
+        ,
+        `gmt_create`,
+        `gmt_modified`,
+        `name`,
+        `template_title`,
+        `cover_path`,
+        `desc`,
+        `tags`,
+        `extra`
+    </sql>
+
+    <select id="selectByName" resultType="com.sh.config.model.dao.StreamerWorkDO">
+        SELECT
+        <include refid="allFields"/>
+        FROM `streamer_work`
+        WHERE `name` = #{name}
+    </select>
+
+    <select id="batchSelect" resultMap="resultMap">
+        SELECT
+        <include refid="allFields"/>
+        FROM `streamer_work`
+        WHERE `name` IN
+        <foreach item="item" index="index" collection="names" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

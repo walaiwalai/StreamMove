@@ -64,6 +64,7 @@ public class InitConfig {
     // *********************kick**********************
 
 
+    // *********************上传网站配置**********************
     // *********************B站视频上传**********************
     private String biliCookies;
     private String accessToken;

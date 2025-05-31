@@ -9,6 +9,8 @@ import java.util.Date;
 import java.util.List;
 
 /**
+ * 主播配置= 主播信息+主播作品信息
+ *
  * @author caiWen
  * @date 2023/1/23 10:45
  */
