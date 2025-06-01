@@ -70,6 +70,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
             return null;
         }
         String playListStr = playListMatcher.group(1) + "}";
+        log.warn( "kuai shou playlistObj: {}", playListStr);
 
         JSONObject playlistObj = JSON.parseObject(playListStr);
         if (playlistObj.containsKey("errorType")) {
