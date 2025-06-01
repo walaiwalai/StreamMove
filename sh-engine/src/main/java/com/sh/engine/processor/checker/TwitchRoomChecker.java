@@ -29,7 +29,6 @@ import java.util.List;
 public class TwitchRoomChecker extends AbstractRoomChecker {
     private static final String GQL_ENDPOINT = "https://gql.twitch.tv/gql";
     private static final String VALID_URL_BASE = "(?:https?://)?(?:(?:www|go|m)\\.)?twitch\\.tv/([0-9_a-zA-Z]+)";
-    private static final String USER_QUERY = "query query($channel_name:String!) { user(login: $channel_name) { stream { id title type previewImageURL(width: 0,height: 0) playbackAccessToken(params: { platform: \"web\", playerBackend: \"mediaplayer\", playerType: \"site\" }) { signature value } } } }";
 
     @Override
     public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
@@ -112,14 +111,6 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
                 }
                 items = nodeObj.getJSONArray("items");
             }
-//            JSONArray items = JSON.parseArray(resp).getJSONObject(0)
-//                    .getJSONObject("data")
-//                    .getJSONObject("user")
-//                    .getJSONObject("videoShelves")
-//                    .getJSONArray("edges")
-//                    .getJSONObject(0)
-//                    .getJSONObject("node")
-//                    .getJSONArray("items");
             List<VideoShelvesItem> videoShelvesItems = JSON.parseArray(items.toJSONString(), VideoShelvesItem.class);
             VideoShelvesItem latestItem = videoShelvesItems.stream()
                     .max(Comparator.comparing(video -> Instant.parse(video.getPublishedAt())))

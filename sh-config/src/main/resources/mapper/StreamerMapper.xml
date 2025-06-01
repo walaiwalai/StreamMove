@@ -15,8 +15,9 @@
         <result column="last_record_time" property="lastRecordTime"/>
         <result column="expire_time" property="expireTime"/>
         <result column="last_vod_cnt" property="lastVodCnt"/>
-        <result column="seg_merge_cnt" property="segMergeCnt"/>
         <result column="max_merge_size" property="maxMergeSize"/>
+        <result column="cur_traffic_gb" property="curTrafficGB"/>
+        <result column="max_traffic_gb" property="maxTrafficGB"/>
         <result column="template_title" property="templateTitle"/>
         <result column="cover_path" property="coverPath"/>
         <result column="desc" property="desc"/>
@@ -29,8 +30,7 @@
 
     <!-- 定义 SQL 片段 -->
     <sql id="allFields">
-        `id`
-        ,
+        `id`,
         `gmt_create`,
         `gmt_modified`,
         `name`,
@@ -39,8 +39,9 @@
         `last_record_time`,
         `expire_time`,
         `last_vod_cnt`,
-        `seg_merge_cnt`,
         `max_merge_size`,
+        `cur_traffic_gb`,
+        `max_traffic_gb`,
         `template_title`,
         `cover_path`,
         `desc`,
@@ -66,96 +67,15 @@
         WHERE env = #{env}
     </select>
 
-    <!-- 插入语句 -->
-    <insert id="insert" parameterType="com.sh.config.model.dao.StreamerDO">
-        INSERT INTO `streamer` (`name`,
-                                `room_url`,
-                                `record_type`,
-                                `last_record_time`,
-                                `expire_time`,
-                                `last_vod_cnt`,
-                                `seg_merge_cnt`,
-                                `max_merge_size`,
-                                `template_title`,
-                                `cover_path`,
-                                `desc`,
-                                `upload_platforms`,
-                                `process_plugins`,
-                                `tags`,
-                                `env`,
-                                `extra`)
-        VALUES (#{name},
-                #{roomUrl},
-                #{recordType},
-                #{lastRecordTime},
-                #{expireTime},
-                #{lastVodCnt},
-                #{segMergeCnt},
-                #{maxMergeSize},
-                #{templateTitle},
-                #{coverPath},
-                #{desc},
-                #{uploadPlatforms}, #{processPlugins}, #{tags},
-                #{env},
-                #{extra})
-    </insert>
-
-    <!-- 更新语句（根据 name 修改各个字段） -->
-    <update id="updateByName">
-        UPDATE `streamer`
-        SET
-        <if test="updated.roomUrl != null">
-            `room_url` = #{updated.roomUrl},
-        </if>
-        <if test="updated.recordType != null">
-            `record_type` = #{updated.recordType},
-        </if>
-        <if test="updated.lastRecordTime != null">
-            `last_record_time` = #{updated.lastRecordTime},
-        </if>
-        <if test="updated.expireTime != null">
-            `expire_time` = #{updated.expireTime},
-        </if>
-        <if test="updated.lastVodCnt != null">
-            `last_vod_cnt` = #{updated.lastVodCnt},
-        </if>
-        <if test="updated.segMergeCnt != null">
-            `seg_merge_cnt` = #{updated.segMergeCnt},
-        </if>
-        <if test="updated.maxMergeSize != null">
-            `max_merge_size` = #{updated.maxMergeSize},
-        </if>
-        <if test="updated.templateTitle != null">
-            `template_title` = #{updated.templateTitle},
-        </if>
-        <if test="updated.coverPath != null">
-            `cover_path` = #{updated.coverPath},
-        </if>
-        <if test="updated.desc != null">
-            `desc` = #{updated.desc},
-        </if>
-        <if test="updated.uploadPlatforms != null">
-            `upload_platforms` = #{updated.uploadPlatforms},
-        </if>
-        <if test="updated.processPlugins != null">
-            `process_plugins` = #{updated.processPlugins},
-        </if>
-        <if test="updated.tags != null">
-            `tags` = #{updated.tags},
-        </if>
-        <if test="updated.env != null">
-            `env` = #{updated.env},
-        </if>
-        <if test="updated.extra != null">
-            `extra` = #{updated.extra},
-        </if>
-        gmt_modified = now()
-        WHERE name = #{name}
-    </update>
-
     <update id="updateLastRecordTime">
         UPDATE `streamer`
         SET `last_record_time` = #{lastRecordTime}
+        WHERE `name` = #{name}
+    </update>
+
+    <update id="updateTrafficGB">
+        UPDATE `streamer`
+        SET `cur_traffic_gb` = #{trafficBG}
         WHERE `name` = #{name}
     </update>
 

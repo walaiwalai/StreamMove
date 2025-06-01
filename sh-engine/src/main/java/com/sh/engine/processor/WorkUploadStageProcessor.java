@@ -77,6 +77,7 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                     log.info("{}'s {} platform upload success, path: {}. ", streamerName, platform, curRecordPath);
                     msgSendService.sendText(curRecordPath + "路径下的视频上传成功, 类型:" + platform);
 
+                    // 上传平台成功状态记录
                     fileStatusModel.postSuccess(platform);
                     fileStatusModel.writeSelfToFile(curRecordPath);
                 } else {
@@ -86,6 +87,9 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
 
             }
         }
+    }
+
+    private void workUploadPostProcess( String recordPath ) {
     }
 
 

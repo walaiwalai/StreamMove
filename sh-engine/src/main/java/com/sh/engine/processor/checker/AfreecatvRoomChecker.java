@@ -30,10 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 视频相关信息：videoimg.afreecatv.com/php/SnapshotLoad.php?rowKey=20231228_E8F3995E_250550585_1_r
- * 分片视频：https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/vod/20231228/585/250550585/REGL_E8F3995E_250550585_1.smil/original/both/seg-3.ts
- * 总分片数地址：https://vod-archive-global-cdn-z02.afreecatv.com/v101/hls/vod/20231228/585/250550585/REGL_E8F3995E_250550585_1.smil/hd/both/playlist.m3u8
- *
+ * soop直播平台
  * @author caiWen
  * @date 2023/2/18 21:24
  */

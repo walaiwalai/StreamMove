@@ -36,11 +36,6 @@ public class StreamerDO {
     private String recordType;
 
     /**
-     * 下载方式，分片下载seg，块下载block
-     */
-    private String downloadType;
-
-    /**
      * 上次录制时间
      * vod时上一次上传的视频的中的时间
      * live时本地开始的录制时间
@@ -58,11 +53,6 @@ public class StreamerDO {
     private Integer lastVodCnt;
 
     /**
-     * 多少个频分片合成一个视频
-     */
-    private int segMergeCnt;
-
-    /**
      * 单个视频最大合并大小（M）
      */
     private int maxMergeSize;
@@ -70,12 +60,12 @@ public class StreamerDO {
     /**
      * 主播整体下载流量大小（G）
      */
-    private int curGSize;
+    private float curTrafficGB;
 
     /**
      * 主播整体下载最大流量大小（G）
      */
-    private int maxGSize;
+    private float maxTrafficGB;
 
     /**
      * 视频标题模板

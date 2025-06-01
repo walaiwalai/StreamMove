@@ -2,6 +2,7 @@ package com.sh.config.repo;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.mapper.StreamerMapper;
 import com.sh.config.mapper.StreamerWorkMapper;
 import com.sh.config.model.config.StreamerConfig;
@@ -73,10 +74,10 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
     }
 
     @Override
-    public void insert(StreamerConfig streamer, String env) {
-        StreamerDO streamerDO = convertToStreamerDO(streamer);
-        streamerDO.setEnv(env);
-        streamerMapper.insert(streamerDO);
+    public void updateTrafficGB( String name, float trafficGBCost ) {
+        StreamerConfig config = getByName(name);
+        float curTrafficGB = config.getCurTrafficGB() + trafficGBCost;
+        streamerMapper.updateTrafficGB(name, curTrafficGB);
     }
 
     private StreamerConfig convertToStreamerConfig(StreamerDO streamerDO) {
@@ -108,6 +109,8 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                                 .collect(Collectors.toList())
                         : Lists.newArrayList())
                 .maxMergeSize(streamerDO.getMaxMergeSize())
+                .curTrafficGB(streamerDO.getCurTrafficGB())
+                .maxTrafficGB(streamerDO.getMaxTrafficGB())
                 .coverFilePath(streamerDO.getCoverPath())
                 .build();
 
@@ -130,44 +133,6 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
         }
 
         return config;
-    }
-
-    private StreamerDO convertToStreamerDO(StreamerConfig streamerConfig) {
-        if (streamerConfig == null) {
-            return null;
-        }
-        StreamerExtraDO extra = StreamerExtraDO.builder()
-                .biliUploadInfo(BiliUploadInfoDO.builder()
-                        .source(streamerConfig.getSource())
-                        .tid(streamerConfig.getTid())
-                        .cover(streamerConfig.getCover())
-                        .openingAnimations(streamerConfig.getBiliOpeningAnimations())
-                        .build())
-                .douyinUploadInfo(DouyinUploadInfoDO.builder()
-                        .location(streamerConfig.getLocation())
-                        .build())
-                .certainVodUrls(streamerConfig.getCertainVodUrls())
-                .onlyAudio(streamerConfig.isOnlyAudio())
-                .build();
-
-        return StreamerDO.builder()
-                .name(streamerConfig.getName())
-                .roomUrl(streamerConfig.getRoomUrl())
-                .recordType(streamerConfig.isRecordWhenOnline() ? "living" : "vod")
-                .lastRecordTime(streamerConfig.getLastRecordTime())
-                .expireTime(streamerConfig.getExpireTime())
-                .lastVodCnt(streamerConfig.getLastVodCnt())
-                .maxMergeSize(streamerConfig.getMaxMergeSize())
-                .templateTitle(streamerConfig.getTemplateTitle())
-                .coverPath(streamerConfig.getCoverFilePath())
-                .desc(streamerConfig.getDesc())
-                .uploadPlatforms(CollectionUtils.isNotEmpty(streamerConfig.getUploadPlatforms()) ?
-                        StringUtils.join(streamerConfig.getUploadPlatforms(), ",") : null)
-                .processPlugins(CollectionUtils.isNotEmpty(streamerConfig.getVideoPlugins()) ?
-                        StringUtils.join(streamerConfig.getVideoPlugins(), ",") : null)
-                .tags(CollectionUtils.isNotEmpty(streamerConfig.getTags()) ? StringUtils.join(streamerConfig.getTags(), ",") : null)
-                .extra(JSON.toJSONString(extra))
-                .build();
     }
 
     private StreamerExtraDO parseExtra(String extra) {

@@ -31,20 +31,20 @@ public interface StreamerMapper {
     List<StreamerDO> batchSelectByEnv(@Param("env") String env);
 
     /**
-     * 插入新的流媒体信息
+     * 更新最近上传一件
      *
-     * @param streamerDO 流媒体信息对象
+     * @param name 流媒体信息
+     * @param lastRecordTime 最近上传时间
      */
-    void insert(StreamerDO streamerDO);
+    void updateLastRecordTime(@Param("name") String name, @Param("lastRecordTime") Date lastRecordTime);
 
     /**
-     * 根据名称更新流媒体信息
+     * 更新流量耗费
      *
-     * @param updated 流媒体信息对象
+     * @param name 流媒体信息
+     * @param trafficBG 当前流量耗费
      */
-    void updateByName(@Param("name") String name, @Param("updated") StreamerDO updated);
-
-    void updateLastRecordTime(@Param("name") String name, @Param("lastRecordTime") Date lastRecordTime);
+    void updateTrafficGB(@Param("name") String name, @Param("trafficBG") Float trafficBG);
 
     /**
      * 根据名称删除流媒体信息

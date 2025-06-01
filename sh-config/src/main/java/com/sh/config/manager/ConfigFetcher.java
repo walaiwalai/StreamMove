@@ -105,10 +105,15 @@ public class ConfigFetcher {
         List<StreamerConfig> streamerConfigs = streamerRepoService.getByEnv(env);
         return streamerConfigs.stream()
                 .filter(streamerConfig -> {
-                    if (streamerConfig == null) {
+                    if (streamerConfig.getExpireTime().getTime() <= System.currentTimeMillis()) {
+                        // 时间过期到了
                         return false;
                     }
-                    return streamerConfig.getExpireTime().getTime() > System.currentTimeMillis();
+                    if (streamerConfig.getCurTrafficGB() >= streamerConfig.getMaxTrafficGB()) {
+                        // 流量超出
+                        return false;
+                    }
+                    return true;
                 })
                 .peek(ConfigFetcher::fillDefaultValueForStreamerInfo)
                 .collect(Collectors.toMap(StreamerConfig::getName, Function.identity(), (a, b) -> b));

@@ -16,5 +16,5 @@ public interface StreamerRepoService {
 
     void updateLastRecordTime(String name, Date lastRecordTime);
 
-    void insert(StreamerConfig streamer, String env);
+    void updateTrafficGB( String name, float trafficGBCost );
 }

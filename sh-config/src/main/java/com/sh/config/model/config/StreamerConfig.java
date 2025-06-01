@@ -54,15 +54,11 @@ public class StreamerConfig {
 
     /**
      * 视频处理插件
-     *
-     * @see ProcessPluginEnum
      */
     private List<String> videoPlugins;
 
     /**
      * 视频上传平台
-     *
-     * @see UploadPlatformEnum
      */
     private List<String> uploadPlatforms;
 
@@ -85,6 +81,16 @@ public class StreamerConfig {
      * 一个视频分片大小（M）
      */
     private Integer maxMergeSize;
+
+    /**
+     *  当前流量（G）
+     */
+    private Float curTrafficGB;
+
+    /**
+     * 最大流量（G）
+     */
+    private Float maxTrafficGB;
 
     /**
      * 视频封面

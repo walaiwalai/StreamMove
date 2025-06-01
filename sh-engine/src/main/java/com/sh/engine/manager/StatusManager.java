@@ -20,9 +20,6 @@ import java.util.concurrent.ConcurrentMap;
 @Slf4j
 @Component
 public class StatusManager {
-    @Resource
-    private CacheManager cacheManager;
-
     /**
      * 直播间录像存放文件夹地址记录，按进行时间分段（当天日期）
      * key为streamer，value当前上传的所在目录文件

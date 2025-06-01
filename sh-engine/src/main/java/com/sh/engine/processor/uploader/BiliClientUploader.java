@@ -125,7 +125,6 @@ public class BiliClientUploader extends Uploader {
                 .map(File::getAbsolutePath)
                 .collect(Collectors.toList());
         int insertIndex = 0;
-//        int insertIndex = localFps.size() / 4;
         localFps.add(insertIndex, biliOpeningAnimation);
 
 
