@@ -41,7 +41,7 @@ public class RecordStateMachine {
     @Autowired
     List<AbstractStageProcessor> processors;
     private static final ExecutorService POOL = new ThreadPoolExecutor(
-            4,
+            8,
             8,
             600,
             TimeUnit.SECONDS,
