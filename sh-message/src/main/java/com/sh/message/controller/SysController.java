@@ -24,7 +24,7 @@ public class SysController {
     @Resource
     private ConfigFetcher configFetcher;
 
-    @RequestMapping(value = "/getCache", method = {RequestMethod.POST})
+    @RequestMapping(value = "/refresh", method = {RequestMethod.POST})
     @ResponseBody
     public String getCache(@RequestBody JSONObject requestBody) {
         Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), "sys-refresh"), "token invalid");
