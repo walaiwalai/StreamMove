@@ -73,13 +73,13 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         String key = "certain_keys_" + streamerConfig.getName();
         String videoId = null;
         for (String vodUrl : streamerConfig.getCertainVodUrls()) {
-            videoId = vodUrl.split("player/")[1];
-            String finishFlag = cacheManager.getHash(key, videoId, new TypeReference<String>() {
+            String vid = vodUrl.split("player/")[1];
+            String finishFlag = cacheManager.getHash(key, vid, new TypeReference<String>() {
             });
-            if (StringUtils.isNotBlank(finishFlag)) {
-                continue;
+            if (StringUtils.isBlank(finishFlag)) {
+                videoId = vid;
+                break;
             }
-            break;
         }
         if (videoId == null) {
             return null;
@@ -87,7 +87,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
 
         // 2. 解析切片成链接格式
         Long titleNo = Long.valueOf(videoId);
-        JSONObject curVod = fetchCurVodInfo(Long.valueOf(videoId));
+        JSONObject curVod = fetchCurVodInfo(titleNo);
 
         List<VideoSegRecorder.TsRecordInfo> views = fetchTsViews(titleNo);
         Date date = DateUtil.covertStr2Date(curVod.getJSONObject("data").getString("broad_start"), DateUtil.YYYY_MM_DD_HH_MM_SS);
