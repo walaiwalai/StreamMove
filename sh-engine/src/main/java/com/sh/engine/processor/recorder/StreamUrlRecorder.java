@@ -1,6 +1,7 @@
 package com.sh.engine.processor.recorder;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
@@ -21,7 +22,7 @@ public class StreamUrlRecorder extends Recorder {
     private String streamUrl;
 
     public StreamUrlRecorder(Date regDate, String streamUrl) {
-        super(regDate);
+        super(regDate, Maps.newHashMap());
         this.streamUrl = streamUrl;
     }
 

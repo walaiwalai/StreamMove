@@ -1,6 +1,7 @@
 package com.sh.engine.processor.recorder;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
@@ -38,7 +39,7 @@ public class StreamLinkRecorder extends Recorder {
     }
 
     public StreamLinkRecorder(Date regDate, String url, boolean useProxy) {
-        super(regDate);
+        super(regDate, Maps.newHashMap());
         this.url = url;
         this.channel = StreamChannelTypeEnum.findChannelByUrl(url);
         this.useProxy = useProxy;

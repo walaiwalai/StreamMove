@@ -1,6 +1,7 @@
 package com.sh.engine.processor.recorder;
 
 import java.util.Date;
+import java.util.Map;
 
 /**
  * 抽象的录像机
@@ -14,13 +15,22 @@ public abstract class Recorder {
      */
     protected Date regDate;
 
-    public Recorder(Date regDate) {
+    protected Map<String, String> extraInfo;
+
+    public Recorder( Date regDate, Map<String, String> extraInfo ) {
         this.regDate = regDate;
+        this.extraInfo = extraInfo;
     }
 
     public Date getRegDate() {
         return regDate;
     }
+
+    public String getExtraValue(String key) {
+        return extraInfo == null ? null : extraInfo.get(key);
+    }
+
+
 
     /**
      * 进行录制

@@ -1,5 +1,6 @@
 package com.sh.engine.processor.recorder;
 
+import com.google.common.collect.Maps;
 import com.sh.config.utils.ExecutorPoolUtil;
 import com.sh.config.utils.VideoFileUtil;
 import lombok.Builder;
@@ -14,6 +15,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -33,7 +35,12 @@ public class VideoSegRecorder extends Recorder {
     private List<TsRecordInfo> tsViews;
 
     public VideoSegRecorder(Date regDate, List<TsRecordInfo> tsViews) {
-        super(regDate);
+        super(regDate, Maps.newHashMap());
+        this.tsViews = tsViews;
+    }
+
+    public VideoSegRecorder( Date regDate, List<TsRecordInfo> tsViews, Map<String, String> extraInfo ) {
+        super(regDate, extraInfo);
         this.tsViews = tsViews;
     }
 

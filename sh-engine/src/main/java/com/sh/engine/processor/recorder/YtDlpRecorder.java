@@ -1,5 +1,6 @@
 package com.sh.engine.processor.recorder;
 
+import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.engine.model.ffmpeg.YtDlpDownloadProcessCmd;
@@ -24,7 +25,7 @@ public class YtDlpRecorder extends Recorder {
     private String videoUrl;
 
     public YtDlpRecorder(Date regDate, String videoUrl) {
-        super(regDate);
+        super(regDate, Maps.newHashMap());
         this.videoUrl = videoUrl;
     }
 
