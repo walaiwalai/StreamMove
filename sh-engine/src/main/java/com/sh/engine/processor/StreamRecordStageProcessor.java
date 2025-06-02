@@ -114,7 +114,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
             String finishKey = recorder.getExtraValue("finishKey");
             if (StringUtils.isNotBlank(finishKey)) {
-                cacheManager.set("certain_keys_" + name, finishKey, 2, TimeUnit.DAYS);
+                cacheManager.setHash("certain_keys_" + name, finishKey, "1", 2, TimeUnit.DAYS);
             }
         }
 
