@@ -1,0 +1,80 @@
+package com.sh.engine.processor.recorder;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.sh.config.utils.VideoFileUtil;
+import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
+import com.sh.engine.model.ffmpeg.YtDlpStreamFetchProcessCmd;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.File;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 采用音频和视频流进行录制
+ *
+ * @Author caiwen
+ * @Date 2025 06 07 17 02
+ **/
+@Slf4j
+public class VodM3u8Recorder extends Recorder {
+    private String vodUrl;
+
+    public VodM3u8Recorder(Date regDate, String vodUrl) {
+        super(regDate, Maps.newHashMap());
+        this.vodUrl = vodUrl;
+    }
+
+    @Override
+    public void doRecord(String savePath) {
+        YtDlpStreamFetchProcessCmd streamFetchCmd = new YtDlpStreamFetchProcessCmd(vodUrl);
+        streamFetchCmd.execute(20);
+        if (StringUtils.isBlank(streamFetchCmd.getAudioM3u8Url()) || StringUtils.isBlank(streamFetchCmd.getVideoM3u8Url())) {
+            log.error("no audio or video m3u8, will skip, vodUrl: {}", vodUrl);
+            return;
+        }
+        FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath, streamFetchCmd.getAudioM3u8Url(), streamFetchCmd.getVideoM3u8Url()));
+        // 执行录制，长时间
+        rfCmd.execute(24 * 3600L);
+
+        if (rfCmd.isExitNormal()) {
+            log.info("vod stream record end, savePath: {}", savePath);
+        } else {
+            log.error("vod stream record fail, savePath: {}", savePath);
+        }
+    }
+
+    private String buildCmd(String savePath, String audioM3u8Url, String videoM3u8Url) {
+        // 计算分端视频开始index(默认从1开始)
+        Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
+                .stream()
+                .map(file -> VideoFileUtil.genIndex(file.getName()))
+                .max(Integer::compare)
+                .orElse(1);
+
+        File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME);
+        List<String> commands = Lists.newArrayList(
+                "ffmpeg",
+                "-y",
+                "-v verbose",
+                "-loglevel error",
+                "-hide_banner",
+                "-i", "\"" + videoM3u8Url + "\"",
+                "-i", "\"" + audioM3u8Url + "\"",
+                "-bufsize 10000k",
+                "-c:v copy -c:a copy -c:s mov_text",
+                "-map 0:v -map 1:a",
+                "-f segment",
+                "-segment_time 4",
+                "-segment_start_number", String.valueOf(segStartIndex),
+                "-segment_format mp4",
+                "-movflags +faststart",
+                "-reset_timestamps 1",
+                "\"" + segFile.getAbsolutePath() + "\""
+        );
+        return StringUtils.join(commands, " ");
+    }
+}

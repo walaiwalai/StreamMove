@@ -3,6 +3,7 @@ package com.sh.engine.processor.recorder;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
+import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.YtDlpDownloadProcessCmd;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -45,13 +46,14 @@ public class YtDlpRecorder extends Recorder {
         StringBuilder sb = new StringBuilder();
         sb.append("yt-dlp -f \"bv*+ba/b\" ");
 
-        // cookies文件
-        File cookiesFile = new File(accountSavePath, "youtube-cookies.txt");
-        if (cookiesFile.exists()) {
-            sb.append("--cookies " + cookiesFile.getAbsolutePath() + " ");
+        StreamChannelTypeEnum channel = StreamChannelTypeEnum.findChannelByUrl(videoUrl);
+        if (channel == StreamChannelTypeEnum.YOUTUBE) {
+            File cookiesFile = new File(accountSavePath, "youtube-cookies.txt");
+            if (cookiesFile.exists()) {
+                sb.append("--cookies " + cookiesFile.getAbsolutePath() + " ");
+            }
         }
-
-        String targetPath = new File(savePath, "%(title)s.%(ext)s").getAbsolutePath();
+        String targetPath = new File(savePath, "%(id)s.%(ext)s").getAbsolutePath();
         sb.append("-o " + targetPath + " ");
 
         sb.append(videoUrl);

@@ -23,6 +23,11 @@ public enum StreamChannelTypeEnum {
     AFREECA_TV(3, "afreecatv", "afreecatv.com"),
 
     /**
+     * soop
+     */
+    SOOP(301, "soop", "sooplive.co.kr"),
+
+    /**
      * bilibili
      */
     BILI(4, "b站", "live.bilibili.com"),

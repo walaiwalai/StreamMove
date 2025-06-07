@@ -11,6 +11,7 @@ import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.Recorder;
 import com.sh.engine.processor.recorder.StreamLinkRecorder;
 import com.sh.engine.processor.recorder.VideoSegRecorder;
+import com.sh.engine.processor.recorder.VodM3u8Recorder;
 import com.sh.engine.util.DateUtil;
 import com.sh.engine.util.RegexUtil;
 import lombok.Data;
@@ -30,12 +31,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * soop直播平台
+ *
  * @author caiWen
  * @date 2023/2/18 21:24
  */
@@ -59,7 +58,8 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
             if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
                 return fetchCertainTsUploadInfo(streamerConfig);
             } else {
-                return fetchTsUploadInfo(streamerConfig);
+//                return fetchTsUploadInfo(streamerConfig);
+                return fetchVodInfo(streamerConfig);
             }
         }
     }
@@ -97,6 +97,23 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         return new VideoSegRecorder(date, views, extra);
     }
 
+    private Recorder fetchVodInfo(StreamerConfig streamerConfig) {
+        String roomUrl = streamerConfig.getRoomUrl();
+        String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
+
+        // 1. 获取历史直播列表
+        JSONObject curVod = fetchCurVod(bid, streamerConfig);
+        if (curVod == null) {
+            return null;
+        }
+
+        // 2. 解析切片成链接格式
+        Long titleNo = curVod.getLong("title_no");
+        Date date = DateUtil.covertStr2Date(curVod.getString("reg_date"), DateUtil.YYYY_MM_DD_HH_MM_SS);
+        String vodUrl = "https://vod.sooplive.co.kr/player/" + titleNo;
+        return new VodM3u8Recorder(date, vodUrl);
+    }
+
     private Recorder fetchTsUploadInfo(StreamerConfig streamerConfig) {
         String roomUrl = streamerConfig.getRoomUrl();
         String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
@@ -115,7 +132,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         return new VideoSegRecorder(date, views);
     }
 
-    private JSONObject fetchCurVodInfo( Long nTitleNo ) {
+    private JSONObject fetchCurVodInfo(Long nTitleNo) {
         String playlistUrl = "https://api.m.sooplive.co.kr/station/video/a/view";
         RequestBody body = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
@@ -220,24 +237,8 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
             return null;
         }
 
-        Map<String, JSONObject> vodMap = lastedVods.stream()
-                .collect(Collectors.toMap(vod -> vod.getString("title_no"), Function.identity(), (v1, v2) -> v2));
         // 根据获取的数量获取这个数量最前的lastedVods
-        JSONObject curVod = null;
-        if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
-            for (String vodUrl : streamerConfig.getCertainVodUrls()) {
-                String videoId = vodUrl.split("player/")[1];
-                if (vodMap.containsKey(videoId)) {
-                    curVod = vodMap.get(videoId);
-                    break;
-                }
-            }
-        } else {
-            int lastVodCnt = streamerConfig.getLastVodCnt() > 0 ? streamerConfig.getLastVodCnt() : 1;
-            int index = lastedVods.size() <= lastVodCnt ? lastedVods.size() - 1 : lastVodCnt - 1;
-            curVod = lastedVods.get(index);
-        }
-        return curVod;
+        return lastedVods.get(0);
     }
 
     private VideoSegRecorder.TsRecordInfo fetchTsInfo(String tsPrefix) {
