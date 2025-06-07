@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.sh.config.utils.ExecutorPoolUtil;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
@@ -35,6 +36,9 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 /**
@@ -106,15 +110,13 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         }
 
 
-        // 1. 截图
+        // 1. 找到kda确切位置
         String kadCorpExp = findAccurateKdaCorpExp(recordPath, videos);
 
-        // 1.1 kda的截图
-        for (File video : videos) {
-            doSnapShot(recordPath, video.getName(), KAD_SNAPSHOT_DIR_NAME, kadCorpExp);
-        }
+        // 1.1 kda的截图(多线程)
+        kdaSnapShot(recordPath, videos, kadCorpExp);
 
-        // 1.2 ocr + 位置识别
+        // 1.2 ocr + 位置识别（串行）
         List<LoLPicData> datas = parseSeqPicsV2(videos, recordPath).stream()
                 .filter(d -> d.getTargetIndex() != null)
                 .collect(Collectors.toList());
@@ -151,6 +153,29 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         return new File(new File(recordPath, DETAIL_SNAPSHOT_DIR_NAME), VideoFileUtil.genSnapshotName(index)).getAbsolutePath();
     }
 
+    private void kdaSnapShot(String recordPath, List<File> videos, String kadCorpExp) {
+        File snapShotDir = new File(recordPath, KAD_SNAPSHOT_DIR_NAME);
+        if (!snapShotDir.exists()) {
+            snapShotDir.mkdir();
+        }
+
+        ExecutorService snapshotPool = ExecutorPoolUtil.getSnapshotPool();
+        CountDownLatch latch = new CountDownLatch(videos.size());
+        for (File video : videos) {
+            CompletableFuture.runAsync(
+                            () -> doSnapShot(recordPath, video.getName(), snapShotDir, kadCorpExp), snapshotPool)
+                    .whenComplete((isSuccess, throwable) -> {
+                        latch.countDown();
+                    });
+        }
+
+        // 等待截图完成
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+        }
+    }
+
     /**
      * 找出精确的kda截图位置
      *
@@ -159,13 +184,17 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
      * @return
      */
     private String findAccurateKdaCorpExp(String recordPath, List<File> videos) {
+        File testSnapShotDir = new File(recordPath, KAD_TEST_SNAPSHOT_DIR_NAME);
+        if (!testSnapShotDir.exists()) {
+            testSnapShotDir.mkdir();
+        }
         for (int i = 0; i < videos.size(); i++) {
             File video = videos.get(i);
             if (i % 10 != 0) {
                 continue;
             }
             // 截图
-            doSnapShot(recordPath, video.getName(), KAD_TEST_SNAPSHOT_DIR_NAME, KAD_TEST_CORP_EXP);
+            doSnapShot(recordPath, video.getName(), testSnapShotDir, KAD_TEST_CORP_EXP);
             String testPath = genKdaTestSnapshotPath(recordPath, VideoFileUtil.genIndex(video.getName()));
             // 获取精确的kadbox
             List<List<Integer>> kdaBoxes = detectKDABox(testPath);
@@ -206,12 +235,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         return String.format("crop=%d:%d:in_w/2+%d:%d", width + 20, height + 10, minX, minY - 5);
     }
 
-    private void doSnapShot(String recordPath, String segFileName, String snapshotDirName, String corpExp) {
-        File snapShotDir = new File(recordPath, snapshotDirName);
-        if (!snapShotDir.exists()) {
-            snapShotDir.mkdir();
-        }
-
+    private void doSnapShot(String recordPath, String segFileName, File snapShotDir, String corpExp) {
         int videoIndex = VideoFileUtil.genIndex(segFileName);
         File sourceFile = new File(recordPath, segFileName);
         File targetFile = new File(snapShotDir, VideoFileUtil.genSnapshotName(videoIndex));
@@ -248,6 +272,10 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         // 2. 遍历index列表，分析前后kad
         LoLPicData lastPic = LoLPicData.genBlank();
         List<LoLPicData> res = Lists.newArrayList();
+        File detailDir = new File(recordPath, DETAIL_SNAPSHOT_DIR_NAME);
+        if (!detailDir.exists()) {
+            detailDir.mkdir();
+        }
 
         List<List<Integer>> batchIndexes = Lists.partition(indexes, OCR_INTERVAL_NUM);
         for (List<Integer> idxes : batchIndexes) {
@@ -262,7 +290,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
             if (isSkip) {
                 res.addAll(buildSameKdaData(lastPic, idxes));
             } else {
-                res.addAll(buildNotSameKdaData(recordPath, lastPic, idxes));
+                res.addAll(buildNotSameKdaData(recordPath, detailDir, lastPic, idxes));
             }
             // 更新最后一个
             lastPic = gLastPic;
@@ -298,7 +326,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
         return datas;
     }
 
-    private List<LoLPicData> buildNotSameKdaData(String recordPath, LoLPicData lastPic, List<Integer> idxes) {
+    private List<LoLPicData> buildNotSameKdaData(String recordPath, File detailDir, LoLPicData lastPic, List<Integer> idxes) {
         List<LoLPicData> datas = Lists.newArrayList();
         LoLPicData tmp = lastPic.copy();
         for (Integer idx : idxes) {
@@ -308,7 +336,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
             // 精彩时刻进行击杀细节
             if (highlightOccur(tmp, cur)) {
-                doSnapShot(recordPath, VideoFileUtil.genSegName(idx), DETAIL_SNAPSHOT_DIR_NAME, KILL_DETAIL_CORP_EXP);
+                doSnapShot(recordPath, VideoFileUtil.genSegName(idx), detailDir, KILL_DETAIL_CORP_EXP);
                 cur.setHeroKADetail(parseDetailByVisDet(genKillDetailSnapshotPath(recordPath, idx)));
             }
 
