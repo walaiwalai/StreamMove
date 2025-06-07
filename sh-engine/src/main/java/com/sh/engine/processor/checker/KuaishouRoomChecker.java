@@ -59,21 +59,19 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
     }
 
     private Recorder parseStreamData(String htmlStr) {
-        log.warn("kuai shou htmlStr: {}", htmlStr);
         Matcher initialStateMatcher = INITIAL_STATE_PATTERN.matcher(htmlStr);
         if (!initialStateMatcher.find()) {
             return null;
         }
 
         String jsonStr = initialStateMatcher.group(1);
-        log.warn( "kuai shou jsonStr: {}", jsonStr);
         Matcher playListMatcher = PLAY_LIST_PATTERN.matcher(jsonStr);
         if (!playListMatcher.find()) {
             return null;
         }
 
         String playListStr = playListMatcher.group(1) + "}";
-        log.warn( "kuai shou playlistObj: {}", playListStr);
+        log.warn("kuai shou playlistObj: {}", playListStr);
 
         JSONObject playlistObj = JSON.parseObject(playListStr);
         if (playlistObj.containsKey("errorType")) {
