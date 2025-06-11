@@ -33,7 +33,7 @@ public class StatusCheckStageProcessor extends AbstractStageProcessor {
         boolean isLastRecording = statusManager.isRoomPathFetchStream();
         if (isLastRecording) {
             log.info("{} is recording...", name);
-            throw new StreamerRecordException(ErrorEnum.FAST_END);
+            throw new StreamerRecordException(ErrorEnum.FORCE_TO_PROCESS);
         }
     }
 

@@ -63,7 +63,7 @@ public enum ErrorEnum {
     /**
      * 快速结束
      */
-    FAST_END(11, "fast end"),
+    FORCE_TO_PROCESS(11, "fast end"),
 
     CMD_EXECUTE_TIMEOUT(12, "cmd execute timeout"),
 
