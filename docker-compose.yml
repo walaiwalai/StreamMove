@@ -27,8 +27,6 @@ services:
     restart: "no"
     networks:
       - stream-docker
-    profiles:
-      - ocr
 
   stream-move:
     image: stream-move:latest
