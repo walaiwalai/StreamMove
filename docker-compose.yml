@@ -24,9 +24,11 @@ services:
       - /home/admin/stream/download:/home/admin/stream/download
     ports:
       - "5000:5000"
-    restart: unless-stopped
+    restart: "no"
     networks:
       - stream-docker
+    profiles:
+      - ocr
 
   stream-move:
     image: stream-move:latest
@@ -42,8 +44,6 @@ services:
       - /home/admin/stream/thumbnail:/home/admin/stream/thumbnail
     ports:
       - "8080:8080"
-    depends_on:
-      - stream-ocr
     restart: unless-stopped
     networks:
       - stream-docker
