@@ -38,7 +38,7 @@
 ### 1. 创建路径
 
 ```shell
-mkdir -p /home/admin/stream/{download,logs,dump,account,thumbnail}
+mkdir -p /home/admin/stream/{download,config,logs,dump,account,thumbnail}
 ```
 
 ### 2. 创建项目参数 & 初始化配置文件
