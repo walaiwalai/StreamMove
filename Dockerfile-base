@@ -20,7 +20,7 @@ RUN fc-cache -f -v
 # 创建 Python 虚拟环境并安装 streamlink
 RUN python3 -m venv /opt/myenv && \
     /opt/myenv/bin/pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip && \
-    /opt/myenv/bin/pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple streamlink yt-dlp && \
+    /opt/myenv/bin/pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple streamlink yt-dlp
 
 # 将虚拟环境路径添加到 PATH
 ENV PATH="/opt/myenv/bin:$PATH"
