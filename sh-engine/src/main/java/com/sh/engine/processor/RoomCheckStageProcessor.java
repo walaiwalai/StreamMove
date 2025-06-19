@@ -54,8 +54,8 @@ public class RoomCheckStageProcessor extends AbstractStageProcessor {
     private Recorder fetchStreamer(StreamerConfig streamerConfig) {
         StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(streamerConfig.getRoomUrl());
         if (channelEnum == null) {
-            log.error("roomUrl not match any platform, roomUrl: {}", streamerConfig.getRoomUrl());
-            return null;
+            log.error("roomUrl not match any existed platform, use outer api, roomUrl: {}", streamerConfig.getRoomUrl());
+            channelEnum = StreamChannelTypeEnum.LIVE_RECORD_API;
         }
         AbstractRoomChecker streamerService = streamerServiceMap.get(channelEnum);
         if (streamerService == null) {

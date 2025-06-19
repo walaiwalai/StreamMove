@@ -77,6 +77,11 @@ public enum StreamChannelTypeEnum {
      */
     KUAISHOU(14, "快手", "kuaishou.com"),
 
+    /**
+     * 外部api
+     */
+    LIVE_RECORD_API(999, "外部api", ""),
+
     ;
 
     private int type;
