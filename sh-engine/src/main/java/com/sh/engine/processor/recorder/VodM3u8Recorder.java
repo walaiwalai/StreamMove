@@ -6,6 +6,7 @@ import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import com.sh.engine.model.ffmpeg.YtDlpStreamFetchProcessCmd;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -32,18 +33,25 @@ public class VodM3u8Recorder extends Recorder {
     public void doRecord(String savePath) {
         YtDlpStreamFetchProcessCmd streamFetchCmd = new YtDlpStreamFetchProcessCmd(vodUrl);
         streamFetchCmd.execute(20);
-        if (StringUtils.isBlank(streamFetchCmd.getAudioM3u8Url()) || StringUtils.isBlank(streamFetchCmd.getVideoM3u8Url())) {
+
+        List<String> audioM3u8Urls = streamFetchCmd.getAudioM3u8Urls();
+        List<String> videoM3u8Urls = streamFetchCmd.getVideoM3u8Urls();
+        if (CollectionUtils.isEmpty(audioM3u8Urls) || CollectionUtils.isEmpty(videoM3u8Urls) || audioM3u8Urls.size() != videoM3u8Urls.size()) {
             log.error("no audio or video m3u8, will skip, vodUrl: {}", vodUrl);
             return;
         }
-        FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath, streamFetchCmd.getAudioM3u8Url(), streamFetchCmd.getVideoM3u8Url()));
-        // 执行录制，长时间
-        rfCmd.execute(24 * 3600L);
 
-        if (rfCmd.isExitNormal()) {
-            log.info("vod stream record end, savePath: {}", savePath);
-        } else {
-            log.error("vod stream record fail, savePath: {}", savePath);
+        log.info("vod stream record start, {} video part to download", videoM3u8Urls.size());
+        for (int i = 0; i < videoM3u8Urls.size(); i++) {
+            FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath, audioM3u8Urls.get(i), videoM3u8Urls.get(i)));
+            // 执行录制，长时间
+            rfCmd.execute(24 * 3600L);
+
+            if (rfCmd.isExitNormal()) {
+                log.info("vod stream record end, savePath: {}", savePath);
+            } else {
+                log.error("vod stream record fail, savePath: {}", savePath);
+            }
         }
     }
 

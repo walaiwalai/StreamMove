@@ -2,14 +2,16 @@ package com.sh.engine.model.ffmpeg;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.List;
+
 /**
  * @Author caiwen
  * @Date 2025 06 07 17 12
  **/
 public class YtDlpStreamFetchProcessCmd extends AbstractCmd {
     private final StringBuilder sb = new StringBuilder();
-    private String videoM3u8Url;
-    private String audioM3u8Url;
+    private List<String> videoM3u8Urls;
+    private List<String> audioM3u8Urls;
 
     public YtDlpStreamFetchProcessCmd(String vodUrl) {
         super("");
@@ -32,15 +34,17 @@ public class YtDlpStreamFetchProcessCmd extends AbstractCmd {
 
         // 执行完成后
         String[] split = StringUtils.trim(sb.toString()).split("\n");
-        videoM3u8Url = split[0];
-        audioM3u8Url = split[1];
+        for (int i = 0; i < split.length / 2; i++) {
+            videoM3u8Urls.add(split[i * 2]);
+            audioM3u8Urls.add(split[i * 2 + 1]);
+        }
     }
 
-    public String getVideoM3u8Url() {
-        return videoM3u8Url;
+    public List<String> getVideoM3u8Urls() {
+        return videoM3u8Urls;
     }
 
-    public String getAudioM3u8Url() {
-        return audioM3u8Url;
+    public List<String> getAudioM3u8Urls() {
+        return audioM3u8Urls;
     }
 }
