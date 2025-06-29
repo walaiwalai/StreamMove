@@ -47,8 +47,9 @@ public class VodM3u8Recorder extends Recorder {
             return;
         }
 
-        log.info("vod stream record start, {} video part to download", videoM3u8Urls.size());
+        int totalSize = videoM3u8Urls.size();
         for (int i = 0; i < videoM3u8Urls.size(); i++) {
+            log.info("{}th vod record start, process: {}/{}", i + 1, i + 1, totalSize);
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath, audioM3u8Urls.get(i), videoM3u8Urls.get(i)));
             // 执行录制，长时间
             rfCmd.execute(24 * 3600L);
