@@ -26,9 +26,6 @@ import java.util.Map;
 @Slf4j
 public class ChzzkRoomChecker extends AbstractRoomChecker {
     private static final String CHANNEL_REGEX = "/(\\p{XDigit}{32})$";
-    private static final String API_URL = "https://api.chzzk.naver.com/service/v2/channels/{channel_name}/live-detail";
-    private static final String VIDEOS_URL = "https://api.chzzk.naver.com/service/v2/videos/{video_no}";
-    private static final String API_VOD_PLAYBACK_URL = "https://apis.naver.com/neonplayer/vodplay/v2/playback/{video_id}?key={in_key}";
     private static final String LATEST_VIDEO_URL = "https://api.chzzk.naver.com/service/v1/channels/{channel_name}/videos?sortType=LATEST&pagingType=PAGE&page=0&size=24&publishDateAt=&videoType=";
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Whale/3.23.214.17 Safari/537.36";
 

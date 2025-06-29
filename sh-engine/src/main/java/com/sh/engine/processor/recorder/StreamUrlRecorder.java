@@ -3,7 +3,6 @@ package com.sh.engine.processor.recorder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.VideoFileUtil;
-import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -32,7 +31,6 @@ public class StreamUrlRecorder extends Recorder {
     }
 
     private void recordOnline(String savePath) {
-        int totalCnt = RecordConstant.RECORD_RETRY_CNT;
         for (int i = 0; i < 3; i++) {
             log.info("living stream record begin, savePath: {}, retry: {}/{}", savePath, i + 1, 3);
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
@@ -43,7 +41,6 @@ public class StreamUrlRecorder extends Recorder {
                 break;
             } else {
                 log.error("living stream record fail, savePath: {}", savePath);
-                continue;
             }
         }
     }

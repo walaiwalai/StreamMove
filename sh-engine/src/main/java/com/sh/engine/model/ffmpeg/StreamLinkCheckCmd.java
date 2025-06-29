@@ -83,22 +83,6 @@ public class StreamLinkCheckCmd extends AbstractCmd {
         }
     }
 
-    public static void main(String[] args) {
-        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd("https://www.twitch.tv/videos/2374769396");
-        checkCmd.execute(10);
-
-        System.out.println(checkCmd.isStreamOnline());
-        System.out.println(checkCmd.getBestResolution());
-        System.out.println(checkCmd.getWorstResolution());
-
-        StreamLinkCheckCmd checkCmd1 = new StreamLinkCheckCmd("chzzk.naver.com/video/5691790");
-        checkCmd1.execute(10);
-
-        System.out.println(checkCmd1.isStreamOnline());
-        System.out.println(checkCmd1.getBestResolution());
-        System.out.println(checkCmd1.getWorstResolution());
-    }
-
     @Override
     protected void processOutputLine(String line) {
         streamOnline = line.contains("Available");

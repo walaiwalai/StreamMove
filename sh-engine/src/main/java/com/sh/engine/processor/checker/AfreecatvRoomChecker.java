@@ -10,11 +10,9 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.Recorder;
 import com.sh.engine.processor.recorder.StreamLinkRecorder;
-import com.sh.engine.processor.recorder.VideoSegRecorder;
 import com.sh.engine.processor.recorder.VodM3u8Recorder;
 import com.sh.engine.util.DateUtil;
 import com.sh.engine.util.RegexUtil;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
 import okhttp3.Request;
@@ -45,7 +43,6 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
     private CacheManager cacheManager;
 
     private static final String BID_REGEX = "(?<=com/)([^/]+)$";
-    private static final String TS_COUNT_REGEX = "seg-(\\d+)\\.ts";
     private static final String RECORD_HISTORY_URL = "https://chapi.sooplive.co.kr/api/%s/vods/all?page=1&per_page=50&orderby=reg_date&created=false";
 
     private static final String USER_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0";
@@ -58,7 +55,6 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
             if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
                 return fetchCertainTsUploadInfo(streamerConfig);
             } else {
-//                return fetchTsUploadInfo(streamerConfig);
                 return fetchVodInfo(streamerConfig);
             }
         }
@@ -86,15 +82,15 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         }
 
         // 2. 解析切片成链接格式
-        Long titleNo = Long.valueOf(videoId);
-        JSONObject curVod = fetchCurVodInfo(titleNo);
+        String curVodUrl = "https://vod.sooplive.co.kr/player/" + videoId;
+        JSONObject curVod = fetchCurVodInfo(videoId);
 
-        List<VideoSegRecorder.TsRecordInfo> views = fetchTsViews(titleNo);
         Date date = DateUtil.covertStr2Date(curVod.getJSONObject("data").getString("broad_start"), DateUtil.YYYY_MM_DD_HH_MM_SS);
         Map<String, String> extra = new HashMap<>();
-        extra.put("finishKey", videoId);
+        extra.put("finishKey", key);
+        extra.put("finishField", videoId);
 
-        return new VideoSegRecorder(date, views, extra);
+        return new VodM3u8Recorder(date, curVodUrl, extra);
     }
 
     private Recorder fetchVodInfo(StreamerConfig streamerConfig) {
@@ -114,29 +110,11 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         return new VodM3u8Recorder(date, vodUrl);
     }
 
-    private Recorder fetchTsUploadInfo(StreamerConfig streamerConfig) {
-        String roomUrl = streamerConfig.getRoomUrl();
-        String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
-
-        // 1. 获取历史直播列表
-        JSONObject curVod = fetchCurVod(bid, streamerConfig);
-        if (curVod == null) {
-            return null;
-        }
-
-        // 2. 解析切片成链接格式
-        Long titleNo = curVod.getLong("title_no");
-        List<VideoSegRecorder.TsRecordInfo> views = fetchTsViews(titleNo);
-        Date date = DateUtil.covertStr2Date(curVod.getString("reg_date"), DateUtil.YYYY_MM_DD_HH_MM_SS);
-
-        return new VideoSegRecorder(date, views);
-    }
-
-    private JSONObject fetchCurVodInfo(Long nTitleNo) {
+    private JSONObject fetchCurVodInfo(String videoId) {
         String playlistUrl = "https://api.m.sooplive.co.kr/station/video/a/view";
         RequestBody body = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart("nTitleNo", nTitleNo + "")
+                .addFormDataPart("nTitleNo", videoId)
                 .addFormDataPart("nApiLevel", "10")
                 .addFormDataPart("nPlaylistIdx", "0")
                 .build();
@@ -164,28 +142,6 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
             log.error("query playlist success, playlistUrl: {}", playlistUrl, e);
             return null;
         }
-    }
-
-    private List<VideoSegRecorder.TsRecordInfo> fetchTsViews(Long nTitleNo) {
-        JSONObject vodObj = fetchCurVodInfo(nTitleNo);
-        if (vodObj == null) {
-            return null;
-        }
-
-        List<VideoSegRecorder.TsRecordInfo> views = Lists.newArrayList();
-        JSONArray files = vodObj.getJSONObject("data").getJSONArray("files");
-        for (int i = 0; i < files.size(); i++) {
-            views.add(covertSingleView(files.getJSONObject(i)));
-        }
-        return views;
-    }
-
-    private VideoSegRecorder.TsRecordInfo covertSingleView(JSONObject fileObj) {
-        String file = fileObj.getJSONArray("quality_info").getJSONObject(0).getString("file");
-        int index1 = file.lastIndexOf(":");
-        int index2 = file.indexOf("/playlist.m3u8");
-        String tsPrefix = "https://vod-archive-global-cdn-z02.sooplive.co.kr/v101/hls/" + file.substring(index1 + 1, index2);
-        return fetchTsInfo(tsPrefix);
     }
 
     private JSONObject fetchCurVod(String bid, StreamerConfig streamerConfig) {
@@ -241,51 +197,10 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         return lastedVods.get(0);
     }
 
-    private VideoSegRecorder.TsRecordInfo fetchTsInfo(String tsPrefix) {
-        String playlistUrl = tsPrefix + "/original/both/playlist.m3u8";
-        Request.Builder requestBuilder = new Request.Builder()
-                .url(playlistUrl)
-                .get()
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
-                .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
-//        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getAfreecaTvCookies())) {
-//            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getAfreecaTvCookies());
-//        }
-        Response response = null;
-        try {
-            response = CLIENT.newCall(requestBuilder.build()).execute();
-            if (response.isSuccessful()) {
-                String resp = response.body().string();
-                String[] lines = StringUtils.split(resp, "\n");
-                String lastSegFile = lines[lines.length - 2];
-                String s = RegexUtil.fetchMatchedOne(lastSegFile, TS_COUNT_REGEX);
-                return VideoSegRecorder.TsRecordInfo.builder()
-                        .tsFormatUrl(tsPrefix + "/original/both/seg-%s.ts")
-                        .count(Integer.valueOf(s))
-                        .build();
-            } else {
-                String message = response.message();
-                String bodyStr = response.body() != null ? response.body().string() : null;
-                log.error("query user info failed, message: {}, body: {}", message, bodyStr);
-                return null;
-            }
-        } catch (IOException e) {
-            log.error("query playlist success, playlistUrl: {}", playlistUrl, e);
-            return null;
-        }
-    }
-
 
     private Recorder fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
         boolean isLiving = checkIsLivingByStreamLink(streamerConfig.getRoomUrl());
         Date date = new Date();
         return isLiving ? new StreamLinkRecorder(date, streamerConfig.getRoomUrl()) : null;
-    }
-
-    @Data
-    private static class AfreecatvVodInfo {
-        private Date broadStartDate;
-        private List<VideoSegRecorder.TsRecordInfo> tsRecordInfos;
-
     }
 }

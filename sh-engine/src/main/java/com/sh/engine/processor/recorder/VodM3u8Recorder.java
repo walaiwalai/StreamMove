@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.File;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 采用音频和视频流进行录制
@@ -26,6 +27,11 @@ public class VodM3u8Recorder extends Recorder {
 
     public VodM3u8Recorder(Date regDate, String vodUrl) {
         super(regDate, Maps.newHashMap());
+        this.vodUrl = vodUrl;
+    }
+
+    public VodM3u8Recorder(Date regDate, String vodUrl, Map<String, String> extra) {
+        super(regDate, extra);
         this.vodUrl = vodUrl;
     }
 
@@ -61,7 +67,7 @@ public class VodM3u8Recorder extends Recorder {
                 .stream()
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
-                .orElse(1);
+                .orElse(0) + 1;
 
         File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME);
         List<String> commands = Lists.newArrayList(
@@ -84,5 +90,10 @@ public class VodM3u8Recorder extends Recorder {
                 "\"" + segFile.getAbsolutePath() + "\""
         );
         return StringUtils.join(commands, " ");
+    }
+
+    public static void main(String[] args) {
+        VodM3u8Recorder vodM3u8Recorder = new VodM3u8Recorder(new Date(), "https://vod.sooplive.co.kr/player/163762503");
+        vodM3u8Recorder.doRecord("G:\\stream_record\\download\\mytest-pc\\2025-04-23-02-02-35");
     }
 }

@@ -1,5 +1,6 @@
 package com.sh.engine.model.ffmpeg;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
@@ -10,8 +11,8 @@ import java.util.List;
  **/
 public class YtDlpStreamFetchProcessCmd extends AbstractCmd {
     private final StringBuilder sb = new StringBuilder();
-    private List<String> videoM3u8Urls;
-    private List<String> audioM3u8Urls;
+    private List<String> videoM3u8Urls = Lists.newArrayList();
+    private List<String> audioM3u8Urls = Lists.newArrayList();
 
     public YtDlpStreamFetchProcessCmd(String vodUrl) {
         super("");
