@@ -109,7 +109,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
                     .sorted(Comparator.comparingInt(x -> ((JSONObject) x).getInteger("bitrate")).reversed())
                     .map(x -> (JSONObject) x)
                     .collect(Collectors.toList());
-            return new StreamUrlRecorder(new Date(), urlObjs.get(0).getString("url"));
+            return new StreamUrlRecorder(new Date(), getType().getType(), urlObjs.get(0).getString("url"));
 
 //            if (urlObjs.get(0).getInteger("bitrate") <= 6000) {
 //                return new StreamUrlRecorder(new Date(), urlObjs.get(0).getString("url"));
@@ -118,7 +118,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
 //            }
         } else {
             JSONObject lastUrlObj = represents.getJSONObject(represents.size() - 1);
-            return new StreamUrlRecorder(new Date(), lastUrlObj.getString("url"));
+            return new StreamUrlRecorder(new Date(), getType().getType(), lastUrlObj.getString("url"));
         }
     }
 

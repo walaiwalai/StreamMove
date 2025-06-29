@@ -17,8 +17,14 @@ public abstract class Recorder {
 
     protected Map<String, String> extraInfo;
 
-    public Recorder( Date regDate, Map<String, String> extraInfo ) {
+    /**
+     * 录像源类型
+     */
+    protected Integer streamChannelType;
+
+    public Recorder(Date regDate, Integer streamChannelType, Map<String, String> extraInfo) {
         this.regDate = regDate;
+        this.streamChannelType = streamChannelType;
         this.extraInfo = extraInfo;
     }
 
@@ -29,7 +35,6 @@ public abstract class Recorder {
     public String getExtraValue(String key) {
         return extraInfo == null ? null : extraInfo.get(key);
     }
-
 
 
     /**

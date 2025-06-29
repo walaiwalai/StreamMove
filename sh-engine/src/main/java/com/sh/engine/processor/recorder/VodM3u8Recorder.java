@@ -3,6 +3,7 @@ package com.sh.engine.processor.recorder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.VideoFileUtil;
+import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import com.sh.engine.model.ffmpeg.YtDlpStreamFetchProcessCmd;
 import lombok.extern.slf4j.Slf4j;
@@ -25,19 +26,18 @@ import java.util.Map;
 public class VodM3u8Recorder extends Recorder {
     private String vodUrl;
 
-    public VodM3u8Recorder(Date regDate, String vodUrl) {
-        super(regDate, Maps.newHashMap());
-        this.vodUrl = vodUrl;
+    public VodM3u8Recorder(Date regDate, Integer streamChannelType, String vodUrl) {
+        this(regDate, streamChannelType, vodUrl, Maps.newHashMap());
     }
 
-    public VodM3u8Recorder(Date regDate, String vodUrl, Map<String, String> extra) {
-        super(regDate, extra);
+    public VodM3u8Recorder(Date regDate, Integer streamChannelType, String vodUrl, Map<String, String> extra) {
+        super(regDate, streamChannelType, extra);
         this.vodUrl = vodUrl;
     }
 
     @Override
     public void doRecord(String savePath) {
-        YtDlpStreamFetchProcessCmd streamFetchCmd = new YtDlpStreamFetchProcessCmd(vodUrl);
+        YtDlpStreamFetchProcessCmd streamFetchCmd = new YtDlpStreamFetchProcessCmd(vodUrl, streamChannelType);
         streamFetchCmd.execute(20);
 
         List<String> audioM3u8Urls = streamFetchCmd.getAudioM3u8Urls();
@@ -93,7 +93,7 @@ public class VodM3u8Recorder extends Recorder {
     }
 
     public static void main(String[] args) {
-        VodM3u8Recorder vodM3u8Recorder = new VodM3u8Recorder(new Date(), "https://vod.sooplive.co.kr/player/163762503");
+        VodM3u8Recorder vodM3u8Recorder = new VodM3u8Recorder(new Date(), StreamChannelTypeEnum.AFREECA_TV.getType(), "https://vod.sooplive.co.kr/player/164464551");
         vodM3u8Recorder.doRecord("G:\\stream_record\\download\\mytest-pc\\2025-04-23-02-02-35");
     }
 }

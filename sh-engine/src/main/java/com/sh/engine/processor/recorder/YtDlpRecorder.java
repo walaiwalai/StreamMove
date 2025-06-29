@@ -25,8 +25,8 @@ public class YtDlpRecorder extends Recorder {
 
     private String videoUrl;
 
-    public YtDlpRecorder(Date regDate, String videoUrl) {
-        super(regDate, Maps.newHashMap());
+    public YtDlpRecorder(Date regDate, Integer streamChannelType, String videoUrl) {
+        super(regDate, streamChannelType, Maps.newHashMap());
         this.videoUrl = videoUrl;
     }
 

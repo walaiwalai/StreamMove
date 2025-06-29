@@ -44,7 +44,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         boolean isLiving = checkIsLivingByStreamLink(roomUrl);
 
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(date, roomUrl) : null;
+        return isLiving ? new StreamLinkRecorder(date, getType().getType(), roomUrl) : null;
     }
 
     private Recorder fetchLatestRecord(StreamerConfig streamerConfig) {
@@ -66,7 +66,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         // 最近视频链接
         String videoUrl = "https://www.twitch.tv/videos/" + videoItem.getId();
 
-        return new StreamLinkRecorder(date, videoUrl);
+        return new StreamLinkRecorder(date, getType().getType(), videoUrl);
     }
 
     @Override

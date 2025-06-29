@@ -20,8 +20,8 @@ import java.util.List;
 public class StreamUrlRecorder extends Recorder {
     private String streamUrl;
 
-    public StreamUrlRecorder(Date regDate, String streamUrl) {
-        super(regDate, Maps.newHashMap());
+    public StreamUrlRecorder(Date regDate, Integer streamChannelType, String streamUrl) {
+        super(regDate, streamChannelType, Maps.newHashMap());
         this.streamUrl = streamUrl;
     }
 

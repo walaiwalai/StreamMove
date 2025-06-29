@@ -32,7 +32,7 @@ public class YoutubeRoomChecker extends AbstractRoomChecker {
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             String roomUrl = streamerConfig.getRoomUrl();
             boolean isLiving = checkIsLivingByStreamLink(roomUrl);
-            return isLiving ? new StreamLinkRecorder(new Date(), roomUrl) : null;
+            return isLiving ? new StreamLinkRecorder(new Date(), getType().getType(), roomUrl) : null;
         } else {
             return recordVod(streamerConfig);
         }
@@ -65,7 +65,7 @@ public class YoutubeRoomChecker extends AbstractRoomChecker {
         for (YtDlpVideoMetaProcessCmd.YtDlpVideoMeta videoMeta : videoMetas) {
             Date regDate = new Date(videoMeta.getUploadTimeStamp());
             if (checkVodIsNew(streamerConfig, regDate)) {
-                return new YtDlpRecorder(regDate, videoMeta.getVideoUrl());
+                return new YtDlpRecorder(regDate, getType().getType(), videoMeta.getVideoUrl());
             }
         }
 

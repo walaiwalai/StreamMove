@@ -24,7 +24,7 @@ public class HuyaRoomChecker extends AbstractRoomChecker {
         boolean isLiving = checkIsLivingByStreamLink(roomUrl);
 
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(date, roomUrl, true) : null;
+        return isLiving ? new StreamLinkRecorder(date, getType().getType(), roomUrl) : null;
     }
 
     @Override

@@ -46,7 +46,7 @@ public class TaobaoRoomChecker extends AbstractRoomChecker {
             throw new StreamerRecordException(ErrorEnum.ROOM_CHECK_PARAM_ERROR);
         }
         String streamUrl = getStreamUrl(initConfig.getTaobaoCookies(), streamerConfig.getRoomUrl());
-        return StringUtils.isBlank(streamUrl) ? null : new StreamUrlRecorder(new Date(), streamUrl);
+        return StringUtils.isBlank(streamUrl) ? null : new StreamUrlRecorder(new Date(), getType().getType(), streamUrl);
     }
 
     @Override

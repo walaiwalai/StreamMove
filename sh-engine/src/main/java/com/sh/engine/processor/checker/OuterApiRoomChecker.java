@@ -56,7 +56,7 @@ public class OuterApiRoomChecker extends AbstractRoomChecker {
             return null;
         }
         log.info("get stream info success, resp: {}", resp);
-        return new StreamUrlRecorder(new Date(), respObj.getString("record_url"));
+        return new StreamUrlRecorder(new Date(), getType().getType(), respObj.getString("record_url"));
     }
 
     @Override

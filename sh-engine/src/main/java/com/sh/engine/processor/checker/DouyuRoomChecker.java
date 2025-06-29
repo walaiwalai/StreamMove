@@ -130,7 +130,7 @@ public class DouyuRoomChecker extends AbstractRoomChecker {
             String flvStr = fetchStreamData(rid, rate);
             JSONObject flvObj = JSONObject.parseObject(flvStr);
             String streamUrl = flvObj.getJSONObject("data").getString("rtmp_url") + "/" + flvObj.getJSONObject("data").getString("rtmp_live");
-            return new StreamUrlRecorder(new Date(), streamUrl);
+            return new StreamUrlRecorder(new Date(), getType().getType(), streamUrl);
         } else {
             // 没有直播
             return null;

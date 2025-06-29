@@ -1,6 +1,8 @@
 package com.sh.engine.model.ffmpeg;
 
 import com.google.common.collect.Lists;
+import com.sh.config.manager.ConfigFetcher;
+import com.sh.engine.constant.StreamChannelTypeEnum;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
@@ -14,9 +16,21 @@ public class YtDlpStreamFetchProcessCmd extends AbstractCmd {
     private List<String> videoM3u8Urls = Lists.newArrayList();
     private List<String> audioM3u8Urls = Lists.newArrayList();
 
-    public YtDlpStreamFetchProcessCmd(String vodUrl) {
+    public YtDlpStreamFetchProcessCmd(String vodUrl, Integer channelType) {
         super("");
-        this.command = "yt-dlp -g -f \"bestvideo+bestaudio\" " + vodUrl;
+        this.command = buildCmd(vodUrl, channelType);
+    }
+
+    private String buildCmd(String vodUrl, Integer channelType) {
+        String res;
+        if (channelType == StreamChannelTypeEnum.AFREECA_TV.getType()) {
+            String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
+            String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
+            res = "yt-dlp -g --username " + soopUserName + " --password " + soopPassword + " -f \"bestvideo+bestaudio\" " + vodUrl;
+        } else {
+            res = "yt-dlp -g -f \"bestvideo+bestaudio\" " + vodUrl;
+        }
+        return res;
     }
 
     @Override

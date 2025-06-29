@@ -90,7 +90,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         extra.put("finishKey", key);
         extra.put("finishField", videoId);
 
-        return new VodM3u8Recorder(date, curVodUrl, extra);
+        return new VodM3u8Recorder(date, getType().getType(), curVodUrl, extra);
     }
 
     private Recorder fetchVodInfo(StreamerConfig streamerConfig) {
@@ -107,7 +107,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         Long titleNo = curVod.getLong("title_no");
         Date date = DateUtil.covertStr2Date(curVod.getString("reg_date"), DateUtil.YYYY_MM_DD_HH_MM_SS);
         String vodUrl = "https://vod.sooplive.co.kr/player/" + titleNo;
-        return new VodM3u8Recorder(date, vodUrl);
+        return new VodM3u8Recorder(date, getType().getType(), vodUrl);
     }
 
     private JSONObject fetchCurVodInfo(String videoId) {
@@ -201,6 +201,6 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
     private Recorder fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
         boolean isLiving = checkIsLivingByStreamLink(streamerConfig.getRoomUrl());
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(date, streamerConfig.getRoomUrl()) : null;
+        return isLiving ? new StreamLinkRecorder(date, getType().getType(), streamerConfig.getRoomUrl()) : null;
     }
 }

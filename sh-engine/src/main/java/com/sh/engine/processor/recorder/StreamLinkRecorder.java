@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.File;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * streamlink录像机
@@ -31,18 +32,9 @@ import java.util.List;
 public class StreamLinkRecorder extends Recorder {
     private String url;
 
-    private StreamChannelTypeEnum channel;
-    private boolean useProxy;
-
-    public StreamLinkRecorder(Date regDate, String url) {
-        this(regDate, url, false);
-    }
-
-    public StreamLinkRecorder(Date regDate, String url, boolean useProxy) {
-        super(regDate, Maps.newHashMap());
+    public StreamLinkRecorder(Date regDate, Integer streamChannelType, String url) {
+        super(regDate, streamChannelType, Maps.newHashMap());
         this.url = url;
-        this.channel = StreamChannelTypeEnum.findChannelByUrl(url);
-        this.useProxy = useProxy;
     }
 
     @Override
@@ -141,7 +133,7 @@ public class StreamLinkRecorder extends Recorder {
                 BooleanUtils.isTrue(streamerConfig.isOnlyAudio()) ? "-vn" : "",
                 "-bufsize 10000k",
                 BooleanUtils.isTrue(streamerConfig.isOnlyAudio()) ? "-c:a copy -c:s mov_text" : "-c:v copy -c:a copy -c:s mov_text",
-                channel == StreamChannelTypeEnum.TWITCH ? "-map 0:v -map 0:a" : "-map 0",
+                Objects.equals(StreamChannelTypeEnum.TWITCH.getType(), streamChannelType) ? "-map 0:v -map 0:a" : "-map 0",
                 "-f segment",
                 "-segment_time 4",
                 "-segment_start_number", String.valueOf(segStartIndex),
@@ -156,21 +148,19 @@ public class StreamLinkRecorder extends Recorder {
     private List<String> buildStreamlinkChannelParams() {
         List<String> extraArgs = Lists.newArrayList();
         // twitch额外参数
-        if (channel == StreamChannelTypeEnum.TWITCH) {
+        if (Objects.equals(StreamChannelTypeEnum.TWITCH.getType(), streamChannelType)) {
             extraArgs.add("--twitch-disable-ads");
             String authorization = ConfigFetcher.getInitConfig().getTwitchAuthorization();
             if (StringUtils.isNotBlank(authorization)) {
                 extraArgs.add(String.format("\"--twitch-api-header=Authorization=%s\"", authorization));
             }
-        } else if (channel == StreamChannelTypeEnum.AFREECA_TV) {
+        } else if (Objects.equals(StreamChannelTypeEnum.AFREECA_TV.getType(), streamChannelType)) {
             String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
             String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
             if (StringUtils.isNotBlank(soopUserName) && StringUtils.isNotBlank(soopPassword)) {
                 extraArgs.add(String.format("--soop-username \"%s\"", soopUserName));
                 extraArgs.add(String.format("--soop-password \"%s\"", soopPassword));
             }
-        } else if (channel == StreamChannelTypeEnum.KICK) {
-
         }
 
 

@@ -36,6 +36,6 @@ public class KickRoomChecker extends AbstractRoomChecker {
         boolean isLiving = checkIsLivingByStreamLink(roomUrl);
 
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(date, roomUrl) : null;
+        return isLiving ? new StreamLinkRecorder(date, getType().getType(), roomUrl) : null;
     }
 }

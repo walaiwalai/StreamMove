@@ -65,7 +65,7 @@ public class XhsRoomChecker extends AbstractRoomChecker {
         flvUrl = "http://live-source-play.xhscdn.com/live/" + roomId + ".flv";
         String m3u8Url = flvUrl.replace(".flv", ".m3u8");
 
-        return new StreamUrlRecorder(new Date(), flvUrl);
+        return new StreamUrlRecorder(new Date(), getType().getType(), flvUrl);
     }
 
     @Override
