@@ -23,6 +23,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -56,7 +57,8 @@ public class MessageReceiveController {
             msgSendService.sendText("接受到开播的APP消息，liveOnReceiveModel" + JSON.toJSONString(liveOnReceiveModel));
             String platform = liveOnReceiveModel.getFrom();
             String streamerName = liveOnReceiveModel.getStreamerName();
-            cacheManager.setHash(MessageConstant.LIVE_ON_HASH_PREFIX_KEY + platform, streamerName, JSON.toJSONString(liveOnReceiveModel));
+            cacheManager.setHash(MessageConstant.LIVE_ON_HASH_PREFIX_KEY + platform, streamerName,
+                    JSON.toJSONString(liveOnReceiveModel), 20, TimeUnit.MINUTES);
         }
         return "ok";
     }
