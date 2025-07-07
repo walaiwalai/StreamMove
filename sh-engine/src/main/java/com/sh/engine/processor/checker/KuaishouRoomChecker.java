@@ -3,29 +3,38 @@ package com.sh.engine.processor.checker;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
+import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.Recorder;
 import com.sh.engine.processor.recorder.StreamUrlRecorder;
+import com.sh.message.constant.MessageConstant;
+import com.sh.message.model.message.LiveOnReceiveModel;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Headers;
 import okhttp3.Request;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
+ * 快手存在同一个ip检测风险，采用主动获取推送开播消息进行检测
+ *
  * @Author caiwen
  * @Date 2025 05 29 22 24
  **/
 @Component
 @Slf4j
 public class KuaishouRoomChecker extends AbstractRoomChecker {
+    @Resource
+    private CacheManager cacheManager;
     // 定义正则表达式模式
     private static final Pattern INITIAL_STATE_PATTERN =
             Pattern.compile("<script>window.__INITIAL_STATE__=(.*?);\\(function\\(\\)\\{var s;");
@@ -35,6 +44,10 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
 
     @Override
     public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
+        if (!checkOnline(streamerConfig)) {
+            return null;
+        }
+        log.warn("{} is online by kuaishou receiving message", streamerConfig.getName());
         String roomUrl = streamerConfig.getRoomUrl();
         Map<String, String> headers = new HashMap<>();
         headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0");
@@ -57,6 +70,13 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.KUAISHOU;
     }
+
+    private boolean checkOnline(StreamerConfig streamerConfig) {
+        LiveOnReceiveModel liveOnModel = cacheManager.getHash(MessageConstant.LIVE_ON_HASH_PREFIX_KEY + "KUAISHOU", streamerConfig.getName(), new TypeReference<LiveOnReceiveModel>() {
+        });
+        return liveOnModel != null;
+    }
+
 
     private Recorder parseStreamData(String htmlStr) {
         Matcher initialStateMatcher = INITIAL_STATE_PATTERN.matcher(htmlStr);

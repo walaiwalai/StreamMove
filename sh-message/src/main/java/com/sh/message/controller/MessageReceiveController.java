@@ -1,7 +1,9 @@
 package com.sh.message.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.base.Preconditions;
 import com.sh.config.manager.CacheManager;
+import com.sh.message.constant.MessageConstant;
 import com.sh.message.model.message.LiveOnReceiveModel;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
@@ -46,11 +48,16 @@ public class MessageReceiveController {
                          @RequestParam String timestamp,
                          @RequestParam String from,
                          @RequestParam String content) {
-        msgSendService.sendText("接受到测试通知，content=" + content);
         log.info("receive content: {}, from: {}", content, from);
         Preconditions.checkArgument(validSign(sign, timestamp), "sign error");
 
-        parseLiveOn(content, from);
+        LiveOnReceiveModel liveOnReceiveModel = parseLiveOn(content, from);
+        if (liveOnReceiveModel != null) {
+            msgSendService.sendText("接受到开播的APP消息，liveOnReceiveModel" + JSON.toJSONString(liveOnReceiveModel));
+            String platform = liveOnReceiveModel.getFrom();
+            String streamerName = liveOnReceiveModel.getStreamerName();
+            cacheManager.setHash(MessageConstant.LIVE_ON_HASH_PREFIX_KEY + platform, streamerName, JSON.toJSONString(liveOnReceiveModel));
+        }
         return "ok";
     }
 
@@ -76,13 +83,20 @@ public class MessageReceiveController {
         Map<String, String> paramMap = Arrays.stream(paramPairs)
                 .map(param -> param.split("="))
                 .collect(Collectors.toMap(param -> param[0], param -> param[1]));
-        String title = paramMap.get("title");
+        if (StringUtils.equals(from, "com.smile.gifmaker")) {
+            return parseFromKS(paramMap);
+        }
+        return null;
+    }
+
+    private LiveOnReceiveModel parseFromKS(Map<String, String> paramMap) {
         String msg = paramMap.get("msg");
-        String streamerName = null;
-
-
+        if (!msg.contains("正在直播")) {
+            return null;
+        }
+        String streamerName = paramMap.get("title").split("【")[0];
         LiveOnReceiveModel liveOnReceiveModel = new LiveOnReceiveModel();
-        liveOnReceiveModel.setFrom(from);
+        liveOnReceiveModel.setFrom("KUAISHOU");
         liveOnReceiveModel.setReceiveTime(paramMap.get("receiveTime"));
         liveOnReceiveModel.setStreamerName(streamerName);
         return liveOnReceiveModel;
