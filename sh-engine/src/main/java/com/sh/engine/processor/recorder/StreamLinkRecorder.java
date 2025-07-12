@@ -171,7 +171,7 @@ public class StreamLinkRecorder extends Recorder {
                 "-c:s mov_text",
                 "-map 0:v",
                 "-map 0:a",
-                "-map 0:s"
+                "-map 0:s?"
         );
         return commands;
     }
