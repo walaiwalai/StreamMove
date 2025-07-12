@@ -2,10 +2,10 @@ package com.sh.engine.processor;
 
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
+import com.sh.config.manager.StatusManager;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
-import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -30,7 +30,7 @@ public class StatusCheckStageProcessor extends AbstractStageProcessor {
         String name = StreamerInfoHolder.getCurStreamerName();
 
         // 直播正在录制
-        boolean isLastRecording = statusManager.isRoomPathFetchStream();
+        boolean isLastRecording = statusManager.isRoomPathFetchStream(name);
         if (isLastRecording) {
             log.info("{} is recording...", name);
             throw new StreamerRecordException(ErrorEnum.FORCE_TO_PROCESS);

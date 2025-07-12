@@ -1,13 +1,10 @@
-package com.sh.engine.manager;
+package com.sh.config.manager;
 
 import com.google.common.collect.Maps;
-import com.sh.config.manager.CacheManager;
-import com.sh.engine.base.StreamerInfoHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
@@ -37,23 +34,21 @@ public class StatusManager {
     private static ConcurrentMap<String, String> postProcessMap = Maps.newConcurrentMap();
 
 
-    public void printInfo() {
-        log.info("There are {} streamers recoding, they are: ", recordStatusMap.keySet().size());
+    public String printInfo() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("There are").append(recordStatusMap.keySet().size()).append("streamers recording, they are: ");
         for (Map.Entry<String, String> entry : recordStatusMap.entrySet()) {
-            log.info("name: {}，path: {}", entry.getKey(), entry.getValue());
+            sb.append("\nname: ").append(entry.getKey()).append(", path: ").append(entry.getValue());
         }
-
-        long postProcessCount = postProcessMap.keySet().size();
-        log.info("There are {} streamers processing, they are: ", postProcessCount);
-        for (Map.Entry<String, String> entry : postProcessMap.entrySet()) {
-            log.info("path: {}, plugin: {}.", entry.getKey(), entry.getValue());
-        }
-
-        long uploadCount = uploadStatusMap.keySet().size();
-        log.info("There are {} streamers uploading, they are: ", uploadCount);
+        sb.append("\nThere are ").append(uploadStatusMap.keySet().size()).append(" streamers uploading, they are: ");
         for (Map.Entry<String, String> entry : uploadStatusMap.entrySet()) {
-            log.info("name: {}, path: {}", entry.getKey(), entry.getValue());
+            sb.append("\nname: ").append(entry.getKey()).append(", path: ").append(entry.getValue());
         }
+        sb.append("\nThere are ").append(postProcessMap.keySet().size()).append(" streamers processing, they are: ");
+        for (Map.Entry<String, String> entry : postProcessMap.entrySet()) {
+            sb.append("\npath: ").append(entry.getKey()).append(", plugin: ").append(entry.getValue());
+        }
+        return sb.toString();
     }
 
     /**
@@ -90,20 +85,16 @@ public class StatusManager {
     /**
      * 直播间录像是否正在被下载
      */
-    public boolean isRoomPathFetchStream() {
-        return recordStatusMap.containsKey(StreamerInfoHolder.getCurStreamerName());
+    public boolean isRoomPathFetchStream(String streamerName) {
+        return recordStatusMap.containsKey(streamerName);
     }
 
-    public void addRoomPathStatus(String pathWithTimeV) {
-        recordStatusMap.put(StreamerInfoHolder.getCurStreamerName(), pathWithTimeV);
+    public void addRoomPathStatus(String pathWithTimeV, String streamerName) {
+        recordStatusMap.put(streamerName, pathWithTimeV);
     }
 
-    public String getCurRecordPath() {
-        return recordStatusMap.get(StreamerInfoHolder.getCurStreamerName());
-    }
-
-    public void deleteRoomPathStatus() {
-        recordStatusMap.remove(StreamerInfoHolder.getCurStreamerName());
+    public void deleteRoomPathStatus(String streamerName) {
+        recordStatusMap.remove(streamerName);
     }
 
     public Integer count() {
@@ -129,8 +120,8 @@ public class StatusManager {
     }
 
 
-    public boolean isPathOccupied(String recordPath) {
-        String onRecordPath = recordStatusMap.get(StreamerInfoHolder.getCurStreamerName());
+    public boolean isPathOccupied(String recordPath, String streamerName) {
+        String onRecordPath = recordStatusMap.get(streamerName);
         boolean isPathOnRecording = StringUtils.equals(recordPath, onRecordPath);
 
         return isRecordOnSubmission(recordPath) || isPathOnRecording || isDoPostProcess(recordPath);

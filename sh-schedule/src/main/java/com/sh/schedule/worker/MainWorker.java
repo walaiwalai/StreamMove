@@ -2,9 +2,10 @@ package com.sh.schedule.worker;
 
 import cn.hutool.extra.spring.SpringUtil;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.engine.manager.StatusManager;
 import com.sh.engine.manager.RecordStateMachine;
+import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
 
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.List;
  * @author caiWen
  * @date 2023/1/25 11:40
  */
+@Slf4j
 public class MainWorker extends ProcessWorker {
     private final RecordStateMachine recordStateMachine = SpringUtil.getBean(RecordStateMachine.class);
     private final StatusManager statusManager = SpringUtil.getBean(StatusManager.class);
@@ -24,6 +26,7 @@ public class MainWorker extends ProcessWorker {
             recordStateMachine.start(streamerConfig);
         }
 
-        statusManager.printInfo();
+        String info = statusManager.printInfo();
+        log.info(info);
     }
 }

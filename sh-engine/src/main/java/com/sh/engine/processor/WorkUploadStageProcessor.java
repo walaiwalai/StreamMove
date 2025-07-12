@@ -1,12 +1,12 @@
 package com.sh.engine.processor;
 
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
-import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.processor.uploader.Uploader;
 import com.sh.engine.processor.uploader.UploaderFactory;
@@ -39,7 +39,7 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
 
         for (String curRecordPath : StreamerInfoHolder.getCurRecordPaths()) {
             FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
-            if (statusManager.isPathOccupied(curRecordPath)) {
+            if (statusManager.isPathOccupied(curRecordPath, streamerName)) {
                 log.info("{} is doing other process, platform: {}.", streamerName, statusManager.getCurPlatform(curRecordPath));
                 continue;
             }
@@ -89,7 +89,7 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
         }
     }
 
-    private void workUploadPostProcess( String recordPath ) {
+    private void workUploadPostProcess(String recordPath) {
     }
 
 

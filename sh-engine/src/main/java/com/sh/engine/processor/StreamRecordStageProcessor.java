@@ -2,13 +2,13 @@ package com.sh.engine.processor;
 
 import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.repo.StreamerRepoService;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
-import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.processor.recorder.Recorder;
 import com.sh.message.service.MsgSendService;
@@ -71,7 +71,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         recordPreProcess(streamerConfig, savePath);
 
         // 2. 录制
-        statusManager.addRoomPathStatus(savePath);
+        statusManager.addRoomPathStatus(savePath, name);
         try {
             // 录像(长时间)
             context.getRecorder().doRecord(savePath);
@@ -79,7 +79,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
             log.error("record error, savePath: {}", savePath, e);
             throw e;
         } finally {
-            statusManager.deleteRoomPathStatus();
+            statusManager.deleteRoomPathStatus(name);
         }
         // 3. 后置操作
         recordPostProcess(context.getRecorder(), streamerConfig);

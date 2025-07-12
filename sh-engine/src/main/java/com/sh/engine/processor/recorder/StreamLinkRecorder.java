@@ -117,32 +117,63 @@ public class StreamLinkRecorder extends Recorder {
                 .orElse(1);
 
         File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME);
-        List<String> commands = Lists.newArrayList(
+        List<String> streamLinkCommands = Lists.newArrayList(
                 "streamlink", StringUtils.join(extraArgs, " "),
                 "--stream-segment-threads 3",
                 "--retry-streams 3",
                 "--retry-open 3",
                 url, "best",
-                "--stdout", "|",
+                "--stdout"
+        );
+
+        List<String> ffmpegCommands = Lists.newArrayList(
                 "ffmpeg",
                 "-y",
-                "-v verbose",
                 "-loglevel error",
                 "-hide_banner",
                 "-i -",
-                BooleanUtils.isTrue(streamerConfig.isOnlyAudio()) ? "-vn" : "",
-                "-bufsize 10000k",
-                BooleanUtils.isTrue(streamerConfig.isOnlyAudio()) ? "-c:a copy -c:s mov_text" : "-c:v copy -c:a copy -c:s mov_text",
-                Objects.equals(StreamChannelTypeEnum.TWITCH.getType(), streamChannelType) ? "-map 0:v -map 0:a" : "-map 0",
-                "-f segment",
-                "-segment_time 4",
+                "-rw_timeout", "30000000",
+                "-reconnect_streamed", "1",
+                "-reconnect_delay_max", "60",
+                "-thread_queue_size", "1024",
+                "-max_muxing_queue_size", "4096",
+                "-analyzeduration", "40000000",
+                "-probesize", "20000000",
+                "-fflags", "+discardcorrupt",
+                "-correct_ts_overflow", "1",
+                "-avoid_negative_ts", "1",
+                "-bufsize", "50000k",
+                StringUtils.join(BooleanUtils.isTrue(streamerConfig.isOnlyAudio()) ? buildOnlyAudioParams() : buildVideoParams(), " "),
+                "-f", "segment",
+                "-segment_time", "4",
                 "-segment_start_number", String.valueOf(segStartIndex),
-                "-segment_format mp4",
-                "-movflags +faststart",
-                "-reset_timestamps 1",
+                "-segment_format", "mpegts",
+                "-reset_timestamps", "1",
                 "\"" + segFile.getAbsolutePath() + "\""
         );
-        return StringUtils.join(commands, " ");
+        return StringUtils.join(streamLinkCommands, " ") + " | " + StringUtils.join(ffmpegCommands, " ");
+    }
+
+    private List<String> buildOnlyAudioParams() {
+        List<String> commands = Lists.newArrayList(
+                "-vn",
+                "-c:a copy",
+                "-map 0:a"
+        );
+
+        return commands;
+    }
+
+    private List<String> buildVideoParams() {
+        List<String> commands = Lists.newArrayList(
+                "-c:v copy",
+                "-c:a copy",
+                "-c:s mov_text",
+                "-map 0:v",
+                "-map 0:a",
+                "-map 0:s"
+        );
+        return commands;
     }
 
     private List<String> buildStreamlinkChannelParams() {
@@ -166,21 +197,4 @@ public class StreamLinkRecorder extends Recorder {
 
         return extraArgs;
     }
-
-//    private void doSaveMetaData() {
-//        File metadataFile = new File(savePath, "metadata.json");
-//        List<String> commands = Lists.newArrayList(
-//                "streamlink", "--json",
-//                url,
-//                "|", "jq .metadata >", metadataFile.getAbsolutePath()
-//        );
-//        String cmd = StringUtils.join(commands, " ");
-//
-//        Integer resCode = CommandUtil.cmdExec(new FfmpegCmd(cmd));
-//        if (resCode == 0) {
-//            log.info("load metadata success, savePath: {}, code: {}", savePath, resCode);
-//        } else {
-//            log.error("load metadata fail, savePath: {}, code: {}", savePath, resCode);
-//        }
-//    }
 }

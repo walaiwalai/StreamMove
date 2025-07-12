@@ -69,25 +69,23 @@ public class VodM3u8Recorder extends Recorder {
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
                 .orElse(0) + 1;
+        log.info("vod stream record start, savePath: {}, segStartIndex: {}", savePath, segStartIndex);
 
         File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME);
         List<String> commands = Lists.newArrayList(
                 "ffmpeg",
                 "-y",
-                "-v verbose",
                 "-loglevel error",
                 "-hide_banner",
                 "-i", "\"" + videoM3u8Url + "\"",
                 "-i", "\"" + audioM3u8Url + "\"",
-                "-bufsize 10000k",
-                "-c:v copy -c:a copy -c:s mov_text",
+                "-bufsize 50000k",
+                "-c:v copy -c:a copy",
                 "-map 0:v -map 1:a",
                 "-f segment",
                 "-segment_time 4",
                 "-segment_start_number", String.valueOf(segStartIndex),
-                "-segment_format mp4",
-                "-movflags +faststart",
-                "-reset_timestamps 1",
+                "-segment_format mpegts",
                 "\"" + segFile.getAbsolutePath() + "\""
         );
         return StringUtils.join(commands, " ");

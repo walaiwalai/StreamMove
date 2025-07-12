@@ -1,8 +1,9 @@
-package com.sh.message.controller;
+package com.sh.config.controller;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Preconditions;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.manager.StatusManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Controller;
@@ -23,6 +24,8 @@ import javax.annotation.Resource;
 public class SysController {
     @Resource
     private ConfigFetcher configFetcher;
+    @Resource
+    private StatusManager statusManager;
 
     @RequestMapping(value = "/refresh", method = {RequestMethod.POST})
     @ResponseBody
@@ -30,5 +33,13 @@ public class SysController {
         Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), "sys-refresh"), "token invalid");
         configFetcher.refresh();
         return "ok";
+    }
+
+    @RequestMapping(value = "/statusInfo", method = {RequestMethod.POST})
+    @ResponseBody
+    public String getStatus(@RequestBody JSONObject requestBody) {
+        Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), "sys-refresh"), "token invalid");
+        String info = statusManager.printInfo();
+        return info;
     }
 }

@@ -4,12 +4,12 @@ import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
-import com.sh.engine.manager.StatusManager;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.processor.plugin.VideoProcessPlugin;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,6 @@ import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @Author caiwen
@@ -53,7 +52,7 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
         List<String> videoPlugins = ProcessPluginEnum.getAllPlugins(streamerConfig.getVideoPlugins());
         List<String> curRecordPaths = StreamerInfoHolder.getCurRecordPaths();
         for (String curRecordPath : curRecordPaths) {
-            if (statusManager.isPathOccupied(curRecordPath)) {
+            if (statusManager.isPathOccupied(curRecordPath, streamerName)) {
                 log.info("{} is doing other process, plugin: {}.", streamerName, statusManager.getCurPostProcessType(curRecordPath));
                 continue;
             }

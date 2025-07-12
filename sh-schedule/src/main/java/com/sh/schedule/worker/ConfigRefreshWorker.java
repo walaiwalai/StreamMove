@@ -2,10 +2,7 @@ package com.sh.schedule.worker;
 
 import cn.hutool.extra.spring.SpringUtil;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.engine.manager.StatusManager;
 import org.quartz.JobExecutionContext;
-
-import javax.annotation.Resource;
 
 /**
  * @Author caiwen
