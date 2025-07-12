@@ -36,7 +36,7 @@ public class StatusManager {
 
     public String printInfo() {
         StringBuilder sb = new StringBuilder();
-        sb.append("There are").append(recordStatusMap.keySet().size()).append("streamers recording, they are: ");
+        sb.append("\nThere are").append(recordStatusMap.keySet().size()).append("streamers recording, they are: ");
         for (Map.Entry<String, String> entry : recordStatusMap.entrySet()) {
             sb.append("\nname: ").append(entry.getKey()).append(", path: ").append(entry.getValue());
         }
@@ -48,6 +48,7 @@ public class StatusManager {
         for (Map.Entry<String, String> entry : postProcessMap.entrySet()) {
             sb.append("\npath: ").append(entry.getKey()).append(", plugin: ").append(entry.getValue());
         }
+        sb.append("\n");
         return sb.toString();
     }
 
