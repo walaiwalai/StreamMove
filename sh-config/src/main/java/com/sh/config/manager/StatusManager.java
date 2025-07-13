@@ -36,7 +36,7 @@ public class StatusManager {
 
     public String printInfo() {
         StringBuilder sb = new StringBuilder();
-        sb.append("\nThere are").append(recordStatusMap.keySet().size()).append("streamers recording, they are: ");
+        sb.append("\nThere are ").append(recordStatusMap.keySet().size()).append(" streamers recording, they are: ");
         for (Map.Entry<String, String> entry : recordStatusMap.entrySet()) {
             sb.append("\nname: ").append(entry.getKey()).append(", path: ").append(entry.getValue());
         }

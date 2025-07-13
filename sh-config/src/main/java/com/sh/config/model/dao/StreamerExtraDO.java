@@ -27,6 +27,7 @@ public class StreamerExtraDO {
     private DouyinUploadInfoDO douyinUploadInfo;
     private List<String> certainVodUrls;
     private boolean onlyAudio;
+    private boolean onlinePushCheck;
 
 
     @Data

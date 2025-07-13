@@ -54,11 +54,16 @@ public class MessageReceiveController {
 
         LiveOnReceiveModel liveOnReceiveModel = parseLiveOn(content, from);
         if (liveOnReceiveModel != null) {
-            msgSendService.sendText("接受到开播的APP消息，liveOnReceiveModel" + JSON.toJSONString(liveOnReceiveModel));
+            msgSendService.sendText("接受到开播的APP消息，content: " + content + ", from: " + from);
             String platform = liveOnReceiveModel.getFrom();
             String streamerName = liveOnReceiveModel.getStreamerName();
+
+            // 具体哪个主播来波
             cacheManager.setHash(MessageConstant.LIVE_ON_HASH_PREFIX_KEY + platform, streamerName,
                     JSON.toJSONString(liveOnReceiveModel), 20, TimeUnit.MINUTES);
+
+            // 当前平台有人开播
+            cacheManager.set(MessageConstant.PLAT_PUSH_LIVE_PREFIX_KEY + platform, "1", 20, TimeUnit.MINUTES);
         }
         return "ok";
     }
@@ -88,6 +93,9 @@ public class MessageReceiveController {
         if (StringUtils.equals(from, "com.smile.gifmaker")) {
             return parseFromKS(paramMap);
         }
+        if (StringUtils.equals(from, "com.soop.live")) {
+            return parseFromSoop(paramMap);
+        }
         return null;
     }
 
@@ -98,9 +106,16 @@ public class MessageReceiveController {
         }
         String streamerName = paramMap.get("title").split("【")[0];
         LiveOnReceiveModel liveOnReceiveModel = new LiveOnReceiveModel();
-        liveOnReceiveModel.setFrom("KUAISHOU");
+        liveOnReceiveModel.setFrom(MessageConstant.KUAI_SHOU_PLATFORM);
         liveOnReceiveModel.setReceiveTime(paramMap.get("receiveTime"));
         liveOnReceiveModel.setStreamerName(streamerName);
+        return liveOnReceiveModel;
+    }
+
+    private LiveOnReceiveModel parseFromSoop(Map<String, String> paramMap) {
+        LiveOnReceiveModel liveOnReceiveModel = new LiveOnReceiveModel();
+        liveOnReceiveModel.setFrom(MessageConstant.SOOP_PLATFORM);
+        liveOnReceiveModel.setReceiveTime(paramMap.get("receiveTime"));
         return liveOnReceiveModel;
     }
 }

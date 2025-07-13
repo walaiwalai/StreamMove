@@ -30,6 +30,11 @@ public class StreamerConfig {
     private String roomUrl;
 
     /**
+     * 直播消息推送检测
+     */
+    private boolean onlinePushCheck;
+
+    /**
      * 是否直播时录制
      * true直播录制，false直播完成录制录像
      */
@@ -83,7 +88,7 @@ public class StreamerConfig {
     private Integer maxMergeSize;
 
     /**
-     *  当前流量（G）
+     * 当前流量（G）
      */
     private Float curTrafficGB;
 

@@ -2,7 +2,6 @@ package com.sh.config.repo;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
-import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.mapper.StreamerMapper;
 import com.sh.config.mapper.StreamerWorkMapper;
 import com.sh.config.model.config.StreamerConfig;
@@ -11,7 +10,6 @@ import com.sh.config.model.dao.StreamerExtraDO;
 import com.sh.config.model.dao.StreamerExtraDO.BiliUploadInfoDO;
 import com.sh.config.model.dao.StreamerExtraDO.DouyinUploadInfoDO;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -74,7 +72,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
     }
 
     @Override
-    public void updateTrafficGB( String name, float trafficGBCost ) {
+    public void updateTrafficGB(String name, float trafficGBCost) {
         StreamerConfig config = getByName(name);
         float curTrafficGB = config.getCurTrafficGB() + trafficGBCost;
         streamerMapper.updateTrafficGB(name, curTrafficGB);
@@ -130,6 +128,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
             }
             config.setCertainVodUrls(streamerExtraDO.getCertainVodUrls());
             config.setOnlyAudio(streamerExtraDO.isOnlyAudio());
+            config.setOnlinePushCheck(streamerExtraDO.isOnlinePushCheck());
         }
 
         return config;

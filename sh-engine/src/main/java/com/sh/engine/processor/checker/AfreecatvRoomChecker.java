@@ -13,6 +13,7 @@ import com.sh.engine.processor.recorder.StreamLinkRecorder;
 import com.sh.engine.processor.recorder.VodM3u8Recorder;
 import com.sh.engine.util.DateUtil;
 import com.sh.engine.util.RegexUtil;
+import com.sh.message.constant.MessageConstant;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
 import okhttp3.Request;
@@ -199,8 +200,19 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
 
 
     private Recorder fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
+        if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
+            // 有些主播过多检测会封IP，通过检测有无开播消息推送，减少服务器检测次数
+            if (!checkHasOnlinePushMsg(streamerConfig)) {
+                return null;
+            }
+        }
         boolean isLiving = checkIsLivingByStreamLink(streamerConfig.getRoomUrl());
         Date date = new Date();
         return isLiving ? new StreamLinkRecorder(date, getType().getType(), streamerConfig.getRoomUrl()) : null;
+    }
+
+    private boolean checkHasOnlinePushMsg(StreamerConfig streamerConfig) {
+        String flag = cacheManager.get(MessageConstant.PLAT_PUSH_LIVE_PREFIX_KEY + MessageConstant.SOOP_PLATFORM);
+        return StringUtils.isNotBlank(flag);
     }
 }
