@@ -43,6 +43,7 @@ public class UploaderFactory {
 
         uploaderMetaFileName.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin-metaData.json");
         uploaderMetaFileName.put(UploadPlatformEnum.BILI_CLIENT.getType(), "bili-client-metaData.json");
+        uploaderMetaFileName.put(UploadPlatformEnum.BILI_WEB.getType(), "bili-web-metaData.json");
     }
 
     public static Uploader getUploader(String type) {
