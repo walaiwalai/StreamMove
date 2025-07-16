@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class BiliClientWorkMetaData extends WorkMetaData {
+public class BiliWorkMetaData extends WorkMetaData {
     /**
      * 投稿分区
      */

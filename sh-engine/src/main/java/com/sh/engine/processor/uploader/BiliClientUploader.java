@@ -20,7 +20,7 @@ import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.bili.BiliWebPreUploadCommand;
 import com.sh.engine.model.bili.web.BiliClientPreUploadParams;
-import com.sh.engine.processor.uploader.meta.BiliClientWorkMetaData;
+import com.sh.engine.processor.uploader.meta.BiliWorkMetaData;
 import com.sh.engine.service.process.VideoMergeService;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
@@ -406,7 +406,7 @@ public class BiliClientUploader extends Uploader {
 
     private JSONObject buildPostWorkParamOnClient(List<RemoteSeverVideo> remoteSeverVideos, String recordPath) {
         File metaFile = new File(recordPath, UploaderFactory.getMetaFileName(getType()));
-        BiliClientWorkMetaData workMetaData = FileStoreUtil.loadFromFile(metaFile, new TypeReference<BiliClientWorkMetaData>() {
+        BiliWorkMetaData workMetaData = FileStoreUtil.loadFromFile(metaFile, new TypeReference<BiliWorkMetaData>() {
         });
 
         List<JSONObject> videoObjs = Lists.newArrayList();
