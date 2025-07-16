@@ -11,10 +11,7 @@ import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.video.RemoteSeverVideo;
-import com.sh.config.utils.ExecutorPoolUtil;
-import com.sh.config.utils.FileStoreUtil;
-import com.sh.config.utils.OkHttpClientUtil;
-import com.sh.config.utils.VideoFileUtil;
+import com.sh.config.utils.*;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
@@ -396,8 +393,16 @@ public class BiliWebUploader extends Uploader {
     }
 
     private String fetchCsrf() {
-        String biliCookies = ConfigFetcher.getInitConfig().getBiliCookies();
+//        String biliCookies = ConfigFetcher.getInitConfig().getBiliCookies();
+        String biliCookies = "buvid3=61A174A7-52DA-7505-D1A4-7AE52E8508A102096infoc; b_nut=1752410402; _uuid=8BA81010BE-4167-1DC5-5A87-56B49AF108B3302553infoc; buvid_fp=2d3824cddd83bcdd2bccd2ab350e24f0; buvid4=908281D4-96FA-7F63-D620-E400768E402402756-025071320-RlUK5omCFkl1gCy%2F0x1dhQ%3D%3D; b_lsid=7883D9C4_1980E6AA99D; rpdid=|(umRkmJ||Y)0J'u~lkl))lk); SESSDATA=bf8e6ae7%2C1768140567%2Cd8df8%2A72CjCHEsbeaFlRtyJutktKAOFmNLXhZrElVkhRMQbsR66pQtRYRz6HiUivsplVdMo5LFgSVi1LbV9RaWJIMmp5QXFfS0Z1WnhhX2EwTUJnbWM2Mm9wYVl0RGhfMURzUkgzdnJ4cUpRTE5zOEhtc0RnaU9rbEE5angyWVFqQW1BbmtRZnA4TEFRaDlBIIEC; bili_jct=bf80ba92326796097dd60d8c54ea1cf3; DedeUserID=3493088808930053; DedeUserID__ckMd5=2c8ca43685739904; theme-tip-show=SHOWED; theme-avatar-tip-show=SHOWED; bili_ticket=eyJhbGciOiJIUzI1NiIsImtpZCI6InMwMyIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTI4NDc3NzMsImlhdCI6MTc1MjU4ODUxMywicGx0IjotMX0.z81d8OebdTtlNJUWpTcwON5JhcAlrz24a4kzP7W9rss; bili_ticket_expires=1752847713; sid=5e1augq9; CURRENT_FNVAL=2000; bp_t_offset_3493088808930053=1089865822718918656";
         return StringUtils.substringBetween(biliCookies, "bili_jct=", ";");
+    }
+
+    private String fetchSessData() {
+//        String biliCookies = ConfigFetcher.getInitConfig().getBiliCookies();
+        String biliCookies = "buvid3=61A174A7-52DA-7505-D1A4-7AE52E8508A102096infoc; b_nut=1752410402; _uuid=8BA81010BE-4167-1DC5-5A87-56B49AF108B3302553infoc; buvid_fp=2d3824cddd83bcdd2bccd2ab350e24f0; buvid4=908281D4-96FA-7F63-D620-E400768E402402756-025071320-RlUK5omCFkl1gCy%2F0x1dhQ%3D%3D; b_lsid=7883D9C4_1980E6AA99D; rpdid=|(umRkmJ||Y)0J'u~lkl))lk); SESSDATA=bf8e6ae7%2C1768140567%2Cd8df8%2A72CjCHEsbeaFlRtyJutktKAOFmNLXhZrElVkhRMQbsR66pQtRYRz6HiUivsplVdMo5LFgSVi1LbV9RaWJIMmp5QXFfS0Z1WnhhX2EwTUJnbWM2Mm9wYVl0RGhfMURzUkgzdnJ4cUpRTE5zOEhtc0RnaU9rbEE5angyWVFqQW1BbmtRZnA4TEFRaDlBIIEC; bili_jct=bf80ba92326796097dd60d8c54ea1cf3; DedeUserID=3493088808930053; DedeUserID__ckMd5=2c8ca43685739904; theme-tip-show=SHOWED; theme-avatar-tip-show=SHOWED; bili_ticket=eyJhbGciOiJIUzI1NiIsImtpZCI6InMwMyIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTI4NDc3NzMsImlhdCI6MTc1MjU4ODUxMywicGx0IjotMX0.z81d8OebdTtlNJUWpTcwON5JhcAlrz24a4kzP7W9rss; bili_ticket_expires=1752847713; sid=5e1augq9; CURRENT_FNVAL=2000; bp_t_offset_3493088808930053=1089865822718918656";
+
+        return StringUtils.substringBetween(biliCookies, "SESSDATA=", ";");
     }
 
 
@@ -414,8 +419,10 @@ public class BiliWebUploader extends Uploader {
             videoObjs.add(videoObj);
         }
 
+        String thumbnailUrl = uploadThumbnail(recordPath);
+
         JSONObject params = new JSONObject();
-        params.put("cover", workMetaData.getCover());
+        params.put("cover", StringUtils.isBlank(thumbnailUrl) ? workMetaData.getCover() : thumbnailUrl);
         params.put("title", workMetaData.getTitle());
         params.put("tid", workMetaData.getTid());
         params.put("tag", StringUtils.join(workMetaData.getTags(), ","));
@@ -429,5 +436,38 @@ public class BiliWebUploader extends Uploader {
         params.put("csrf", fetchCsrf());
 
         return params;
+    }
+
+    /**
+     * 上传视频封面
+     *
+     * @param recordPath
+     * @return
+     */
+    private String uploadThumbnail(String recordPath) {
+        File file = new File(recordPath, RecordConstant.THUMBNAIL_FILE_NAME);
+        if (!file.exists()) {
+            return null;
+        }
+        String base64Content = PictureFileUtil.fileToBase64(file);
+        if (StringUtils.isBlank(base64Content)) {
+            return null;
+        }
+
+        String csrf = fetchCsrf();
+        String sessData = fetchSessData();
+        RequestBody requestBody = new FormBody.Builder()
+                .add("csrf", csrf)
+                .add("cover", "data:image/jpeg;base64," + base64Content)
+                .build();
+
+        Request request = new Request.Builder()
+                .url("https://member.bilibili.com/x/vu/web/cover/up")
+                .post(requestBody)
+                .addHeader("cookie", "SESSDATA=" + sessData + "; bili_jct=" + csrf)
+                .build();
+        String resp = OkHttpClientUtil.execute(request);
+        JSONObject respObj = JSONObject.parseObject(resp);
+        return respObj.getJSONObject("data").getString("url");
     }
 }
