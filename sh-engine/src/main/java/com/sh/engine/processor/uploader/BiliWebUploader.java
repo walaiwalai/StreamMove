@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -202,6 +203,9 @@ public class BiliWebUploader extends Uploader {
         log.info("video size is {}M, seg {} parts to upload.", fileSize / 1024 / 1024, partCount);
         CountDownLatch countDownLatch = new CountDownLatch(partCount);
         List<Integer> failChunkNums = Lists.newCopyOnWriteArrayList();
+
+        // 保证记录的顺序和实际上传的顺序一致
+        LinkedBlockingQueue<Integer> completedPartsQueue = new LinkedBlockingQueue<>();
         AtomicBoolean hasFailed = new AtomicBoolean(false);
 
         for (int i = 0; i < partCount; i++) {
@@ -224,10 +228,20 @@ public class BiliWebUploader extends Uploader {
                         return uploadChunk(chunkUploadUrl, videoFile, finalI, partCount, (int) curChunkSize, curChunkStart, biliPreUploadInfo);
                     }, ExecutorPoolUtil.getUploadPool())
                     .whenComplete((isSuccess, throwbale) -> {
-                        if (!isSuccess && hasFailed.compareAndSet(false, true)) {
-                            failChunkNums.add(finalI);
+                        try {
+                            if (isSuccess) {
+                                // 按完成顺序入队
+                                completedPartsQueue.put(finalI + 1);
+                            } else {
+                                if (hasFailed.compareAndSet(false, true)) {
+                                    failChunkNums.add(finalI);
+                                }
+                            }
+                        } catch (Exception e) {
+                            log.error("fuck uploading chunks", e);
+                        } finally {
+                            countDownLatch.countDown();
                         }
-                        countDownLatch.countDown();
                     });
         }
         countDownLatch.await();
@@ -241,9 +255,17 @@ public class BiliWebUploader extends Uploader {
         }
 
         // 3. 完成分块的上传
+        // 按完成顺序提取块号
+        List<Integer> completedPartNumbers = Lists.newArrayList();
+        Integer partNumber;
+        while ((partNumber = completedPartsQueue.poll()) != null) {
+            completedPartNumbers.add(partNumber);
+        }
+
+        log.info("video chunks upload finish, completedPartNumbers: {}", JSON.toJSONString(completedPartNumbers));
         String finishUrl = String.format(RecordConstant.BILI_CHUNK_UPLOAD_FINISH_URL,
                 uploadUrl, URLUtil.encode(videoName), uploadId, biliPreUploadInfo.getBizId());
-        boolean isFinish = finishChunks(finishUrl, partCount, biliPreUploadInfo);
+        boolean isFinish = finishChunks(finishUrl, biliPreUploadInfo, completedPartNumbers);
         if (!isFinish) {
             return null;
         }
@@ -302,11 +324,12 @@ public class BiliWebUploader extends Uploader {
         return false;
     }
 
-    private boolean finishChunks(String finishUrl, int totalChunks, BiliWebPreUploadParams biliPreUploadInfo) throws Exception {
+    private boolean finishChunks(String finishUrl, BiliWebPreUploadParams biliPreUploadInfo, List<Integer> completedPartNumbers) {
         List<Map<String, String>> parts = Lists.newArrayList();
-        for (int i = 0; i < totalChunks; i++) {
+        // 这个的顺序是实际上传的顺序
+        for (Integer partNumber : completedPartNumbers) {
             HashMap map = new HashMap();
-            map.put("partNumber", i + 1);
+            map.put("partNumber", partNumber);
             map.put("eTag", "etag");
             parts.add(map);
         }
