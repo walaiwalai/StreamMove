@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSON;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.bili.web.BiliClientPreUploadParams;
 import lombok.extern.slf4j.Slf4j;
@@ -92,28 +93,18 @@ public class BiliWebPreUploadCommand {
                 .addHeader("Cookie", ConfigFetcher.getInitConfig().getBiliCookies())
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) Chrome/63.0.3239.132 Safari/537.36")
                 .build();
-        try (Response response = CLIENT.newCall(request).execute()) {
-            if (response.isSuccessful()) {
-                return JSON.parseObject(response.body().string(), BiliWebPreUploadParams.class);
-            } else {
-                String message = response.message();
-                String bodyStr = response.body() != null ? response.body().string() : null;
-                log.error("pre up video failed, message: {}, bodyStr: {}", message, bodyStr);
-                throw new StreamerRecordException(ErrorEnum.PRE_UPLOAD_ERROR);
-            }
-        } catch (IOException e) {
-            log.error("pre up video error", e);
-            throw new StreamerRecordException(ErrorEnum.PRE_UPLOAD_ERROR);
-        }
+        String resp = OkHttpClientUtil.execute(request);
+        return JSON.parseObject(resp, BiliWebPreUploadParams.class);
     }
 
     /**
      * 获取视频上传的id
      */
     private String fetchUploadId() {
-        OkHttpClient CLIENT = new OkHttpClient();
+        String url = this.biliWebPreUploadParams.getUploadUrl() + "?uploads&output=json&biz_id=" + this.biliWebPreUploadParams.getBizId() + "&filesize=" + size +
+                "&profile=ugcfx%2Fbup&partsize=" + this.biliWebPreUploadParams.getChunkSize();
         Request request = new Request.Builder()
-                .url(this.biliWebPreUploadParams.getUploadUrl() + "?uploads&output=json&biz_id=" + this.biliWebPreUploadParams.getBizId() + "&filesize=" + size)
+                .url(url)
                 .addHeader("Accept", "*/*")
                 .addHeader("Accept-Encoding", "deflate")
                 .addHeader("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6,ja;q=0.5")
@@ -124,19 +115,7 @@ public class BiliWebPreUploadCommand {
                 .post(RequestBody.create(MediaType.parse("application/json"), ""))
                 .build();
 
-        try (Response response = CLIENT.newCall(request).execute()) {
-            if (response.isSuccessful()) {
-                String resp = response.body().string();
-                return JSON.parseObject(resp).getString("upload_id");
-            } else {
-                String message = response.message();
-                String bodyStr = response.body() != null ? response.body().string() : null;
-                log.error("get video upload id failed, message: {}, bodyStr: {}", message, bodyStr);
-                throw new StreamerRecordException(ErrorEnum.PRE_UPLOAD_ERROR);
-            }
-        } catch (IOException e) {
-            log.error("get video upload id error", e);
-            throw new StreamerRecordException(ErrorEnum.PRE_UPLOAD_ERROR);
-        }
+        String resp = OkHttpClientUtil.execute(request);
+        return JSON.parseObject(resp).getString("upload_id");
     }
 }

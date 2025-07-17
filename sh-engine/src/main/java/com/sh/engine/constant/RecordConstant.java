@@ -12,7 +12,7 @@ public class RecordConstant {
     public static final String BILI_VIDEO_CHUNK_UPLOAD_URL = "{uploadUrl}?partNumber={partNumber}&uploadId={uploadId}" +
             "&chunk={chunk}&chunks={chunks}&size={size}&start={start}&end={end}&total={total}";
 
-    public static final String BILI_WEB_PRE_UPLOAD_URL = "https://member.bilibili.com/preupload?name={name}&size={size}&r=upos&profile=ugcupos%2Fbup&ssl=0&version=2.7.1&build=2070100&os=upos&upcdn=ws";
+    public static final String BILI_WEB_PRE_UPLOAD_URL = "https://member.bilibili.com/preupload?name={name}&size={size}&r=upos&profile=ugcfx%2Fbup";
 
     public static final String BILI_CHUNK_UPLOAD_FINISH_URL = "%s?output=json&name=%s&profile=ugcfx/bup&uploadId=%s"
             + "&biz_id=%s";
