@@ -262,7 +262,6 @@ public class BiliWebUploader extends Uploader {
             completedPartNumbers.add(partNumber);
         }
 
-        log.info("video chunks upload finish, completedPartNumbers: {}", JSON.toJSONString(completedPartNumbers));
         String finishUrl = String.format(RecordConstant.BILI_CHUNK_UPLOAD_FINISH_URL,
                 uploadUrl, URLUtil.encode(videoName), uploadId, biliPreUploadInfo.getBizId());
         boolean isFinish = finishChunks(finishUrl, biliPreUploadInfo, completedPartNumbers);
