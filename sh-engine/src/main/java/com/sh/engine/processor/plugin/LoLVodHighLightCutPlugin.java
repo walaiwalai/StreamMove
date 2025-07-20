@@ -196,8 +196,14 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
             // 截图
             doSnapShot(recordPath, video.getName(), testSnapShotDir, KAD_TEST_CORP_EXP);
             String testPath = genKdaTestSnapshotPath(recordPath, VideoFileUtil.genIndex(video.getName()));
-            // 获取精确的kadbox
-            List<List<Integer>> kdaBoxes = detectKDABox(testPath);
+            // 获取精确的kad的box
+            List<List<Integer>> kdaBoxes;
+            try {
+                kdaBoxes = detectKDABox(testPath);
+            } catch (Exception e) {
+                log.error("error to detect kda box, path: {}", testPath);
+                continue;
+            }
             if (CollectionUtils.isEmpty(kdaBoxes)) {
                 continue;
             }
@@ -475,13 +481,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
                 .addHeader("Content-Type", "application/json")
                 .build();
 
-        String resp;
-        try {
-            resp = OkHttpClientUtil.execute(request);
-        } catch (Exception e) {
-            log.error("detect kda box error, file: {}.", snapShotFile.getAbsolutePath(), e);
-            return Lists.newArrayList();
-        }
+        String resp = OkHttpClientUtil.execute(request);
         JSONArray detectArrays = JSON.parseArray(resp);
         for (Object detectObj : detectArrays) {
             JSONObject detObj = (JSONObject) detectObj;
@@ -497,6 +497,12 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
             }
         }
         return Lists.newArrayList();
+    }
+
+    public static void main(String[] args) {
+        LoLVodHighLightCutPlugin plugin = new LoLVodHighLightCutPlugin();
+        List<List<Integer>> lists = plugin.detectKDABox("C:\\Users\\caiwen\\Desktop\\fsdownload\\seg-00001.jpg");
+        System.out.println(lists);
     }
 
     private boolean isValidKadStr(String text) {
