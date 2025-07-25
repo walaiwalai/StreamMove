@@ -200,7 +200,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
 
 
     private Recorder fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
-        if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
+        if (BooleanUtils.isTrue(streamerConfig.isOnlinePushCheck())) {
             // 有些主播过多检测会封IP，通过检测有无开播消息推送，减少服务器检测次数
             if (!checkHasOnlinePushMsg(streamerConfig)) {
                 return null;
