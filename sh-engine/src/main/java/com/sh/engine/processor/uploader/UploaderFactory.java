@@ -63,12 +63,18 @@ public class UploaderFactory {
     }
 
     public static String getMetaFileName(String type) {
+        if (metaDataBuilderMap.get(type) == null) {
+            return null;
+        }
         return metaDataBuilderMap.get(type).getRight();
     }
 
     public static void saveMetaData(String type, StreamerConfig streamerConfig, String recordPath) {
+        if (metaDataBuilderMap.get(type) == null) {
+            return;
+        }
         FileStoreUtil.saveToFile(
-                new File(recordPath, getMetaFileName(type)),
+                new File(recordPath, metaDataBuilderMap.get(type).getRight()),
                 metaDataBuilderMap.get(type).getLeft().buildMetaData(streamerConfig, recordPath)
         );
     }
