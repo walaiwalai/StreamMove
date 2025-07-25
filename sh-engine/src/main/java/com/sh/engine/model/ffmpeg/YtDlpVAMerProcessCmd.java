@@ -5,18 +5,18 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
  * @Author caiwen
  * @Date 2025 06 07 17 12
  **/
-public class YtDlpStreamFetchProcessCmd extends AbstractCmd {
+public class YtDlpVAMerProcessCmd extends AbstractCmd {
     private final StringBuilder sb = new StringBuilder();
-    private List<String> videoM3u8Urls = Lists.newArrayList();
-    private List<String> audioM3u8Urls = Lists.newArrayList();
+    private List<String> mergeUrls = Lists.newArrayList();
 
-    public YtDlpStreamFetchProcessCmd(String vodUrl, Integer channelType) {
+    public YtDlpVAMerProcessCmd(String vodUrl, Integer channelType) {
         super("");
         this.command = buildCmd(vodUrl, channelType);
     }
@@ -26,9 +26,15 @@ public class YtDlpStreamFetchProcessCmd extends AbstractCmd {
         if (channelType == StreamChannelTypeEnum.AFREECA_TV.getType()) {
             String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
             String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
-            res = "yt-dlp -g --username " + soopUserName + " --password " + soopPassword + " -f \"bestvideo+bestaudio\" " + vodUrl;
+            res = "yt-dlp -g --username " + soopUserName + " --password " + soopPassword +
+                    " -f \"bestvideo[ext=mp4][vcodec*=avc1]+bestaudio[acodec*=aac]/best\" " +
+                    " -S \"vcodec:avc1:av01:vp9,acodec:aac,res:desc,filesize:desc\" " +
+                    vodUrl;
         } else {
-            res = "yt-dlp -g -f \"bestvideo+bestaudio\" " + vodUrl;
+            res = "yt-dlp -g " +
+                    " -f \"bestvideo[ext=mp4][vcodec*=avc1]+bestaudio[acodec*=aac]/best\" " +
+                    " -S \"vcodec:avc1:av01:vp9,acodec:aac,res:desc,filesize:desc\" " +
+                    vodUrl;
         }
         return res;
     }
@@ -49,17 +55,10 @@ public class YtDlpStreamFetchProcessCmd extends AbstractCmd {
 
         // 执行完成后
         String[] split = StringUtils.trim(sb.toString()).split("\n");
-        for (int i = 0; i < split.length / 2; i++) {
-            videoM3u8Urls.add(split[i * 2]);
-            audioM3u8Urls.add(split[i * 2 + 1]);
-        }
+        mergeUrls.addAll(Arrays.asList(split));
     }
 
-    public List<String> getVideoM3u8Urls() {
-        return videoM3u8Urls;
-    }
-
-    public List<String> getAudioM3u8Urls() {
-        return audioM3u8Urls;
+    public List<String> getMergeUrls() {
+        return mergeUrls;
     }
 }
