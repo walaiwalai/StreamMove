@@ -3,7 +3,6 @@ package com.sh.engine.processor.recorder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.VideoFileUtil;
-import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import com.sh.engine.model.ffmpeg.YtDlpVAMerProcessCmd;
 import com.sh.engine.model.ffmpeg.YtDlpVASepProcessCmd;
@@ -168,10 +167,5 @@ public class VodM3u8Recorder extends Recorder {
                 "\"" + segFile.getAbsolutePath() + "\""
         );
         return StringUtils.join(commands, " ");
-    }
-
-    public static void main(String[] args) {
-        VodM3u8Recorder vodM3u8Recorder = new VodM3u8Recorder(new Date(), StreamChannelTypeEnum.AFREECA_TV.getType(), "https://vod.sooplive.co.kr/player/164464551");
-        vodM3u8Recorder.doRecord("G:\\stream_record\\download\\mytest-pc\\2025-04-23-02-02-35");
     }
 }

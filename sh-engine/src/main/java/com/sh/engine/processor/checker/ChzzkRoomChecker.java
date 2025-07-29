@@ -7,6 +7,7 @@ import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.Recorder;
 import com.sh.engine.processor.recorder.StreamLinkRecorder;
+import com.sh.engine.processor.recorder.VodM3u8Recorder;
 import com.sh.engine.util.DateUtil;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +46,7 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
 
     private Recorder fetchOnlineStream(StreamerConfig streamerConfig) {
         String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), CHANNEL_REGEX);
-        String roomUrl = "chzzk.naver.com/live/" + channelName;
+        String roomUrl = "https://chzzk.naver.com/live/" + channelName;
         boolean isLiving = checkIsLivingByStreamLink(roomUrl);
 
         Date date = new Date();
@@ -71,9 +72,9 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
             return null;
         }
 
-        return new StreamLinkRecorder(
+        return new VodM3u8Recorder(
                 date, getType().getType(),
-                "chzzk.naver.com/video/" + videoObj.getString("videoNo")
+                "https://chzzk.naver.com/video/" + videoObj.getString("videoNo")
         );
     }
 

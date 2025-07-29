@@ -72,13 +72,4 @@ public class XhsRoomChecker extends AbstractRoomChecker {
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.XHS;
     }
-
-
-    public static void main(String[] args) {
-        XhsRoomChecker xhsRoomChecker = new XhsRoomChecker();
-        Recorder streamRecorder = xhsRoomChecker.getStreamRecorder(StreamerConfig.builder()
-                .roomUrl("https://www.xiaohongshu.com/user/profile/5f678a2a000000000100030e")
-                .build());
-        streamRecorder.doRecord("/Users/caiwen/Desktop/tes");
-    }
 }
