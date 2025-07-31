@@ -3,6 +3,7 @@ package com.sh.config.controller;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Preconditions;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.manager.LocalCacheManager;
 import com.sh.config.manager.StatusManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -25,6 +26,8 @@ public class SysController {
     @Resource
     private ConfigFetcher configFetcher;
     @Resource
+    private LocalCacheManager localCacheManager;
+    @Resource
     private StatusManager statusManager;
 
     @RequestMapping(value = "/refresh", method = {RequestMethod.POST})
@@ -32,6 +35,7 @@ public class SysController {
     public String getCache(@RequestBody JSONObject requestBody) {
         Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), "sys-refresh"), "token invalid");
         configFetcher.refresh();
+        localCacheManager.clearAll();
         return "ok";
     }
 

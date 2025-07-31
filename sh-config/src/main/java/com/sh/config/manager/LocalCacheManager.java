@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 本地缓存
+ *
  * @Author : caiwen
  * @Date: 2025/1/31
  */
@@ -50,15 +51,16 @@ public class LocalCacheManager {
         long seconds = timeUnit.toSeconds(timeout);
         keyExpiryMap.put(key, System.currentTimeMillis() + seconds * 1000);
     }
-    
+
     /**
      * 获取缓存值
      *
-     * @param key           缓存键
+     * @param key 缓存键
      * @return 缓存值
      */
     public String get(String key) {
-        return get(key, new TypeReference<String>() {});
+        return get(key, new TypeReference<String>() {
+        });
     }
 
     /**
@@ -101,5 +103,11 @@ public class LocalCacheManager {
      */
     public boolean hasKey(String key) {
         return cache.getIfPresent(key) != null;
+    }
+
+
+    public void clearAll() {
+        cache.invalidateAll();
+        keyExpiryMap.clear();
     }
 }
