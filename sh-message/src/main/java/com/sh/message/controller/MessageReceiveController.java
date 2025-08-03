@@ -116,6 +116,7 @@ public class MessageReceiveController {
         LiveOnReceiveModel liveOnReceiveModel = new LiveOnReceiveModel();
         liveOnReceiveModel.setFrom(MessageConstant.SOOP_PLATFORM);
         liveOnReceiveModel.setReceiveTime(paramMap.get("receiveTime"));
+        liveOnReceiveModel.setStreamerName(paramMap.get("title"));
         return liveOnReceiveModel;
     }
 }
