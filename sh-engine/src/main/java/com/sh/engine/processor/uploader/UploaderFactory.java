@@ -2,7 +2,6 @@ package com.sh.engine.processor.uploader;
 
 import com.google.common.collect.Maps;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.config.utils.FileStoreUtil;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.processor.uploader.meta.BiliWorkMetaData;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
@@ -10,7 +9,6 @@ import com.sh.engine.processor.uploader.meta.WechatVideoMetaData;
 import com.sh.engine.processor.uploader.meta.WorkMetaData;
 import com.sh.engine.util.DateUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.text.StringSubstitutor;
 import org.springframework.stereotype.Component;
 
@@ -35,11 +33,6 @@ public class UploaderFactory {
     private static Map<String, Uploader> uploaderMap = Maps.newHashMap();
 
     /**
-     * 元数据构建器
-     */
-    private static Map<String, Pair<MetaDataBuilder, String>> metaDataBuilderMap = Maps.newHashMap();
-
-    /**
      * 存储个人信息的key
      */
     private static Map<String, String> accountKeymap = Maps.newHashMap();
@@ -52,31 +45,10 @@ public class UploaderFactory {
         }
 
         accountKeymap.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin-cookies.json");
-
-        metaDataBuilderMap.put(UploadPlatformEnum.DOU_YIN.getType(), Pair.of(new DouyinMetaDataBuilder(), "douyin-metaData.json"));
-        metaDataBuilderMap.put(UploadPlatformEnum.BILI_CLIENT.getType(), Pair.of(new BiliMetaDataBuilder(), "bili-client-metaData.json"));
-        metaDataBuilderMap.put(UploadPlatformEnum.BILI_WEB.getType(), Pair.of(new BiliMetaDataBuilder(), "bili-web-metaData.json"));
     }
 
     public static Uploader getUploader(String type) {
         return uploaderMap.get(type);
-    }
-
-    public static String getMetaFileName(String type) {
-        if (metaDataBuilderMap.get(type) == null) {
-            return null;
-        }
-        return metaDataBuilderMap.get(type).getRight();
-    }
-
-    public static void saveMetaData(String type, StreamerConfig streamerConfig, String recordPath) {
-        if (metaDataBuilderMap.get(type) == null) {
-            return;
-        }
-        FileStoreUtil.saveToFile(
-                new File(recordPath, metaDataBuilderMap.get(type).getRight()),
-                metaDataBuilderMap.get(type).getLeft().buildMetaData(streamerConfig, recordPath)
-        );
     }
 
     public static String getAccountFileName(String type) {

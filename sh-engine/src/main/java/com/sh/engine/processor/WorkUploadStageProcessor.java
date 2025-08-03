@@ -89,9 +89,6 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
         }
     }
 
-    private void workUploadPostProcess(String recordPath) {
-    }
-
 
     @Override
     public RecordTaskStateEnum acceptState() {

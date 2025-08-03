@@ -6,6 +6,7 @@ import java.util.List;
 
 /**
  * 上传的元数据
+ *
  * @Author caiwen
  * @Date 2024 09 28 22 29
  **/
@@ -29,8 +30,4 @@ public class WorkMetaData {
      * 视频标签
      */
     private List<String> tags;
-
-    protected boolean check() {
-        return true;
-    }
 }

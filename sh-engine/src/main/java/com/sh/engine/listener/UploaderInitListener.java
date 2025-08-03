@@ -31,7 +31,7 @@ public class UploaderInitListener implements ApplicationListener<ApplicationRead
         for (String platform : platforms) {
             try {
                 Uploader uploader = UploaderFactory.getUploader(platform);
-                uploader.setUp();
+                uploader.initUploader();
             } catch (Exception e) {
                 log.error("init uploader failed, platform: {}", platform, e);
             }

@@ -7,7 +7,6 @@ import com.sh.config.manager.CacheManager;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.repo.StreamerRepoService;
 import com.sh.engine.base.StreamerInfoHolder;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -34,7 +33,7 @@ public abstract class Uploader {
      * 初始化上传器
      * 如：用户cookies获取
      */
-    public abstract void setUp();
+    public abstract void initUploader();
 
     public void preProcess(String recordPath) {
     }

@@ -4,7 +4,7 @@ import java.util.Date;
 import java.util.Map;
 
 /**
- * 抽象的录像机
+ * 录像机
  *
  * @Author caiwen
  * @Date 2024 09 28 10 10

@@ -3,7 +3,6 @@ package com.sh.engine.processor.uploader;
 import cn.hutool.core.io.FileUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
@@ -12,7 +11,6 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.utils.ExecutorPoolUtil;
-import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
@@ -90,48 +88,21 @@ public class BiliClientUploader extends Uploader {
     }
 
     @Override
-    public void setUp() {
+    public void initUploader() {
 
     }
 
     @Override
     public void preProcess(String recordPath) {
-        // 特殊逻辑： 如果带有b站片头视频，再合成一份新的视频
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
+
+        // 合成视频片头
         List<String> biliOpeningAnimations = streamerConfig.getBiliOpeningAnimations();
         File highlightTmpDir = new File(recordPath, "tmp-h");
-        if (CollectionUtils.isEmpty(biliOpeningAnimations) || !highlightTmpDir.exists()) {
-            return;
+        if (CollectionUtils.isNotEmpty(biliOpeningAnimations) && highlightTmpDir.exists()) {
+            mergeOpeningAnimations(recordPath, streamerConfig);
         }
-
-        // 目标合成视频
-        File exclusiveDir = new File(recordPath, getType());
-        if (!exclusiveDir.exists()) {
-            exclusiveDir.mkdirs();
-        }
-
-        File targetFile = new File(exclusiveDir, RecordConstant.LOL_HL_VIDEO);
-        if (targetFile.exists()) {
-            return;
-        }
-
-        // 根据streamerName的hash随机取BiliOpeningAnimations的片头
-        int index = Math.abs(recordPath.hashCode() % biliOpeningAnimations.size());
-        String biliOpeningAnimation = biliOpeningAnimations.get(index);
-        List<String> localFps = FileUtils.listFiles(highlightTmpDir, FileFilterUtils.suffixFileFilter("ts"), null)
-                .stream()
-                .sorted(Comparator.comparingLong(File::lastModified))
-                .map(File::getAbsolutePath)
-                .collect(Collectors.toList());
-        int insertIndex = 0;
-        localFps.add(insertIndex, biliOpeningAnimation);
-
-
-        // 合并视频片头
-        boolean success = videoMergeService.concatDiffVideos(localFps, targetFile);
-        String msgPrefix = success ? "合并视频片头完成！路径为：" : "合并视频片头失败！路径为：";
-        msgSendService.sendText(msgPrefix + targetFile.getAbsolutePath());
     }
 
     @Override
@@ -178,6 +149,40 @@ public class BiliClientUploader extends Uploader {
         clearUploadedVideos();
 
         return true;
+    }
+
+    private void mergeOpeningAnimations(String recordPath, StreamerConfig streamerConfig) {
+        // 特殊逻辑： 如果带有b站片头视频，再合成一份新的视频
+        List<String> biliOpeningAnimations = streamerConfig.getBiliOpeningAnimations();
+        File highlightTmpDir = new File(recordPath, "tmp-h");
+
+        // 目标合成视频
+        File exclusiveDir = new File(recordPath, getType());
+        if (!exclusiveDir.exists()) {
+            exclusiveDir.mkdirs();
+        }
+
+        File targetFile = new File(exclusiveDir, RecordConstant.LOL_HL_VIDEO);
+        if (targetFile.exists()) {
+            return;
+        }
+
+        // 根据streamerName的hash随机取BiliOpeningAnimations的片头
+        int index = Math.abs(recordPath.hashCode() % biliOpeningAnimations.size());
+        String biliOpeningAnimation = biliOpeningAnimations.get(index);
+        List<String> localFps = FileUtils.listFiles(highlightTmpDir, FileFilterUtils.suffixFileFilter("ts"), null)
+                .stream()
+                .sorted(Comparator.comparingLong(File::lastModified))
+                .map(File::getAbsolutePath)
+                .collect(Collectors.toList());
+        int insertIndex = 0;
+        localFps.add(insertIndex, biliOpeningAnimation);
+
+
+        // 合并视频片头
+        boolean success = videoMergeService.concatDiffVideos(localFps, targetFile);
+        String msgPrefix = success ? "合并视频片头完成！路径为：" : "合并视频片头失败！路径为：";
+        msgSendService.sendText(msgPrefix + targetFile.getAbsolutePath());
     }
 
     /**
@@ -405,9 +410,9 @@ public class BiliClientUploader extends Uploader {
     }
 
     private JSONObject buildPostWorkParamOnClient(List<RemoteSeverVideo> remoteSeverVideos, String recordPath) {
-        File metaFile = new File(recordPath, UploaderFactory.getMetaFileName(getType()));
-        BiliWorkMetaData workMetaData = FileStoreUtil.loadFromFile(metaFile, new TypeReference<BiliWorkMetaData>() {
-        });
+        String streamerName = StreamerInfoHolder.getCurStreamerName();
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
+        BiliWorkMetaData workMetaData = (BiliWorkMetaData) new UploaderFactory.BiliMetaDataBuilder().buildMetaData(streamerConfig, recordPath);
 
         List<JSONObject> videoObjs = Lists.newArrayList();
         for (RemoteSeverVideo remoteSeverVideo : remoteSeverVideos) {

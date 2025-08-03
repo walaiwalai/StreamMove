@@ -16,7 +16,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class RecordContext {
+    /**
+     * 当前状态
+     */
     private RecordTaskStateEnum state;
 
+    /**
+     * 对应的录像机
+     */
     private Recorder recorder;
 }

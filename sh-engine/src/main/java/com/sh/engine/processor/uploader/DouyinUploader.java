@@ -1,14 +1,15 @@
 package com.sh.engine.processor.uploader;
 
-import com.alibaba.fastjson.TypeReference;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Cookie;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.CacheManager;
+import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.LocalCacheManager;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.EnvUtil;
-import com.sh.config.utils.FileStoreUtil;
+import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
@@ -56,7 +57,7 @@ public class DouyinUploader extends Uploader {
     }
 
     @Override
-    public void setUp() {
+    public void initUploader() {
         if (checkAccountValid()) {
             return;
         }
@@ -80,7 +81,7 @@ public class DouyinUploader extends Uploader {
 
         localCacheManager.set(IS_SETTING_UP, 1, 1, TimeUnit.HOURS);
         try {
-            setUp();
+            initUploader();
             return doUpload(recordPath);
         } finally {
             localCacheManager.delete(IS_SETTING_UP);
@@ -92,10 +93,9 @@ public class DouyinUploader extends Uploader {
         String workFilePath = targetFile.getAbsolutePath();
 
         // 加载元数据
-        DouyinWorkMetaData metaData = FileStoreUtil.loadFromFile(
-                new File(recordPath, UploaderFactory.getMetaFileName(getType())),
-                new TypeReference<DouyinWorkMetaData>() {
-                });
+        String streamerName = StreamerInfoHolder.getCurStreamerName();
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
+        DouyinWorkMetaData metaData = (DouyinWorkMetaData) new UploaderFactory.DouyinMetaDataBuilder().buildMetaData(streamerConfig, recordPath);
 
         // 开始上传
         try (Playwright playwright = Playwright.create()) {

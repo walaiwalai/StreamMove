@@ -28,7 +28,7 @@ public abstract class AbstractNetDiskUploader extends Uploader {
     private NetDiskCopyService netDiskCopyService;
 
     @Override
-    public void setUp() {
+    public void initUploader() {
         // 检查一下文件
         boolean isExisted = netDiskCopyService.checkBasePathExist(UploadPlatformEnum.of(getType()));
         if (!isExisted) {
