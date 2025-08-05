@@ -1,10 +1,11 @@
 package com.sh.engine.constant;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -14,7 +15,6 @@ import java.util.stream.Collectors;
 public enum ProcessPluginEnum {
     LOL_HL_VOD_CUT("LOL_HL_VOD_CUT", "lol精彩片段剪辑", false, 1),
     BATCH_SEG_MERGE("BATCH_SEG_MERGE", "视频切片合并", true, 5),
-    META_DATA_GEN("META_DATA_GEN", "视频元数据生成", true, 10),
     THUMBNAIL_GEN("THUMBNAIL_GEN", "视频封面生成", false, 15),
     ;
 
@@ -57,7 +57,7 @@ public enum ProcessPluginEnum {
     }
 
     public static List<String> getAllPlugins(List<String> plugins) {
-        List<ProcessPluginEnum> allPlugins  = Arrays.stream(ProcessPluginEnum.values())
+        List<ProcessPluginEnum> allPlugins = Arrays.stream(ProcessPluginEnum.values())
                 .filter(ProcessPluginEnum::isSystem)
                 .collect(Collectors.toList());
 
