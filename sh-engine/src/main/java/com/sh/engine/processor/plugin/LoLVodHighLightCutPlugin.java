@@ -94,7 +94,7 @@ public class LoLVodHighLightCutPlugin implements VideoProcessPlugin {
 
     @Override
     public boolean process(String recordPath) {
-        File highlightFile = new File(recordPath, RecordConstant.LOL_HL_VIDEO);
+        File highlightFile = new File(recordPath, RecordConstant.HL_VIDEO);
         if (highlightFile.exists()) {
             log.info("highlight file already existed, will skip, path: {}", recordPath);
             return true;

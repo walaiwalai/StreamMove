@@ -51,7 +51,7 @@ public class RecordConstant {
     /**
      * 英雄联盟精彩视频
      */
-    public static final String LOL_HL_VIDEO = "highlight.mp4";
+    public static final String HL_VIDEO = "highlight.mp4";
 
 
     /**

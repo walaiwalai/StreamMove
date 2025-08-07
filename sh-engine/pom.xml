@@ -35,6 +35,16 @@
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>tech.ordinaryroad</groupId>
+            <artifactId>live-chat-client-bilibili</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.microsoft.playwright</groupId>

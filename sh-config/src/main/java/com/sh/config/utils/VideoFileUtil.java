@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 
 /**
@@ -36,6 +39,27 @@ public class VideoFileUtil {
             raf.read(b, 0, blockSize);
         }
         return b;
+    }
+
+    public static Long getCreateTime(File targetFile) {
+        if (!targetFile.exists()) {
+            return -1L;
+        }
+        Path path = Paths.get(targetFile.getAbsolutePath());
+        try {
+            BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+            return attributes.creationTime().toMillis();
+        } catch (IOException e) {
+            return -1L;
+        }
+    }
+
+    public static long getLastModifiedTime(File targetFile) {
+        if (!targetFile.exists()) {
+            return -1L;
+        }
+
+        return targetFile.lastModified();
     }
 
     public static String calculateSHA1ByChunk(File file, int chunkSize) {

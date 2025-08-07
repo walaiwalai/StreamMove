@@ -1,5 +1,6 @@
 package com.sh.engine.processor;
 
+import cn.hutool.core.io.FileUtil;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
@@ -38,6 +39,10 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
         }
 
         for (String curRecordPath : StreamerInfoHolder.getCurRecordPaths()) {
+            if (!FileUtil.exist(curRecordPath)) {
+                log.error("{}'s record path not exist, maybe deleted, path: {}", streamerName, curRecordPath);
+                continue;
+            }
             FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
             if (statusManager.isPathOccupied(curRecordPath, streamerName)) {
                 log.info("{} is doing other process, platform: {}.", streamerName, statusManager.getCurPlatform(curRecordPath));

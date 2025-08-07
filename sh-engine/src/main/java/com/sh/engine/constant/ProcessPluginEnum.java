@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
  */
 public enum ProcessPluginEnum {
     LOL_HL_VOD_CUT("LOL_HL_VOD_CUT", "lol精彩片段剪辑", false, 1),
+    DAN_MU_HL_VOD_CUT("DAN_MU_HL_VOD_CUT", "根据弹幕片段剪辑", false, 2),
     BATCH_SEG_MERGE("BATCH_SEG_MERGE", "视频切片合并", true, 5),
     THUMBNAIL_GEN("THUMBNAIL_GEN", "视频封面生成", false, 15),
     ;

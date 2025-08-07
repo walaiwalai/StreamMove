@@ -92,9 +92,17 @@ public class StreamLinkRecorder extends Recorder {
 
             log.info("living stream record begin, savePath: {}, retry: {}/{}", savePath, i + 1, totalCnt);
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(buildCmd(savePath));
+
+
+            // 开启弹幕下载
+            DanmuClient danmuClient = new DanmuClient(savePath, url);
+            danmuClient.init();
+
             // 执行录制，长时间
             rfCmd.execute(24 * 3600L);
 
+            // 弹幕下载结束
+            danmuClient.close();
             if (!rfCmd.isExitNormal()) {
                 log.error("living stream record fail, savePath: {}", savePath);
 //                throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);

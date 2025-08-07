@@ -130,7 +130,7 @@ public class BiliWebUploader extends Uploader {
             exclusiveDir.mkdirs();
         }
 
-        File targetFile = new File(exclusiveDir, RecordConstant.LOL_HL_VIDEO);
+        File targetFile = new File(exclusiveDir, RecordConstant.HL_VIDEO);
         if (targetFile.exists()) {
             return;
         }
