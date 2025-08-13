@@ -1,5 +1,7 @@
 package com.sh.engine.service.process;
 
+import com.sh.engine.model.video.VideoInterval;
+
 import java.io.File;
 import java.util.List;
 
@@ -34,4 +36,9 @@ public interface VideoMergeService {
      * @return
      */
     boolean mergeMultiWithFadeV2(List<List<String>> intervals, File targetVideo, String title);
+
+
+    boolean mergeMultiWithFadeV3(List<VideoInterval> intervals, File targetVideo, String title);
+
+    boolean ts2Mp4(File fromVideo);
 }

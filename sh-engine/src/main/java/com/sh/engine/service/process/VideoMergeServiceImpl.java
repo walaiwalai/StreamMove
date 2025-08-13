@@ -5,7 +5,9 @@ import cn.hutool.core.io.file.FileNameUtil;
 import com.google.common.collect.Lists;
 import com.sh.config.utils.PictureFileUtil;
 import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
+import com.sh.engine.model.ffmpeg.Ts2Mp4ProcessCmd;
 import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
+import com.sh.engine.model.video.VideoInterval;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -135,6 +137,53 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         return success;
     }
 
+    @Override
+    public boolean mergeMultiWithFadeV3(List<VideoInterval> intervals, File targetVideo, String title) {
+        File tmpSaveDir = new File(targetVideo.getParent(), "tmp-h");
+        tmpSaveDir.mkdirs();
+
+        List<String> mergedPaths = Lists.newArrayList();
+        for (int i = 0; i < intervals.size(); i++) {
+            File cutFile = cutInterval(intervals.get(i), tmpSaveDir);
+            if (i == 0) {
+                mergedPaths.add(genTitleVideo(cutFile, title));
+            } else {
+                mergedPaths.add(genFadeVideo(cutFile));
+            }
+//            FileUtils.deleteQuietly(cutFile);
+        }
+
+        return concatWithSameVideo(mergedPaths, targetVideo);
+    }
+
+    @Override
+    public boolean ts2Mp4(File fromVideo) {
+        Ts2Mp4ProcessCmd ts2Mp4ProcessCmd = new Ts2Mp4ProcessCmd(fromVideo);
+        ts2Mp4ProcessCmd.execute(4 * 3600L);
+        return true;
+    }
+
+
+    private File cutInterval(VideoInterval interval, File saveDir) {
+        File fromVideo = interval.getFromVideo();
+        double startTime = interval.getSecondFromVideoStart();
+        double endTime = interval.getSecondToVideoEnd();
+
+        String outFileName = FileUtil.getPrefix(fromVideo) + "_" + Math.round(startTime) + "_" + Math.round(endTime) + "." + FileUtil.getSuffix(fromVideo);
+        File outFile = new File(saveDir, outFileName);
+        List<String> params = Lists.newArrayList(
+                "ffmpeg",
+                "-i", fromVideo.getAbsolutePath(),
+                "-ss", String.valueOf(startTime),
+                "-to", String.valueOf(endTime),
+                "-c", "copy",
+                outFile.getAbsolutePath()
+        );
+
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(StringUtils.join(params, " "), false, false);
+        processCmd.execute(2 * 3600L);
+        return outFile;
+    }
 
     private File saveMergeFileList(List<String> mergedFileNames, File targetVideo) {
         File mergeListFile = new File(targetVideo.getParent(), FileNameUtil.getPrefix(targetVideo) + "-merge.txt");
@@ -221,22 +270,13 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
     public static void main(String[] args) {
         VideoMergeServiceImpl videoMergeService = new VideoMergeServiceImpl();
-        File targetFile = new File("G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\highlight.mp4");
-        List<List<String>> intervals = Lists.newArrayList(
-                Lists.newArrayList(
-                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-458.ts",
-                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-459.ts",
-                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-460.ts",
-                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-461.ts"
-                ),
-                Lists.newArrayList(
-                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-627.ts",
-                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-628.ts",
-                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-629.ts",
-                        "G:\\stream_record\\download\\TheShy\\2024-01-31-03-31-43\\seg-630.ts"
-                )
+        File targetFile = new File("G:\\stream_record\\download\\mytest-mac\\2025-06-16-16-16-16\\highlight.mp4");
+        List<VideoInterval> intervals = Lists.newArrayList(
+                new VideoInterval(new File("G:\\stream_record\\download\\mytest-mac\\2025-06-16-16-16-16\\highlight2.ts"), 12.0, 17.0),
+                new VideoInterval(new File("G:\\stream_record\\download\\mytest-mac\\2025-06-16-16-16-16\\highlight1.ts"), 19.0, 21.0)
         );
-        videoMergeService.mergeMultiWithFadeV2(intervals, targetFile, "Thesy精彩直播\n2929-98-1晚上");
+
+        videoMergeService.mergeMultiWithFadeV3(intervals, targetFile, "Thesy精彩直播\n2929-98-1晚上");
     }
 }
 

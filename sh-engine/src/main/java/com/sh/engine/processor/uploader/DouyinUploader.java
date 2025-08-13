@@ -68,7 +68,7 @@ public class DouyinUploader extends Uploader {
 
     @Override
     public boolean upload(String recordPath) {
-        File targetFile = new File(recordPath, RecordConstant.LOL_HL_VIDEO);
+        File targetFile = new File(recordPath, RecordConstant.HL_VIDEO);
         if (!targetFile.exists()) {
             // 不存在也当作上传成功
             return true;
@@ -89,7 +89,7 @@ public class DouyinUploader extends Uploader {
     }
 
     private boolean doUpload(String recordPath) {
-        File targetFile = new File(recordPath, RecordConstant.LOL_HL_VIDEO);
+        File targetFile = new File(recordPath, RecordConstant.HL_VIDEO);
         String workFilePath = targetFile.getAbsolutePath();
 
         // 加载元数据

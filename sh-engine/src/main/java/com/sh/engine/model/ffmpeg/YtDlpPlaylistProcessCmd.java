@@ -30,16 +30,4 @@ public class YtDlpPlaylistProcessCmd extends AbstractCmd {
     public List<String> getVideoUrls() {
         return videoUrls;
     }
-
-    public void execute(long timeoutSeconds) {
-        super.execute(timeoutSeconds);
-    }
-
-
-    public static void main(String[] args) {
-        YtDlpPlaylistProcessCmd ytDlpPlaylistProcessCmd = new YtDlpPlaylistProcessCmd(" https://www.youtube.com/@LOLREC/videos", 5);
-        ytDlpPlaylistProcessCmd.execute(10);
-        System.out.println(ytDlpPlaylistProcessCmd.getVideoUrls());
-    }
-
 }

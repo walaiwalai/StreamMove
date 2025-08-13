@@ -14,7 +14,6 @@
         <result column="record_type" property="recordType"/>
         <result column="last_record_time" property="lastRecordTime"/>
         <result column="expire_time" property="expireTime"/>
-        <result column="last_vod_cnt" property="lastVodCnt"/>
         <result column="max_merge_size" property="maxMergeSize"/>
         <result column="cur_traffic_gb" property="curTrafficGB"/>
         <result column="max_traffic_gb" property="maxTrafficGB"/>
@@ -30,7 +29,8 @@
 
     <!-- 定义 SQL 片段 -->
     <sql id="allFields">
-        `id`,
+        `id`
+        ,
         `gmt_create`,
         `gmt_modified`,
         `name`,
@@ -38,7 +38,6 @@
         `record_type`,
         `last_record_time`,
         `expire_time`,
-        `last_vod_cnt`,
         `max_merge_size`,
         `cur_traffic_gb`,
         `max_traffic_gb`,

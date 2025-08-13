@@ -13,6 +13,7 @@ import java.security.MessageDigest;
  */
 public class VideoFileUtil {
     public static final String SEG_FILE_NAME = "seg-%05d.ts";
+    public static final String SEG_FILE_NAME_V2 = "seg-%02d.ts";
     public static final String SEG_SNAPSHOT_FILE_NAME = "seg-%05d.jpg";
 
     public static String genSegName(int i) {
@@ -21,6 +22,10 @@ public class VideoFileUtil {
 
     public static String genSnapshotName(int i) {
         return String.format(SEG_SNAPSHOT_FILE_NAME, i);
+    }
+
+    public static String genSnapshotNameV2(int i) {
+        return String.format(SEG_FILE_NAME_V2, i);
     }
 
     public static int genIndex(String segName) {

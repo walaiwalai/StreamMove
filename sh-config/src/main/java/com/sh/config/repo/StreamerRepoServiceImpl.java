@@ -88,7 +88,6 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                 .recordWhenOnline("living".equals(streamerDO.getRecordType()))
                 .lastRecordTime(streamerDO.getLastRecordTime())
                 .expireTime(streamerDO.getExpireTime())
-                .lastVodCnt(streamerDO.getLastVodCnt() != null ? streamerDO.getLastVodCnt() : 1)
                 .videoPlugins(StringUtils.isNotBlank(streamerDO.getProcessPlugins()) ?
                         Arrays.stream(StringUtils.split(streamerDO.getProcessPlugins(), ","))
                                 .map(String::trim)
@@ -107,6 +106,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                                 .collect(Collectors.toList())
                         : Lists.newArrayList())
                 .maxMergeSize(streamerDO.getMaxMergeSize())
+                .recordMode(streamerDO.getRecordMode())
                 .curTrafficGB(streamerDO.getCurTrafficGB())
                 .maxTrafficGB(streamerDO.getMaxTrafficGB())
                 .coverFilePath(streamerDO.getCoverPath())

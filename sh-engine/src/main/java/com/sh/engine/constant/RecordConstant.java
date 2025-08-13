@@ -23,15 +23,6 @@ public class RecordConstant {
     public static final String BILI_POST_WORK = "https://member.bilibili.com/x/vu/web/add/v3?t={t}&csrf={csrf}";
 
 
-    public static final String BILI_UPLOAD_ID = "uploadId";
-    public static final String BILI_BIZ_ID = "biz_id";
-    public static final String BILI_UPLOAD_URL = "uploadUrl";
-    public static final String BILI_UPOS_URI = "upos_uri";
-    public static final String BILI_UPOS_AUTH = "x-upos-auth";
-    public static final String BILI_VIDEO_TILE = "title";
-    public static final String SERVER_FILE_NAME = "serverFileName";
-
-
     /**
      * 精彩区间前后视频端个数
      */
@@ -49,9 +40,9 @@ public class RecordConstant {
     public static final int RECORD_RETRY_CNT = 5;
 
     /**
-     * 英雄联盟精彩视频
+     * 精彩视频
      */
-    public static final String LOL_HL_VIDEO = "highlight.mp4";
+    public static final String HL_VIDEO = "highlight.mp4";
 
 
     /**
