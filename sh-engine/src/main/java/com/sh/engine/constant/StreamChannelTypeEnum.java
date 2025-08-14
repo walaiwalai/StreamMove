@@ -80,7 +80,8 @@ public enum StreamChannelTypeEnum {
     /**
      * 外部api
      */
-    LIVE_RECORD_API(999, "外部api", ""),
+    LIVE_RECORD_API(999, "外部api", "outer"),
+    STREAM_RECORDER_IO(998, "streamrecord平台", "streamrecorder.io"),
 
     ;
 
