@@ -9,6 +9,7 @@ import com.sh.engine.processor.recorder.Recorder;
 import com.sh.engine.processor.recorder.StreamUrlRecorder;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -73,6 +74,11 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
 
         JSONObject respObj = JSON.parseObject(resp);
         JSONObject latestRecord = respObj.getJSONArray("data").getJSONObject(0);
+        String status = latestRecord.getString("status");
+        if (!StringUtils.equals(status, "finished")) {
+            return null;
+        }
+
         Date recordedAt = latestRecord.getDate("recorded_at");
         if (!checkVodIsNew(streamerConfig, recordedAt)) {
             return null;
