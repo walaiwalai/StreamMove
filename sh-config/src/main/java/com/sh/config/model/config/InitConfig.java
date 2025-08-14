@@ -60,10 +60,6 @@ public class InitConfig {
     // *********************快手**********************
     private String kuaishouCookies;
 
-    // *********************streamrecorder**********************
-    private String streamrecorderCookies;
-
-
     // *********************kick**********************
 
 
