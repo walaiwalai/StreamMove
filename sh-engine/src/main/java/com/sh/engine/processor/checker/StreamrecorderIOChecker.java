@@ -48,6 +48,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         CustomCookieJar customCookieJar = (CustomCookieJar) client.cookieJar();
         List<Cookie> cookies = customCookieJar.getCookiesByDomain("streamrecorder.io");
         if (cookies.isEmpty()) {
+            log.info("cookie not found, do login");
             doLogin();
         }
 
@@ -61,6 +62,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         String resp;
         try {
             resp = OkHttpClientUtil.execute(request);
+            log.info("get streamerecorder vod info: {}", resp);
         } catch (Exception e) {
             if (e.getMessage().contains("authenticated")) {
                 log.error("cookie expired, re-login in next term");
