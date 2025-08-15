@@ -85,7 +85,6 @@ public class BiliWebPreUploadCommand {
         String preUploadUrl = RecordConstant.BILI_WEB_PRE_UPLOAD_URL
                 .replace("{name}", fileName)
                 .replace("{size}", String.valueOf(size));
-        OkHttpClient CLIENT = new OkHttpClient();
         Request request = new Request.Builder()
                 .url(preUploadUrl)
                 .addHeader("Accept", "*/*")

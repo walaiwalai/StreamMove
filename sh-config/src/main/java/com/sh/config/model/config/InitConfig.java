@@ -60,7 +60,6 @@ public class InitConfig {
     // *********************快手**********************
     private String kuaishouCookies;
 
-
     // *********************kick**********************
 
 
