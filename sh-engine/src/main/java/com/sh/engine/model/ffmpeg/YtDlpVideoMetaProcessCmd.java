@@ -41,10 +41,6 @@ public class YtDlpVideoMetaProcessCmd extends AbstractCmd {
         return videoMetas;
     }
 
-    public void execute(long timeoutSeconds) {
-        super.execute(timeoutSeconds);
-    }
-
     @Data
     @Builder
     public static class YtDlpVideoMeta {

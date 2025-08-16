@@ -32,7 +32,7 @@ public abstract class AbstractCmd {
         this.command = command;
     }
 
-    protected void execute(long timeoutSeconds) {
+    public void execute(long timeoutSeconds) {
         CommandLine cmdLine;
         if (SystemUtils.IS_OS_WINDOWS) {
             cmdLine = CommandLine.parse("cmd.exe");

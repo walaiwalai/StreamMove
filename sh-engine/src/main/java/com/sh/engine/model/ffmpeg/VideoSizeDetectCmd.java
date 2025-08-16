@@ -3,8 +3,6 @@ package com.sh.engine.model.ffmpeg;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.File;
-
 /**
  * 视频大小检查命令
  *
@@ -47,14 +45,5 @@ public class VideoSizeDetectCmd extends AbstractCmd {
 
     public int getHeight() {
         return height;
-    }
-
-    public static void main(String[] args) {
-        File file = new File("G:\\stream_record\\download\\TheShy\\2025-01-24-23-54-30\\seg-00001.ts");
-        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(file.getAbsolutePath());
-        detectCmd.execute(10);
-
-        System.out.println(detectCmd.getWidth());
-        System.out.println(detectCmd.getHeight());
     }
 }

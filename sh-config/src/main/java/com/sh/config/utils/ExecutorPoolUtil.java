@@ -15,16 +15,6 @@ import java.util.concurrent.TimeUnit;
  **/
 public class ExecutorPoolUtil {
     private static final int CORE_COUNT = Runtime.getRuntime().availableProcessors();
-    private static final ExecutorService downloadPool = new ThreadPoolExecutor(
-            CORE_COUNT * 2,
-            CORE_COUNT * 2,
-            600,
-            TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(20480),
-            new ThreadFactoryBuilder().setNameFormat("seg-download-%d").build(),
-            new ThreadPoolExecutor.CallerRunsPolicy()
-    );
-
     private static final ExecutorService uploadPool = new ThreadPoolExecutor(
             CORE_COUNT * 2,
             CORE_COUNT * 2,
@@ -36,18 +26,14 @@ public class ExecutorPoolUtil {
     );
 
     private static final ExecutorService snapshotPool = new ThreadPoolExecutor(
-            CORE_COUNT * 2,
-            CORE_COUNT * 2,
+            CORE_COUNT,
+            CORE_COUNT,
             600,
             TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(40960),
             new ThreadFactoryBuilder().setNameFormat("snapshot-thread-%d").build(),
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
-
-    public static ExecutorService getDownloadPool() {
-        return downloadPool;
-    }
 
     public static ExecutorService getUploadPool() {
         return uploadPool;

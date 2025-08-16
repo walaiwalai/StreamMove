@@ -45,7 +45,7 @@ public class YoutubeRoomChecker extends AbstractRoomChecker {
 
     private Recorder recordVod(StreamerConfig streamerConfig) {
         // 获取视频列表前N个
-        int lastVodCnt = Math.max(streamerConfig.getLastVodCnt(), 1);
+        int lastVodCnt = 1;
         YtDlpPlaylistProcessCmd playlistCmd = new YtDlpPlaylistProcessCmd(streamerConfig.getRoomUrl(), lastVodCnt);
         playlistCmd.execute(30);
 

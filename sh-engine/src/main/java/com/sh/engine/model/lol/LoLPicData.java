@@ -18,7 +18,6 @@ public class LoLPicData {
     private int K;
     private int D;
     private int A;
-    private Integer targetIndex;
 
     private HeroKillOrAssistDetail heroKADetail;
 
@@ -37,6 +36,7 @@ public class LoLPicData {
 
     /**
      * 合并识别的击杀细节框，每一行表示一次击杀详情
+     *
      * @return
      */
     public List<List<Integer>> merge2PositionEnum() {
@@ -111,9 +111,6 @@ public class LoLPicData {
 
         public List<List<Float>> getBoxes() {
             return boxes;
-        }
-
-        public HeroKillOrAssistDetail() {
         }
 
         public HeroKillOrAssistDetail(List<List<Float>> boxes, List<Integer> labelIds) {

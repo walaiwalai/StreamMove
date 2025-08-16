@@ -53,11 +53,6 @@ public class StreamerConfig {
     private Date expireTime;
 
     /**
-     * vod时录制视频的数量
-     */
-    private int lastVodCnt;
-
-    /**
      * 视频处理插件
      */
     private List<String> videoPlugins;
@@ -86,6 +81,13 @@ public class StreamerConfig {
      * 一个视频分片大小（M）
      */
     private Integer maxMergeSize;
+
+    /**
+     * 录制模式
+     * t_3600表示按照时间间隔录制，一个视频3600
+     * s_2048表示按照视频大小录制，一个视频2048
+     */
+    private String recordMode;
 
     /**
      * 当前流量（G）

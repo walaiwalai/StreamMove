@@ -38,10 +38,6 @@ public class FFmpegProcessCmd extends AbstractCmd {
         }
     }
 
-    public void execute(long timeoutSeconds) {
-        super.execute(timeoutSeconds);
-    }
-
     public boolean isEndNormal() {
         return super.isNormalExit();
     }
