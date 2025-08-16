@@ -17,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.Date;
+import java.util.Optional;
 
 /**
  * streamlink录像机
@@ -58,8 +59,9 @@ public class StreamLinkRecorder extends Recorder {
 
         log.info("Resolution is OK {}, start recording...", bestResolution);
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
+        String qualityParam = checkCmd.selectQuality(Optional.ofNullable(streamerConfig.getRecordQuality()).orElse(0));
         RecordCmdBuilder builder = new RecordCmdBuilder(streamerConfig, this.streamChannelType, savePath);
-        String cmd = builder.streamlink(this.streamUrl).build();
+        String cmd = builder.streamlink(this.streamUrl, qualityParam).build();
 
         FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(cmd);
 
@@ -93,7 +95,9 @@ public class StreamLinkRecorder extends Recorder {
             }
 
             log.info("living stream record begin, savePath: {}, retry: {}/{}", savePath, i + 1, totalCnt);
-            String cmd = builder.streamlink(this.streamUrl).build();
+            String qualityParam = checkCmd.selectQuality(Optional.ofNullable(streamerConfig.getRecordQuality()).orElse(0));
+            String cmd = builder.streamlink(this.streamUrl, qualityParam).build();
+
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(cmd);
 
             // 开启弹幕下载

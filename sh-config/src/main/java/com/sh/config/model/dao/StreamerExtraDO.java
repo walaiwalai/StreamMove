@@ -28,6 +28,7 @@ public class StreamerExtraDO {
     private List<String> certainVodUrls;
     private boolean onlyAudio;
     private boolean onlinePushCheck;
+    private int recordQuality;
 
 
     @Data
