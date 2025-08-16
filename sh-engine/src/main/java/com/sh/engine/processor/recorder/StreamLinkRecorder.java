@@ -101,7 +101,7 @@ public class StreamLinkRecorder extends Recorder {
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(cmd);
 
             // 开启弹幕下载
-            DanmuClient danmuClient = new DanmuClient(savePath, url);
+            DanmuClient danmuClient = new DanmuClient(savePath, this.streamUrl);
             danmuClient.init();
 
             // 执行录制，长时间
