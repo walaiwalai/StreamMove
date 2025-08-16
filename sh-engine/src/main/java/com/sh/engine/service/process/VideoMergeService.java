@@ -25,20 +25,21 @@ public interface VideoMergeService {
     boolean concatDiffVideos(List<String> mergedFps, File targetVideo);
 
 
-    boolean concatByProtocol(List<String> mergedFileNames, File targetVideo);
+    /**
+     * 合并视频带封面
+     *
+     * @param intervals   需要合并的区间
+     * @param targetVideo 目标视频文件
+     * @param title       标题
+     * @return 合并是否成功
+     */
+    boolean mergeWithCover(List<VideoInterval> intervals, File targetVideo, String title);
 
     /**
-     * 采用concate filter进行拼接
+     * ts转mp4
      *
-     * @param intervals   合并视频区间
-     * @param targetVideo 目标视频文件
-     * @param title       视频标题
-     * @return
+     * @param fromVideo ts文件
+     * @return 转换是否成功
      */
-    boolean mergeMultiWithFadeV2(List<List<String>> intervals, File targetVideo, String title);
-
-
-    boolean mergeMultiWithFadeV3(List<VideoInterval> intervals, File targetVideo, String title);
-
     boolean ts2Mp4(File fromVideo);
 }

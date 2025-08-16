@@ -98,7 +98,6 @@ public class LolSequenceStatistic {
             if (shouldCorrect(cur, last, hBlank, tBlank)) {
                 LoLPicData modify = new LoLPicData();
                 BeanUtils.copyProperties(last, modify);
-                modify.setTargetIndex(cur.getTargetIndex());
 
                 window.set(i, modify);
             }
@@ -188,20 +187,20 @@ public class LolSequenceStatistic {
      * @return 最精彩区间
      */
     private List<HlScoredInterval> findTopIntervals(List<HlScoredInterval> allIntervals, int topN) {
-        allIntervals.sort(Comparator.comparingInt(HlScoredInterval::getStart));
+        allIntervals.sort(Comparator.comparingInt(HlScoredInterval::getLeftIndex));
 
         List<HlScoredInterval> merged = new ArrayList<>();
         for (int i = 0; i < allIntervals.size(); ++i) {
-            int l = allIntervals.get(i).getStart();
-            int r = allIntervals.get(i).getEnd();
+            int l = allIntervals.get(i).getLeftIndex();
+            int r = allIntervals.get(i).getRightIndex();
 
-            if (merged.size() == 0 || merged.get(merged.size() - 1).getEnd() < l) {
+            if (merged.size() == 0 || merged.get(merged.size() - 1).getRightIndex() < l) {
                 merged.add(new HlScoredInterval(l, r, allIntervals.get(i).getScore()));
             } else {
                 HlScoredInterval interval = merged.get(merged.size() - 1);
                 float score = Math.max(interval.getScore(), allIntervals.get(i).getScore());
-                int nextR = Math.max(merged.get(merged.size() - 1).getEnd(), r);
-                interval.setEnd(nextR);
+                int nextR = Math.max(merged.get(merged.size() - 1).getRightIndex(), r);
+                interval.setRightIndex(nextR);
                 interval.setScore(score);
             }
         }
@@ -209,12 +208,12 @@ public class LolSequenceStatistic {
         // 找到分数最高的前N个
         List<HlScoredInterval> topIntervals = merged.stream()
                 .sorted(Comparator.comparingInt(t -> (int) (t.getScore() * (-100f))))
-                .limit(topN)
                 .collect(Collectors.toList());
 
         // 按照时间顺序排列
         return topIntervals.stream()
-                .sorted(Comparator.comparingInt(HlScoredInterval::getStart))
+                .limit(topN)
+                .sorted(Comparator.comparingInt(HlScoredInterval::getLeftIndex))
                 .collect(Collectors.toList());
     }
 }

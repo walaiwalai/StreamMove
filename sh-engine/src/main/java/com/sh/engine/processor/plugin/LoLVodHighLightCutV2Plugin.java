@@ -14,6 +14,7 @@ import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
+import com.sh.engine.model.ffmpeg.ScreenshotCmd;
 import com.sh.engine.model.ffmpeg.VideoDurationDetectCmd;
 import com.sh.engine.model.highlight.HlScoredInterval;
 import com.sh.engine.model.lol.LoLPicData;
@@ -31,7 +32,6 @@ import okhttp3.RequestBody;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -39,8 +39,9 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -66,7 +67,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
     /**
      * 精彩片段的视频片段总数
      */
-    private static final int MAX_HIGH_LIGHT_SEG_COUNT = 100;
+    private static final int MAX_HIGH_LIGHT_SEG_COUNT = 20;
 
     private static final int OCR_INTERVAL_NUM = 5;
     private static final Map<String, Integer> LAST_OCR_K_MAP = Maps.newConcurrentMap();
@@ -103,23 +104,23 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
             return true;
         }
 
-        List<File> videos = FileUtils.listFiles(new File(recordPath), new String[]{"ts"}, false)
+        List<File> videos = FileUtils.listFiles(new File(recordPath), new String[]{"mp4"}, false)
                 .stream()
-                .sorted(Comparator.comparingInt(v -> VideoFileUtil.genIndex(v.getName())))
+                .sorted(Comparator.comparingLong(File::lastModified))
                 .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(videos)) {
             log.info("empty ts video file, will skip, path: {}", recordPath);
             return true;
         }
 
-        // 1. 找到kda确切位置
-        String kadCorpExp = findAccurateKdaCorpExp(recordPath, videos.get(0));
-
         // 2 精确的kda的截图
-        kdaSnapShot(recordPath, videos, kadCorpExp);
+        List<File> snapshotFiles = kdaSnapShot(recordPath, videos);
+        if (CollectionUtils.isEmpty(snapshotFiles)) {
+            return true;
+        }
 
         // 3.解析截图文件
-        List<VideoSnapPoint> videoSnapPoints = parseVideoPoints(recordPath, videos);
+        List<VideoSnapPoint> videoSnapPoints = parseVideoPointSequence(snapshotFiles, videos);
 
         // 4. ocr + 位置识别
         List<LoLPicData> datas = parseOCRResult(videoSnapPoints, recordPath);
@@ -131,25 +132,30 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
             log.info("no highlight video, will skip, path: {}", recordPath);
             return true;
         }
+        log.info("find topNIntervals: {}", JSON.toJSONString(topNIntervals));
 
         // 6. 找出对应的视频开始和结束点
         List<VideoInterval> videoIntervals = Lists.newArrayList();
         for (HlScoredInterval interval : topNIntervals) {
-            int start = interval.getStart();
-            int end = interval.getEnd();
-            File startVideo = datas.get(start).getSource().getFromVideo();
-            File endVideo = datas.get(end).getSource().getFromVideo();
-            if (!StringUtils.equals(startVideo.getName(), endVideo.getName())) {
+            int left = interval.getLeftIndex();
+            int right = interval.getRightIndex();
+            File startVideo = videoSnapPoints.get(left).getFromVideo();
+            File endVideo = videoSnapPoints.get(right).getFromVideo();
+            double videoStartSecond = videoSnapPoints.get(left).getSecondFromVideoStart();
+            double videoEndSecond = videoSnapPoints.get(right).getSecondFromVideoStart() + SNAP_INTERVAL_SECOND;
+            if (!StringUtils.equals(startVideo.getAbsolutePath(), endVideo.getAbsolutePath())) {
+                // 不同的视频片段不需要合并
                 continue;
             }
 
-            videoIntervals.add(new VideoInterval(startVideo, start, end));
+            videoIntervals.add(new VideoInterval(startVideo, videoStartSecond, videoEndSecond));
         }
+        log.info("find videoIntervals: {}", JSON.toJSONString(videoIntervals));
 
         // 7. 进行合并视频
         String timeStr = highlightFile.getParentFile().getName();
         String title = DateUtil.describeTime(timeStr, DateUtil.YYYY_MM_DD_HH_MM_SS_V2) + "\n" + StreamerInfoHolder.getCurStreamerName() + "直播精彩片段";
-        boolean success = videoMergeService.mergeMultiWithFadeV3(videoIntervals, highlightFile, title);
+        boolean success = videoMergeService.mergeWithCover(videoIntervals, highlightFile, title);
 
         // 8. 发消息
         String msgPrefix = success ? "合并视频完成！路径为：" : "合并视频失败！路径为：";
@@ -158,13 +164,15 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         return success;
     }
 
-    private List<VideoSnapPoint> parseVideoPoints(String recordPath, List<File> videos) {
-        // 1. 找出所有的截图文件
-        File snapShotDir = new File(recordPath, KAD_SNAPSHOT_DIR_NAME);
-        Collection<File> shotPics = FileUtils.listFiles(snapShotDir, new String[]{"jpg"}, false);
-
-
-        // 2. 所有视频的长度
+    /**
+     * 获取视频点（有序的）
+     *
+     * @param shotPics 截图文件
+     * @param videos   视频文件
+     * @return 有序的视频点
+     */
+    private List<VideoSnapPoint> parseVideoPointSequence(List<File> shotPics, List<File> videos) {
+        // 1. 所有视频的长度
         Map<String, File> videoFileMap = videos.stream().collect(Collectors.toMap(FileUtil::getPrefix, v -> v));
         Map<String, Double> videoDurationMap = videos.stream()
                 .collect(Collectors.toMap(FileUtil::getPrefix, v -> {
@@ -173,7 +181,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                     return cmd.getDurationSeconds();
                 }));
 
-        // 3. 构建视频开始时间映射（相对于整个录制序列的起始时间）
+        // 2. 构建视频开始时间映射（相对于整个录制序列的起始时间）
         Map<String, Double> videoStartMap = new LinkedHashMap<>();
         double currentStart = 0.0;
         for (File video : videos) {
@@ -185,15 +193,14 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         // 4. 解析截图文件，构建VideoScreenshot对象
         List<VideoSnapPoint> result = new ArrayList<>();
         for (File shotPic : shotPics) {
-            String shotFilePrefix = FileUtil.getPrefix(shotPic);
-            String[] split = shotFilePrefix.split("_");
-            String fromVideoPrefix = split[0];
+            Integer snapshotIndex = VideoFileUtil.getSnapshotIndex(shotPic);
+            String sourceFileName = VideoFileUtil.getSnapshotSourceFileName(shotPic);
 
-            File fromVideo = videoFileMap.get(fromVideoPrefix);
-            double secondFromVideoStart = (Double.parseDouble(split[1]) - 1) * SNAP_INTERVAL_SECOND;
+            File fromVideo = videoFileMap.get(sourceFileName);
+            double secondFromVideoStart = (snapshotIndex - 1) * SNAP_INTERVAL_SECOND;
 
             // 计算从整个录制开始到截图的时间（全局时间）
-            double videoStartTime = videoStartMap.getOrDefault(fromVideoPrefix, 0.0);
+            double videoStartTime = videoStartMap.getOrDefault(sourceFileName, 0.0);
             double secondFromRecordingStart = videoStartTime + secondFromVideoStart;
 
             // 构建并添加VideoScreenshot对象
@@ -210,38 +217,72 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         return result;
     }
 
-    private String genKdaSnapshotPath(String recordPath, Integer index) {
-        return new File(new File(recordPath, KAD_SNAPSHOT_DIR_NAME), VideoFileUtil.genSnapshotName(index)).getAbsolutePath();
-    }
+    private List<File> kdaSnapShot(String recordPath, List<File> videos) {
+        // 找到kda确切位置
+        String kadCorpExp = findAccurateKdaCorpExp(recordPath, videos.get(0));
 
-    private String genKdaTestSnapshotPath(String recordPath, Integer index) {
-        return new File(new File(recordPath, KAD_TEST_SNAPSHOT_DIR_NAME), VideoFileUtil.genSnapshotName(index)).getAbsolutePath();
-    }
-
-    private String genKillDetailSnapshotPath(String recordPath, Integer index) {
-        return new File(new File(recordPath, DETAIL_SNAPSHOT_DIR_NAME), VideoFileUtil.genSnapshotName(index)).getAbsolutePath();
-    }
-
-    private void kdaSnapShot(String recordPath, List<File> videos, String kadCorpExp) {
+        // 截图保存路径
         File snapShotDir = new File(recordPath, KAD_SNAPSHOT_DIR_NAME);
         snapShotDir.mkdirs();
 
-        ExecutorService snapshotPool = ExecutorPoolUtil.getSnapshotPool();
+        // 多线程截图
+        AtomicBoolean hasFailed = new AtomicBoolean(false);
         CountDownLatch latch = new CountDownLatch(videos.size());
+        List<File> allSnapshotFiles = new CopyOnWriteArrayList<>();
         for (File video : videos) {
             CompletableFuture.runAsync(
-                            () -> doSnapshot(video, snapShotDir, 0, 99999, kadCorpExp), snapshotPool)
-                    .whenComplete((isSuccess, throwable) -> {
+                            () -> {
+                                if (hasFailed.get()) {
+                                    return;
+                                }
+                                // 截图
+                                allSnapshotFiles.addAll(shotSingleVideo(video, snapShotDir, kadCorpExp));
+                            }, ExecutorPoolUtil.getSnapshotPool())
+                    .whenComplete((result, throwable) -> {
+                        if (throwable != null) {
+                            log.error("{} screenshot task error", video.getName(), throwable);
+                            hasFailed.set(true);
+                        }
                         latch.countDown();
                     });
         }
 
-        // 等待截图完成
+        // 等待所有截图任务完成
         try {
             latch.await();
         } catch (InterruptedException e) {
         }
+
+        if (hasFailed.get()) {
+            log.error("screenshot failed, total get {} pic", allSnapshotFiles.size());
+            return Lists.newArrayList();
+        } else {
+            log.info("screenshot success, total get {} pic", allSnapshotFiles.size());
+            return allSnapshotFiles;
+        }
     }
+
+
+    private List<File> shotSingleVideo(File video, File snapShotDir, String kadCorpExp) {
+//        // 可能之前已经截图过了，根据截图点确定截图开始时间
+//        List<File> existed = FileUtils.listFiles(snapShotDir, new String[]{"jpg"}, false)
+//                .stream()
+//                .filter(file -> file.getName().startsWith(FileUtil.getPrefix(video)))
+//                .collect(Collectors.toList());
+//        log.info("{} has {} pic", video.getName(), existed.size());
+//
+//        int ss = existed.size() * SNAP_INTERVAL_SECOND;
+
+        // 执行截图
+        ScreenshotCmd snapshotCmd = new ScreenshotCmd(video, snapShotDir, 0, 99999, kadCorpExp, SNAP_INTERVAL_SECOND, 1);
+        snapshotCmd.execute(3600);
+
+        List<File> snapshotFiles = Lists.newArrayList();
+//        snapshotFiles.addAll(existed);
+        snapshotFiles.addAll(snapshotCmd.getSnapshotFiles());
+        return snapshotFiles;
+    }
+
 
     /**
      * 找出精确的kda截图位置
@@ -263,8 +304,9 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         int batchCnt = 20;
         int startSecond = 0;
         while (startSecond < endSecond) {
-            doSnapshot(sampleVideo, testSnapShotDir, startSecond, batchCnt, KAD_TEST_CORP_EXP);
-            Collection<File> snapshotFiles = FileUtils.listFiles(testSnapShotDir, new String[]{"jpg"}, false);
+            ScreenshotCmd screenshotCmd = new ScreenshotCmd(sampleVideo, testSnapShotDir, startSecond, batchCnt, KAD_TEST_CORP_EXP, SNAP_INTERVAL_SECOND, 1);
+            screenshotCmd.execute(1800);
+            List<File> snapshotFiles = screenshotCmd.getSnapshotFiles();
             for (File snapshotFile : snapshotFiles) {
                 List<List<Integer>> kdaBoxes;
                 try {
@@ -336,13 +378,13 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
     }
 
 
-    private List<LoLPicData> parseOCRResult(List<VideoSnapPoint> screenshots, String recordPath) {
+    private List<LoLPicData> parseOCRResult(List<VideoSnapPoint> points, String recordPath) {
         File detailDir = new File(recordPath, DETAIL_SNAPSHOT_DIR_NAME);
         detailDir.mkdirs();
 
         LoLPicData lastPic = LoLPicData.genBlank();
         List<LoLPicData> res = Lists.newArrayList();
-        List<List<VideoSnapPoint>> batchScreenshot = Lists.partition(screenshots, OCR_INTERVAL_NUM);
+        List<List<VideoSnapPoint>> batchScreenshot = Lists.partition(points, OCR_INTERVAL_NUM);
         for (List<VideoSnapPoint> shots : batchScreenshot) {
             VideoSnapPoint testShotPic = shots.get(shots.size() - 1);
 
@@ -353,7 +395,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
             boolean isSkip = skipOcr(lastPic, gLastPic);
 
             if (isSkip) {
-                res.addAll(buildSameKdaData(lastPic, shots));
+                res.addAll(buildSameKdaData(lastPic, shots.size()));
             } else {
                 res.addAll(buildNotSameKdaData(recordPath, lastPic, shots));
             }
@@ -380,12 +422,11 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         return cur.getK() > lastPic.getK() || cur.getA() > lastPic.getA();
     }
 
-    private List<LoLPicData> buildSameKdaData(LoLPicData lastPic, List<VideoSnapPoint> shots) {
+    private List<LoLPicData> buildSameKdaData(LoLPicData lastPic, int size) {
         // 最后一个跟上一次结果一样，不需要进行额外的ocr，直接跟上次一样
         List<LoLPicData> datas = Lists.newArrayList();
-        for (VideoSnapPoint shot : shots) {
+        for (int i = 0; i < size; i++) {
             LoLPicData cur = new LoLPicData(lastPic.getK(), lastPic.getD(), lastPic.getA());
-            cur.setSource(shot);
             datas.add(cur);
         }
         return datas;
@@ -398,7 +439,6 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         for (VideoSnapPoint idx : idxes) {
             // 不一样，这个区间内的每个都进行ocr
             LoLPicData cur = parseKda(idx.getSnapshotPic().getAbsolutePath());
-            cur.setSource(idx);
 
             // 精彩时刻进行击杀细节
             if (highlightOccur(tmp, cur)) {
@@ -449,24 +489,6 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         LAST_OCR_D_MAP.put(streamerName, nums.get(1));
         LAST_OCR_A_MAP.put(streamerName, nums.get(2));
         return new LoLPicData(nums.get(0), nums.get(1), nums.get(2));
-    }
-
-    private List<List<String>> buildMergeFileNames
-            (List<Pair<Integer, Integer>> intervals, Collection<File> files) {
-        Map<Integer, String> name2PathMap = files.stream().collect(
-                Collectors.toMap(file -> VideoFileUtil.genIndex(file.getName()), File::getAbsolutePath, (a, b) -> b)
-        );
-        List<List<String>> res = Lists.newArrayList();
-        for (Pair<Integer, Integer> interval : intervals) {
-            List<String> tmp = Lists.newArrayList();
-            for (int i = interval.getLeft(); i < interval.getRight() + 1; i++) {
-                if (name2PathMap.containsKey(i)) {
-                    tmp.add(name2PathMap.get(i));
-                }
-            }
-            res.add(tmp);
-        }
-        return res;
     }
 
     private List<Integer> parseKDAByOCR(String filePath) {

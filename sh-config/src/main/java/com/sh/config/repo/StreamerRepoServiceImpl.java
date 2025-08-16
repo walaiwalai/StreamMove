@@ -105,7 +105,6 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                                 .map(String::trim)
                                 .collect(Collectors.toList())
                         : Lists.newArrayList())
-                .maxMergeSize(streamerDO.getMaxMergeSize())
                 .recordMode(streamerDO.getRecordMode())
                 .curTrafficGB(streamerDO.getCurTrafficGB())
                 .maxTrafficGB(streamerDO.getMaxTrafficGB())

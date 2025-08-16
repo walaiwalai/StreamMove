@@ -39,6 +39,10 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
             return true;
         }
         for (File tsFile : tsFiles) {
+            File mp4File = new File(tsFile.getParent(), tsFile.getName().replace(".ts", ".mp4"));
+            if (mp4File.exists()) {
+                continue;
+            }
             boolean success = videoMergeService.ts2Mp4(tsFile);
             if (success) {
                 if (EnvUtil.isProd()) {

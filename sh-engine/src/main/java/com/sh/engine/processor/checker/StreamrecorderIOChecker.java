@@ -62,7 +62,6 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         String resp;
         try {
             resp = OkHttpClientUtil.execute(request);
-            log.info("get streamerecorder vod info: {}", resp);
         } catch (Exception e) {
             if (e.getMessage().contains("authenticated")) {
                 log.error("cookie expired, re-login in next term");
@@ -77,11 +76,12 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         JSONObject respObj = JSON.parseObject(resp);
         JSONObject latestRecord = respObj.getJSONArray("data").getJSONObject(0);
         String status = latestRecord.getString("status");
+        Date recordedAt = latestRecord.getDate("recorded_at");
+        log.info("streamer io check, status: {}, lastRecordAt: {}", status, recordedAt);
         if (!StringUtils.equals(status, "finished")) {
             return null;
         }
 
-        Date recordedAt = latestRecord.getDate("recorded_at");
         if (!checkVodIsNew(streamerConfig, recordedAt)) {
             return null;
         }

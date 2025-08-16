@@ -1,7 +1,6 @@
 package com.sh.engine.model.lol;
 
 import com.google.common.collect.Lists;
-import com.sh.engine.model.video.VideoSnapPoint;
 import lombok.Data;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -19,8 +18,6 @@ public class LoLPicData {
     private int K;
     private int D;
     private int A;
-    private Integer targetIndex;
-    private VideoSnapPoint source;
 
     private HeroKillOrAssistDetail heroKADetail;
 

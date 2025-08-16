@@ -12,26 +12,25 @@ import java.security.MessageDigest;
  * @date 2023/2/16 23:28
  */
 public class VideoFileUtil {
-    public static final String SEG_FILE_NAME = "seg-%05d.ts";
-    public static final String SEG_FILE_NAME_V2 = "seg-%02d.ts";
-    public static final String SEG_SNAPSHOT_FILE_NAME = "seg-%05d.jpg";
+    public static final String SEG_FILE_NAME_V2 = "P%02d.ts";
 
-    public static String genSegName(int i) {
-        return String.format(SEG_FILE_NAME, i);
+    public static Integer getSnapshotIndex(File snapshotFile) {
+        String name = snapshotFile.getName();
+        int start = name.lastIndexOf("#");
+        int end = name.lastIndexOf(".");
+        return Integer.parseInt(name.substring(start + 1, end));
     }
 
-    public static String genSnapshotName(int i) {
-        return String.format(SEG_SNAPSHOT_FILE_NAME, i);
+    public static String getSnapshotSourceFileName(File snapshotFile) {
+        String name = snapshotFile.getName();
+        int end = name.lastIndexOf("#");
+        return name.substring(0, end);
     }
 
-    public static String genSnapshotNameV2(int i) {
-        return String.format(SEG_FILE_NAME_V2, i);
-    }
 
     public static int genIndex(String segName) {
-        int start = segName.lastIndexOf("-");
         int end = segName.lastIndexOf(".");
-        return Integer.parseInt(segName.substring(start + 1, end));
+        return Integer.parseInt(segName.substring(1, end));
     }
 
     public static byte[] fetchBlock(File targetFile, long start, int blockSize) throws IOException {
