@@ -8,7 +8,6 @@ import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
 import com.sh.engine.model.ffmpeg.Ts2Mp4ProcessCmd;
 import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import com.sh.engine.model.video.VideoInterval;
-import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -16,7 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -34,9 +32,6 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class VideoMergeServiceImpl implements VideoMergeService {
-    @Resource
-    MsgSendService msgSendService;
-
     /**
      * 淡出时间（s）
      */

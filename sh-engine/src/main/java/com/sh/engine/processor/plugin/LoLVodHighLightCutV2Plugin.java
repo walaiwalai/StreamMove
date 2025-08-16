@@ -67,7 +67,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
     /**
      * 精彩片段的视频片段总数
      */
-    private static final int MAX_HIGH_LIGHT_SEG_COUNT = 20;
+    private static final int MAX_HIGH_LIGHT_SEG_COUNT = 10;
 
     private static final int OCR_INTERVAL_NUM = 5;
     private static final Map<String, Integer> LAST_OCR_K_MAP = Maps.newConcurrentMap();
