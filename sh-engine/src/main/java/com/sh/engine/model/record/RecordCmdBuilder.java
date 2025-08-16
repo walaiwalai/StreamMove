@@ -50,7 +50,7 @@ public class RecordCmdBuilder {
         }
     }
 
-    public RecordCmdBuilder streamlink(String streamUrl) {
+    public RecordCmdBuilder streamlink(String streamUrl, String qualityParam) {
         Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
                 .stream()
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
@@ -63,7 +63,7 @@ public class RecordCmdBuilder {
                 "--stream-segment-threads 3",
                 "--retry-streams 3",
                 "--retry-open 3",
-                streamUrl, "best",
+                streamUrl, qualityParam,
                 "--stdout"
         );
         List<String> ffmpegParams;

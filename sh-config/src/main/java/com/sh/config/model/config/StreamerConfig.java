@@ -138,4 +138,10 @@ public class StreamerConfig {
      * 是否只要音频
      */
     private boolean onlyAudio;
+
+    /**
+     * 录制质量
+     * 0表示最好, 依次递减
+     */
+    private Integer recordQuality;
 }
