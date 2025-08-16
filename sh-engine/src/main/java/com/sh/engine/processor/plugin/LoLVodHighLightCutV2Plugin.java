@@ -326,8 +326,6 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                 }
             }
 
-            // 每次查询都删除以下
-            FileUtils.deleteQuietly(testSnapShotDir);
             startSecond += batchCnt * SNAP_INTERVAL_SECOND;
         }
 
