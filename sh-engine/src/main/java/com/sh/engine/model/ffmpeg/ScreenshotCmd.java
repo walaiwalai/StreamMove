@@ -32,8 +32,8 @@ public class ScreenshotCmd extends AbstractCmd {
      * @param intervalSeconds 截图间隔
      * @param startIndex      截图开始索引
      */
-    public ScreenshotCmd(File sourceFile, File snapShotDir, int ss, int snapShotCnt, String corpExp, int intervalSeconds, int startIndex) {
-        super(buildCommand(sourceFile, snapShotDir, ss, snapShotCnt, corpExp, intervalSeconds, startIndex));
+    public ScreenshotCmd(File sourceFile, File snapShotDir, int ss, int snapShotCnt, String corpExp, int intervalSeconds, int startIndex, boolean isAccurateLocation) {
+        super(buildCommand(sourceFile, snapShotDir, ss, snapShotCnt, corpExp, intervalSeconds, startIndex, isAccurateLocation));
         this.sourceFile = sourceFile;
         this.snapShotDir = snapShotDir;
     }
@@ -41,18 +41,33 @@ public class ScreenshotCmd extends AbstractCmd {
     /**
      * 构建ffmpeg截图命令
      */
-    private static String buildCommand(File sourceFile, File snapShotDir, int ss, int snapShotCnt, String corpExp, int intervalSeconds, int startIndex) {
+    private static String buildCommand(File sourceFile, File snapShotDir, int ss, int snapShotCnt, String corpExp, int intervalSeconds, int startIndex, boolean isAccurateLocation) {
         // 构建截图目标文件路径
         String targetFilePath = new File(snapShotDir, FileUtil.getPrefix(sourceFile) + "#%d.jpg").getAbsolutePath();
-        List<String> params = Lists.newArrayList(
-                "ffmpeg", "-y",
-                "-i", "\"" + sourceFile.getAbsolutePath() + "\"",
-                "-ss", String.valueOf(ss),
-                "-vf", corpExp + ",fps=1/" + intervalSeconds + ",format=yuv420p",
-                "-start_number", String.valueOf(startIndex),
-                "-vframes", String.valueOf(snapShotCnt),
-                "\"" + targetFilePath + "\""
-        );
+        List<String> params;
+        if (isAccurateLocation) {
+            // --ss 放在-i之后用于精准定位，会完整解码从视频开头到目标时间点的所有帧，确保准确定位到 480 秒的精确画面，误差可控制在毫秒级。
+            params = Lists.newArrayList(
+                    "ffmpeg", "-y",
+                    "-i", "\"" + sourceFile.getAbsolutePath() + "\"",
+                    "-ss", String.valueOf(ss),
+                    "-vf", corpExp + ",fps=1/" + intervalSeconds + ",format=yuv420p",
+                    "-start_number", String.valueOf(startIndex),
+                    "-vframes", String.valueOf(snapShotCnt),
+                    "\"" + targetFilePath + "\""
+            );
+        } else {
+            // --ss 放在-i之前快速，FFmpeg 会直接根据视频的索引信息（如关键帧）跳转到目标时间点，无需解码 解码前面的所有帧
+            params = Lists.newArrayList(
+                    "ffmpeg", "-y",
+                    "-ss", String.valueOf(ss),
+                    "-i", "\"" + sourceFile.getAbsolutePath() + "\"",
+                    "-vf", corpExp + ",fps=1/" + intervalSeconds + ",format=yuv420p",
+                    "-start_number", String.valueOf(startIndex),
+                    "-vframes", String.valueOf(snapShotCnt),
+                    "\"" + targetFilePath + "\""
+            );
+        }
         return StringUtils.join(params, " ");
     }
 

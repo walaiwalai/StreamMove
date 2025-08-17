@@ -274,7 +274,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
 //        int ss = existed.size() * SNAP_INTERVAL_SECOND;
 
         // 执行截图
-        ScreenshotCmd snapshotCmd = new ScreenshotCmd(video, snapShotDir, 0, 99999, kadCorpExp, SNAP_INTERVAL_SECOND, 1);
+        ScreenshotCmd snapshotCmd = new ScreenshotCmd(video, snapShotDir, 0, 99999, kadCorpExp, SNAP_INTERVAL_SECOND, 1, true);
         snapshotCmd.execute(3600);
 
         List<File> snapshotFiles = Lists.newArrayList();
@@ -304,7 +304,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         int batchCnt = 20;
         int startSecond = 0;
         while (startSecond < endSecond) {
-            ScreenshotCmd screenshotCmd = new ScreenshotCmd(sampleVideo, testSnapShotDir, startSecond, batchCnt, KAD_TEST_CORP_EXP, SNAP_INTERVAL_SECOND, 1);
+            ScreenshotCmd screenshotCmd = new ScreenshotCmd(sampleVideo, testSnapShotDir, startSecond, batchCnt, KAD_TEST_CORP_EXP, SNAP_INTERVAL_SECOND, 1, false);
             screenshotCmd.execute(1800);
             List<File> snapshotFiles = screenshotCmd.getSnapshotFiles();
             for (File snapshotFile : snapshotFiles) {
@@ -569,16 +569,16 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         JSONArray detectArrays = JSON.parseArray(resp);
         for (Object detectObj : detectArrays) {
             JSONObject detObj = (JSONObject) detectObj;
+            String ocrText = detObj.getString("text");
+            if (!isValidKadStr(ocrText)) {
+                continue;
+            }
 
             List<Integer> boxes = detObj.getJSONArray("boxes").toJavaList(Integer.class);
-            String ocrText = detObj.getString("text");
             float score = detObj.getFloat("score");
-            if (isValidKadStr(ocrText)) {
-                List<List<Integer>> fourPoints = Lists.partition(boxes, 2);
-                log.info("find kda boxed success, boxes: {}, text: {}, confidence: {}.",
-                        JSON.toJSONString(fourPoints), ocrText, score);
-                return fourPoints;
-            }
+            List<List<Integer>> fourPoints = Lists.partition(boxes, 2);
+            log.info("find kda boxed success, boxes: {}, text: {}, confidence: {}.", JSON.toJSONString(fourPoints), ocrText, score);
+            return fourPoints;
         }
         return Lists.newArrayList();
     }
