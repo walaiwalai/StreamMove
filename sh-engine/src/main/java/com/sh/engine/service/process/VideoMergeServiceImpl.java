@@ -159,13 +159,14 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         // 裁剪并合成封面
         double startTime = videoInterval.getSecondFromVideoStart();
         double endTime = videoInterval.getSecondToVideoEnd();
+        double duration = endTime - startTime;
         // 核心命令
         String cmd = String.format(
                 "ffmpeg -y -loglevel error " +
                         "-ss %.1f " +
                         "-i \"%s\" " +
                         "-i \"%s\" " +
-                        "-to %.1f " +
+                        "-t %.1f " +
                         "-filter_complex " +
                         "\"[0:v]fade=out:st=%.1f:d=0.5[v_cut];[v_cut][1:v]overlay=enable='between(t,0,1)':format=auto[v_out];[0:a]afade=out:st=%.1f:d=0.5[a_out]\" " +
                         "-map \"[v_out]\" -map \"[a_out]\" " +
@@ -174,9 +175,9 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                 startTime,
                 fromVideo.getAbsolutePath(),
                 thumnailFile.getAbsolutePath(),
-                endTime,
-                endTime - 0.5,
-                endTime - 0.5,
+                duration,
+                duration - 0.5,
+                duration - 0.5,
                 titledSeg.getAbsolutePath()
         );
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
@@ -201,19 +202,20 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         // 裁剪并加上淡出效果
         double startTime = videoInterval.getSecondFromVideoStart();
         double endTime = videoInterval.getSecondToVideoEnd();
+        double duration = endTime - startTime;
 
         // 构建FFmpeg命令：裁剪 + 视频淡出效果
         String cmd = String.format(
                 "ffmpeg -y -loglevel error " +
                         "-ss %.1f " +
                         "-i \"%s\" " +
-                        "-to %.1f " +
+                        "-t %.1f " +
                         "-filter_complex " +
                         "\"[0:v]fade=t=in:st=0:d=%.1f[v_out];[0:a]afade=t=in:st=0:d=%.1f[a_out]\" " +
                         "-map \"[v_out]\" -map \"[a_out]\" " +
                         "-c:v libx264 -preset superfast -crf 26 -c:a aac " +
                         "\"%s\"",
-                startTime, fromVideo.getAbsolutePath(), endTime,
+                startTime, fromVideo.getAbsolutePath(), duration,
                 1.0, 1.0, fadeSeg.getAbsolutePath()
         );
 

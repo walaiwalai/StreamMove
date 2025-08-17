@@ -198,7 +198,7 @@ public class LolSequenceStatistic {
                 merged.add(new HlScoredInterval(l, r, allIntervals.get(i).getScore()));
             } else {
                 HlScoredInterval interval = merged.get(merged.size() - 1);
-                float score = Math.max(interval.getScore(), allIntervals.get(i).getScore());
+                float score = interval.getScore() + allIntervals.get(i).getScore();
                 int nextR = Math.max(interval.getRightIndex(), r);
                 interval.setRightIndex(nextR);
                 interval.setScore(score);
