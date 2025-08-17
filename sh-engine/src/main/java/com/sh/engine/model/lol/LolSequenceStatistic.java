@@ -199,11 +199,12 @@ public class LolSequenceStatistic {
             } else {
                 HlScoredInterval interval = merged.get(merged.size() - 1);
                 float score = Math.max(interval.getScore(), allIntervals.get(i).getScore());
-                int nextR = Math.max(merged.get(merged.size() - 1).getRightIndex(), r);
+                int nextR = Math.max(interval.getRightIndex(), r);
                 interval.setRightIndex(nextR);
                 interval.setScore(score);
             }
         }
+        log.info("merged intervals: {}", JSON.toJSONString(merged));
 
         // 找到分数最高的前N个
         List<HlScoredInterval> topIntervals = merged.stream()

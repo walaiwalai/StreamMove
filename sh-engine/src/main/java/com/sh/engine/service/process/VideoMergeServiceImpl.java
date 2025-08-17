@@ -195,7 +195,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         File fromVideo = videoInterval.getFromVideo();
         String targetFileName = FileNameUtil.getPrefix(fromVideo) + "-" +
                 Math.round(videoInterval.getSecondFromVideoStart()) + "-" +
-                Math.round(videoInterval.getSecondToVideoEnd()) + "-titled.ts";
+                Math.round(videoInterval.getSecondToVideoEnd()) + "-fade.ts";
         File fadeSeg = new File(tmpDir, targetFileName);
 
         // 裁剪并加上淡出效果
