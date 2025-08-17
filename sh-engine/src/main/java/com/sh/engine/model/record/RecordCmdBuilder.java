@@ -5,6 +5,9 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
+import com.sh.engine.model.ffmpeg.StreamBitrateCmd;
+import com.sh.engine.model.ffmpeg.StreamLinkUrlFetchCmd;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -20,6 +23,7 @@ import java.util.Objects;
  * @Author caiwen
  * @Date 2025 08 08 22 46
  **/
+@Slf4j
 public class RecordCmdBuilder {
     private final StreamerConfig streamerConfig;
     private final int streamChannelType;
@@ -50,7 +54,7 @@ public class RecordCmdBuilder {
         }
     }
 
-    public RecordCmdBuilder streamlink(String streamUrl, String qualityParam) {
+    public RecordCmdBuilder streamlink(String url, String qualityParam) {
         Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
                 .stream()
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
@@ -63,7 +67,7 @@ public class RecordCmdBuilder {
                 "--stream-segment-threads 3",
                 "--retry-streams 3",
                 "--retry-open 3",
-                streamUrl, qualityParam,
+                url, qualityParam,
                 "--stdout"
         );
         List<String> ffmpegParams;
@@ -72,7 +76,24 @@ public class RecordCmdBuilder {
         if (recordByTime) {
             ffmpegParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         } else {
-            ffmpegParams = buildFfmpegBySize(streamUrls, segFile, segStartIndex);
+            int kbitrate = 0;
+            try {
+                StreamLinkUrlFetchCmd streamUrlCmd = new StreamLinkUrlFetchCmd(url, qualityParam);
+                streamUrlCmd.execute(20);
+
+                StreamBitrateCmd streamBitrateCmd = new StreamBitrateCmd(streamUrlCmd.getStreamUrl());
+                streamBitrateCmd.execute(20);
+
+                kbitrate = streamBitrateCmd.getKbitrate();
+                this.intervalPerVideo = calIntervalBySize(kbitrate);
+            } catch (Exception e) {
+                log.error("biterate parse error, will use 3600 per video", e);
+                this.intervalPerVideo = 3600;
+            }
+
+            // 计算出对应的时间间隔
+            log.info("the kbitrate is {}kb/s, mSize: {}M, secondPerVideo: {}s", kbitrate, this.mSizePerVideo, this.intervalPerVideo);
+            ffmpegParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         }
         this.cmdParams.addAll(streamLinkParams);
         this.cmdParams.add("|");
@@ -92,7 +113,22 @@ public class RecordCmdBuilder {
         if (recordByTime) {
             this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         } else {
-            this.cmdParams = buildFfmpegBySize(streamUrls, segFile, segStartIndex);
+            int kbitrate = 0;
+            try {
+                StreamBitrateCmd streamBitrateCmd = new StreamBitrateCmd(streamUrl);
+                streamBitrateCmd.execute(20);
+
+                // 计算出对应的时间间隔
+                kbitrate = streamBitrateCmd.getKbitrate();
+                this.intervalPerVideo = calIntervalBySize(streamBitrateCmd.getKbitrate());
+            } catch (Exception e) {
+                log.error("biterate parse error, will use 3600 per video", e);
+                this.intervalPerVideo = 3600;
+            }
+
+            log.info("the kbitrate is {}kb/s, mSize: {}M, secondPerVideo: {}s", kbitrate, this.mSizePerVideo, this.intervalPerVideo);
+
+            this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         }
         return this;
     }
@@ -111,7 +147,22 @@ public class RecordCmdBuilder {
         if (recordByTime) {
             this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         } else {
-            this.cmdParams = buildFfmpegBySize(streamUrls, segFile, segStartIndex);
+            int kbitrate = 0;
+            try {
+                StreamBitrateCmd streamBitrateCmd = new StreamBitrateCmd(videoM3u8Url);
+                streamBitrateCmd.execute(20);
+
+                // 计算出对应的时间间隔
+                kbitrate = streamBitrateCmd.getKbitrate();
+                this.intervalPerVideo = calIntervalBySize(kbitrate);
+            } catch (Exception e) {
+                log.error("biterate parse error, will use 3600 per video", e);
+                this.intervalPerVideo = 3600;
+            }
+
+            log.info("the kbitrate is {}kb/s, mSize: {}M, secondPerVideo: {}s", kbitrate, this.mSizePerVideo, this.intervalPerVideo);
+
+            this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         }
         return this;
     }
@@ -130,7 +181,15 @@ public class RecordCmdBuilder {
         if (recordByTime) {
             this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         } else {
-            this.cmdParams = buildFfmpegBySize(streamUrls, segFile, segStartIndex);
+            StreamBitrateCmd streamBitrateCmd = new StreamBitrateCmd(mergeM3u8Url);
+            streamBitrateCmd.execute(20);
+
+            // 计算出对应的时间间隔
+            int kbitrate = streamBitrateCmd.getKbitrate();
+            this.intervalPerVideo = calIntervalBySize(kbitrate);
+            log.info("the kbitrate is {}kb/s, mSize: {}M, secondPerVideo: {}s", kbitrate, this.mSizePerVideo, this.intervalPerVideo);
+
+            this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         }
         return this;
     }
@@ -191,33 +250,9 @@ public class RecordCmdBuilder {
         );
     }
 
-    private List<String> buildFfmpegBySize(List<String> sourceUrls, File segFile, int segStartIndex) {
-        return Lists.newArrayList(
-                "ffmpeg",
-                "-y",
-                "-loglevel error",
-                "-hide_banner",
-                "-i", StringUtils.join(sourceUrls, " -i "),
-                "-rw_timeout", "30000000",
-                "-reconnect_streamed", "1",
-                "-reconnect_delay_max", "60",
-                "-thread_queue_size", "4096",
-                "-max_muxing_queue_size", "4096",
-                "-analyzeduration", "40000000",
-                "-probesize", "20000000",
-                "-fflags", "\"+discardcorrupt +igndts +genpts\"",
-                "-correct_ts_overflow", "1",
-                "-avoid_negative_ts", "1",
-                "-rtbufsize", "100M",
-                "-bufsize", "50000k",
-                StringUtils.join(BooleanUtils.isTrue(streamerConfig.isOnlyAudio()) ? buildOnlyAudioParams() : buildVideoParams(), " "),
-                "-fs", mSizePerVideo + "M",
-                "-f", "segment",
-                "-segment_format", "mpegts",
-                "-reset_timestamps", "1",
-                "-segment_start_number", String.valueOf(segStartIndex),
-                "\"" + segFile.getAbsolutePath() + "\""
-        );
+    private Integer calIntervalBySize(int kbitrate) {
+        double mbPerSecond = (float) kbitrate / 8192.0;
+        return (int) Math.ceil(mSizePerVideo / mbPerSecond);
     }
 
     private List<String> buildOnlyAudioParams() {
