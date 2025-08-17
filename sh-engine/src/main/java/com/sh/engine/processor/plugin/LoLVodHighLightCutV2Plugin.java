@@ -290,8 +290,11 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
 
         int batchCnt = 20;
         int startSecond = 0;
-        String accurateCorpExp = KAD_CORP_EXP;
+        String accurateCorpExp = null;
         while (startSecond < endSecond) {
+            if (StringUtils.isNotBlank(accurateCorpExp)) {
+                break;
+            }
             ScreenshotCmd screenshotCmd = new ScreenshotCmd(sampleVideo, testSnapShotDir, startSecond, batchCnt, KAD_TEST_CORP_EXP, SNAP_INTERVAL_SECOND, 1, false);
             screenshotCmd.execute(1800);
             List<File> snapshotFiles = screenshotCmd.getSnapshotFiles();
