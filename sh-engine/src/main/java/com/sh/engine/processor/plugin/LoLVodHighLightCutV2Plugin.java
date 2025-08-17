@@ -8,7 +8,6 @@ import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.sh.config.utils.ExecutorPoolUtil;
 import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
@@ -39,10 +38,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.io.File;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -227,40 +222,11 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         snapShotDir.mkdirs();
 
         // 多线程截图
-        AtomicBoolean hasFailed = new AtomicBoolean(false);
-        CountDownLatch latch = new CountDownLatch(videos.size());
-        List<File> allSnapshotFiles = new CopyOnWriteArrayList<>();
+        List<File> allSnapshotFiles = new ArrayList<>();
         for (File video : videos) {
-            CompletableFuture.runAsync(
-                            () -> {
-                                if (hasFailed.get()) {
-                                    return;
-                                }
-                                // 截图
-                                allSnapshotFiles.addAll(shotSingleVideo(video, snapShotDir, kadCorpExp));
-                            }, ExecutorPoolUtil.getSnapshotPool())
-                    .whenComplete((result, throwable) -> {
-                        if (throwable != null) {
-                            log.error("{} screenshot task error", video.getName(), throwable);
-                            hasFailed.set(true);
-                        }
-                        latch.countDown();
-                    });
+            allSnapshotFiles.addAll(shotSingleVideo(video, snapShotDir, kadCorpExp));
         }
-
-        // 等待所有截图任务完成
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-        }
-
-        if (hasFailed.get()) {
-            log.error("screenshot failed, total get {} pic", allSnapshotFiles.size());
-            return Lists.newArrayList();
-        } else {
-            log.info("screenshot success, total get {} pic", allSnapshotFiles.size());
-            return allSnapshotFiles;
-        }
+        return allSnapshotFiles;
     }
 
 
@@ -276,7 +242,9 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         // 执行截图
         List<File> snapshotFiles = Lists.newArrayList();
         if (video2SnapShotMap.containsKey(video.getName())) {
-            List<File> existedSnapFiles = video2SnapShotMap.get(video.getName()).stream().map(File::new).collect(Collectors.toList());
+            List<File> existedSnapFiles = video2SnapShotMap.get(video.getName()).stream()
+                    .map(name -> new File(snapShotDir, name))
+                    .collect(Collectors.toList());
             snapshotFiles.addAll(existedSnapFiles);
         } else {
             ScreenshotCmd snapshotCmd = new ScreenshotCmd(video, snapShotDir, 0, 99999, kadCorpExp, SNAP_INTERVAL_SECOND, 1, false);
@@ -284,7 +252,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
             snapshotFiles.addAll(snapshotCmd.getSnapshotFiles());
 
             // 记录一下
-            video2SnapShotMap.put(video.getName(), snapshotFiles.stream().map(File::getAbsolutePath).collect(Collectors.toList()));
+            video2SnapShotMap.put(video.getName(), snapshotFiles.stream().map(File::getName).collect(Collectors.toList()));
             FileStoreUtil.saveToFile(recordFile, video2SnapShotMap);
         }
 
@@ -599,6 +567,6 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
 
     public static void main(String[] args) {
         File sourceFile = new File("G:\\stream_record\\download\\mytest-mac\\2025-06-16-16-16-16\\highlight.mp4");
-        LoLVodHighLightCutV2Plugin plugin = new LoLVodHighLightCutV2Plugin();
+        System.out.println(sourceFile.getName());
     }
 }

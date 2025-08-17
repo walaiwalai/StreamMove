@@ -17,6 +17,8 @@ import java.util.regex.Pattern;
  **/
 @Slf4j
 public class ScreenshotCmd extends AbstractCmd {
+    private static final int CORE_COUNT = Runtime.getRuntime().availableProcessors();
+
     private final File sourceFile;
     private final File snapShotDir;
     private List<File> snapshotFiles = new ArrayList<>();
@@ -61,6 +63,7 @@ public class ScreenshotCmd extends AbstractCmd {
             params = Lists.newArrayList(
                     "ffmpeg", "-y",
                     "-ss", String.valueOf(ss),
+                    "-threads", String.valueOf(CORE_COUNT),
                     "-i", "\"" + sourceFile.getAbsolutePath() + "\"",
                     "-vf", corpExp + ",fps=1/" + intervalSeconds + ",format=yuv420p",
                     "-start_number", String.valueOf(startIndex),
