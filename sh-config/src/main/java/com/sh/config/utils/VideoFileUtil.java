@@ -1,11 +1,16 @@
 package com.sh.config.utils;
 
+import org.apache.commons.io.FileUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.security.MessageDigest;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author caiWen
@@ -19,6 +24,12 @@ public class VideoFileUtil {
         int start = name.lastIndexOf("#");
         int end = name.lastIndexOf(".");
         return Integer.parseInt(name.substring(start + 1, end));
+    }
+
+    public static Integer getVideoIndex(File videoFile) {
+        String name = videoFile.getName();
+        int end = name.lastIndexOf(".");
+        return Integer.parseInt(name.substring(1, end));
     }
 
     public static String getSnapshotSourceFileName(File snapshotFile) {
@@ -63,5 +74,13 @@ public class VideoFileUtil {
             hashString.append(String.format("%02X", b));
         }
         return hashString.toString();
+    }
+
+    public static void main(String[] args) {
+        List<File> videos = FileUtils.listFiles(new File("G:\\stream_record\\download\\mytest-mac\\2025-08-15-20-59-48"), new String[]{"mp4"}, false)
+                .stream()
+                .sorted(Comparator.comparingInt(VideoFileUtil::getVideoIndex))
+                .collect(Collectors.toList());
+        System.out.println(videos);
     }
 }

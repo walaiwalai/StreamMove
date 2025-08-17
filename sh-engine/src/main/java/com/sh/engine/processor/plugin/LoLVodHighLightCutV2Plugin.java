@@ -102,7 +102,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
 
         List<File> videos = FileUtils.listFiles(new File(recordPath), new String[]{"mp4"}, false)
                 .stream()
-                .sorted(Comparator.comparingLong(File::lastModified))
+                .sorted(Comparator.comparingInt(VideoFileUtil::getVideoIndex))
                 .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(videos)) {
             log.info("empty ts video file, will skip, path: {}", recordPath);
