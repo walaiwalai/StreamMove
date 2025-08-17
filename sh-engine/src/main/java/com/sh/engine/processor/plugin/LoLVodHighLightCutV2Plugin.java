@@ -321,10 +321,13 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         }
 
         // 存一下
+        if (StringUtils.isBlank(accurateCorpExp)) {
+            accurateCorpExp = KAD_CORP_EXP;
+        }
         log.info("find accurate kda corp exp: {}", accurateCorpExp);
         FileStoreUtil.saveToFile(accurateCorpFile, Maps.newHashMap(ImmutableMap.of(sampleVideo.getName(), accurateCorpExp)));
 
-        return KAD_CORP_EXP;
+        return accurateCorpExp;
     }
 
     private static String genAccurateCorpExpByBox(List<List<Integer>> boxes) {
