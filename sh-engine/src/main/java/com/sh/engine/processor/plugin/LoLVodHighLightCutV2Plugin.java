@@ -5,9 +5,11 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.ExecutorPoolUtil;
+import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
@@ -263,22 +265,29 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
 
 
     private List<File> shotSingleVideo(File video, File snapShotDir, String kadCorpExp) {
-//        // 可能之前已经截图过了，根据截图点确定截图开始时间
-//        List<File> existed = FileUtils.listFiles(snapShotDir, new String[]{"jpg"}, false)
-//                .stream()
-//                .filter(file -> file.getName().startsWith(FileUtil.getPrefix(video)))
-//                .collect(Collectors.toList());
-//        log.info("{} has {} pic", video.getName(), existed.size());
-//
-//        int ss = existed.size() * SNAP_INTERVAL_SECOND;
+        Map<String, List<String>> video2SnapShotMap = new HashMap<>();
+        // 可能之前已经截图过了
+        File recordFile = new File(snapShotDir, "snap-record.json");
+        if (recordFile.exists()) {
+            video2SnapShotMap = FileStoreUtil.loadFromFile(recordFile, new TypeReference<Map<String, List<String>>>() {
+            });
+        }
 
         // 执行截图
-        ScreenshotCmd snapshotCmd = new ScreenshotCmd(video, snapShotDir, 0, 99999, kadCorpExp, SNAP_INTERVAL_SECOND, 1, false);
-        snapshotCmd.execute(3600);
-
         List<File> snapshotFiles = Lists.newArrayList();
-//        snapshotFiles.addAll(existed);
-        snapshotFiles.addAll(snapshotCmd.getSnapshotFiles());
+        if (video2SnapShotMap.containsKey(video.getName())) {
+            List<File> existedSnapFiles = video2SnapShotMap.get(video.getName()).stream().map(File::new).collect(Collectors.toList());
+            snapshotFiles.addAll(existedSnapFiles);
+        } else {
+            ScreenshotCmd snapshotCmd = new ScreenshotCmd(video, snapShotDir, 0, 99999, kadCorpExp, SNAP_INTERVAL_SECOND, 1, false);
+            snapshotCmd.execute(3600);
+            snapshotFiles.addAll(snapshotCmd.getSnapshotFiles());
+
+            // 记录一下
+            video2SnapShotMap.put(video.getName(), snapshotFiles.stream().map(File::getAbsolutePath).collect(Collectors.toList()));
+            FileStoreUtil.saveToFile(recordFile, video2SnapShotMap);
+        }
+
         return snapshotFiles;
     }
 
@@ -294,6 +303,17 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         File testSnapShotDir = new File(recordPath, KAD_TEST_SNAPSHOT_DIR_NAME);
         testSnapShotDir.mkdirs();
 
+        // 从文件中找
+        File accurateCorpFile = new File(testSnapShotDir, "accurate-corp.json");
+        if (accurateCorpFile.exists()) {
+            Map<String, String> corpMap = FileStoreUtil.loadFromFile(accurateCorpFile, new TypeReference<Map<String, String>>() {
+            });
+            if (corpMap.containsKey(sampleVideo.getName())) {
+                log.info("find kda corp exp success, video: {}, corpExp: {}", sampleVideo.getName(), corpMap.get(sampleVideo.getName()));
+                return corpMap.get(sampleVideo.getName());
+            }
+        }
+
         // 视频时长获取
         VideoDurationDetectCmd cmd = new VideoDurationDetectCmd(sampleVideo.getAbsolutePath());
         cmd.execute(60);
@@ -302,6 +322,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
 
         int batchCnt = 20;
         int startSecond = 0;
+        String accurateCorpExp = KAD_CORP_EXP;
         while (startSecond < endSecond) {
             ScreenshotCmd screenshotCmd = new ScreenshotCmd(sampleVideo, testSnapShotDir, startSecond, batchCnt, KAD_TEST_CORP_EXP, SNAP_INTERVAL_SECOND, 1, false);
             screenshotCmd.execute(1800);
@@ -320,13 +341,17 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                 // 精确的裁剪参数
                 String corpExp = genAccurateCorpExpByBox(kdaBoxes);
                 if (StringUtils.isNotBlank(corpExp)) {
-                    log.info("find accurate kda corp exp: {}", corpExp);
-                    return corpExp;
+                    accurateCorpExp = corpExp;
+                    break;
                 }
             }
 
             startSecond += batchCnt * SNAP_INTERVAL_SECOND;
         }
+
+        // 存一下
+        log.info("find accurate kda corp exp: {}", accurateCorpExp);
+        FileStoreUtil.saveToFile(accurateCorpFile, Maps.newHashMap(ImmutableMap.of(sampleVideo.getName(), accurateCorpExp)));
 
         return KAD_CORP_EXP;
     }
