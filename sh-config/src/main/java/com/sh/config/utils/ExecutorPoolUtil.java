@@ -26,8 +26,8 @@ public class ExecutorPoolUtil {
     );
 
     private static final ExecutorService snapshotPool = new ThreadPoolExecutor(
-            CORE_COUNT,
-            CORE_COUNT,
+            CORE_COUNT * 2,
+            CORE_COUNT * 2,
             600,
             TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(40960),
