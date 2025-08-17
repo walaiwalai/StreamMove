@@ -48,7 +48,7 @@ public class ScreenshotCmd extends AbstractCmd {
                 "ffmpeg", "-y",
                 "-i", "\"" + sourceFile.getAbsolutePath() + "\"",
                 "-ss", String.valueOf(ss),
-                "-vf", corpExp + ",fps=1/" + intervalSeconds + ",setpts=N+1,format=yuv420p",
+                "-vf", corpExp + ",fps=1/" + intervalSeconds + ",format=yuv420p",
                 "-start_number", String.valueOf(startIndex),
                 "-vframes", String.valueOf(snapShotCnt),
                 "\"" + targetFilePath + "\""
@@ -98,9 +98,9 @@ public class ScreenshotCmd extends AbstractCmd {
     }
 
     public static void main(String[] args) {
-        File sourceFile = new File("G:\\stream_record\\download\\mytest-mac\\2025-08-15-20-59-48\\seg-01.mp4");
+        File sourceFile = new File("G:\\stream_record\\download\\mytest-mac\\2025-08-15-20-59-48\\P01.mp4");
         File snapShotDir = new File("G:\\stream_record\\download\\mytest-mac\\2025-08-15-20-59-48\\kda-test-snapshot");
-        ScreenshotCmd cmd = new ScreenshotCmd(sourceFile, snapShotDir, 0, 10, "crop=270:290:in_w*86/100:in_h*3/16", 1, 12);
+        ScreenshotCmd cmd = new ScreenshotCmd(sourceFile, snapShotDir, 0, 99999, "crop=270:290:in_w*86/100:in_h*3/16", 4, 1);
         cmd.execute(100);
     }
 }
