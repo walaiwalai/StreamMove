@@ -165,7 +165,13 @@ public class BiliWebUploader extends Uploader {
         // 遍历本地的视频文件
         List<File> allVideos = FileUtils.listFiles(new File(recordPath), FileFilterUtils.suffixFileFilter("mp4"), null)
                 .stream()
-                .sorted(Comparator.comparingLong(File::lastModified))
+                .sorted(Comparator.comparingLong(f -> {
+                    if (f.getName().equals(RecordConstant.HL_VIDEO)) {
+                        // 精彩剪辑放最前面
+                        return 1L;
+                    }
+                    return f.lastModified();
+                }))
                 .filter(file -> FileUtil.size(file) >= videoPartLimitSize)
                 .collect(Collectors.toList());
 

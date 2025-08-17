@@ -12,7 +12,9 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.File;
-import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @Author caiwen
@@ -34,7 +36,10 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
     @Override
     public boolean process(String recordPath) {
         // 只有录像才能进行合并
-        Collection<File> tsFiles = FileUtils.listFiles(new File(recordPath), FileFilterUtils.suffixFileFilter("ts"), null);
+        List<File> tsFiles = FileUtils.listFiles(new File(recordPath), FileFilterUtils.suffixFileFilter("ts"), null)
+                .stream()
+                .sorted(Comparator.comparingLong(File::lastModified))
+                .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(tsFiles)) {
             return true;
         }
