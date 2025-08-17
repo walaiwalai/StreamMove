@@ -312,7 +312,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                 try {
                     kdaBoxes = detectKDABox(snapshotFile.getAbsolutePath());
                 } catch (Exception e) {
-                    log.error("error to detect kda box, path: {}", snapshotFile.getAbsolutePath());
+                    log.error("error to detect kda box, path: {}", snapshotFile.getAbsolutePath(), e);
                     continue;
                 }
                 if (CollectionUtils.isEmpty(kdaBoxes)) {
@@ -565,6 +565,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                 .build();
 
         String resp = OkHttpClientUtil.execute(request);
+        log.info("detect kda boxes resp, file: {}, res: {}.", snapShotFile.getAbsolutePath(), resp);
         JSONArray detectArrays = JSON.parseArray(resp);
         for (Object detectObj : detectArrays) {
             JSONObject detObj = (JSONObject) detectObj;
