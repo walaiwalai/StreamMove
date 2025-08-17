@@ -159,22 +159,24 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         // 裁剪并合成封面
         double startTime = videoInterval.getSecondFromVideoStart();
         double endTime = videoInterval.getSecondToVideoEnd();
+        // 核心命令
         String cmd = String.format(
                 "ffmpeg -y -loglevel error " +
+                        "-ss %.1f " +
                         "-i \"%s\" " +
                         "-i \"%s\" " +
+                        "-to %.1f " +
                         "-filter_complex " +
-                        "\"[0:v]trim=start=%.1f:end=%.1f,setpts=PTS-STARTPTS[v_cut];" +
-                        "[v_cut][1:v]overlay=enable='between(t,0,1)':format=auto[v_out];" +
-                        "[0:a]atrim=start=%.1f:end=%.1f,asetpts=PTS-STARTPTS[a_out]\" " +
+                        "\"[0:v]fade=out:st=%.1f:d=0.5[v_cut];[v_cut][1:v]overlay=enable='between(t,0,1)':format=auto[v_out];[0:a]afade=out:st=%.1f:d=0.5[a_out]\" " +
                         "-map \"[v_out]\" -map \"[a_out]\" " +
-                        "-c:v libx264 -crf 24 -preset superfast " +
-                        "-c:a aac " +
+                        "-c:v libx264 -preset superfast -crf 26 -c:a aac " +
                         "\"%s\"",
+                startTime,
                 fromVideo.getAbsolutePath(),
                 thumnailFile.getAbsolutePath(),
-                startTime, endTime,
-                startTime, endTime,
+                endTime,
+                endTime - 0.5,
+                endTime - 0.5,
                 titledSeg.getAbsolutePath()
         );
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
@@ -203,22 +205,16 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         // 构建FFmpeg命令：裁剪 + 视频淡出效果
         String cmd = String.format(
                 "ffmpeg -y -loglevel error " +
-                        "-i \"%s\" " +  // 原始视频文件
+                        "-ss %.1f " +
+                        "-i \"%s\" " +
+                        "-to %.1f " +
                         "-filter_complex " +
-                        "\"[0:v]trim=start=%.1f:end=%.1f,setpts=PTS-STARTPTS[v_cut];" +  // 裁剪视频
-                        "[v_cut]fade=t=in:st=0:d=%.1f[v_out];" +  // 视频开头淡入（从0秒开始，持续1秒）
-                        "[0:a]atrim=start=%.1f:end=%.1f,asetpts=PTS-STARTPTS[a_cut];" +  // 裁剪音频
-                        "[a_cut]afade=t=in:st=0:d=%.1f[a_out]\" " +  // 音频开头淡入（与视频同步）
-                        "-map \"[v_out]\" -map \"[a_out]\" " +  // 映射输出流
-                        "-c:v libx264 -crf 24 -preset superfast " +  // 视频编码参数
-                        "-c:a aac " +  // 音频编码参数
-                        "\"%s\"",  // 输出文件路径
-                fromVideo.getAbsolutePath(),
-                startTime, endTime,
-                1.0,
-                startTime, endTime,
-                1.0,
-                fadeSeg.getAbsolutePath()
+                        "\"[0:v]fade=t=in:st=0:d=%.1f[v_out];[0:a]afade=t=in:st=0:d=%.1f[a_out]\" " +
+                        "-map \"[v_out]\" -map \"[a_out]\" " +
+                        "-c:v libx264 -preset superfast -crf 26 -c:a aac " +
+                        "\"%s\"",
+                startTime, fromVideo.getAbsolutePath(), endTime,
+                1.0, 1.0, fadeSeg.getAbsolutePath()
         );
 
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
