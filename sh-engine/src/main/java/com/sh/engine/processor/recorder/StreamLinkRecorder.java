@@ -1,14 +1,17 @@
 package com.sh.engine.processor.recorder;
 
+import cn.hutool.extra.spring.SpringUtil;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.EnvUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.command.FfmpegRecordCmd;
 import com.sh.engine.command.StreamLinkCheckCmd;
 import com.sh.engine.command.build.RecordCmdBuilder;
+import com.sh.engine.command.callback.Recorder2StorageCallback;
 import com.sh.engine.constant.RecordConstant;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -27,6 +30,7 @@ import java.util.Optional;
  **/
 @Slf4j
 public class StreamLinkRecorder extends Recorder {
+    private final Recorder2StorageCallback recorder2StorageCallback = SpringUtil.getBean(Recorder2StorageCallback.class);
     private String streamUrl;
 
     public StreamLinkRecorder(Date regDate, Integer streamChannelType, String streamUrl) {
@@ -64,6 +68,10 @@ public class StreamLinkRecorder extends Recorder {
         String cmd = builder.streamlink(this.streamUrl, qualityParam).build();
 
         FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(cmd);
+        if (EnvUtil.isRecorderMode()) {
+            // 增加上传视频的回调参数
+            rfCmd.addSegmentCompletedCallback(recorder2StorageCallback);
+        }
 
         // 长时间录播（阻塞）
         rfCmd.execute(24 * 3600L);
@@ -99,6 +107,10 @@ public class StreamLinkRecorder extends Recorder {
             String cmd = builder.streamlink(this.streamUrl, qualityParam).build();
 
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(cmd);
+            if (EnvUtil.isRecorderMode()) {
+                // 增加上传视频的回调参数
+                rfCmd.addSegmentCompletedCallback(recorder2StorageCallback);
+            }
             // 执行录制，长时间
             rfCmd.execute(24 * 3600L);
 

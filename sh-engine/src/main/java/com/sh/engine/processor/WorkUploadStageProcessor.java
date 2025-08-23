@@ -4,6 +4,7 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
+import com.sh.config.utils.EnvUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
@@ -31,6 +32,11 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
 
     @Override
     public void processInternal(RecordContext context) {
+        if (EnvUtil.isRecorderMode()) {
+            // recorder模式不进行视频上传（已经在录制的时候上传完成了）
+            return;
+        }
+
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
         if (CollectionUtils.isEmpty(streamerConfig.getUploadPlatforms())) {

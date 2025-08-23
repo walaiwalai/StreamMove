@@ -17,7 +17,7 @@ public class AliPanUploader extends AbstractAlistUploader {
     }
 
     @Override
-    protected String getRootDirName() {
+    public String getRootDirName() {
         return "阿里云盘";
     }
 }

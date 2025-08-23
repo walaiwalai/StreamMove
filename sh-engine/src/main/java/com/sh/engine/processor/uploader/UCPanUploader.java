@@ -16,7 +16,7 @@ public class UCPanUploader extends AbstractAlistUploader {
     }
 
     @Override
-    protected String getRootDirName() {
+    public String getRootDirName() {
         return "UC网盘";
     }
 }

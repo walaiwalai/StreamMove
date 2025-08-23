@@ -141,13 +141,4 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
             return new StreamUrlRecorder(new Date(), getType().getType(), lastUrlObj.getString("url"));
         }
     }
-
-    public static void main(String[] args) {
-        KuaishouRoomChecker kuaishouRoomChecker = new KuaishouRoomChecker();
-        String url = "https://live.kuaishou.com/u/cjj999999999";
-        Recorder streamRecorder = kuaishouRoomChecker.getStreamRecorder(StreamerConfig.builder()
-                .roomUrl(url)
-                .build());
-        System.out.println();
-    }
 }

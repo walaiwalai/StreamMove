@@ -74,7 +74,7 @@ public abstract class AbstractAlistUploader extends Uploader {
      *
      * @return 根目录名称
      */
-    protected abstract String getRootDirName();
+    public abstract String getRootDirName();
 
     private RemoteSeverVideo uploadFile(File targetFile) {
         // 1. 发起网盘copy请求

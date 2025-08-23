@@ -1,7 +1,8 @@
 package com.sh.engine.command;
 
 import com.sh.engine.command.callback.Recorder2StorageCallback;
-import com.sh.engine.command.callback.SegmentCallback;
+import com.sh.engine.command.callback.RecordCallback;
+import com.sh.engine.model.bili.RecordSegmentInfo;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -30,7 +31,7 @@ public class FfmpegRecordCmd extends AbstractCmd {
     /**
      * 执行回调的函数
      */
-    private SegmentCallback segmentCallback;
+    private RecordCallback recordCallback;
 
     public FfmpegRecordCmd(String command) {
         super(command);
@@ -41,9 +42,9 @@ public class FfmpegRecordCmd extends AbstractCmd {
      *
      * @param callback 回调函数
      */
-    public void addSegmentCompletedCallback(SegmentCallback callback) {
+    public void addSegmentCompletedCallback( RecordCallback callback) {
         if (callback != null) {
-            this.segmentCallback = callback;
+            this.recordCallback = callback;
         }
     }
 
@@ -53,7 +54,9 @@ public class FfmpegRecordCmd extends AbstractCmd {
 
     @Override
     protected void processErrorLine(String line) {
-        checkSegmentStatus(line);
+        if (recordCallback != null) {
+            callbackSegmentFinish(line);
+        }
     }
 
     public void execute(long timeoutSeconds) {
@@ -62,15 +65,21 @@ public class FfmpegRecordCmd extends AbstractCmd {
         } catch (Exception ignored) {
         } finally {
             // 处理最后一个分片（录制结束时，当前分片也已完成）
-            String lastSegment = recordingSegment.get();
-            if (lastSegment != null && !lastSegment.isEmpty() && !completedSegments.contains(lastSegment)) {
-                completedSegments.add(lastSegment);
-                // 执行回调
-                try {
-                    segmentCallback.onSegmentCompleted(lastSegment);
-                } catch (Exception e) {
-                    log.error("分片完成回调执行失败，文件: {}", lastSegment, e);
-                }
+            if (recordCallback != null) {
+                callBackLastSegFinish();
+            }
+        }
+    }
+
+    private void callBackLastSegFinish() {
+        String lastSegment = recordingSegment.get();
+        if (lastSegment != null && !lastSegment.isEmpty()) {
+            completedSegments.add(lastSegment);
+            // 执行回调
+            try {
+                recordCallback.onSegmentCompleted(lastSegment, true);
+            } catch (Exception e) {
+                log.error("分片完成回调执行失败，文件: {}", lastSegment, e);
             }
         }
     }
@@ -79,10 +88,7 @@ public class FfmpegRecordCmd extends AbstractCmd {
     /**
      * 检查日志行，更新分片状态并触发回调
      */
-    private void checkSegmentStatus(String line) {
-        if (segmentCallback == null) {
-            return;
-        }
+    private void callbackSegmentFinish( String line) {
         Matcher matcher = SEGMENT_OPEN_PATTERN.matcher(line);
         if (!matcher.find()) {
             return;
@@ -99,7 +105,7 @@ public class FfmpegRecordCmd extends AbstractCmd {
 
             // 执行回调
             try {
-                segmentCallback.onSegmentCompleted(previousSegment);
+                recordCallback.onSegmentCompleted(previousSegment, false);
             } catch (Exception e) {
                 log.error("分片完成回调执行失败，文件: {}", previousSegment, e);
             }

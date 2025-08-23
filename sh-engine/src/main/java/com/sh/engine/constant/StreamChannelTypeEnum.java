@@ -84,14 +84,14 @@ public enum StreamChannelTypeEnum {
 
 
     /**
-     * record-upload模式下upload的下载来源，如OSS
+     * 对象存储，如OSS
      */
-    UPLOAD_MODE_FROM(997, "upload模式下的视频来源", ""),
+    OBJECT_STORAGE(997, "对象存储", ""),
 
     /**
      * 外部api
      */
-    LIVE_RECORD_API(999, "外部api", "outer"),
+    LIVE_RECORD_API(999, "外部api", ""),
 
     ;
 

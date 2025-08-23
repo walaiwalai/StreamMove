@@ -3,6 +3,7 @@ package com.sh.engine.processor;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.EnvUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
@@ -52,10 +53,15 @@ public class RoomCheckStageProcessor extends AbstractStageProcessor {
      * @return
      */
     private Recorder fetchStreamer(StreamerConfig streamerConfig) {
-        StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(streamerConfig.getRoomUrl());
-        if (channelEnum == null) {
-            log.error("roomUrl not match any existed platform, use outer api, roomUrl: {}", streamerConfig.getRoomUrl());
-            channelEnum = StreamChannelTypeEnum.LIVE_RECORD_API;
+        StreamChannelTypeEnum channelEnum;
+        if (EnvUtil.isUploaderMode()) {
+            channelEnum = StreamChannelTypeEnum.OBJECT_STORAGE;
+        } else {
+            channelEnum = StreamChannelTypeEnum.findChannelByUrl(streamerConfig.getRoomUrl());
+            if (channelEnum == null) {
+                log.error("roomUrl not match any existed platform, use outer api, roomUrl: {}", streamerConfig.getRoomUrl());
+                channelEnum = StreamChannelTypeEnum.LIVE_RECORD_API;
+            }
         }
         AbstractRoomChecker streamerService = streamerServiceMap.get(channelEnum);
         if (streamerService == null) {

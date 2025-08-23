@@ -6,6 +6,7 @@ import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.EnvUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.RecordStageEnum;
@@ -45,6 +46,11 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
 
     @Override
     public void processInternal(RecordContext context) {
+        if (EnvUtil.isRecorderMode()) {
+            // recorder模式不进行视频处理
+            return;
+        }
+
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
 

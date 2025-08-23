@@ -19,7 +19,7 @@ public class BaidunPanUploader extends AbstractAlistUploader {
     }
 
     @Override
-    protected String getRootDirName() {
+    public String getRootDirName() {
         return "百度网盘";
     }
 }

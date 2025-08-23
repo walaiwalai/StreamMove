@@ -141,10 +141,4 @@ public class DouyuRoomChecker extends AbstractRoomChecker {
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.DOUYU;
     }
-
-    public static void main(String[] args) {
-        DouyuRoomChecker douyuRoomChecker = new DouyuRoomChecker();
-        Recorder streamRecorder = douyuRoomChecker.getStreamRecorder(StreamerConfig.builder().roomUrl("https://www.douyu.com/664668").build());
-        System.out.println(streamRecorder);
-    }
 }

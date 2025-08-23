@@ -13,6 +13,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author caiWen
@@ -59,6 +60,14 @@ public class FileStatusModel {
     public void postSuccess(String platform) {
         postMap.put(platform, true);
     }
+
+    public void postSuccessAll() {
+        Set<String> plats = postMap.keySet();
+        for (String plat : plats) {
+            postSuccess(plat);
+        }
+    }
+
 
     public boolean allPost() {
         boolean allPost = true;

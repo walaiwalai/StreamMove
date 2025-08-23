@@ -17,7 +17,7 @@ public class ObjectStorageUploader extends AbstractAlistUploader {
     }
 
     @Override
-    protected String getRootDirName() {
+    public String getRootDirName() {
         return "对象存储";
     }
 }
