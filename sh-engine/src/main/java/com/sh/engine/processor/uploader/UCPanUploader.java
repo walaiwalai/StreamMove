@@ -9,9 +9,14 @@ import org.springframework.stereotype.Component;
  * @Date 2025 03 16 16 41
  **/
 @Component
-public class UCPanUploader extends AbstractNetDiskUploader {
+public class UCPanUploader extends AbstractAlistUploader {
     @Override
     public String getType() {
         return UploadPlatformEnum.UC_PAN.getType();
+    }
+
+    @Override
+    protected String getRootDirName() {
+        return "UC网盘";
     }
 }

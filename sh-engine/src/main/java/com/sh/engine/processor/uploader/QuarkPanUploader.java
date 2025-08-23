@@ -10,9 +10,14 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-public class QuarkPanUploader extends AbstractNetDiskUploader {
+public class QuarkPanUploader extends AbstractAlistUploader {
     @Override
     public String getType() {
         return UploadPlatformEnum.QUARK_PAN.getType();
+    }
+
+    @Override
+    protected String getRootDirName() {
+        return "夸克云盘";
     }
 }

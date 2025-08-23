@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * @Date 2025 03 16 16 45
  **/
 @Slf4j
-public abstract class AbstractNetDiskUploader extends Uploader {
+public abstract class AbstractAlistUploader extends Uploader {
     @Resource
     private MsgSendService msgSendService;
     @Resource
@@ -30,7 +30,7 @@ public abstract class AbstractNetDiskUploader extends Uploader {
     @Override
     public void initUploader() {
         // 检查一下文件
-        boolean isExisted = netDiskCopyService.checkBasePathExist(UploadPlatformEnum.of(getType()));
+        boolean isExisted = netDiskCopyService.checkPathExist("/" + getRootDirName());
         if (!isExisted) {
             throw new StreamerRecordException(ErrorEnum.INVALID_PARAM);
         }
@@ -69,9 +69,16 @@ public abstract class AbstractNetDiskUploader extends Uploader {
         return true;
     }
 
+    /**
+     * alist中的跟目录
+     *
+     * @return 根目录名称
+     */
+    protected abstract String getRootDirName();
+
     private RemoteSeverVideo uploadFile(File targetFile) {
         // 1. 发起网盘copy请求
-        String taskId = netDiskCopyService.copyFileToNetDisk(UploadPlatformEnum.of(getType()), targetFile);
+        String taskId = netDiskCopyService.copyFileToNetDisk(getRootDirName(), targetFile);
 
         // 2. 死循环调用查询copy状态
         int i = 0;
@@ -86,7 +93,7 @@ public abstract class AbstractNetDiskUploader extends Uploader {
             }
             if (status == 7) {
                 // 失败重新发起任务
-                taskId = netDiskCopyService.copyFileToNetDisk(UploadPlatformEnum.of(getType()), targetFile);
+                taskId = netDiskCopyService.copyFileToNetDisk(getRootDirName(), targetFile);
                 reTryCnt++;
             }
 

@@ -5,21 +5,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 百度云盘上传
- *
- * @Author : caiwen
- * @Date: 2025/1/29
- */
+ * @Author caiwen
+ * @Date 2025 08 22 23 40
+ **/
 @Slf4j
 @Component
-public class BaidunPanUploader extends AbstractAlistUploader {
+public class ObjectStorageUploader extends AbstractAlistUploader {
     @Override
     public String getType() {
-        return UploadPlatformEnum.BAIDU_PAN.getType();
+        return UploadPlatformEnum.OBJECT_STORAGE.getType();
     }
 
     @Override
     protected String getRootDirName() {
-        return "百度网盘";
+        return "对象存储";
     }
 }

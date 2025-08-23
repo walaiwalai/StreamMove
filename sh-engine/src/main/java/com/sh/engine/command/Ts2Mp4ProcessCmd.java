@@ -1,4 +1,4 @@
-package com.sh.engine.model.ffmpeg;
+package com.sh.engine.command;
 
 import java.io.File;
 

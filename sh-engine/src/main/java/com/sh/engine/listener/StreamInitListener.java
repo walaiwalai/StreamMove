@@ -3,6 +3,7 @@ package com.sh.engine.listener;
 import com.alibaba.fastjson.JSON;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.EnvUtil;
 import com.sh.engine.processor.uploader.Uploader;
 import com.sh.engine.processor.uploader.UploaderFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -16,11 +17,18 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-public class UploaderInitListener implements ApplicationListener<ApplicationReadyEvent> {
+public class StreamInitListener implements ApplicationListener<ApplicationReadyEvent> {
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
+        printInitInfo();
         initUploader();
+    }
+
+    private void printInitInfo() {
+        boolean isRecorder = EnvUtil.isRecorderMode();
+        boolean isUploader = EnvUtil.isUploaderMode();
+        log.info("init system success, isRecorder: {}, isUploader: {}", isRecorder, isUploader);
     }
 
     private void initUploader() {

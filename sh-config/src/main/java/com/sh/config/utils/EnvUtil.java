@@ -18,4 +18,34 @@ public class EnvUtil {
         String activeProfile = SpringUtil.getActiveProfile();
         return activeProfile != null && StringUtils.equals(activeProfile, "prod");
     }
+
+    /**
+     * 是否是recorder模式
+     *
+     * @return
+     */
+    public static boolean isRecorderMode() {
+        if (SpringUtil.getApplicationContext() == null) {
+            log.info("applicationContext not inited !!!");
+            return false;
+        }
+        String mode = SpringUtil.getApplicationContext().getEnvironment()
+                .getProperty("system.stream.mode");
+        return StringUtils.equalsIgnoreCase(mode, "recorder");
+    }
+
+    /**
+     * 是否是recorder模式
+     *
+     * @return
+     */
+    public static boolean isUploaderMode() {
+        if (SpringUtil.getApplicationContext() == null) {
+            log.info("applicationContext not inited !!!");
+            return false;
+        }
+        String mode = SpringUtil.getApplicationContext().getEnvironment()
+                .getProperty("system.stream.mode");
+        return StringUtils.equalsIgnoreCase(mode, "uploader");
+    }
 }

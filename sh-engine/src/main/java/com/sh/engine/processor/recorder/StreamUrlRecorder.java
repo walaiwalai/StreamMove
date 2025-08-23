@@ -4,8 +4,8 @@ import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.base.StreamerInfoHolder;
-import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
-import com.sh.engine.model.record.RecordCmdBuilder;
+import com.sh.engine.command.FfmpegRecordCmd;
+import com.sh.engine.command.build.RecordCmdBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;

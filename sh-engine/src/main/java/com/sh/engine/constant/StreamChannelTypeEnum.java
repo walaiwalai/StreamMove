@@ -78,10 +78,20 @@ public enum StreamChannelTypeEnum {
     KUAISHOU(14, "快手", "kuaishou.com"),
 
     /**
+     * 一个综合多直播平台的录播网站
+     */
+    STREAM_RECORDER_IO(998, "streamrecord平台", "streamrecorder.io"),
+
+
+    /**
+     * record-upload模式下upload的下载来源，如OSS
+     */
+    UPLOAD_MODE_FROM(997, "upload模式下的视频来源", ""),
+
+    /**
      * 外部api
      */
     LIVE_RECORD_API(999, "外部api", "outer"),
-    STREAM_RECORDER_IO(998, "streamrecord平台", "streamrecorder.io"),
 
     ;
 

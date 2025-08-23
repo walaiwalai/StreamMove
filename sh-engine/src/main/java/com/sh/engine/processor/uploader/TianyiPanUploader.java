@@ -10,9 +10,14 @@ import org.springframework.stereotype.Component;
  **/
 @Slf4j
 @Component
-public class TianyiPanUploader extends AbstractNetDiskUploader {
+public class TianyiPanUploader extends AbstractAlistUploader {
     @Override
     public String getType() {
         return UploadPlatformEnum.TIAN_YI_PAN.getType();
+    }
+
+    @Override
+    protected String getRootDirName() {
+        return "天翼云盘";
     }
 }

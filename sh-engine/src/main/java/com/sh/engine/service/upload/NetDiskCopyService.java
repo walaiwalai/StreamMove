@@ -1,7 +1,5 @@
 package com.sh.engine.service.upload;
 
-import com.sh.engine.constant.UploadPlatformEnum;
-
 import java.io.File;
 
 /**
@@ -10,21 +8,21 @@ import java.io.File;
  */
 public interface NetDiskCopyService {
     /**
-     * 初始化网盘服务
+     * 检查路径是否存在
      *
-     * @param platform
+     * @param path
      * @return
      */
-    boolean checkBasePathExist(UploadPlatformEnum platform);
+    boolean checkPathExist(String path);
 
     /**
      * 从本地存储拷贝到目标网盘
      *
-     * @param platform
+     * @param rootDirName
      * @param targetFile
      * @return 任务id
      */
-    String copyFileToNetDisk(UploadPlatformEnum platform, File targetFile);
+    String copyFileToNetDisk(String rootDirName, File targetFile);
 
     /**
      * 检查拷贝任务是否完成

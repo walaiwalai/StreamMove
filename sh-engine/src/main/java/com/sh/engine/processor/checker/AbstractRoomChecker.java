@@ -1,8 +1,8 @@
 package com.sh.engine.processor.checker;
 
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.engine.command.StreamLinkCheckCmd;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.model.ffmpeg.StreamLinkCheckCmd;
 import com.sh.engine.processor.recorder.Recorder;
 import okhttp3.OkHttpClient;
 

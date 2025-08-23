@@ -1,12 +1,12 @@
-package com.sh.engine.model.record;
+package com.sh.engine.command.build;
 
 import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.VideoFileUtil;
+import com.sh.engine.command.StreamBitrateCmd;
+import com.sh.engine.command.StreamLinkUrlFetchCmd;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.model.ffmpeg.StreamBitrateCmd;
-import com.sh.engine.model.ffmpeg.StreamLinkUrlFetchCmd;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;

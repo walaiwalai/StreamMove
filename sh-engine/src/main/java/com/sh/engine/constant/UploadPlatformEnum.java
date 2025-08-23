@@ -20,6 +20,7 @@ public enum UploadPlatformEnum {
     MEI_TUAN_VIDEO("MEI_TUAN_VIDEO", "美团视频号"),
     MEI_TUAN_API_VIDEO("MEI_TUAN_API_VIDEO", "美团api视频号"),
     WECHAT_VIDEO_V2("WECHAT_VIDEO_V2", "腾讯视频号三方"),
+    OBJECT_STORAGE("OBJECT_STORAGE", "对象存储"),
 
     ;
 

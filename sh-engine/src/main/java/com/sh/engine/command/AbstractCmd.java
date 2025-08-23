@@ -1,4 +1,4 @@
-package com.sh.engine.model.ffmpeg;
+package com.sh.engine.command;
 
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;

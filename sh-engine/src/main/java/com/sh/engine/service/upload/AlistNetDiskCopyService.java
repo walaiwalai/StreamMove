@@ -4,13 +4,11 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.LocalCacheManager;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.base.StreamerInfoHolder;
-import com.sh.engine.constant.UploadPlatformEnum;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -45,39 +43,29 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
     @Resource
     private LocalCacheManager localCacheManager;
 
-    private static final Map<String, String> UPLOAD_PLATFORM_TO_ALIST_PATH_MAP = Maps.newHashMap();
     private static final String ALIST_TOKEN_KEY = "alist_token";
     private static final String ALIST_LOCAL_STORAGE_PATH = "/本地存储";
 
-    static {
-        UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.BAIDU_PAN.getType(), "/百度网盘");
-        UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.ALI_PAN.getType(), "/阿里云盘");
-        UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.QUARK_PAN.getType(), "/夸克云盘");
-        UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.UC_PAN.getType(), "/UC网盘");
-        UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.TIAN_YI_PAN.getType(), "/天翼云盘");
-    }
-
     @Override
-    public boolean checkBasePathExist(UploadPlatformEnum platform) {
-        JSONObject info = getDirInfo(UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.get(platform.getType()));
-        return info != null;
+    public boolean checkPathExist(String path) {
+        return getDirInfo(path) != null;
     }
 
     /**
      * 从本地存储拷贝到目标网盘
      *
-     * @param platform
+     * @param rootDirName
      * @param targetFile
      * @return 任务id
      */
     @Override
-    public String copyFileToNetDisk(UploadPlatformEnum platform, File targetFile) {
+    public String copyFileToNetDisk(String rootDirName, File targetFile) {
         String recordPath = targetFile.getParentFile().getAbsolutePath();
         String streamerName = StreamerInfoHolder.getCurStreamerName();
         String timeV = targetFile.getParentFile().getName();
 
         // 创建目标文件夹
-        String dstDir = createFolder(platform, recordPath);
+        String dstDir = createFolder(rootDirName, recordPath);
 
         // 本地拷贝到目标网盘
         Map<String, Object> params = ImmutableMap.of(
@@ -143,14 +131,10 @@ public class AlistNetDiskCopyService implements NetDiskCopyService {
         return respObj.getInteger("code") == 200;
     }
 
-    private String createFolder(UploadPlatformEnum platform, String recordPath) {
-        if (!UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.containsKey(platform.getType())) {
-            throw new StreamerRecordException(ErrorEnum.INVALID_PARAM);
-        }
-
+    private String createFolder(String rootDirName, String recordPath) {
         String timeV = new File(recordPath).getName();
         String streamerName = new File(recordPath).getParentFile().getName();
-        String tDirPath = UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.get(platform.getType()) + "/" + streamerName + "/" + timeV;
+        String tDirPath = "/" + rootDirName + "/" + streamerName + "/" + timeV;
         if (getDirInfo(tDirPath) != null) {
             return tDirPath;
         }

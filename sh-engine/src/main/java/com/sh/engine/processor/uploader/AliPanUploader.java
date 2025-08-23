@@ -10,9 +10,14 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-public class AliPanUploader extends AbstractNetDiskUploader {
+public class AliPanUploader extends AbstractAlistUploader {
     @Override
     public String getType() {
         return UploadPlatformEnum.ALI_PAN.getType();
+    }
+
+    @Override
+    protected String getRootDirName() {
+        return "阿里云盘";
     }
 }
