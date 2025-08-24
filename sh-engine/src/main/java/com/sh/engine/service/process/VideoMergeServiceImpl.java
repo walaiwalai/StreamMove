@@ -3,13 +3,16 @@ package com.sh.engine.service.process;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import com.google.common.collect.Lists;
+import com.sh.config.utils.EnvUtil;
 import com.sh.config.utils.PictureFileUtil;
+import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
 import com.sh.engine.model.ffmpeg.Ts2Mp4ProcessCmd;
 import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import com.sh.engine.model.video.VideoInterval;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
@@ -100,8 +103,31 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
     @Override
     public boolean ts2Mp4(File fromVideo) {
-        Ts2Mp4ProcessCmd ts2Mp4ProcessCmd = new Ts2Mp4ProcessCmd(fromVideo);
+        File toMp4File;
+        File tmpDir;
+        if (EnvUtil.isStorageMounted()) {
+            // 如果挂载下载路径，直接处理会报错
+            tmpDir = VideoFileUtil.getAmountedTmpDir();
+            toMp4File = new File(tmpDir, FileNameUtil.getPrefix(fromVideo) + ".mp4");
+        } else {
+            toMp4File = new File(fromVideo.getParent(), FileNameUtil.getPrefix(fromVideo) + ".mp4");
+        }
+
+        Ts2Mp4ProcessCmd ts2Mp4ProcessCmd = new Ts2Mp4ProcessCmd(fromVideo, toMp4File);
         ts2Mp4ProcessCmd.execute(4 * 3600L);
+
+        if (EnvUtil.isStorageMounted()) {
+            // copy文件
+            File targetFile = new File(fromVideo.getParent(), FileNameUtil.getPrefix(fromVideo) + ".mp4");
+            try {
+                FileUtils.copyFile(toMp4File, targetFile);
+            } catch (IOException e) {
+                log.error("copy file fail, from: {}, to: {}", toMp4File.getAbsolutePath(), targetFile.getAbsolutePath(), e);
+                return false;
+            }
+            // 删除临时文件
+            FileUtils.deleteQuietly(toMp4File);
+        }
         return true;
     }
 

@@ -18,6 +18,10 @@ import java.util.stream.Collectors;
  */
 public class VideoFileUtil {
     public static final String SEG_FILE_NAME_V2 = "P%02d.ts";
+    /**
+     * 临时处理文件的路径
+     */
+    public static final String PROCESS_TMP_DIR = "/home/admin/stream/dump";
 
     public static Integer getSnapshotIndex(File snapshotFile) {
         String name = snapshotFile.getName();
@@ -74,6 +78,12 @@ public class VideoFileUtil {
             hashString.append(String.format("%02X", b));
         }
         return hashString.toString();
+    }
+
+    public static File getAmountedTmpDir() {
+        File file = new File(PROCESS_TMP_DIR, System.currentTimeMillis() + "");
+        file.mkdirs();
+        return file;
     }
 
     public static void main(String[] args) {
