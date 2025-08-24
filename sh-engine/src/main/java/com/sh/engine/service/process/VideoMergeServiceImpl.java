@@ -103,20 +103,14 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
     @Override
     public boolean ts2Mp4(File fromVideo) {
-        File toMp4File;
-        File tmpDir;
         if (EnvUtil.isStorageMounted()) {
             // 如果挂载下载路径，直接处理会报错
-            tmpDir = VideoFileUtil.getAmountedTmpDir();
-            toMp4File = new File(tmpDir, FileNameUtil.getPrefix(fromVideo) + ".mp4");
-        } else {
-            toMp4File = new File(fromVideo.getParent(), FileNameUtil.getPrefix(fromVideo) + ".mp4");
-        }
+            File tmpDir = VideoFileUtil.getAmountedTmpDir();
+            File toMp4File = new File(tmpDir, FileNameUtil.getPrefix(fromVideo) + ".mp4");
 
-        Ts2Mp4ProcessCmd ts2Mp4ProcessCmd = new Ts2Mp4ProcessCmd(fromVideo, toMp4File);
-        ts2Mp4ProcessCmd.execute(4 * 3600L);
+            Ts2Mp4ProcessCmd ts2Mp4ProcessCmd = new Ts2Mp4ProcessCmd(fromVideo, toMp4File);
+            ts2Mp4ProcessCmd.execute(4 * 3600L);
 
-        if (EnvUtil.isStorageMounted()) {
             // copy文件
             File targetFile = new File(fromVideo.getParent(), FileNameUtil.getPrefix(fromVideo) + ".mp4");
             try {
@@ -126,7 +120,11 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                 return false;
             }
             // 删除临时文件
-            FileUtils.deleteQuietly(toMp4File);
+            FileUtils.deleteQuietly(tmpDir);
+        } else {
+            File toMp4File = new File(fromVideo.getParent(), FileNameUtil.getPrefix(fromVideo) + ".mp4");
+            Ts2Mp4ProcessCmd ts2Mp4ProcessCmd = new Ts2Mp4ProcessCmd(fromVideo, toMp4File);
+            ts2Mp4ProcessCmd.execute(4 * 3600L);
         }
         return true;
     }

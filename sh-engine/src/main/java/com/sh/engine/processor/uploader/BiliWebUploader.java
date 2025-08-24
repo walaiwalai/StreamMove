@@ -10,10 +10,7 @@ import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.video.RemoteSeverVideo;
-import com.sh.config.utils.ExecutorPoolUtil;
-import com.sh.config.utils.OkHttpClientUtil;
-import com.sh.config.utils.PictureFileUtil;
-import com.sh.config.utils.VideoFileUtil;
+import com.sh.config.utils.*;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
@@ -212,6 +209,12 @@ public class BiliWebUploader extends Uploader {
         CountDownLatch countDownLatch = new CountDownLatch(partCount);
         List<Integer> failChunkNums = Lists.newCopyOnWriteArrayList();
 
+        File targetFile;
+        if (EnvUtil.isStorageMounted()) {
+            targetFile = VideoFileUtil.copyMountedFileToLocal(videoFile);
+        } else {
+            targetFile = videoFile;
+        }
         // 保证记录的顺序和实际上传的顺序一致
         LinkedBlockingQueue<Integer> completedPartsQueue = new LinkedBlockingQueue<>();
         AtomicBoolean hasFailed = new AtomicBoolean(false);
@@ -233,7 +236,7 @@ public class BiliWebUploader extends Uploader {
                                 .replace("{start}", String.valueOf(curChunkStart))
                                 .replace("{end}", String.valueOf(curChunkEnd))
                                 .replace("{total}", String.valueOf(fileSize));
-                        return uploadChunk(chunkUploadUrl, videoFile, finalI, partCount, (int) curChunkSize, curChunkStart, biliPreUploadInfo);
+                        return uploadChunk(chunkUploadUrl, targetFile, finalI, partCount, (int) curChunkSize, curChunkStart, biliPreUploadInfo);
                     }, ExecutorPoolUtil.getUploadPool())
                     .whenComplete((isSuccess, throwbale) -> {
                         try {

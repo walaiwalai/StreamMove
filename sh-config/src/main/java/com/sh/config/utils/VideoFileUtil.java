@@ -1,5 +1,6 @@
 package com.sh.config.utils;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
  * @author caiWen
  * @date 2023/2/16 23:28
  */
+@Slf4j
 public class VideoFileUtil {
     public static final String SEG_FILE_NAME_V2 = "P%02d.ts";
     /**
@@ -84,6 +86,20 @@ public class VideoFileUtil {
         File file = new File(PROCESS_TMP_DIR, System.currentTimeMillis() + "");
         file.mkdirs();
         return file;
+    }
+
+
+    public static File copyMountedFileToLocal(File amountedFile) {
+        File tmpDir = getAmountedTmpDir();
+        File localFile = new File(tmpDir, amountedFile.getName());
+
+        try {
+            FileUtils.copyFile(amountedFile, localFile);
+        } catch (IOException e) {
+            log.error("copy file fail, from: {}, to: {}", amountedFile.getAbsolutePath(), localFile.getAbsolutePath(), e);
+            return null;
+        }
+        return localFile;
     }
 
     public static void main(String[] args) {
