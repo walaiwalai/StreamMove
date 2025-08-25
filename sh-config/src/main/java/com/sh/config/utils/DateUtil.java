@@ -1,10 +1,11 @@
-package com.sh.engine.util;
+package com.sh.config.utils;
 
 import org.apache.commons.lang3.time.DateUtils;
 
 import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
@@ -27,6 +28,11 @@ public class DateUtil {
             date = new Date();
         }
         return date;
+    }
+
+    public static String covertTimeStampToStr(Long timeStamp) {
+        return LocalDateTime.ofEpochSecond(timeStamp / 1000, 0, ZoneOffset.UTC)
+                .format(DateTimeFormatter.ofPattern(YYYY_MM_DD_HH_MM_SS_V2));
     }
 
     /**

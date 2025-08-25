@@ -9,9 +9,6 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.security.MessageDigest;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author caiWen
@@ -82,13 +79,24 @@ public class VideoFileUtil {
         return hashString.toString();
     }
 
+    /**
+     * 获取临时处理目录
+     *
+     * @return 临时处理目录
+     */
     public static File getAmountedTmpDir() {
-        File file = new File(PROCESS_TMP_DIR, System.currentTimeMillis() + "");
+        File file = new File(PROCESS_TMP_DIR, DateUtil.covertTimeStampToStr(System.currentTimeMillis()));
         file.mkdirs();
         return file;
     }
 
 
+    /**
+     * 拷贝挂载的临时文件到本地
+     *
+     * @param amountedFile 挂载的文件
+     * @return 本地文件
+     */
     public static File copyMountedFileToLocal(File amountedFile) {
         File tmpDir = getAmountedTmpDir();
         File localFile = new File(tmpDir, amountedFile.getName());
@@ -100,13 +108,5 @@ public class VideoFileUtil {
             return null;
         }
         return localFile;
-    }
-
-    public static void main(String[] args) {
-        List<File> videos = FileUtils.listFiles(new File("G:\\stream_record\\download\\mytest-mac\\2025-08-15-20-59-48"), new String[]{"mp4"}, false)
-                .stream()
-                .sorted(Comparator.comparingInt(VideoFileUtil::getVideoIndex))
-                .collect(Collectors.toList());
-        System.out.println(videos);
     }
 }

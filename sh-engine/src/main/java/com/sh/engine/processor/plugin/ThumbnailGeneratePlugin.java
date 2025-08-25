@@ -3,13 +3,11 @@ package com.sh.engine.processor.plugin;
 import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.DateUtil;
 import com.sh.config.utils.PictureFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.RecordConstant;
-import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
-import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
-import com.sh.engine.util.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -18,7 +16,6 @@ import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 视频封面生成插件
@@ -59,8 +56,8 @@ public class ThumbnailGeneratePlugin implements VideoProcessPlugin {
     /**
      * 生成封面
      *
-     * @param recordPath     录制路径
-     * @param coverFile 封面本地文件
+     * @param recordPath 录制路径
+     * @param coverFile  封面本地文件
      */
     public void genThumbnail(String recordPath, File coverFile) {
         File thumbFile = new File(recordPath, RecordConstant.THUMBNAIL_FILE_NAME);
