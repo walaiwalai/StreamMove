@@ -208,7 +208,16 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
     }
 
     public static void main(String[] args) {
+        // 设置代理服务器信息
+        System.setProperty("http.proxyHost", "127.0.0.1");
+        System.setProperty("http.proxyPort", "10809");
+
+        // 如果是 HTTPS 代理，需要额外设置
+        System.setProperty("https.proxyHost", "127.0.0.1");
+        System.setProperty("https.proxyPort", "10809");
+
         TwitchRoomChecker twitchRoomChecker = new TwitchRoomChecker();
-        twitchRoomChecker.fetchCurVodInfo("ahlaundoh", "2549019102");
+        JSONObject jsonObject = twitchRoomChecker.fetchCurVodInfo("ahlaundoh", "2549019102");
+        System.out.println(jsonObject.getDate("publishedAt"));
     }
 }
