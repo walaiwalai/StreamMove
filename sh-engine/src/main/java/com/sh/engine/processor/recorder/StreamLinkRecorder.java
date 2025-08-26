@@ -36,7 +36,7 @@ public class StreamLinkRecorder extends Recorder {
     }
 
     public StreamLinkRecorder(Date regDate, Integer streamChannelType, String streamUrl, Map<String, String> extraInfo) {
-        super(regDate, streamChannelType, Maps.newHashMap());
+        super(regDate, streamChannelType, extraInfo);
         this.streamUrl = streamUrl;
     }
 
