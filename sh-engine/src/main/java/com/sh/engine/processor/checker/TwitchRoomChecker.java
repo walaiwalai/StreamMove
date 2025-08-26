@@ -3,8 +3,10 @@ package com.sh.engine.processor.checker;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.sh.config.manager.CacheManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
@@ -16,17 +18,20 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 @Component
 @Slf4j
 public class TwitchRoomChecker extends AbstractRoomChecker {
+    @Resource
+    private CacheManager cacheManager;
     private static final String GQL_ENDPOINT = "https://gql.twitch.tv/gql";
     private static final String VALID_URL_BASE = "(?:https?://)?(?:(?:www|go|m)\\.)?twitch\\.tv/([0-9_a-zA-Z]+)";
 
@@ -35,7 +40,11 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             return fetchLivingRecord(streamerConfig);
         } else {
-            return fetchLatestRecord(streamerConfig);
+            if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
+                return fetchCertainRecords(streamerConfig);
+            } else {
+                return fetchLatestRecord(streamerConfig);
+            }
         }
     }
 
@@ -68,6 +77,72 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
 
         return new StreamLinkRecorder(date, getType().getType(), videoUrl);
     }
+
+    private Recorder fetchCertainRecords(StreamerConfig streamerConfig) {
+        String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), VALID_URL_BASE);
+
+        String key = "certain_keys_" + streamerConfig.getName();
+        String videoId = null;
+        for (String vodUrl : streamerConfig.getCertainVodUrls()) {
+            String vid = vodUrl.split("videos/")[1];
+            String finishFlag = cacheManager.getHash(key, vid, new TypeReference<String>() {
+            });
+            if (StringUtils.isBlank(finishFlag)) {
+                videoId = vid;
+                break;
+            }
+        }
+        if (videoId == null) {
+            return null;
+        }
+
+        // 2. 解析切片成链接格式
+        String curVodUrl = "https://www.twitch.tv/videos/" + videoId;
+        JSONObject curVod = fetchCurVodInfo(channelName, videoId);
+        if (curVod == null) {
+            return null;
+        }
+
+        Date date = curVod.getDate("publishedAt");
+        Map<String, String> extra = new HashMap<>();
+        extra.put("finishKey", key);
+        extra.put("finishField", videoId);
+
+        return new StreamLinkRecorder(date, getType().getType(), curVodUrl);
+    }
+
+
+    private JSONObject fetchCurVodInfo(String channelName, String videoId) {
+        JSONObject varObj = new JSONObject();
+        varObj.put("channelLogin", channelName);
+        varObj.put("videoID", videoId);
+
+        JSONObject extObj = new JSONObject();
+        extObj.put("persistedQuery", ImmutableMap.of("version", 1, "sha256Hash", "45111672eea2e507f8ba44d101a61862f9c56b11dee09a15634cb75cb9b9084d"));
+
+        JSONObject jsonObj = new JSONObject();
+        jsonObj.put("operationName", "VideoMetadata");
+        jsonObj.put("extensions", extObj);
+        jsonObj.put("variables", varObj);
+
+        Request request = new Request.Builder()
+                .url(GQL_ENDPOINT)
+                .post(RequestBody.create(MediaType.parse("application/json"), JSON.toJSONString(Lists.newArrayList(jsonObj))))
+                .addHeader("Content-Type", "text/plain;charset=UTF-8")
+                .addHeader("Client-ID", "kimne78kx3ncx6brgo4mv6wki5h1ko")
+                .build();
+
+        String resp = OkHttpClientUtil.execute(request);
+        log.info("fetch cur vod info resp: {}", resp);
+        try {
+            return JSON.parseArray(resp).getJSONObject(0)
+                    .getJSONObject("data")
+                    .getJSONObject("video");
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
 
     @Override
     public StreamChannelTypeEnum getType() {
@@ -130,5 +205,10 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         private String id;
         private String publishedAt;
         private String previewThumbnailURL;
+    }
+
+    public static void main(String[] args) {
+        TwitchRoomChecker twitchRoomChecker = new TwitchRoomChecker();
+        twitchRoomChecker.fetchCurVodInfo("ahlaundoh", "2549019102");
     }
 }
