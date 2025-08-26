@@ -108,7 +108,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         extra.put("finishKey", key);
         extra.put("finishField", videoId);
 
-        return new StreamLinkRecorder(date, getType().getType(), curVodUrl);
+        return new StreamLinkRecorder(date, getType().getType(), curVodUrl, extra);
     }
 
 

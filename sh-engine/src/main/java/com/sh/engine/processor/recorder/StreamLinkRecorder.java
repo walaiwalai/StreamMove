@@ -17,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -30,6 +31,11 @@ public class StreamLinkRecorder extends Recorder {
     private String streamUrl;
 
     public StreamLinkRecorder(Date regDate, Integer streamChannelType, String streamUrl) {
+        super(regDate, streamChannelType, Maps.newHashMap());
+        this.streamUrl = streamUrl;
+    }
+
+    public StreamLinkRecorder(Date regDate, Integer streamChannelType, String streamUrl, Map<String, String> extraInfo) {
         super(regDate, streamChannelType, Maps.newHashMap());
         this.streamUrl = streamUrl;
     }
