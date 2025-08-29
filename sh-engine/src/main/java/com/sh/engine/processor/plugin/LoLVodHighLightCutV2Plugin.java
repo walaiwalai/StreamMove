@@ -5,15 +5,16 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.sh.config.utils.ExecutorPoolUtil;
+import com.sh.config.utils.DateUtil;
+import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.RecordConstant;
-import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
 import com.sh.engine.model.ffmpeg.ScreenshotCmd;
 import com.sh.engine.model.ffmpeg.VideoDurationDetectCmd;
 import com.sh.engine.model.highlight.HlScoredInterval;
@@ -22,7 +23,6 @@ import com.sh.engine.model.lol.LolSequenceStatistic;
 import com.sh.engine.model.video.VideoInterval;
 import com.sh.engine.model.video.VideoSnapPoint;
 import com.sh.engine.service.process.VideoMergeService;
-import com.sh.engine.util.DateUtil;
 import com.sh.engine.util.RegexUtil;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
@@ -38,10 +38,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.io.File;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -106,7 +102,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
 
         List<File> videos = FileUtils.listFiles(new File(recordPath), new String[]{"mp4"}, false)
                 .stream()
-                .sorted(Comparator.comparingLong(File::lastModified))
+                .sorted(Comparator.comparingInt(VideoFileUtil::getVideoIndex))
                 .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(videos)) {
             log.info("empty ts video file, will skip, path: {}", recordPath);
@@ -226,60 +222,40 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         snapShotDir.mkdirs();
 
         // 多线程截图
-        AtomicBoolean hasFailed = new AtomicBoolean(false);
-        CountDownLatch latch = new CountDownLatch(videos.size());
-        List<File> allSnapshotFiles = new CopyOnWriteArrayList<>();
+        List<File> allSnapshotFiles = new ArrayList<>();
         for (File video : videos) {
-            CompletableFuture.runAsync(
-                            () -> {
-                                if (hasFailed.get()) {
-                                    return;
-                                }
-                                // 截图
-                                allSnapshotFiles.addAll(shotSingleVideo(video, snapShotDir, kadCorpExp));
-                            }, ExecutorPoolUtil.getSnapshotPool())
-                    .whenComplete((result, throwable) -> {
-                        if (throwable != null) {
-                            log.error("{} screenshot task error", video.getName(), throwable);
-                            hasFailed.set(true);
-                        }
-                        latch.countDown();
-                    });
+            allSnapshotFiles.addAll(shotSingleVideo(video, snapShotDir, kadCorpExp));
         }
-
-        // 等待所有截图任务完成
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-        }
-
-        if (hasFailed.get()) {
-            log.error("screenshot failed, total get {} pic", allSnapshotFiles.size());
-            return Lists.newArrayList();
-        } else {
-            log.info("screenshot success, total get {} pic", allSnapshotFiles.size());
-            return allSnapshotFiles;
-        }
+        return allSnapshotFiles;
     }
 
 
     private List<File> shotSingleVideo(File video, File snapShotDir, String kadCorpExp) {
-//        // 可能之前已经截图过了，根据截图点确定截图开始时间
-//        List<File> existed = FileUtils.listFiles(snapShotDir, new String[]{"jpg"}, false)
-//                .stream()
-//                .filter(file -> file.getName().startsWith(FileUtil.getPrefix(video)))
-//                .collect(Collectors.toList());
-//        log.info("{} has {} pic", video.getName(), existed.size());
-//
-//        int ss = existed.size() * SNAP_INTERVAL_SECOND;
+        Map<String, List<String>> video2SnapShotMap = new HashMap<>();
+        // 可能之前已经截图过了
+        File recordFile = new File(snapShotDir, "snap-record.json");
+        if (recordFile.exists()) {
+            video2SnapShotMap = FileStoreUtil.loadFromFile(recordFile, new TypeReference<Map<String, List<String>>>() {
+            });
+        }
 
         // 执行截图
-        ScreenshotCmd snapshotCmd = new ScreenshotCmd(video, snapShotDir, 0, 99999, kadCorpExp, SNAP_INTERVAL_SECOND, 1);
-        snapshotCmd.execute(3600);
-
         List<File> snapshotFiles = Lists.newArrayList();
-//        snapshotFiles.addAll(existed);
-        snapshotFiles.addAll(snapshotCmd.getSnapshotFiles());
+        if (video2SnapShotMap.containsKey(video.getName())) {
+            List<File> existedSnapFiles = video2SnapShotMap.get(video.getName()).stream()
+                    .map(name -> new File(snapShotDir, name))
+                    .collect(Collectors.toList());
+            snapshotFiles.addAll(existedSnapFiles);
+        } else {
+            ScreenshotCmd snapshotCmd = new ScreenshotCmd(video, snapShotDir, 0, 99999, kadCorpExp, SNAP_INTERVAL_SECOND, 1, false);
+            snapshotCmd.execute(3600);
+            snapshotFiles.addAll(snapshotCmd.getSnapshotFiles());
+
+            // 记录一下
+            video2SnapShotMap.put(video.getName(), snapshotFiles.stream().map(File::getName).collect(Collectors.toList()));
+            FileStoreUtil.saveToFile(recordFile, video2SnapShotMap);
+        }
+
         return snapshotFiles;
     }
 
@@ -295,6 +271,17 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         File testSnapShotDir = new File(recordPath, KAD_TEST_SNAPSHOT_DIR_NAME);
         testSnapShotDir.mkdirs();
 
+        // 从文件中找
+        File accurateCorpFile = new File(testSnapShotDir, "accurate-corp.json");
+        if (accurateCorpFile.exists()) {
+            Map<String, String> corpMap = FileStoreUtil.loadFromFile(accurateCorpFile, new TypeReference<Map<String, String>>() {
+            });
+            if (corpMap.containsKey(sampleVideo.getName())) {
+                log.info("find kda corp exp success, video: {}, corpExp: {}", sampleVideo.getName(), corpMap.get(sampleVideo.getName()));
+                return corpMap.get(sampleVideo.getName());
+            }
+        }
+
         // 视频时长获取
         VideoDurationDetectCmd cmd = new VideoDurationDetectCmd(sampleVideo.getAbsolutePath());
         cmd.execute(60);
@@ -303,8 +290,12 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
 
         int batchCnt = 20;
         int startSecond = 0;
+        String accurateCorpExp = null;
         while (startSecond < endSecond) {
-            ScreenshotCmd screenshotCmd = new ScreenshotCmd(sampleVideo, testSnapShotDir, startSecond, batchCnt, KAD_TEST_CORP_EXP, SNAP_INTERVAL_SECOND, 1);
+            if (StringUtils.isNotBlank(accurateCorpExp)) {
+                break;
+            }
+            ScreenshotCmd screenshotCmd = new ScreenshotCmd(sampleVideo, testSnapShotDir, startSecond, batchCnt, KAD_TEST_CORP_EXP, SNAP_INTERVAL_SECOND, 1, false);
             screenshotCmd.execute(1800);
             List<File> snapshotFiles = screenshotCmd.getSnapshotFiles();
             for (File snapshotFile : snapshotFiles) {
@@ -312,7 +303,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                 try {
                     kdaBoxes = detectKDABox(snapshotFile.getAbsolutePath());
                 } catch (Exception e) {
-                    log.error("error to detect kda box, path: {}", snapshotFile.getAbsolutePath());
+                    log.error("error to detect kda box, path: {}", snapshotFile.getAbsolutePath(), e);
                     continue;
                 }
                 if (CollectionUtils.isEmpty(kdaBoxes)) {
@@ -321,15 +312,22 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                 // 精确的裁剪参数
                 String corpExp = genAccurateCorpExpByBox(kdaBoxes);
                 if (StringUtils.isNotBlank(corpExp)) {
-                    log.info("find accurate kda corp exp: {}", corpExp);
-                    return corpExp;
+                    accurateCorpExp = corpExp;
+                    break;
                 }
             }
 
             startSecond += batchCnt * SNAP_INTERVAL_SECOND;
         }
 
-        return KAD_CORP_EXP;
+        // 存一下
+        if (StringUtils.isBlank(accurateCorpExp)) {
+            accurateCorpExp = KAD_CORP_EXP;
+        }
+        log.info("find accurate kda corp exp: {}", accurateCorpExp);
+        FileStoreUtil.saveToFile(accurateCorpFile, Maps.newHashMap(ImmutableMap.of(sampleVideo.getName(), accurateCorpExp)));
+
+        return accurateCorpExp;
     }
 
     private static String genAccurateCorpExpByBox(List<List<Integer>> boxes) {
@@ -353,26 +351,6 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         int width = maxX - minX;
         int height = maxY - minY;
         return String.format("crop=%d:%d:in_w/2+%d:%d", width + 20, height + 10, minX, minY - 5);
-    }
-
-    private void doSnapshot(File sourceFile, File snapShotDir, int ss, int snapShotCnt, String corpExp) {
-        // 构建截图名称 sourceFile +ss 组合
-        File targetFile = new File(snapShotDir, FileUtil.getPrefix(sourceFile) + "_%d.jpg");
-        List<String> params = Lists.newArrayList(
-                "ffmpeg", "-y",
-                "-i", sourceFile.getAbsolutePath(),
-                "-ss", String.valueOf(ss),
-                "-vf", corpExp + "," + "fps=1/" + SNAP_INTERVAL_SECOND,
-                "-vframes", String.valueOf(snapShotCnt),
-                targetFile.getAbsolutePath()
-        );
-        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(StringUtils.join(params, " "), false, false);
-        processCmd.execute(2 * 3600);
-        if (processCmd.isEndNormal()) {
-            log.info("get pic success, path: {}, ss: {}, snapshotCnt: {}", sourceFile.getAbsolutePath(), ss, snapShotCnt);
-        } else {
-            log.error("get pic fail, path: {}, ss: {}, snapshotCnt: {}", sourceFile.getAbsolutePath(), ss, snapShotCnt);
-        }
     }
 
 
@@ -441,9 +419,12 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
             // 精彩时刻进行击杀细节
             if (highlightOccur(tmp, cur)) {
                 File fromVideo = idx.getFromVideo();
-                doSnapshot(fromVideo, detailDir, (int) Math.round(idx.getSecondFromVideoStart()), 1, KILL_DETAIL_CORP_EXP);
-                File detailPath = new File(detailDir, FileUtil.getPrefix(fromVideo) + "_1.jpg");
-                cur.setHeroKADetail(parseDetailByVisDet(detailPath.getAbsolutePath()));
+                ScreenshotCmd snapshotCmd = new ScreenshotCmd(fromVideo, detailDir, (int) Math.round(idx.getSecondFromVideoStart()), 1, KILL_DETAIL_CORP_EXP, SNAP_INTERVAL_SECOND, 1, false);
+                snapshotCmd.execute(600);
+                if (CollectionUtils.isEmpty(snapshotCmd.getSnapshotFiles())) {
+                    File detailPath = snapshotCmd.getSnapshotFiles().get(0);
+                    cur.setHeroKADetail(parseDetailByVisDet(detailPath));
+                }
             }
 
             tmp = cur;
@@ -518,15 +499,14 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                 .collect(Collectors.toList());
     }
 
-    private LoLPicData.HeroKillOrAssistDetail parseDetailByVisDet(String detailPath) {
-        File snapShotFile = new File(detailPath);
+    private LoLPicData.HeroKillOrAssistDetail parseDetailByVisDet(File snapShotFile) {
         if (!snapShotFile.exists()) {
             return null;
         }
 
         MediaType mediaType = MediaType.parse("application/json");
         Map<String, String> params = Maps.newHashMap();
-        params.put("path", detailPath);
+        params.put("path", snapShotFile.getAbsolutePath());
         RequestBody body = RequestBody.create(mediaType, JSON.toJSONString(params));
         Request request = new Request.Builder()
                 .url("http://" + ocrHost + ":" + ocrPort + "/lolKillVisDet")
@@ -565,19 +545,20 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                 .build();
 
         String resp = OkHttpClientUtil.execute(request);
+        log.info("detect kda boxes resp, file: {}, res: {}.", snapShotFile.getAbsolutePath(), resp);
         JSONArray detectArrays = JSON.parseArray(resp);
         for (Object detectObj : detectArrays) {
             JSONObject detObj = (JSONObject) detectObj;
+            String ocrText = detObj.getString("text");
+            if (!isValidKadStr(ocrText)) {
+                continue;
+            }
 
             List<Integer> boxes = detObj.getJSONArray("boxes").toJavaList(Integer.class);
-            String ocrText = detObj.getString("text");
             float score = detObj.getFloat("score");
-            if (isValidKadStr(ocrText)) {
-                List<List<Integer>> fourPoints = Lists.partition(boxes, 2);
-                log.info("find kda boxed success, boxes: {}, text: {}, confidence: {}.",
-                        JSON.toJSONString(fourPoints), ocrText, score);
-                return fourPoints;
-            }
+            List<List<Integer>> fourPoints = Lists.partition(boxes, 2);
+            log.info("find kda boxed success, boxes: {}, text: {}, confidence: {}.", JSON.toJSONString(fourPoints), ocrText, score);
+            return fourPoints;
         }
         return Lists.newArrayList();
     }
@@ -592,7 +573,6 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
 
     public static void main(String[] args) {
         File sourceFile = new File("G:\\stream_record\\download\\mytest-mac\\2025-06-16-16-16-16\\highlight.mp4");
-        LoLVodHighLightCutV2Plugin plugin = new LoLVodHighLightCutV2Plugin();
-        plugin.doSnapshot(sourceFile, new File("G:\\stream_record\\download\\mytest-mac\\2025-06-16-16-16-16"), 0, 9999, KAD_TEST_CORP_EXP);
+        System.out.println(sourceFile.getName());
     }
 }

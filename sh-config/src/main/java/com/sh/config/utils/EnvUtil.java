@@ -2,6 +2,7 @@ package com.sh.config.utils;
 
 import cn.hutool.extra.spring.SpringUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -17,5 +18,20 @@ public class EnvUtil {
         }
         String activeProfile = SpringUtil.getActiveProfile();
         return activeProfile != null && StringUtils.equals(activeProfile, "prod");
+    }
+
+    /**
+     * 是否挂载了存储
+     *
+     * @return
+     */
+    public static boolean isStorageMounted() {
+        if (SpringUtil.getApplicationContext() == null) {
+            log.info("applicationContext not inited !!!");
+            return false;
+        }
+        Boolean isMounted = SpringUtil.getApplicationContext().getEnvironment()
+                .getProperty("system.storage.mounted", Boolean.class);
+        return BooleanUtils.isTrue(isMounted);
     }
 }

@@ -21,4 +21,4 @@ RUN chmod +x ${APP_HOME}/release_disk_space.sh \
     && chmod 644 ${APP_HOME}/logs/release_disk_space.log
 
 # 运行 jar 包
-ENTRYPOINT ["sh", "-c", "cron && python3 replace_placeholders.py && java -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dspring.profiles.active=prod -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${APP_HOME}/dump/ -Xms1g -Xmx1g -jar ${APP_HOME}/sh-start-1.0-SNAPSHOT.jar --spring.config.location=file:${APP_HOME}/application-prod.properties"]
+ENTRYPOINT ["sh", "-c", "cron && python3 replace_placeholders.py && java -Dfile.encoding=utf-8 -Duser.timezone=GMT+08 -Dspring.profiles.active=prod -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${APP_HOME}/dump/ -Xms512M -Xmx512M -jar ${APP_HOME}/sh-start-1.0-SNAPSHOT.jar --spring.config.location=file:${APP_HOME}/application-prod.properties"]
