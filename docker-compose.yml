@@ -17,14 +17,14 @@ services:
     networks:
       - stream-docker
 
-    stream-ocr:
-      image: stream-ocr:latest
-      container_name: stream-ocr
-      volumes:
-        - /home/admin/stream/download:/home/admin/stream/download
-      ports:
-        - "5000:5000"
-      restart: unless-stopped
+  stream-ocr:
+    image: stream-ocr:latest
+    container_name: stream-ocr
+    volumes:
+      - /home/admin/stream/download:/home/admin/stream/download
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
 
   stream-move:
     image: stream-move:latest
