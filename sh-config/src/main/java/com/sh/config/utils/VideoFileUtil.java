@@ -1,5 +1,6 @@
 package com.sh.config.utils;
 
+import cn.hutool.core.io.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 
@@ -39,10 +40,10 @@ public class VideoFileUtil {
     }
 
     public static File getSourceVideoFile(File snapshotFile) {
-        String name = snapshotFile.getName();
+        String name = FileUtil.getPrefix(snapshotFile);
         int end = name.lastIndexOf("#");
-        String sourcePrefix = name.substring(end);
-        return new File(snapshotFile.getParent(), sourcePrefix + ".mp4");
+        String sourcePrefix = name.substring(0, end);
+        return new File(new File(snapshotFile.getParent()).getParent(), sourcePrefix + ".mp4");
     }
 
     public static Integer getVideoIndex(File videoFile) {
