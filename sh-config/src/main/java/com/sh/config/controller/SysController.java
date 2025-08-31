@@ -50,7 +50,7 @@ public class SysController {
         System.gc();
         heapMemoryUsage = memoryMXBean.getHeapMemoryUsage();
         nonHeapMemoryUsage = memoryMXBean.getNonHeapMemoryUsage();
-        log.info("after heap: {}M, nonHeap: {}, cost: {}ms", heapMemoryUsage.getUsed() / 1024 / 1024, nonHeapMemoryUsage.getUsed() / 1024 / 1024, System.currentTimeMillis() - start);
+        log.info("after heap: {}M, nonHeap: {}M, cost: {}ms", heapMemoryUsage.getUsed() / 1024 / 1024, nonHeapMemoryUsage.getUsed() / 1024 / 1024, System.currentTimeMillis() - start);
 
         return "ok";
     }

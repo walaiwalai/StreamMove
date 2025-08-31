@@ -638,29 +638,4 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         }
         return StringUtils.split(text, "/").length == 3;
     }
-
-    public static void main(String[] args) {
-        MultipartBody body = new MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart(
-                        "image",
-                        "test",
-                        RequestBody.create(MediaType.parse("image/*"), new File("G:\\stream_record\\download\\mytest-mac\\2025-08-15-20-59-48\\kda-snapshot\\P01#1.jpg"))
-                ).build();
-        Request request = new Request.Builder()
-                .url("http://" + "127.0.0.1" + ":" + "5000" + "/ocrDet")
-                .post(body)
-                .addHeader("Content-Type", "application/json")
-                .build();
-        String resp = OkHttpClientUtil.execute(request);
-        JSONArray detectArrays = JSON.parseArray(resp);
-        for (Object detectObj : detectArrays) {
-            JSONObject detObj = (JSONObject) detectObj;
-            String ocrText = detObj.getString("text");
-            if (isValidKadStr(ocrText)) {
-                log.info("parse image success, res: {}, confidence: {}.", ocrText, detObj.getString("score"));
-                System.out.println(ocrText);
-            }
-        }
-    }
 }
