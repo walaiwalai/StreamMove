@@ -25,6 +25,7 @@ RUN pip install --no-cache-dir \
     opencv-python \
     fastdeploy-python \
     pillow \
+    python-multipart \
     -f https://www.paddlepaddle.org.cn/whl/fastdeploy.html
 
 EXPOSE 5000
