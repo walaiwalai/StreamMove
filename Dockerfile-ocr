@@ -1,4 +1,4 @@
-# 使用 Python 基础镜像
+# 使用 Python 3.10 基础镜像（基于 Debian Trixie）
 FROM python:3.10
 
 # 设置工作目录
@@ -8,15 +8,27 @@ WORKDIR /app
 COPY paddle-vision.py /app/paddle-vision.py
 COPY models /app/models
 
-# 安装必要的依赖项，包括 Flask，并清理无用的文件
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx libglib2.0-0 && \
-    pip install --no-cache-dir numpy fastapi uvicorn opencv-python fastdeploy-python -f https://www.paddlepaddle.org.cn/whl/fastdeploy.html && \
-    apt-get purge -y --auto-remove && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# 安装必要的系统依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    libgtk2.0-0 \
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# 暴露 Flask 接口的端口
+
+
+RUN pip install --no-cache-dir \
+    numpy \
+    fastapi \
+    uvicorn \
+    opencv-python \
+    fastdeploy-python \
+    -f https://www.paddlepaddle.org.cn/whl/fastdeploy.html
+
 EXPOSE 5000
 
-# 运行 Flask 应用
+# 运行应用（保持不变，-u 确保日志实时输出）
 CMD ["python", "-u", "paddle-vision.py"]
