@@ -4,7 +4,7 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.engine.constant.UploadPlatformEnum;
-import com.sh.engine.service.upload.NetDiskCopyService;
+import com.sh.engine.service.NetDiskCopyService;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;

@@ -1,4 +1,4 @@
-package com.sh.engine.processor.recorder;
+package com.sh.engine.processor.recorder.stream;
 
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
@@ -19,19 +19,19 @@ import java.util.Date;
  * @Date 2025 02 09 16 09
  **/
 @Slf4j
-public class YtDlpRecorder extends Recorder {
+public class YtDlpStreamRecorder extends StreamRecorder {
     @Value("${sh.account-save.path}")
     private String accountSavePath;
 
     private String videoUrl;
 
-    public YtDlpRecorder(Date regDate, Integer streamChannelType, String videoUrl) {
+    public YtDlpStreamRecorder(Date regDate, Integer streamChannelType, String videoUrl) {
         super(regDate, streamChannelType, Maps.newHashMap());
         this.videoUrl = videoUrl;
     }
 
     @Override
-    public void doRecord(String savePath) {
+    public void start(String savePath) {
         YtDlpDownloadProcessCmd ytDlpDownloadProcessCmd = new YtDlpDownloadProcessCmd(buildCmd(savePath));
         ytDlpDownloadProcessCmd.execute(24 * 3600);
 

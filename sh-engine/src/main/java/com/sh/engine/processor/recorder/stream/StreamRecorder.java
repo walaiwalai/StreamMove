@@ -1,4 +1,4 @@
-package com.sh.engine.processor.recorder;
+package com.sh.engine.processor.recorder.stream;
 
 import java.util.Date;
 import java.util.Map;
@@ -9,7 +9,7 @@ import java.util.Map;
  * @Author caiwen
  * @Date 2024 09 28 10 10
  **/
-public abstract class Recorder {
+public abstract class StreamRecorder {
     /**
      * 录像时间
      */
@@ -22,7 +22,7 @@ public abstract class Recorder {
      */
     protected Integer streamChannelType;
 
-    public Recorder(Date regDate, Integer streamChannelType, Map<String, String> extraInfo) {
+    public StreamRecorder(Date regDate, Integer streamChannelType, Map<String, String> extraInfo) {
         this.regDate = regDate;
         this.streamChannelType = streamChannelType;
         this.extraInfo = extraInfo;
@@ -40,6 +40,6 @@ public abstract class Recorder {
     /**
      * 进行录制
      */
-    public abstract void doRecord(String savePath);
+    public abstract void start(String savePath);
 
 }

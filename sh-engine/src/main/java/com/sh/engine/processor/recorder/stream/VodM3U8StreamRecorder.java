@@ -1,14 +1,14 @@
-package com.sh.engine.processor.recorder;
+package com.sh.engine.processor.recorder.stream;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.engine.base.StreamerInfoHolder;
+import com.sh.engine.model.RecordCmdBuilder;
+import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import com.sh.engine.model.ffmpeg.YtDlpVAMerProcessCmd;
 import com.sh.engine.model.ffmpeg.YtDlpVASepProcessCmd;
-import com.sh.engine.model.record.RecordCmdBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -23,20 +23,20 @@ import java.util.Map;
  * @Date 2025 06 07 17 02
  **/
 @Slf4j
-public class VodM3u8Recorder extends Recorder {
+public class VodM3U8StreamRecorder extends StreamRecorder {
     private String vodUrl;
 
-    public VodM3u8Recorder(Date regDate, Integer streamChannelType, String vodUrl) {
+    public VodM3U8StreamRecorder(Date regDate, Integer streamChannelType, String vodUrl) {
         this(regDate, streamChannelType, vodUrl, Maps.newHashMap());
     }
 
-    public VodM3u8Recorder(Date regDate, Integer streamChannelType, String vodUrl, Map<String, String> extra) {
+    public VodM3U8StreamRecorder(Date regDate, Integer streamChannelType, String vodUrl, Map<String, String> extra) {
         super(regDate, streamChannelType, extra);
         this.vodUrl = vodUrl;
     }
 
     @Override
-    public void doRecord(String savePath) {
+    public void start(String savePath) {
         boolean videoAudioSep = true;
 
         // 音频分开的检测

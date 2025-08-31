@@ -6,9 +6,10 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.DateUtil;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.processor.recorder.Recorder;
-import com.sh.engine.processor.recorder.StreamLinkRecorder;
-import com.sh.engine.processor.recorder.VodM3u8Recorder;
+import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
+import com.sh.engine.processor.recorder.stream.VodM3U8StreamRecorder;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
@@ -31,7 +32,7 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Whale/3.23.214.17 Safari/537.36";
 
     @Override
-    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
+    public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             return fetchOnlineStream(streamerConfig);
         } else {
@@ -40,20 +41,25 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
     }
 
     @Override
+    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
+        return null;
+    }
+
+    @Override
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.CHZZK;
     }
 
-    private Recorder fetchOnlineStream(StreamerConfig streamerConfig) {
+    private StreamRecorder fetchOnlineStream(StreamerConfig streamerConfig) {
         String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), CHANNEL_REGEX);
         String roomUrl = "https://chzzk.naver.com/live/" + channelName;
         boolean isLiving = checkIsLivingByStreamLink(roomUrl);
 
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(date, getType().getType(), roomUrl) : null;
+        return isLiving ? new StreamLinkStreamRecorder(date, getType().getType(), roomUrl) : null;
     }
 
-    private Recorder fetchReplayStream(StreamerConfig streamerConfig) {
+    private StreamRecorder fetchReplayStream(StreamerConfig streamerConfig) {
         // 1.获取最近的videoNo
         JSONObject videoObj = getLatestVideoNo(streamerConfig);
         if (videoObj == null) {
@@ -72,7 +78,7 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
             return null;
         }
 
-        return new VodM3u8Recorder(
+        return new VodM3U8StreamRecorder(
                 date, getType().getType(),
                 "https://chzzk.naver.com/video/" + videoObj.getString("videoNo")
         );

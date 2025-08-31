@@ -1,6 +1,6 @@
-package com.sh.engine.service.process;
+package com.sh.engine.service;
 
-import com.sh.engine.model.video.VideoInterval;
+import com.sh.engine.model.highlight.VideoInterval;
 
 import java.io.File;
 import java.util.List;

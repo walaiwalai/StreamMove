@@ -32,6 +32,19 @@ public class VideoFileUtil {
         return Integer.parseInt(name.substring(start + 1, end));
     }
 
+    public static Integer getSnapshotVid(File snapshotFile) {
+        String name = snapshotFile.getName();
+        int end = name.lastIndexOf("#");
+        return Integer.parseInt(name.substring(1, end));
+    }
+
+    public static File getSourceVideoFile(File snapshotFile) {
+        String name = snapshotFile.getName();
+        int end = name.lastIndexOf("#");
+        String sourcePrefix = name.substring(end);
+        return new File(snapshotFile.getParent(), sourcePrefix + ".mp4");
+    }
+
     public static Integer getVideoIndex(File videoFile) {
         String name = videoFile.getName();
         int end = name.lastIndexOf(".");

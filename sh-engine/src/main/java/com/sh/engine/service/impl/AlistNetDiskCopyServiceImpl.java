@@ -1,4 +1,4 @@
-package com.sh.engine.service.upload;
+package com.sh.engine.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -9,8 +9,9 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.LocalCacheManager;
 import com.sh.config.utils.OkHttpClientUtil;
-import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.UploadPlatformEnum;
+import com.sh.engine.model.StreamerInfoHolder;
+import com.sh.engine.service.NetDiskCopyService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -33,7 +34,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Component
-public class AlistNetDiskCopyService implements NetDiskCopyService {
+public class AlistNetDiskCopyServiceImpl implements NetDiskCopyService {
     @Value("${alist.server.host}")
     private String host;
     @Value("${alist.server.port}")

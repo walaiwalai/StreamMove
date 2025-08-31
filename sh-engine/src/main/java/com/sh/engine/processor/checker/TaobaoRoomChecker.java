@@ -12,8 +12,9 @@ import com.sh.config.model.config.InitConfig;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.processor.recorder.Recorder;
-import com.sh.engine.processor.recorder.StreamUrlRecorder;
+import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
+import com.sh.engine.processor.recorder.stream.StreamUrlStreamRecorder;
 import com.sh.engine.util.JavaScriptUtil;
 import com.sh.engine.util.RegexUtil;
 import com.sh.engine.util.UrlUtil;
@@ -40,13 +41,18 @@ public class TaobaoRoomChecker extends AbstractRoomChecker {
     private static final String APP_KEY = "12574478";
 
     @Override
-    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
+    public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
         InitConfig initConfig = ConfigFetcher.getInitConfig();
         if (StringUtils.isBlank(initConfig.getTaobaoCookies()) || !initConfig.getTaobaoCookies().contains("_m_h5_tk")) {
             throw new StreamerRecordException(ErrorEnum.ROOM_CHECK_PARAM_ERROR);
         }
         String streamUrl = getStreamUrl(initConfig.getTaobaoCookies(), streamerConfig.getRoomUrl());
-        return StringUtils.isBlank(streamUrl) ? null : new StreamUrlRecorder(new Date(), getType().getType(), streamUrl);
+        return StringUtils.isBlank(streamUrl) ? null : new StreamUrlStreamRecorder(new Date(), getType().getType(), streamUrl);
+    }
+
+    @Override
+    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
+        return null;
     }
 
     @Override

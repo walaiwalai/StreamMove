@@ -4,9 +4,10 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.YtDlpPlaylistProcessCmd;
 import com.sh.engine.model.ffmpeg.YtDlpVideoMetaProcessCmd;
-import com.sh.engine.processor.recorder.Recorder;
-import com.sh.engine.processor.recorder.StreamLinkRecorder;
-import com.sh.engine.processor.recorder.YtDlpRecorder;
+import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
+import com.sh.engine.processor.recorder.stream.YtDlpStreamRecorder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -28,14 +29,19 @@ import java.util.stream.Collectors;
 public class YoutubeRoomChecker extends AbstractRoomChecker {
 
     @Override
-    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
+    public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             String roomUrl = streamerConfig.getRoomUrl();
             boolean isLiving = checkIsLivingByStreamLink(roomUrl);
-            return isLiving ? new StreamLinkRecorder(new Date(), getType().getType(), roomUrl) : null;
+            return isLiving ? new StreamLinkStreamRecorder(new Date(), getType().getType(), roomUrl) : null;
         } else {
             return recordVod(streamerConfig);
         }
+    }
+
+    @Override
+    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
+        return null;
     }
 
     @Override
@@ -43,7 +49,7 @@ public class YoutubeRoomChecker extends AbstractRoomChecker {
         return StreamChannelTypeEnum.YOUTUBE;
     }
 
-    private Recorder recordVod(StreamerConfig streamerConfig) {
+    private StreamRecorder recordVod(StreamerConfig streamerConfig) {
         // 获取视频列表前N个
         int lastVodCnt = 1;
         YtDlpPlaylistProcessCmd playlistCmd = new YtDlpPlaylistProcessCmd(streamerConfig.getRoomUrl(), lastVodCnt);
@@ -65,7 +71,7 @@ public class YoutubeRoomChecker extends AbstractRoomChecker {
         for (YtDlpVideoMetaProcessCmd.YtDlpVideoMeta videoMeta : videoMetas) {
             Date regDate = new Date(videoMeta.getUploadTimeStamp());
             if (checkVodIsNew(streamerConfig, regDate)) {
-                return new YtDlpRecorder(regDate, getType().getType(), videoMeta.getVideoUrl());
+                return new YtDlpStreamRecorder(regDate, getType().getType(), videoMeta.getVideoUrl());
             }
         }
 

@@ -6,7 +6,7 @@ import com.microsoft.playwright.Page;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.model.video.RemoteSeverVideo;
 import com.sh.config.repo.StreamerRepoService;
-import com.sh.engine.base.StreamerInfoHolder;
+import com.sh.engine.model.StreamerInfoHolder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 

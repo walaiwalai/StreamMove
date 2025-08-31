@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Resource;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 
 /**
  * @Author caiwen
@@ -23,6 +26,8 @@ import javax.annotation.Resource;
 @Controller
 @RequestMapping("/sys")
 public class SysController {
+    public static final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+
     @Resource
     private ConfigFetcher configFetcher;
     @Resource
@@ -36,6 +41,17 @@ public class SysController {
         Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), "sys-refresh"), "token invalid");
         configFetcher.refresh();
         localCacheManager.clearAll();
+
+        // gc一下，减少内存
+        MemoryUsage heapMemoryUsage = memoryMXBean.getHeapMemoryUsage();
+        MemoryUsage nonHeapMemoryUsage = memoryMXBean.getNonHeapMemoryUsage();
+        long start = System.currentTimeMillis();
+        log.info("before heap: {}M, nonHeap: {}", heapMemoryUsage.getUsed() / 1024 / 1024, nonHeapMemoryUsage.getUsed() / 1024 / 1024);
+        System.gc();
+        heapMemoryUsage = memoryMXBean.getHeapMemoryUsage();
+        nonHeapMemoryUsage = memoryMXBean.getNonHeapMemoryUsage();
+        log.info("after heap: {}M, nonHeap: {}, cost: {}ms", heapMemoryUsage.getUsed() / 1024 / 1024, nonHeapMemoryUsage.getUsed() / 1024 / 1024, System.currentTimeMillis() - start);
+
         return "ok";
     }
 

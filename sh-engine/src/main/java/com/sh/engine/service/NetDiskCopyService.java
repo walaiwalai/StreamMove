@@ -1,4 +1,4 @@
-package com.sh.engine.service.upload;
+package com.sh.engine.service;
 
 import com.sh.engine.constant.UploadPlatformEnum;
 

@@ -9,9 +9,10 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.DateUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.processor.recorder.Recorder;
-import com.sh.engine.processor.recorder.StreamLinkRecorder;
-import com.sh.engine.processor.recorder.VodM3u8Recorder;
+import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
+import com.sh.engine.processor.recorder.stream.VodM3U8StreamRecorder;
 import com.sh.engine.util.RegexUtil;
 import com.sh.message.constant.MessageConstant;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +50,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
     private static final String USER_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0";
 
     @Override
-    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
+    public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             return fetchOnlineLivingInfo(streamerConfig);
         } else {
@@ -62,11 +63,16 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
     }
 
     @Override
+    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
+        return null;
+    }
+
+    @Override
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.AFREECA_TV;
     }
 
-    private Recorder fetchCertainTsUploadInfo(StreamerConfig streamerConfig) {
+    private StreamRecorder fetchCertainTsUploadInfo(StreamerConfig streamerConfig) {
         String key = "certain_keys_" + streamerConfig.getName();
         String videoId = null;
         for (String vodUrl : streamerConfig.getCertainVodUrls()) {
@@ -91,10 +97,10 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         extra.put("finishKey", key);
         extra.put("finishField", videoId);
 
-        return new VodM3u8Recorder(date, getType().getType(), curVodUrl, extra);
+        return new VodM3U8StreamRecorder(date, getType().getType(), curVodUrl, extra);
     }
 
-    private Recorder fetchVodInfo(StreamerConfig streamerConfig) {
+    private StreamRecorder fetchVodInfo(StreamerConfig streamerConfig) {
         String roomUrl = streamerConfig.getRoomUrl();
         String bid = RegexUtil.fetchMatchedOne(roomUrl, BID_REGEX);
 
@@ -108,7 +114,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         Long titleNo = curVod.getLong("title_no");
         Date date = DateUtil.covertStr2Date(curVod.getString("reg_date"), DateUtil.YYYY_MM_DD_HH_MM_SS);
         String vodUrl = "https://vod.sooplive.co.kr/player/" + titleNo;
-        return new VodM3u8Recorder(date, getType().getType(), vodUrl);
+        return new VodM3U8StreamRecorder(date, getType().getType(), vodUrl);
     }
 
     private JSONObject fetchCurVodInfo(String videoId) {
@@ -199,7 +205,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
     }
 
 
-    private Recorder fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
+    private StreamRecorder fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
         if (BooleanUtils.isTrue(streamerConfig.isOnlinePushCheck())) {
             // 有些主播过多检测会封IP，通过检测有无开播消息推送，减少服务器检测次数
             if (!checkHasOnlinePushMsg(streamerConfig)) {
@@ -208,7 +214,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         }
         boolean isLiving = checkIsLivingByStreamLink(streamerConfig.getRoomUrl());
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(date, getType().getType(), streamerConfig.getRoomUrl()) : null;
+        return isLiving ? new StreamLinkStreamRecorder(date, getType().getType(), streamerConfig.getRoomUrl()) : null;
     }
 
     private boolean checkHasOnlinePushMsg(StreamerConfig streamerConfig) {

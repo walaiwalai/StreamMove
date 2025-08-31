@@ -10,8 +10,9 @@ import com.sh.config.manager.CacheManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.processor.recorder.Recorder;
-import com.sh.engine.processor.recorder.StreamLinkRecorder;
+import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import com.sh.engine.util.RegexUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
     private static final String VALID_URL_BASE = "(?:https?://)?(?:(?:www|go|m)\\.)?twitch\\.tv/([0-9_a-zA-Z]+)";
 
     @Override
-    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
+    public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             return fetchLivingRecord(streamerConfig);
         } else {
@@ -48,15 +49,20 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         }
     }
 
-    private Recorder fetchLivingRecord(StreamerConfig streamerConfig) {
+    @Override
+    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
+        return null;
+    }
+
+    private StreamRecorder fetchLivingRecord(StreamerConfig streamerConfig) {
         String roomUrl = streamerConfig.getRoomUrl();
         boolean isLiving = checkIsLivingByStreamLink(roomUrl);
 
         Date date = new Date();
-        return isLiving ? new StreamLinkRecorder(date, getType().getType(), roomUrl) : null;
+        return isLiving ? new StreamLinkStreamRecorder(date, getType().getType(), roomUrl) : null;
     }
 
-    private Recorder fetchLatestRecord(StreamerConfig streamerConfig) {
+    private StreamRecorder fetchLatestRecord(StreamerConfig streamerConfig) {
         String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), VALID_URL_BASE);
 
         // 获取最近视频
@@ -75,10 +81,10 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         // 最近视频链接
         String videoUrl = "https://www.twitch.tv/videos/" + videoItem.getId();
 
-        return new StreamLinkRecorder(date, getType().getType(), videoUrl);
+        return new StreamLinkStreamRecorder(date, getType().getType(), videoUrl);
     }
 
-    private Recorder fetchCertainRecords(StreamerConfig streamerConfig) {
+    private StreamRecorder fetchCertainRecords(StreamerConfig streamerConfig) {
         String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), VALID_URL_BASE);
 
         String key = "certain_keys_" + streamerConfig.getName();
@@ -108,7 +114,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         extra.put("finishKey", key);
         extra.put("finishField", videoId);
 
-        return new StreamLinkRecorder(date, getType().getType(), curVodUrl, extra);
+        return new StreamLinkStreamRecorder(date, getType().getType(), curVodUrl, extra);
     }
 
 

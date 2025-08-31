@@ -1,18 +1,14 @@
-package com.sh.engine.model.lol;
+package com.sh.engine.model.highlight.lol;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
-import com.sh.engine.model.highlight.HlScoredInterval;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import static com.sh.engine.constant.RecordConstant.*;
+import static com.sh.engine.constant.RecordConstant.KDA_SEQ_WINDOW_SIZE;
 
 /**
  * @Author caiwen
@@ -20,48 +16,33 @@ import static com.sh.engine.constant.RecordConstant.*;
  **/
 @Slf4j
 public class LolSequenceStatistic {
-    private List<LoLPicData> sequences;
     /**
-     * 潜在的精彩区间
+     * 序列数据
      */
-    private List<HlScoredInterval> topNIntervals;
+    private List<LoLPicData> sequences;
 
-    public LolSequenceStatistic(List<LoLPicData> datas, Integer maxIntervalCount) {
+    public LolSequenceStatistic(List<LoLPicData> datas) {
         this.sequences = datas;
-        findPotentialInterval(maxIntervalCount);
     }
 
-    public List<HlScoredInterval> getTopNIntervals() {
-        return topNIntervals;
+    public void calScore() {
+        fillPotentialInterval();
     }
 
-    private void findPotentialInterval(int topN) {
+    public List<LoLPicData> getSequences() {
+        return sequences;
+    }
+
+    private void fillPotentialInterval() {
         // 1. 补充空值
-        List<LoLPicData> cur = correctSeqBySlideWindow();
+        this.sequences = correctSeqBySlideWindow();
         List<LoLPicData> shifted = Lists.newArrayList(new LoLPicData(-1, -1, -1));
-        shifted.addAll(cur.subList(0, cur.size() - 1));
+        shifted.addAll(this.sequences.subList(0, this.sequences.size() - 1));
 
-        List<Integer> keyIndexes = Lists.newArrayList();
-        List<Float> scoreGains = Lists.newArrayList();
         for (int i = 0; i < sequences.size(); i++) {
-            float scoreGain = calGain(shifted.get(i), cur.get(i));
-            if (scoreGain > 0f) {
-                keyIndexes.add(i);
-                scoreGains.add(scoreGain);
-            }
+            float scoreGain = calGain(shifted.get(i), this.sequences.get(i));
+            sequences.get(i).setScore(scoreGain);
         }
-
-        // 2.找到潜在的区间, 往前找preN个，往后找postN个
-        List<HlScoredInterval> intervals = Lists.newArrayList();
-        for (int i = 0; i < keyIndexes.size(); i++) {
-            int index = keyIndexes.get(i);
-            float score = scoreGains.get(i);
-            HlScoredInterval scoredInterval = new HlScoredInterval(Math.max(0, index - POTENTIAL_INTERVAL_PRE_N), Math.min(index + POTENTIAL_INTERVAL_POST_N, sequences.size() - 1), score);
-            intervals.add(scoredInterval);
-        }
-
-        // 3. 对潜在区间进行合并
-        this.topNIntervals = findTopIntervals(intervals, topN);
     }
 
     private List<LoLPicData> correctSeqBySlideWindow() {
@@ -178,43 +159,5 @@ public class LolSequenceStatistic {
         }
 
         return kadGain + killOrAssistGain;
-    }
-
-    /**
-     * 找出最精彩的前topN个区间
-     *
-     * @param allIntervals 区间
-     * @return 最精彩区间
-     */
-    private List<HlScoredInterval> findTopIntervals(List<HlScoredInterval> allIntervals, int topN) {
-        allIntervals.sort(Comparator.comparingInt(HlScoredInterval::getLeftIndex));
-
-        List<HlScoredInterval> merged = new ArrayList<>();
-        for (int i = 0; i < allIntervals.size(); ++i) {
-            int l = allIntervals.get(i).getLeftIndex();
-            int r = allIntervals.get(i).getRightIndex();
-
-            if (merged.size() == 0 || merged.get(merged.size() - 1).getRightIndex() < l) {
-                merged.add(new HlScoredInterval(l, r, allIntervals.get(i).getScore()));
-            } else {
-                HlScoredInterval interval = merged.get(merged.size() - 1);
-                float score = interval.getScore() + allIntervals.get(i).getScore();
-                int nextR = Math.max(interval.getRightIndex(), r);
-                interval.setRightIndex(nextR);
-                interval.setScore(score);
-            }
-        }
-        log.info("merged intervals: {}", JSON.toJSONString(merged));
-
-        // 找到分数最高的前N个
-        List<HlScoredInterval> topIntervals = merged.stream()
-                .sorted(Comparator.comparingInt(t -> (int) (t.getScore() * (-100f))))
-                .collect(Collectors.toList());
-
-        // 按照时间顺序排列
-        return topIntervals.stream()
-                .limit(topN)
-                .sorted(Comparator.comparingInt(HlScoredInterval::getLeftIndex))
-                .collect(Collectors.toList());
     }
 }

@@ -1,4 +1,4 @@
-package com.sh.engine.model.lol;
+package com.sh.engine.model.highlight.lol;
 
 import com.google.common.collect.Lists;
 import lombok.Data;
@@ -19,7 +19,15 @@ public class LoLPicData {
     private int D;
     private int A;
 
+    /**
+     * 击杀细节
+     */
     private HeroKillOrAssistDetail heroKADetail;
+
+    /**
+     * 当前序列的得分
+     */
+    private float score;
 
     public LoLPicData() {
     }
@@ -32,6 +40,14 @@ public class LoLPicData {
 
     public LoLPicData copy() {
         return new LoLPicData(this.K, this.D, this.A);
+    }
+
+    public float getScore() {
+        return score;
+    }
+
+    public void setScore(float score) {
+        this.score = score;
     }
 
     /**

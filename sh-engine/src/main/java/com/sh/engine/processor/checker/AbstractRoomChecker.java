@@ -3,7 +3,8 @@ package com.sh.engine.processor.checker;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.StreamLinkCheckCmd;
-import com.sh.engine.processor.recorder.Recorder;
+import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import okhttp3.OkHttpClient;
 
 import java.util.Date;
@@ -21,7 +22,15 @@ public abstract class AbstractRoomChecker {
      * @param streamerConfig
      * @return
      */
-    public abstract Recorder getStreamRecorder(StreamerConfig streamerConfig);
+    public abstract StreamRecorder getStreamRecorder(StreamerConfig streamerConfig);
+
+    /**
+     * 获取弹幕录像机
+     *
+     * @param streamerConfig
+     * @return
+     */
+    public abstract DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig);
 
     /**
      * 流接受平台类型

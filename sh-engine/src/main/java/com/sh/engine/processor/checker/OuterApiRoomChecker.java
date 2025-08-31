@@ -6,8 +6,9 @@ import com.google.common.collect.Maps;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.processor.recorder.Recorder;
-import com.sh.engine.processor.recorder.StreamUrlRecorder;
+import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
+import com.sh.engine.processor.recorder.stream.StreamUrlStreamRecorder;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -35,7 +36,7 @@ public class OuterApiRoomChecker extends AbstractRoomChecker {
     private String livePort;
 
     @Override
-    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
+    public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
         MediaType mediaType = MediaType.parse("application/json");
         Map<String, String> params = Maps.newHashMap();
         params.put("url", streamerConfig.getRoomUrl());
@@ -56,7 +57,12 @@ public class OuterApiRoomChecker extends AbstractRoomChecker {
             return null;
         }
         log.info("get stream info success, resp: {}", resp);
-        return new StreamUrlRecorder(new Date(), getType().getType(), respObj.getString("record_url"));
+        return new StreamUrlStreamRecorder(new Date(), getType().getType(), respObj.getString("record_url"));
+    }
+
+    @Override
+    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
+        return null;
     }
 
     @Override

@@ -6,8 +6,9 @@ import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.processor.recorder.Recorder;
-import com.sh.engine.processor.recorder.StreamUrlRecorder;
+import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
+import com.sh.engine.processor.recorder.stream.StreamUrlStreamRecorder;
 import com.sh.engine.util.RegexUtil;
 import com.sh.engine.util.UrlUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +29,7 @@ import java.util.Map;
 @Slf4j
 public class XhsRoomChecker extends AbstractRoomChecker {
     @Override
-    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
+    public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
         String xhsCookies = ConfigFetcher.getInitConfig().getXhsCookies();
         String url = streamerConfig.getRoomUrl();
 
@@ -65,7 +66,12 @@ public class XhsRoomChecker extends AbstractRoomChecker {
         flvUrl = "http://live-source-play.xhscdn.com/live/" + roomId + ".flv";
         String m3u8Url = flvUrl.replace(".flv", ".m3u8");
 
-        return new StreamUrlRecorder(new Date(), getType().getType(), flvUrl);
+        return new StreamUrlStreamRecorder(new Date(), getType().getType(), flvUrl);
+    }
+
+    @Override
+    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
+        return null;
     }
 
     @Override

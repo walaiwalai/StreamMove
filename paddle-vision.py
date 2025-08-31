@@ -1,9 +1,11 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, UploadFile, File
 import cv2
 import fastdeploy as fd
 import os
 import numpy as np
 import re
+import io
+from PIL import Image
 
 app = FastAPI()
 
@@ -31,31 +33,18 @@ params_file = os.path.join(model_path, "inference.pdiparams")
 config_file = os.path.join(model_path, "inference.yml")
 visDetModel = fd.vision.detection.PicoDet(model_file, params_file, config_file)
 
-@app.post('/ocr')
-async def ocr(request: Request):
-    data = await request.json()
-    path = data['path']
-    im = cv2.imread(path)
-
-    try:
-        result = str(ppocr_v3.predict(im))
-    except:
-        print("fuck")
-        result = ""
-
-    text_match = re.search(r'rec text: (\S.+?) rec', result)
-    score_match = re.search(r'score:(\d+\.\d+)', result)
-
-    text = text_match.group(1) if text_match else ""
-    score = score_match.group(1) if score_match else ""
-    res = {'text': text, 'score': score}
-    return res
+def load_image_from_bytes(file_bytes):
+    """从字节流加载图片并转换为cv2格式"""
+    # 读取字节流为PIL Image
+    img = Image.open(io.BytesIO(file_bytes))
+    img_cv2 = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+    return img_cv2
 
 @app.post('/ocrDet')
-async def ocr(request: Request):
-    data = await request.json()
-    path = data['path']
-    im = cv2.imread(path)
+async def ocr_det(image: UploadFile = File(...)):
+    # 读取图片字节流
+    file_bytes = await image.read()
+    im = load_image_from_bytes(file_bytes)
 
     result_list = []
     try:
@@ -74,10 +63,11 @@ async def ocr(request: Request):
     return result_list
 
 @app.post('/lolKillVisDet')
-async def visDet(request: Request):
-    data = await request.json()
-    path = data['path']
-    im = cv2.imread(path)
+async def vis_det(image: UploadFile = File(...)):
+    # 读取图片字节流
+    file_bytes = await image.read()
+    im = load_image_from_bytes(file_bytes)
+
     result = visDetModel.predict(im)
 
     scores = np.array(result.scores)

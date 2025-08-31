@@ -1,15 +1,15 @@
-package com.sh.engine.processor.recorder;
+package com.sh.engine.processor.recorder.stream;
 
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordConstant;
+import com.sh.engine.model.RecordCmdBuilder;
+import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import com.sh.engine.model.ffmpeg.StreamLinkCheckCmd;
-import com.sh.engine.model.record.RecordCmdBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -27,21 +27,21 @@ import java.util.Optional;
  * @Date 2024 09 28 10 12
  **/
 @Slf4j
-public class StreamLinkRecorder extends Recorder {
+public class StreamLinkStreamRecorder extends StreamRecorder {
     private String streamUrl;
 
-    public StreamLinkRecorder(Date regDate, Integer streamChannelType, String streamUrl) {
+    public StreamLinkStreamRecorder(Date regDate, Integer streamChannelType, String streamUrl) {
         super(regDate, streamChannelType, Maps.newHashMap());
         this.streamUrl = streamUrl;
     }
 
-    public StreamLinkRecorder(Date regDate, Integer streamChannelType, String streamUrl, Map<String, String> extraInfo) {
+    public StreamLinkStreamRecorder(Date regDate, Integer streamChannelType, String streamUrl, Map<String, String> extraInfo) {
         super(regDate, streamChannelType, extraInfo);
         this.streamUrl = streamUrl;
     }
 
     @Override
-    public void doRecord(String savePath) {
+    public void start(String savePath) {
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             // 录制在线视频
@@ -106,15 +106,9 @@ public class StreamLinkRecorder extends Recorder {
 
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(cmd);
 
-            // 开启弹幕下载
-            DanmuClient danmuClient = new DanmuClient(savePath, this.streamUrl);
-            danmuClient.init();
-
             // 执行录制，长时间
             rfCmd.execute(24 * 3600L);
 
-            // 弹幕下载结束
-            danmuClient.close();
             if (!rfCmd.isExitNormal()) {
                 log.error("living stream record fail, savePath: {}", savePath);
 //                throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);

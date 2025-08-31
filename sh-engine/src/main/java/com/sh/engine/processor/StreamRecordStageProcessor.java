@@ -6,11 +6,11 @@ import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.stauts.FileStatusModel;
 import com.sh.config.repo.StreamerRepoService;
-import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.model.RecordContext;
-import com.sh.engine.processor.recorder.Recorder;
+import com.sh.engine.model.StreamerInfoHolder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -53,10 +53,10 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         String name = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(name);
         // 是否已经结束录制
-        if (context.getRecorder() == null) {
+        if (context.getStreamRecorder() == null) {
             return;
         }
-        String savePath = genRegPathByRegDate(context.getRecorder().getRegDate(), name);
+        String savePath = genRegPathByRegDate(context.getStreamRecorder().getRegDate(), name);
 
         // 录播达到最大个数限制（直播不拦截）
         Integer maxRecordingCount = ConfigFetcher.getInitConfig().getMaxRecordingCount();
@@ -73,16 +73,22 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         // 2. 录制
         statusManager.addRoomPathStatus(savePath, name);
         try {
+            if (context.getDanmakuRecorder() != null) {
+                context.getDanmakuRecorder().init(savePath);
+            }
             // 录像(长时间)
-            context.getRecorder().doRecord(savePath);
+            context.getStreamRecorder().start(savePath);
         } catch (Exception e) {
             log.error("record error, savePath: {}", savePath, e);
             throw e;
         } finally {
+            if (context.getDanmakuRecorder() != null) {
+                context.getDanmakuRecorder().close();
+            }
             statusManager.deleteRoomPathStatus(name);
         }
         // 3. 后置操作
-        recordPostProcess(context.getRecorder(), streamerConfig);
+        recordPostProcess(context.getStreamRecorder(), streamerConfig);
     }
 
     private void recordPreProcess(StreamerConfig streamerConfig, String recordPath) {
@@ -108,19 +114,19 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         msgSendService.sendText(msg);
     }
 
-    private void recordPostProcess(Recorder recorder, StreamerConfig streamerConfig) {
+    private void recordPostProcess(StreamRecorder streamRecorder, StreamerConfig streamerConfig) {
         // 刷一下临时下载的内存
         String name = streamerConfig.getName();
         if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
-            String finishKey = recorder.getExtraValue("finishKey");
-            String finishField = recorder.getExtraValue("finishField");
+            String finishKey = streamRecorder.getExtraValue("finishKey");
+            String finishField = streamRecorder.getExtraValue("finishField");
             if (StringUtils.isNotBlank(finishKey)) {
                 cacheManager.setHash(finishKey, finishField, "1", 2, TimeUnit.DAYS);
             }
         }
 
         // 更新数据库
-        streamerRepoService.updateLastRecordTime(name, recorder.getRegDate());
+        streamerRepoService.updateLastRecordTime(name, streamRecorder.getRegDate());
 
         // 重新刷一下内存
         configFetcher.refreshStreamer(name);

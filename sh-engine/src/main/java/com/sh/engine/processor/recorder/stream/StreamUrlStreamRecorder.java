@@ -1,11 +1,11 @@
-package com.sh.engine.processor.recorder;
+package com.sh.engine.processor.recorder.stream;
 
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.engine.base.StreamerInfoHolder;
+import com.sh.engine.model.RecordCmdBuilder;
+import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
-import com.sh.engine.model.record.RecordCmdBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
@@ -15,16 +15,16 @@ import java.util.Date;
  * @Date: 2025/1/28
  */
 @Slf4j
-public class StreamUrlRecorder extends Recorder {
+public class StreamUrlStreamRecorder extends StreamRecorder {
     private String streamUrl;
 
-    public StreamUrlRecorder(Date regDate, Integer streamChannelType, String streamUrl) {
+    public StreamUrlStreamRecorder(Date regDate, Integer streamChannelType, String streamUrl) {
         super(regDate, streamChannelType, Maps.newHashMap());
         this.streamUrl = streamUrl;
     }
 
     @Override
-    public void doRecord(String savePath) {
+    public void start(String savePath) {
         recordOnline(savePath);
     }
 

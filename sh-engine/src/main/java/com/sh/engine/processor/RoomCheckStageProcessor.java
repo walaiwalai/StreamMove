@@ -3,13 +3,12 @@ package com.sh.engine.processor;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.engine.base.StreamerInfoHolder;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.RecordContext;
+import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.processor.checker.AbstractRoomChecker;
-import com.sh.engine.processor.recorder.Recorder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -41,28 +40,21 @@ public class RoomCheckStageProcessor extends AbstractStageProcessor {
         String name = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamInfo = ConfigFetcher.getStreamerInfoByName(name);
 
-        // 1. 检查直播间是否开播
-        context.setRecorder(fetchStreamer(streamInfo));
-    }
-
-    /**
-     * 获取视频的录像机
-     *
-     * @param streamerConfig
-     * @return
-     */
-    private Recorder fetchStreamer(StreamerConfig streamerConfig) {
-        StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(streamerConfig.getRoomUrl());
+        StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(streamInfo.getRoomUrl());
         if (channelEnum == null) {
-            log.error("roomUrl not match any existed platform, use outer api, roomUrl: {}", streamerConfig.getRoomUrl());
+            log.error("roomUrl not match any existed platform, use outer api, roomUrl: {}", streamInfo.getRoomUrl());
             channelEnum = StreamChannelTypeEnum.LIVE_RECORD_API;
         }
         AbstractRoomChecker streamerService = streamerServiceMap.get(channelEnum);
         if (streamerService == null) {
             log.error("streamerService is null, type: {}", channelEnum.getDesc());
-            return null;
+            return;
         }
-        return streamerService.getStreamRecorder(streamerConfig);
+
+        // 直播录像机
+        context.setStreamRecorder(streamerService.getStreamRecorder(streamInfo));
+        // 弹幕录像机
+        context.setDanmakuRecorder(streamerService.getDanmakuRecorder(streamInfo));
     }
 
     @Override

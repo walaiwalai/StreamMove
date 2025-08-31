@@ -1,4 +1,4 @@
-package com.sh.engine.model.lol;
+package com.sh.engine.model.highlight.lol;
 
 import com.google.common.collect.Lists;
 

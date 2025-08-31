@@ -1,4 +1,4 @@
-package com.sh.engine.base;
+package com.sh.engine.model;
 
 import lombok.Data;
 

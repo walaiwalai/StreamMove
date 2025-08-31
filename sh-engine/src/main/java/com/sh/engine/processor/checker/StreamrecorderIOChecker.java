@@ -5,8 +5,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.processor.recorder.Recorder;
-import com.sh.engine.processor.recorder.StreamUrlRecorder;
+import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
+import com.sh.engine.processor.recorder.stream.StreamUrlStreamRecorder;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
@@ -39,7 +40,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             .build();
 
     @Override
-    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
+    public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
         String roomUrl = streamerConfig.getRoomUrl();
         String[] split = roomUrl.split("/");
         String targetId = split[split.length - 1];
@@ -86,7 +87,12 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             return null;
         }
         String downloadLink = latestRecord.getJSONArray("sources").getJSONObject(0).getString("downloadlink");
-        return new StreamUrlRecorder(recordedAt, getType().getType(), downloadLink);
+        return new StreamUrlStreamRecorder(recordedAt, getType().getType(), downloadLink);
+    }
+
+    @Override
+    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
+        return null;
     }
 
     @Override
@@ -178,7 +184,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
 
     public static void main(String[] args) throws IOException {
         StreamrecorderIOChecker streamrecorderIOChecker = new StreamrecorderIOChecker();
-        Recorder streamRecorder = streamrecorderIOChecker.getStreamRecorder(StreamerConfig.builder()
+        StreamRecorder streamRecorder = streamrecorderIOChecker.getStreamRecorder(StreamerConfig.builder()
                 .roomUrl("streamercord.io/2081784")
                 .build());
     }

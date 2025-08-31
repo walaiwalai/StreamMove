@@ -2,23 +2,13 @@ package com.sh.message.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.Maps;
-import com.sh.config.manager.CacheManager;
 import com.sh.message.enums.CorpWxEventTypeEnum;
-import com.sh.message.model.wecom.WeComConfig;
 import com.sh.message.model.wecom.CorpWxEventReceiverModel;
 import com.sh.message.model.wecom.aes.AesException;
 import com.sh.message.model.wecom.aes.WXBizMsgCrypt;
-import com.sh.message.service.MessageProcessHandler;
-import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import java.util.Map;
 
 /**
  * @Author caiwen
@@ -31,20 +21,6 @@ public class WeComMsgEventManager {
     private static final String EVENT_MSG_TYPE = "MsgType";
     private static final String EVENT_EVENT = "Event";
     private static final String EVENT_CONTENT = "Content";
-
-    private Map<String, MessageProcessHandler> msgHandlerMap = Maps.newHashMap();
-
-    @Resource
-    private MsgSendService msgSendService;
-
-    @Resource
-    private ApplicationContext applicationContext;
-
-    @PostConstruct
-    private void init() {
-        Map<String, MessageProcessHandler> beansOfType = applicationContext.getBeansOfType(MessageProcessHandler.class);
-        beansOfType.forEach((key, value) -> msgHandlerMap.put(value.getType(), value));
-    }
 
     public String processEvent(JSONObject decrpEventJson) {
         processWxEvent(decrpEventJson);
@@ -74,33 +50,6 @@ public class WeComMsgEventManager {
             return;
         }
         log.info("receive question in corpWx fromUserName: {}, msgContent : {}", fromUserName, msgContent);
-
-        // 后置处理
-        doPostProcess(msgContent);
-    }
-
-    /**
-     * 根据消息进行后置处理
-     * @param msgContent
-     */
-    private void doPostProcess(String msgContent) {
-        if (!StringUtils.startsWith(msgContent, "#")) {
-            msgSendService.sendText("形式是#streamerAdd__{name, roomUrl, recordWhenOnline, lastVodCnt, uploadPlatforms, templateTitle, segMergeCnt}, 其中ALI_DRIVER，BAIDU_PAN， QUARK_PAN");
-            return;
-        }
-        String[] splited = StringUtils.split(msgContent,"__");
-        if (splited.length < 2) {
-            return;
-        }
-        String msgType = splited[0].substring(1);
-        String content = splited[1];
-        for (String type : msgHandlerMap.keySet()) {
-            if (StringUtils.equals(msgType, type)) {
-                msgHandlerMap.get(type).process(content);
-                log.info("post process for: {} success, content: {}", type, content);
-                return;
-            }
-        }
     }
 
     private CorpWxEventTypeEnum extractType(JSONObject decrpEvent) {

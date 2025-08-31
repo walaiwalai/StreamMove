@@ -2,7 +2,7 @@ package com.sh.engine.processor.plugin;
 
 import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.ProcessPluginEnum;
-import com.sh.engine.service.process.VideoMergeService;
+import com.sh.engine.service.VideoMergeService;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;

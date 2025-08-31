@@ -1,7 +1,8 @@
 package com.sh.engine.model;
 
 import com.sh.engine.constant.RecordTaskStateEnum;
-import com.sh.engine.processor.recorder.Recorder;
+import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,5 +25,10 @@ public class RecordContext {
     /**
      * 对应的录像机
      */
-    private Recorder recorder;
+    private StreamRecorder streamRecorder;
+
+    /**
+     * 对应的弹幕机
+     */
+    private DanmakuRecorder danmakuRecorder;
 }

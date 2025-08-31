@@ -1,4 +1,4 @@
-package com.sh.engine.model.record;
+package com.sh.engine.model;
 
 import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;

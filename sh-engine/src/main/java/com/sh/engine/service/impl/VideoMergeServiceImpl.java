@@ -1,4 +1,4 @@
-package com.sh.engine.service.process;
+package com.sh.engine.service.impl;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.file.FileNameUtil;
@@ -9,7 +9,8 @@ import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
 import com.sh.engine.model.ffmpeg.Ts2Mp4ProcessCmd;
 import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
-import com.sh.engine.model.video.VideoInterval;
+import com.sh.engine.model.highlight.VideoInterval;
+import com.sh.engine.service.VideoMergeService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;

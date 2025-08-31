@@ -1,6 +1,5 @@
-package com.sh.engine.model.video;
+package com.sh.engine.model.highlight;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.File;
@@ -10,13 +9,11 @@ import java.io.File;
  * @Date 2025 08 12 23 38
  **/
 @Data
-@AllArgsConstructor
 public class VideoInterval {
     /**
      * 截图的视频
      */
     private File fromVideo;
-
 
     /**
      * 视频开始时间
@@ -27,4 +24,10 @@ public class VideoInterval {
      * 视频结束时间
      */
     private double secondToVideoEnd;
+
+    public VideoInterval(File fromVideo, double secondFromVideoStart, double secondToVideoEnd) {
+        this.fromVideo = fromVideo;
+        this.secondFromVideoStart = secondFromVideoStart;
+        this.secondToVideoEnd = secondToVideoEnd;
+    }
 }

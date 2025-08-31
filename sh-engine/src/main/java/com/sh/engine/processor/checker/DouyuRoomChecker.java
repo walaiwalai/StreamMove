@@ -10,8 +10,9 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.HttpClientUtil;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.processor.recorder.Recorder;
-import com.sh.engine.processor.recorder.StreamUrlRecorder;
+import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.StreamRecorder;
+import com.sh.engine.processor.recorder.stream.StreamUrlStreamRecorder;
 import com.sh.engine.util.JavaScriptUtil;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -100,7 +101,7 @@ public class DouyuRoomChecker extends AbstractRoomChecker {
     }
 
     @Override
-    public Recorder getStreamRecorder(StreamerConfig streamerConfig) {
+    public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
         String rid = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), RID_REGEX);
         if (StringUtils.isBlank(rid)) {
             rid = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), DIGIT_REGEX);
@@ -130,11 +131,16 @@ public class DouyuRoomChecker extends AbstractRoomChecker {
             String flvStr = fetchStreamData(rid, rate);
             JSONObject flvObj = JSONObject.parseObject(flvStr);
             String streamUrl = flvObj.getJSONObject("data").getString("rtmp_url") + "/" + flvObj.getJSONObject("data").getString("rtmp_live");
-            return new StreamUrlRecorder(new Date(), getType().getType(), streamUrl);
+            return new StreamUrlStreamRecorder(new Date(), getType().getType(), streamUrl);
         } else {
             // 没有直播
             return null;
         }
+    }
+
+    @Override
+    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
+        return null;
     }
 
     @Override
@@ -144,7 +150,7 @@ public class DouyuRoomChecker extends AbstractRoomChecker {
 
     public static void main(String[] args) {
         DouyuRoomChecker douyuRoomChecker = new DouyuRoomChecker();
-        Recorder streamRecorder = douyuRoomChecker.getStreamRecorder(StreamerConfig.builder().roomUrl("https://www.douyu.com/664668").build());
+        StreamRecorder streamRecorder = douyuRoomChecker.getStreamRecorder(StreamerConfig.builder().roomUrl("https://www.douyu.com/664668").build());
         System.out.println(streamRecorder);
     }
 }
