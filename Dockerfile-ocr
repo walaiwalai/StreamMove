@@ -1,7 +1,5 @@
-# 使用 Python 3.10 基础镜像（基于 Debian Trixie）
 FROM python:3.10
 
-# 设置工作目录
 WORKDIR /app
 
 # 复制 Python 脚本和模型到容器中
@@ -26,9 +24,9 @@ RUN pip install --no-cache-dir \
     uvicorn \
     opencv-python \
     fastdeploy-python \
+    pillow \
     -f https://www.paddlepaddle.org.cn/whl/fastdeploy.html
 
 EXPOSE 5000
 
-# 运行应用（保持不变，-u 确保日志实时输出）
 CMD ["python", "-u", "paddle-vision.py"]
