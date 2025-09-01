@@ -5,6 +5,7 @@ package com.sh.engine.model.buffer;
  * @Date 2025 08 30 10 01
  **/
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 
@@ -94,17 +95,20 @@ public class GenericCsvBuffer<T extends CsvItem> {
      * 将缓冲区数据写入文件
      */
     private void flush() {
-        try {
-            for (T item : items) {
+        for (T item : items) {
+            try {
                 writer.write(item.genLine() + "\n");
+            } catch (Exception e) {
             }
-            writer.flush();
-            totalCnt += items.size();
-            items.clear();
-            log.info("Flushed {} items, total: {}", batchSize, totalCnt);
-        } catch (IOException e) {
-            log.error("CSV file flush fail, file: {}", savePath, e);
         }
+        try {
+            writer.flush();
+        } catch (Exception e) {
+            log.info("Flushed error, items: {}", JSON.toJSONString(items));
+        }
+        totalCnt += items.size();
+        items.clear();
+        log.info("Flushed {} items, total: {}", batchSize, totalCnt);
     }
 
 }
