@@ -53,7 +53,7 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     @Override
     public void close() {
         if (this.client != null) {
-            this.client.disconnect();
+            this.client.destroy();
         }
 
         if (this.buffer != null) {
