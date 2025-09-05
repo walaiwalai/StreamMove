@@ -8,6 +8,7 @@ import tech.ordinaryroad.live.chat.client.bilibili.config.BilibiliLiveChatClient
 import tech.ordinaryroad.live.chat.client.bilibili.listener.IBilibiliMsgListener;
 import tech.ordinaryroad.live.chat.client.bilibili.netty.handler.BilibiliBinaryFrameHandler;
 import tech.ordinaryroad.live.chat.client.codec.bilibili.msg.DanmuMsgMsg;
+import tech.ordinaryroad.live.chat.client.codec.douyin.constant.DouyinGiftCountCalculationTimeEnum;
 import tech.ordinaryroad.live.chat.client.codec.douyin.msg.DouyinDanmuMsg;
 import tech.ordinaryroad.live.chat.client.commons.client.BaseLiveChatClient;
 import tech.ordinaryroad.live.chat.client.douyin.client.DouyinLiveChatClient;
@@ -98,6 +99,7 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     private BaseLiveChatClient getDouyinReceiver(String roomId) {
         DouyinLiveChatClientConfig config = DouyinLiveChatClientConfig.builder()
                 .roomId(Long.valueOf(roomId))
+                .giftCountCalculationTime(DouyinGiftCountCalculationTimeEnum.COMBO_END)
                 .build();
         DouyinLiveChatClient douyinLiveChatClient = new DouyinLiveChatClient(config, new IDouyinMsgListener() {
             @Override

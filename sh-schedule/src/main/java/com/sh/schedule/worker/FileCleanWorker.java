@@ -29,7 +29,7 @@ public class FileCleanWorker extends ProcessWorker {
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {
-        gc();
+//        gc();
         clear();
     }
 
