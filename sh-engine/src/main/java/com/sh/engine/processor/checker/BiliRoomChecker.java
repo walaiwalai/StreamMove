@@ -3,7 +3,6 @@ package com.sh.engine.processor.checker;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
-import com.sh.engine.processor.recorder.danmu.OrdinaryroadDamakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +24,8 @@ public class BiliRoomChecker extends AbstractRoomChecker {
 
     @Override
     public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
-        return new OrdinaryroadDamakuRecorder(streamerConfig.getRoomUrl());
+//        return new OrdinaryroadDamakuRecorder(streamerConfig.getRoomUrl());
+        return null;
     }
 
     @Override
