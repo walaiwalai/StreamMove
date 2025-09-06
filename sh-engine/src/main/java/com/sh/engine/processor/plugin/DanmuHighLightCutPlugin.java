@@ -72,7 +72,7 @@ public class DanmuHighLightCutPlugin implements VideoProcessPlugin {
 
         // 1. 读取弹幕文件
         List<DanmakuItem> danmakuItems = CsvUtil.readCsvItems(new File(recordPath, "danmu.csv").getAbsolutePath(), DanmakuItem.class);
-//        Collections.sort(danmakuItems);
+        danmakuItems = danmakuItems.stream().filter(item -> item != null && item.getTimestamp() != null).collect(Collectors.toList());
 
         // 2. 读取所有MP4文件列表
         List<File> videos = FileUtils.listFiles(new File(recordPath), new String[]{"mp4"}, false)
