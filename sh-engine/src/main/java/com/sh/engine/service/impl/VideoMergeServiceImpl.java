@@ -36,10 +36,7 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class VideoMergeServiceImpl implements VideoMergeService {
-    /**
-     * 淡出时间（s）
-     */
-    private static final int FADE_DURATION = 1;
+    private static final int COPY_RETRY = 5;
 
     @Override
     public boolean concatWithSameVideo(List<String> mergedFps, File targetVideo) {
@@ -114,20 +111,34 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
             // copy文件
             File targetFile = new File(fromVideo.getParent(), FileNameUtil.getPrefix(fromVideo) + ".mp4");
-            try {
-                FileUtils.copyFile(toMp4File, targetFile);
-            } catch (IOException e) {
-                log.error("copy file fail, from: {}, to: {}", toMp4File.getAbsolutePath(), targetFile.getAbsolutePath(), e);
-                return false;
+            boolean copySuccess = false;
+            for (int i = 0; i < COPY_RETRY; i++) {
+                if (copySuccess) {
+                    break;
+                }
+                try {
+                    // 清空目标文件
+                    FileUtils.deleteQuietly(targetFile);
+                    // 执行拷贝
+                    FileUtils.copyFile(toMp4File, targetFile);
+                    copySuccess = true;
+                } catch (IOException e) {
+                    log.error("copy file fail, from: {}, to: {}, retry: {}/{}", toMp4File.getAbsolutePath(), targetFile.getAbsolutePath(), i + 1, COPY_RETRY, e);
+                }
             }
+
             // 删除临时文件
             FileUtils.deleteQuietly(tmpDir);
+            if (!copySuccess) {
+                log.error("fuck! copy file fail, from: {}, to: {}", toMp4File.getAbsolutePath(), targetFile.getAbsolutePath());
+            }
+            return copySuccess;
         } else {
             File toMp4File = new File(fromVideo.getParent(), FileNameUtil.getPrefix(fromVideo) + ".mp4");
             Ts2Mp4ProcessCmd ts2Mp4ProcessCmd = new Ts2Mp4ProcessCmd(fromVideo, toMp4File);
             ts2Mp4ProcessCmd.execute(4 * 3600L);
+            return true;
         }
-        return true;
     }
 
     private File saveMergeFileList(List<String> mergedFileNames, File targetVideo) {

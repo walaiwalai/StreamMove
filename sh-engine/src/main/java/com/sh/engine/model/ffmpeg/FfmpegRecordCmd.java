@@ -18,6 +18,7 @@ public class FfmpegRecordCmd extends AbstractCmd {
 
     @Override
     protected void processErrorLine(String line) {
+        log.error("FFMPEG>>ERROR {}", line);
     }
 
     public void execute(long timeoutSeconds) {
