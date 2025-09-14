@@ -20,7 +20,7 @@ import com.sh.engine.model.ffmpeg.VideoDurationDetectCmd;
 import com.sh.engine.model.highlight.SnapshotVideoInterval;
 import com.sh.engine.model.highlight.VideoInterval;
 import com.sh.engine.model.highlight.lol.LoLPicData;
-import com.sh.engine.model.highlight.lol.LolSequenceStatistic;
+import com.sh.engine.model.highlight.lol.LolSequenceScorer;
 import com.sh.engine.service.VideoMergeService;
 import com.sh.engine.util.RegexUtil;
 import com.sh.message.service.MsgSendService;
@@ -119,10 +119,10 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         }
 
         // 3. ocr并对每个序列进行打分
-        List<LoLPicData> datas = parseOCRResult(snapshotFiles, recordPath);
+        List<LoLPicData> sequence = parseOCRResult(snapshotFiles, recordPath);
 
         // 4.找出关键的区间
-        List<SnapshotVideoInterval> keyIntervals = buildKeyIntervals(snapshotFiles, datas);
+        List<SnapshotVideoInterval> keyIntervals = buildKeyIntervals(snapshotFiles, sequence);
 
         // 5. 找出精彩片段
         List<SnapshotVideoInterval> merged = mergeInterval(keyIntervals);
@@ -182,11 +182,11 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
     /**
      * 获取视频点（有序的）
      *
-     * @param datas 截图文件
-     * @param datas 解析数据
+     * @param snapshotFiles 截图文件
+     * @param sequence      解析数据
      * @return 有序的视频点
      */
-    private List<SnapshotVideoInterval> buildKeyIntervals(List<File> snapshotFiles, List<LoLPicData> datas) {
+    private List<SnapshotVideoInterval> buildKeyIntervals(List<File> snapshotFiles, List<LoLPicData> sequence) {
         // 来源视频
         List<File> videos = snapshotFiles.stream().map(VideoFileUtil::getSourceVideoFile)
                 .distinct().collect(Collectors.toList());
@@ -204,12 +204,12 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         int heapSize = TOP_N * videos.size();
         PriorityQueue<SnapshotVideoInterval> minHeap = new PriorityQueue<>(
                 heapSize,
-                Comparator.comparingDouble(SnapshotVideoInterval::getScore)
+                Comparator.comparingDouble(SnapshotVideoInterval::getScore).reversed()
         );
         for (int i = 0; i < snapshotFiles.size(); i++) {
             File shotPic = snapshotFiles.get(i);
-            float score = datas.get(i).getScore();
-            Integer snapIndex = VideoFileUtil.getSnapshotIndex(shotPic);
+            float score = sequence.get(i).getScore();
+            int snapIndex = VideoFileUtil.getSnapshotIndex(shotPic);
             String sourceFileName = VideoFileUtil.getSnapshotSourceFileName(shotPic);
 
             File fromVideo = videoFileMap.get(sourceFileName);
@@ -428,10 +428,8 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         }
 
         // 分析序列，并打分
-        LolSequenceStatistic statistic = new LolSequenceStatistic(res);
-        statistic.calScore();
-
-        return statistic.getSequences();
+        LolSequenceScorer scorer = new LolSequenceScorer(res);
+        return scorer.getSequences();
     }
 
 

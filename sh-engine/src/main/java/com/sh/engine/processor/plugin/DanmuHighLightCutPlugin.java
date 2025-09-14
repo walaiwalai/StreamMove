@@ -132,7 +132,7 @@ public class DanmuHighLightCutPlugin implements VideoProcessPlugin {
         int heapSize = TOP_N * videos.size();
         PriorityQueue<DamakuVideoInterval> minHeap = new PriorityQueue<>(
                 heapSize,
-                Comparator.comparingDouble(DamakuVideoInterval::getScore)
+                Comparator.comparingDouble(DamakuVideoInterval::getScore).reversed()
         );
         for (File video : videos) {
             String prefix = FileUtil.getPrefix(video);

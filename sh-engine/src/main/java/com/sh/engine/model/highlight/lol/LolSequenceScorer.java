@@ -15,25 +15,22 @@ import static com.sh.engine.constant.RecordConstant.KDA_SEQ_WINDOW_SIZE;
  * @Date 2024 01 14 10 04
  **/
 @Slf4j
-public class LolSequenceStatistic {
+public class LolSequenceScorer {
     /**
      * 序列数据
      */
     private List<LoLPicData> sequences;
 
-    public LolSequenceStatistic(List<LoLPicData> datas) {
-        this.sequences = datas;
-    }
-
-    public void calScore() {
-        fillPotentialInterval();
+    public LolSequenceScorer(List<LoLPicData> sequences) {
+        this.sequences = sequences;
+        score();
     }
 
     public List<LoLPicData> getSequences() {
         return sequences;
     }
 
-    private void fillPotentialInterval() {
+    private void score() {
         // 1. 补充空值
         this.sequences = correctSeqBySlideWindow();
         List<LoLPicData> shifted = Lists.newArrayList(new LoLPicData(-1, -1, -1));

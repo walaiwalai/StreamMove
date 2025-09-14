@@ -53,7 +53,6 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
                 if (EnvUtil.isProd()) {
                     FileUtils.deleteQuietly(tsFile);
                 }
-                msgSendService.sendText("ts文件转换成MP4成功！路径为：" + tsFile.getAbsolutePath());
             } else {
                 msgSendService.sendText("ts文件转换成MP4失败！路径为：" + tsFile.getAbsolutePath());
             }
