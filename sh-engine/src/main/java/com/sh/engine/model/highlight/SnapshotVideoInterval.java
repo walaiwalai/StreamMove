@@ -43,13 +43,12 @@ public class SnapshotVideoInterval extends VideoInterval implements Comparable<S
         }
 
         // 创建合并后的区间，分数为两个区间分数之和
-        SnapshotVideoInterval mergedInterval = new SnapshotVideoInterval(
+        return new SnapshotVideoInterval(
                 this.getFromVideo(),
                 Math.min(this.getSecondFromVideoStart(), other.getSecondFromVideoStart()),
                 Math.max(this.getSecondToVideoEnd(), other.getSecondToVideoEnd()),
                 this.score + other.getScore()
         );
-        return mergedInterval;
     }
 
     @Override

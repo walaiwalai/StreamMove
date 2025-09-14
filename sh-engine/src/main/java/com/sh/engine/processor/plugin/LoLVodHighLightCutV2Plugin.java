@@ -156,13 +156,13 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
             intervals.sort(Comparator.comparingDouble(SnapshotVideoInterval::getSecondFromVideoStart));
 
             List<SnapshotVideoInterval> merged = new ArrayList<>();
-            for (int i = 0; i < intervals.size(); ++i) {
-                double startSec = intervals.get(i).getSecondFromVideoStart();
+            for (SnapshotVideoInterval vInterval : intervals) {
+                double startSec = vInterval.getSecondFromVideoStart();
                 if (merged.size() == 0 || merged.get(merged.size() - 1).getSecondToVideoEnd() < startSec) {
-                    merged.add(intervals.get(i).copy());
+                    merged.add(vInterval.copy());
                 } else {
                     SnapshotVideoInterval interval = merged.get(merged.size() - 1);
-                    merged.set(merged.size() - 1, interval.merge(intervals.get(i)));
+                    merged.set(merged.size() - 1, interval.merge(vInterval));
                 }
             }
             res.addAll(merged);
