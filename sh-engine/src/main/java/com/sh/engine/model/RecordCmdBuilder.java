@@ -59,7 +59,7 @@ public class RecordCmdBuilder {
                 .stream()
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
-                .orElse(1);
+                .orElse(0) + 1;
         File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME_V2);
 
         List<String> streamLinkParams = Lists.newArrayList(
@@ -106,7 +106,7 @@ public class RecordCmdBuilder {
                 .stream()
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
-                .orElse(1);
+                .orElse(0) + 1;
         File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME_V2);
 
         ArrayList<String> streamUrls = Lists.newArrayList("\"" + streamUrl + "\"");
