@@ -27,7 +27,8 @@ public class StreamInitListener implements ApplicationListener<ApplicationReadyE
 
     private void printInitInfo() {
         boolean isMounted = EnvUtil.isStorageMounted();
-        log.info("init system success, isMounted: {}", isMounted);
+        boolean isProd = EnvUtil.isProd();
+        log.info("init system success, isMounted: {}, isProd: {}", isMounted, isProd);
     }
 
     private void initUploader() {

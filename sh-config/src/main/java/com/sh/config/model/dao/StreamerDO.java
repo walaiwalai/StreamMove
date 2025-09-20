@@ -53,11 +53,6 @@ public class StreamerDO {
     private Integer lastVodCnt;
 
     /**
-     * 单个视频最大合并大小（M）
-     */
-    private int maxMergeSize;
-
-    /**
      * 录制模式
      * t_3600表示按照时间间隔录制，一个视频3600秒
      * s_2048表示按照视频大小录制，一个视频2048M

@@ -1,4 +1,4 @@
-package com.sh.config.model.stauts;
+package com.sh.config.model.storage;
 
 import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Maps;

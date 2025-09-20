@@ -37,6 +37,11 @@ public class StreamerExtraDO {
     @Builder
     public static class BiliUploadInfoDO {
         /**
+         * 指定的上传b站cookies
+         */
+        private String certainBiliCookies;
+
+        /**
          * 来源
          */
         private String source;

@@ -25,6 +25,13 @@ public class StreamerConfig {
     private String name;
 
     /**
+     * 过期时间
+     */
+    private Date expireTime;
+
+
+    // -------------------------------视频录制相关--------------------------------
+    /**
      * 直播间地址
      */
     private String roomUrl;
@@ -48,19 +55,71 @@ public class StreamerConfig {
     private Date lastRecordTime;
 
     /**
-     * 过期时间
+     * 录制模式
+     * t_3600表示按照时间间隔录制，一个视频3600
+     * s_2048表示按照视频大小录制，一个视频2048
      */
-    private Date expireTime;
+    private String recordMode;
 
+    /**
+     * 针对录制录像的特定链接
+     */
+    private List<String> certainVodUrls;
+
+    /**
+     * 是否只要音频
+     */
+    private boolean onlyAudio;
+
+    /**
+     * 录制质量
+     * 0表示最好, 依次递减
+     */
+    private Integer recordQuality;
+
+    /**
+     * 当前流量（G）
+     */
+    private Float curTrafficGB;
+
+    /**
+     * 最大流量（G）
+     */
+    private Float maxTrafficGB;
+
+    // -------------------------------视频录制结尾--------------------------------
+
+
+
+
+
+    // -------------------------------视频处理相关--------------------------------
     /**
      * 视频处理插件
      */
     private List<String> videoPlugins;
 
     /**
+     * b站投稿开片动画
+     */
+    private List<String> biliOpeningAnimations;
+    // -------------------------------视频处理结尾--------------------------------
+
+
+
+
+
+
+    // -----------------------------------视频作品上传相关----------------------------------------
+    /**
      * 视频上传平台
      */
     private List<String> uploadPlatforms;
+
+    /**
+     * 指定的b站上传cookies
+     */
+    private String certainBiliCookies;
 
     /**
      * 视频标题模板
@@ -78,28 +137,6 @@ public class StreamerConfig {
     private List<String> tags;
 
     /**
-     * 一个视频分片大小（M）
-     */
-    private Integer maxMergeSize;
-
-    /**
-     * 录制模式
-     * t_3600表示按照时间间隔录制，一个视频3600
-     * s_2048表示按照视频大小录制，一个视频2048
-     */
-    private String recordMode;
-
-    /**
-     * 当前流量（G）
-     */
-    private Float curTrafficGB;
-
-    /**
-     * 最大流量（G）
-     */
-    private Float maxTrafficGB;
-
-    /**
      * 视频封面
      */
     private String coverFilePath;
@@ -115,33 +152,12 @@ public class StreamerConfig {
     private Integer tid;
 
     /**
-     * b站投稿封面
+     * 投稿封面
      */
     private String cover;
-
-    /**
-     * b站投稿开片动画
-     */
-    private List<String> biliOpeningAnimations;
 
     /**
      * 抖音投稿相关
      */
     private String location;
-
-    /**
-     * 针对录制录像的特定链接
-     */
-    private List<String> certainVodUrls;
-
-    /**
-     * 是否只要音频
-     */
-    private boolean onlyAudio;
-
-    /**
-     * 录制质量
-     * 0表示最好, 依次递减
-     */
-    private Integer recordQuality;
 }

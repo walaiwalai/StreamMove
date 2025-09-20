@@ -14,7 +14,6 @@
         <result column="record_type" property="recordType"/>
         <result column="last_record_time" property="lastRecordTime"/>
         <result column="expire_time" property="expireTime"/>
-        <result column="max_merge_size" property="maxMergeSize"/>
         <result column="record_mode" property="recordMode"/>
         <result column="cur_traffic_gb" property="curTrafficGB"/>
         <result column="max_traffic_gb" property="maxTrafficGB"/>

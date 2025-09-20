@@ -1,9 +1,10 @@
-package com.sh.config.model.video;
+package com.sh.engine.model.video;
 
 import lombok.Data;
 
 /**
  * 已经上传到服务器的视频对象
+ *
  * @author caiWen
  * @date 2023/1/26 9:25
  */
@@ -22,7 +23,7 @@ public class RemoteSeverVideo {
     public RemoteSeverVideo() {
     }
 
-    public RemoteSeverVideo( String serverFileName, String localFilePath) {
+    public RemoteSeverVideo(String serverFileName, String localFilePath) {
         this.serverFileName = serverFileName;
         this.localFilePath = localFilePath;
     }

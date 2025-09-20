@@ -25,21 +25,7 @@ public class ExecutorPoolUtil {
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
 
-    private static final ExecutorService snapshotPool = new ThreadPoolExecutor(
-            CORE_COUNT * 2,
-            CORE_COUNT * 2,
-            600,
-            TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(40960),
-            new ThreadFactoryBuilder().setNameFormat("snapshot-thread-%d").build(),
-            new ThreadPoolExecutor.CallerRunsPolicy()
-    );
-
     public static ExecutorService getUploadPool() {
         return uploadPool;
-    }
-
-    public static ExecutorService getSnapshotPool() {
-        return snapshotPool;
     }
 }

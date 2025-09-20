@@ -3,11 +3,9 @@ package com.sh.engine.processor.checker;
 import cn.hutool.crypto.digest.MD5;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.ImmutableMap;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.InitConfig;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.config.utils.HttpClientUtil;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
@@ -47,8 +45,10 @@ public class DouyuRoomChecker extends AbstractRoomChecker {
 
     private String fetchStreamData(String rid, String rate) {
         String did = "10000000000000000000000000003306";
-        String url = "https://www.douyu.com/" + rid;
-        String resp = HttpClientUtil.sendGet(url, null, null, false);
+        Request.Builder requestBuilder = new Request.Builder()
+                .url("https://www.douyu.com/" + rid)
+                .get();
+        String resp = OkHttpClientUtil.execute(requestBuilder.build());
         String jsStr = RegexUtil.fetchMatchedOne(resp, "(vdwdae325w_64we[\\s\\S]*function ub98484234[\\s\\S]*?)function");
         String func = jsStr.replaceAll("eval.*?;}", "strc;}");
         String funcStr = JavaScriptUtil.execJsScript(func, "ub98484234");
@@ -111,9 +111,11 @@ public class DouyuRoomChecker extends AbstractRoomChecker {
             return null;
         }
 
-        String url = "https://m.douyu.com/" + rid;
-        Map<String, String> headers = ImmutableMap.of("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0");
-        String resp1 = HttpClientUtil.sendGet(url, headers, null, false);
+        Request.Builder requestBuilder = new Request.Builder()
+                .url("https://m.douyu.com/" + rid)
+                .get()
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0");
+        String resp1 = OkHttpClientUtil.execute(requestBuilder.build());
 
         String jsonStr = RegexUtil.fetchMatchedOne(resp1, "<script id=\"vike_pageContext\" type=\"application/json\">(.*?)</script>");
         JSONObject roomInfoObj = JSON.parseObject(jsonStr);

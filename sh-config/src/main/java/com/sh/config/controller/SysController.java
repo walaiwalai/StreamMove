@@ -59,7 +59,6 @@ public class SysController {
     @ResponseBody
     public String getStatus(@RequestBody JSONObject requestBody) {
         Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), "sys-refresh"), "token invalid");
-        String info = statusManager.printInfo();
-        return info;
+        return statusManager.printInfo();
     }
 }

@@ -119,6 +119,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
                 config.setTid(biliUploadInfo.getTid());
                 config.setCover(biliUploadInfo.getCover());
                 config.setBiliOpeningAnimations(biliUploadInfo.getOpeningAnimations());
+                config.setCertainBiliCookies(biliUploadInfo.getCertainBiliCookies());
             }
 
             DouyinUploadInfoDO douyinUploadInfo = streamerExtraDO.getDouyinUploadInfo();

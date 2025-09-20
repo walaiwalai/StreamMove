@@ -56,7 +56,7 @@ public class UploaderFactory {
     }
 
 
-    static class BiliMetaDataBuilder implements MetaDataBuilder {
+    public static class BiliMetaDataBuilder implements MetaDataBuilder {
         @Override
         public WorkMetaData buildMetaData(StreamerConfig streamerConfig, String recordPath) {
             BiliWorkMetaData metaData = new BiliWorkMetaData();
@@ -72,7 +72,7 @@ public class UploaderFactory {
         }
     }
 
-    static class DouyinMetaDataBuilder implements MetaDataBuilder {
+    public static class DouyinMetaDataBuilder implements MetaDataBuilder {
         @Override
         public WorkMetaData buildMetaData(StreamerConfig streamerConfig, String recordPath) {
             DouyinWorkMetaData metaData = new DouyinWorkMetaData();
@@ -85,7 +85,7 @@ public class UploaderFactory {
         }
     }
 
-    static class WechatMetaDataBuilder implements MetaDataBuilder {
+    public static class WechatMetaDataBuilder implements MetaDataBuilder {
         @Override
         public WorkMetaData buildMetaData(StreamerConfig streamerConfig, String recordPath) {
             WechatVideoMetaData metaData = new WechatVideoMetaData();

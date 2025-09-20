@@ -4,7 +4,7 @@ import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.config.model.stauts.FileStatusModel;
+import com.sh.config.model.storage.FileStatusModel;
 import com.sh.config.repo.StreamerRepoService;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
