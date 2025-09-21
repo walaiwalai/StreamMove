@@ -60,43 +60,57 @@ spring.redis.host=localhost
 spring.redis.port=6379
 spring.redis.password=123456
 spring.redis.database=0
-# mysql配置（根据自身的mysql配置调整）
+
+# mysql配置
 spring.datasource.url=jdbc:mysql://localhost/stream_move?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
 spring.datasource.username=root
 spring.datasource.password=123456
-# alist服务配置（默认即可）
+
+# ocr相关服务
+ocr.server.host=127.0.0.1
+ocr.server.port=5000
+ocr.server.token=xxx
+
+# alist网盘服务
 alist.server.host=alist
 alist.server.username=admin
 alist.server.password=123456
 alist.server.port=5244
-# ocr服务配置（默认即可）
-ocr.server.host=stream-ocr
-ocr.server.port=5000
-# 企业微信的webhook的secret，用于各种消息通知
-wecom.webhook.secret=
-# 环境标识，默认即可
+
+# 企业微信的配置
+wecom.corp.id=wwxx
+wecom.agent.id=1000000
+wecom.agent.secret=xx
+wecom.event.token=xx
+wecom.event.encoding-aes-key=xx
+wecom.webhook.secret=xx
+message.receive.secret=xxx
+
+# 系统表示
 system.env.flag=default
+
+# 是否是挂载存储
+system.storage.mounted=false
 ```
 
 填写init.json配置：
 
 ```json
 {
-  "roomCheckCron": "0/15 * * * * ?",
-  "fileCleanCron": "0 3 0 * * ?",
+  "roomCheckCron": "20 2/5 * * * ?",
+  "fileCleanCron": "0 5/15 * * * ?",
   "configRefreshCron": "0 0/30 * * * ?",
-  "videoSavePath": "/home/admin/stream/download",
-  "accountSavePath": "/home/admin/stream/account",
-  "videoPartLimitSize": 10,
-  "twitchAuthorization": "${twitch的authorization}",
-  "xhsCookies": "${小红书的cookies}",
-  "youtubeCookies": "${youtube的cookies}",
-  "soopliveCookies": "${sooplive网站的cookies}",
-  "soopUserName": "${sooplive网站的用户名}",
-  "soopPassword": "${sooplive网站的密码}",
-  "biliCookies": "${哔哩哔哩网页端的cookies}",
-  "accessToken": "${哔哩哔哩投稿工具客户端的accessToken}",
-  "mid": "${哔哩哔哩投稿工具客户端的mid}"
+  "maxRecordingCount": 2,
+  "videoPartLimitSize": 100,
+
+  "biliCookies": "{b站网页端cookies}",
+  "soopUserName": "{soop账号登录用户名}",
+  "soopPassword": "{soop账号登录密码}",
+  "twitchAuthorization": "{twitch的授权信息, 在请求头中}",
+  "taobaoCookies": "{淘宝的ookies}",
+  "xhsCookies": "{小红书cookies}",
+  "douyuCookies": "{斗鱼cookies}",
+  "kuaishouCookies": "{快手cookies}"
 }
 ```
 
@@ -105,8 +119,6 @@ system.env.flag=default
 - **roomCheckCron**     必填，主播是否在线的检测corn表达式，最好不要太频繁
 - **fileCleanCron**     必填，针对上传完的视频进行定时清理的cron表达式
 - **configRefreshCron** 必填，刷新从数据库刷新主播配置的cron表达式
-- **videoSavePath**     必填，视频下载目录
-- **accountSavePath**   必填，采用playwright模拟登录cookies信息保存的文件
 - **videoPartLimitSize** 非必填，上传单个视频的最小大小（M）,默认是0
 - **maxRecordingCount**  非必填，同时最大的录播主播个数，默认2
 
@@ -122,6 +134,10 @@ system.env.flag=default
 
 - **youtubeCookies**：youtube的cookies（录制youtube直播最好有）
 
+录制淘宝直播相关：
+
+- **taobaoCookies**：淘宝的cookies（录制taobaoCookies直播必须有）
+
 录制Soop（原来的AfreecaTV）相关：
 
 - **soopCookies**：Soop的cookies（录制Soop直播最好有）
@@ -132,17 +148,14 @@ system.env.flag=default
 
 - **biliCookies**      B站网页端的cookies值
 
-上传B站（客户端端）相关：
-
-- **accessToken**      B站客户端上传的accessToken
-- **mid**              B站上传的身份Id
-
 ### 3. 数据库配置
 
 执行init/init-sql.sql创建录播信息表， 字段解释
 
+- name：主播名称
+- room_url：直播间地址
+- record_type：录制类型, vod为录像，living为直播
 - template_title：视频标题模板，支持名称和时间占位符，如：【${name}直播回放】 ${time}
-- last_vod_cnt：需要录播的历史录像个数，在支持vod的下载的直播生效
 - upload_platforms：上传的平台名称（多平台","分割）
     - BILI_CLIENT：B站客户端上传
     - BILI_WEB：B站网页端上传
@@ -154,8 +167,8 @@ system.env.flag=default
 - process_plugins：视频处理插件
     - LOL_HL_VOD_CUT: 英雄联盟直播精彩自动剪辑（效果还行吧...）
 - tags：视频标签，支持多个，用逗号隔开
-- max_merge_size：有些网盘上传限制单个文件大小，所以这边限制单个文件的最大大小
 - env：环境标识，默认default
+- record_mode：按大小/时间录制视频，t表示时间，s表示大小，如t_3600表示单个录制视频时长1小时，s_4094表示单个录制视频大小4G
 
 ### 4. alist配置
 
@@ -165,6 +178,7 @@ system.env.flag=default
 - 阿里云盘：/阿里云盘
 - 夸克云盘：/夸克云盘
 - UC网盘：/UC网盘
+- 天翼云盘：/天翼云盘
 
 ### 4. 本地编译
 
@@ -180,12 +194,6 @@ docker build -t stream-move:latest -f Dockerfile .
 # 启动docker
 docker-compose up -d
 ```
-
-## 5. 一些参数的抓取
-
-**accessToken和mid**
-
-“哔哩哔哩投稿工具”客户端（版本2.3.0.1089）上传视频，抓包“member.bilibili.com/preupload”这个请求。
 
 ## 参考项目：
 

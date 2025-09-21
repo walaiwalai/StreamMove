@@ -58,6 +58,8 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
     private String ocrHost;
     @Value("${ocr.server.port}")
     private String ocrPort;
+    @Value("${ocr.server.token}")
+    private String ocrToken;
 
     /**
      * 4秒一张接入
@@ -543,6 +545,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                 .url("http://" + ocrHost + ":" + ocrPort + "/ocrDet")
                 .post(body)
                 .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer " + ocrToken)
                 .build();
         String resp = OkHttpClientUtil.execute(request);
         JSONArray detectArrays = JSON.parseArray(resp);
@@ -575,6 +578,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                 .url("http://" + ocrHost + ":" + ocrPort + "/lolKillVisDet")
                 .post(body)
                 .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer " + ocrToken)
                 .build();
         String resp = OkHttpClientUtil.execute(request);
         JSONObject respObj = JSON.parseObject(resp);
@@ -608,6 +612,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
                 .url("http://" + ocrHost + ":" + ocrPort + "/ocrDet")
                 .post(body)
                 .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer " + ocrToken)
                 .build();
 
         String resp = OkHttpClientUtil.execute(request);

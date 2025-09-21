@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, UploadFile, File
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException
 import cv2
 import fastdeploy as fd
 import os
@@ -8,6 +8,38 @@ import io
 from PIL import Image
 
 app = FastAPI()
+
+# 从环境变量获取令牌
+HEADER_TOKEN = os.getenv("HEADER_TOKEN")
+if not HEADER_TOKEN:
+    raise ValueError("HEADER_TOKEN环境变量未设置")
+
+# 中间件：验证所有请求的Authorization头
+@app.middleware("http")
+async def verify_token(request: Request, call_next):
+    exempt_paths = ["/ping"]
+
+    if request.url.path not in exempt_paths:
+        auth_header = request.headers.get("Authorization")
+
+        # 检查Authorization头是否存在且格式正确
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(
+                status_code=401,
+                detail="无效的Authorization头格式，正确格式为: Bearer <token>"
+            )
+
+        # 提取并验证令牌
+        token = auth_header.split("Bearer ")[1].strip()
+        if token != HEADER_TOKEN:
+            raise HTTPException(
+                status_code=403,
+                detail="令牌无效或已过期"
+            )
+
+    # 继续处理请求
+    response = await call_next(request)
+    return response
 
 # 运行变量
 option = fd.RuntimeOption()

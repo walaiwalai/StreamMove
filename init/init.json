@@ -2,13 +2,15 @@
     "roomCheckCron": "20 2/5 * * * ?",
     "fileCleanCron": "0 5/15 * * * ?",
     "configRefreshCron": "0 0/30 * * * ?",
-
     "maxRecordingCount": 5,
-    "videoPartLimitSize": 10,
+    "videoPartLimitSize": 100,
 
-    "accessToken":"b站上传的accessToken",
-    "mid": "b站上传的mid",
-
-    "phoneNumber": "xxx",
-    "password":"xxx"
+    "biliCookies": "{b站网页端cookies}",
+    "soopUserName": "{soop账号登录用户名}",
+    "soopPassword": "{soop账号登录密码}",
+    "twitchAuthorization": "{twitch的授权信息, 在请求头中}",
+    "taobaoCookies": "{淘宝的ookies}",
+    "xhsCookies": "{小红书cookies}",
+    "douyuCookies": "{斗鱼cookies}",
+    "kuaishouCookies": "{快手cookies}"
 }

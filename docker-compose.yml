@@ -24,6 +24,8 @@ services:
       - /home/admin/stream/download:/home/admin/stream/download
     ports:
       - "5000:5000"
+    environment:
+      - HEADER_TOKEN=your_token_value  # 请替换为实际的token值
     restart: unless-stopped
 
   stream-move:

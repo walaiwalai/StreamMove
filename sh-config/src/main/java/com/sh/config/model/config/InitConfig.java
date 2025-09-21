@@ -29,6 +29,9 @@ public class InitConfig {
     private String configRefreshCron;
 
     // *********************录制配置**********************
+    /**
+     * 最大录制次数
+     */
     private Integer maxRecordingCount = 2;
 
     // *********************投稿配置**********************
@@ -42,9 +45,6 @@ public class InitConfig {
 
     // *********************小红书cookies**********************
     private String xhsCookies;
-
-    // *********************youtube的cookies**********************
-    private String youtubeCookies;
 
     // *********************sooplive的cookies**********************
     private String soopCookies;
@@ -66,6 +66,4 @@ public class InitConfig {
     // *********************上传网站配置**********************
     // *********************B站视频上传**********************
     private String biliCookies;
-    private String accessToken;
-    private Long mid;
 }
