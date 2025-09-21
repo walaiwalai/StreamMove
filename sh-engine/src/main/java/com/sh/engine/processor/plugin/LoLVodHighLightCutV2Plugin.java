@@ -479,7 +479,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
 
                 ScreenshotCmd snapshotCmd = new ScreenshotCmd(fromVideo, detailDir, (int) Math.round(secondFromVideoStart), 1, KILL_DETAIL_CORP_EXP, SNAP_INTERVAL_SECOND, 1, false);
                 snapshotCmd.execute(600);
-                if (CollectionUtils.isEmpty(snapshotCmd.getSnapshotFiles())) {
+                if (CollectionUtils.isNotEmpty(snapshotCmd.getSnapshotFiles())) {
                     File detailPath = snapshotCmd.getSnapshotFiles().get(0);
                     cur.setHeroKADetail(parseDetailByVisDet(detailPath));
                 }
