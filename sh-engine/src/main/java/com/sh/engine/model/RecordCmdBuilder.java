@@ -95,9 +95,13 @@ public class RecordCmdBuilder {
             log.info("the kbitrate is {}kb/s, mSize: {}M, secondPerVideo: {}s", kbitrate, this.mSizePerVideo, this.intervalPerVideo);
             ffmpegParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         }
-        this.cmdParams.addAll(streamLinkParams);
-        this.cmdParams.add("|");
-        this.cmdParams.addAll(ffmpegParams);
+
+        List<String> params = Lists.newArrayList();
+        params.addAll(streamLinkParams);
+        params.add("|");
+        params.addAll(ffmpegParams);
+
+        this.cmdParams = params;
         return this;
     }
 
