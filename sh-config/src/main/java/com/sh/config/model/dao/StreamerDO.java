@@ -48,11 +48,6 @@ public class StreamerDO {
     private Date expireTime;
 
     /**
-     * vod时录制视频的数量
-     */
-    private Integer lastVodCnt;
-
-    /**
      * 录制模式
      * t_3600表示按照时间间隔录制，一个视频3600秒
      * s_2048表示按照视频大小录制，一个视频2048M

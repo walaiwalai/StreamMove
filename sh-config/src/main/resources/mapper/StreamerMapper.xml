@@ -29,8 +29,7 @@
 
     <!-- 定义 SQL 片段 -->
     <sql id="allFields">
-        `id`
-        ,
+        `id`,
         `gmt_create`,
         `gmt_modified`,
         `name`,
@@ -38,7 +37,6 @@
         `record_type`,
         `last_record_time`,
         `expire_time`,
-        `max_merge_size`,
         `record_mode`,
         `cur_traffic_gb`,
         `max_traffic_gb`,
