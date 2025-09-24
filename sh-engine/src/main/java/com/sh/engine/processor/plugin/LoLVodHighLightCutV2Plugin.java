@@ -206,7 +206,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         int heapSize = TOP_N * videos.size();
         PriorityQueue<SnapshotVideoInterval> minHeap = new PriorityQueue<>(
                 heapSize,
-                Comparator.comparingDouble(SnapshotVideoInterval::getScore).reversed()
+                Comparator.comparingDouble(SnapshotVideoInterval::getScore)
         );
         for (int i = 0; i < snapshotFiles.size(); i++) {
             File shotPic = snapshotFiles.get(i);

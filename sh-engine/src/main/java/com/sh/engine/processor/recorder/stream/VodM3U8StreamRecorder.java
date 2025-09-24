@@ -84,7 +84,7 @@ public class VodM3U8StreamRecorder extends StreamRecorder {
             // 执行录制，长时间
             rfCmd.execute(24 * 3600L);
 
-            if (rfCmd.isExitNormal()) {
+            if (rfCmd.isNormalExit()) {
                 log.info("vod stream record end, savePath: {}", savePath);
             } else {
                 log.error("vod stream record fail, savePath: {}", savePath);
@@ -110,7 +110,7 @@ public class VodM3U8StreamRecorder extends StreamRecorder {
             // 执行录制，长时间
             rfCmd.execute(24 * 3600L);
 
-            if (rfCmd.isExitNormal()) {
+            if (rfCmd.isNormalExit()) {
                 log.info("vod stream record end, savePath: {}", savePath);
             } else {
                 log.error("vod stream record fail, savePath: {}", savePath);

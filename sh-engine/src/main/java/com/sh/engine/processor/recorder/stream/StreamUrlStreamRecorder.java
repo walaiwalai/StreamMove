@@ -39,7 +39,7 @@ public class StreamUrlStreamRecorder extends StreamRecorder {
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(cmd);
             // 执行录制，长时间
             rfCmd.execute(24 * 3600L);
-            if (rfCmd.isExitNormal()) {
+            if (rfCmd.isNormalExit()) {
                 log.info("living stream record end, savePath: {}", savePath);
                 break;
             } else {

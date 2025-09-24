@@ -106,9 +106,11 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
         }
     }
 
-    private Map<String, String> buildHeaders() {
-        Map<String, String> headers = Maps.newHashMap();
-        headers.put("User-Agent", USER_AGENT);
-        return headers;
+    public static void main(String[] args) {
+        ChzzkRoomChecker chzzkRoomChecker = new ChzzkRoomChecker();
+        StreamerConfig streamerConfig = new StreamerConfig();
+        streamerConfig.setRoomUrl(" https://chzzk.naver.com/c847a58a1599988f6154446c75366523");
+        JSONObject latestVideoNo = chzzkRoomChecker.getLatestVideoNo(streamerConfig);
+        System.out.println(latestVideoNo.toJSONString());
     }
 }

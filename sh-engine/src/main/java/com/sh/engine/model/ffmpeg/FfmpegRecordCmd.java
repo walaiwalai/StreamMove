@@ -27,12 +27,4 @@ public class FfmpegRecordCmd extends AbstractCmd {
         } catch (Exception ignored) {
         }
     }
-
-    public boolean isExitNormal() {
-        boolean normalExit = super.isNormalExit();
-        if (!normalExit) {
-            log.error("ffmpeg record fail, command: {}, code: {}", command, getExitCode());
-        }
-        return normalExit;
-    }
 }

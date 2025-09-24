@@ -73,7 +73,7 @@ public class StreamLinkStreamRecorder extends StreamRecorder {
 
         // 长时间录播（阻塞）
         rfCmd.execute(24 * 3600L);
-        if (!rfCmd.isExitNormal()) {
+        if (!rfCmd.isNormalExit()) {
             log.error("replay stream record fail, savePath: {}", savePath);
             throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);
         }
@@ -109,7 +109,7 @@ public class StreamLinkStreamRecorder extends StreamRecorder {
             // 执行录制，长时间
             rfCmd.execute(24 * 3600L);
 
-            if (!rfCmd.isExitNormal()) {
+            if (!rfCmd.isNormalExit()) {
                 log.error("living stream record fail, savePath: {}", savePath);
 //                throw new StreamerRecordException(ErrorEnum.FFMPEG_EXECUTE_ERROR);
             }
