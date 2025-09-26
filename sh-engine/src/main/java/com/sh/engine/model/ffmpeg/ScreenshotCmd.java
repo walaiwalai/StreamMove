@@ -56,6 +56,7 @@ public class ScreenshotCmd extends AbstractCmd {
                     "-vf", corpExp + ",fps=1/" + intervalSeconds + ",format=yuv420p",
                     "-start_number", String.valueOf(startIndex),
                     "-vframes", String.valueOf(snapShotCnt),
+                    "-q:v", "5",
                     "\"" + targetFilePath + "\""
             );
         } else {
@@ -63,11 +64,12 @@ public class ScreenshotCmd extends AbstractCmd {
             params = Lists.newArrayList(
                     "ffmpeg", "-y",
                     "-ss", String.valueOf(ss),
-                    "-threads", String.valueOf(CORE_COUNT),
+//                    "-threads", String.valueOf(CORE_COUNT),
                     "-i", "\"" + sourceFile.getAbsolutePath() + "\"",
-                    "-vf", corpExp + ",fps=1/" + intervalSeconds + ",format=yuv420p",
+                    "-vf", corpExp + ",fps=1/" + intervalSeconds,
                     "-start_number", String.valueOf(startIndex),
                     "-vframes", String.valueOf(snapShotCnt),
+                    "-q:v", "5",
                     "\"" + targetFilePath + "\""
             );
         }
