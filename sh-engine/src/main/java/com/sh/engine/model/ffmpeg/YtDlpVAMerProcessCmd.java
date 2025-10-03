@@ -2,9 +2,11 @@ package com.sh.engine.model.ffmpeg;
 
 import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.util.Arrays;
@@ -15,8 +17,7 @@ import java.util.List;
  * @Date 2025 06 07 17 12
  **/
 public class YtDlpVAMerProcessCmd extends AbstractCmd {
-    @Value("${sh.account-save.path}")
-    private String accountSavePath;
+    private static final String accountSavePath = EnvUtil.getEnvValue("sh.account-save.path");
 
     private final StringBuilder sb = new StringBuilder();
     private List<String> mergeUrls = Lists.newArrayList();

@@ -34,4 +34,13 @@ public class EnvUtil {
                 .getProperty("system.storage.mounted", Boolean.class);
         return BooleanUtils.isTrue(isMounted);
     }
+
+    public static String getEnvValue(String key) {
+        if (SpringUtil.getApplicationContext() == null) {
+            log.info("applicationContext not inited !!!");
+            return null;
+        }
+        return SpringUtil.getApplicationContext().getEnvironment()
+                .getProperty(key, String.class);
+    }
 }
