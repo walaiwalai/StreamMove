@@ -4,7 +4,9 @@ import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
@@ -13,6 +15,9 @@ import java.util.List;
  * @Date 2025 06 07 17 12
  **/
 public class YtDlpVAMerProcessCmd extends AbstractCmd {
+    @Value("${sh.account-save.path}")
+    private String accountSavePath;
+
     private final StringBuilder sb = new StringBuilder();
     private List<String> mergeUrls = Lists.newArrayList();
 
@@ -22,7 +27,10 @@ public class YtDlpVAMerProcessCmd extends AbstractCmd {
     }
 
     private String buildCmd(String vodUrl, Integer channelType) {
-        String res;
+        String res = "yt-dlp -g " +
+                " -f \"bestvideo[ext=mp4][vcodec*=avc1]+bestaudio[acodec*=aac]/best\" " +
+                " -S \"vcodec:avc1:av01:vp9,acodec:aac,res:desc,filesize:desc\" " +
+                vodUrl;
         if (channelType == StreamChannelTypeEnum.AFREECA_TV.getType()) {
             String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
             String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
@@ -30,11 +38,15 @@ public class YtDlpVAMerProcessCmd extends AbstractCmd {
                     " -f \"bestvideo[ext=mp4][vcodec*=avc1]+bestaudio[acodec*=aac]/best\" " +
                     " -S \"vcodec:avc1:av01:vp9,acodec:aac,res:desc,filesize:desc\" " +
                     vodUrl;
-        } else {
-            res = "yt-dlp -g " +
-                    " -f \"bestvideo[ext=mp4][vcodec*=avc1]+bestaudio[acodec*=aac]/best\" " +
-                    " -S \"vcodec:avc1:av01:vp9,acodec:aac,res:desc,filesize:desc\" " +
-                    vodUrl;
+        } else if (channelType == StreamChannelTypeEnum.TWITCH.getType()) {
+            File cookiesFile = new File(accountSavePath, "twitch-cookies.txt");
+            if (cookiesFile.exists()) {
+                res = "yt-dlp -g " +
+                        " -f \"bestvideo[ext=mp4][vcodec*=avc1]+bestaudio[acodec*=aac]/best\" " +
+                        " -S \"vcodec:avc1:av01:vp9,acodec:aac,res:desc,filesize:desc\" " +
+                        " --cookies " + cookiesFile.getAbsolutePath() + " " +
+                        vodUrl;
+            }
         }
         return res;
     }

@@ -46,7 +46,7 @@ public class TwitcastingRoomChecker extends AbstractRoomChecker {
 
     private StreamRecorder fetchVodRecord(StreamerConfig streamerConfig) {
         String vodUrl = streamerConfig.getRoomUrl();
-        YtDlpVideoJsonCmd ytDlpVideoJsonCmd = new YtDlpVideoJsonCmd(vodUrl);
+        YtDlpVideoJsonCmd ytDlpVideoJsonCmd = new YtDlpVideoJsonCmd(vodUrl, getType().getType());
         ytDlpVideoJsonCmd.execute(20);
 
         JSONObject meta = ytDlpVideoJsonCmd.getMeta();

@@ -13,6 +13,7 @@ import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
+import com.sh.engine.processor.recorder.stream.VodM3U8StreamRecorder;
 import com.sh.engine.util.RegexUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -114,7 +115,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         extra.put("finishKey", key);
         extra.put("finishField", videoId);
 
-        return new StreamLinkStreamRecorder(date, getType().getType(), curVodUrl, extra);
+        return new VodM3U8StreamRecorder(date, getType().getType(), curVodUrl, extra);
     }
 
 
@@ -216,14 +217,14 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
     public static void main(String[] args) {
         // 设置代理服务器信息
         System.setProperty("http.proxyHost", "127.0.0.1");
-        System.setProperty("http.proxyPort", "10809");
+        System.setProperty("http.proxyPort", "10808");
 
         // 如果是 HTTPS 代理，需要额外设置
         System.setProperty("https.proxyHost", "127.0.0.1");
-        System.setProperty("https.proxyPort", "10809");
+        System.setProperty("https.proxyPort", "10808");
 
         TwitchRoomChecker twitchRoomChecker = new TwitchRoomChecker();
-        JSONObject jsonObject = twitchRoomChecker.fetchCurVodInfo("ahlaundoh", "2549019102");
+        JSONObject jsonObject = twitchRoomChecker.fetchCurVodInfo("hookd", "2581084030");
         System.out.println(jsonObject.getDate("publishedAt"));
     }
 }
