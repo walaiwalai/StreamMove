@@ -78,6 +78,11 @@ public enum StreamChannelTypeEnum {
     KUAISHOU(14, "快手", "kuaishou.com"),
 
     /**
+     * twitcasting
+     */
+    TWITCASTING(15, "twitcasting", "twitcasting.tv"),
+
+    /**
      * 外部api
      */
     LIVE_RECORD_API(999, "外部api", "outer"),
