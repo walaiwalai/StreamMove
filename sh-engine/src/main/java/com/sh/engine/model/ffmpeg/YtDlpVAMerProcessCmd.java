@@ -16,40 +16,16 @@ import java.util.List;
  * @Author caiwen
  * @Date 2025 06 07 17 12
  **/
-public class YtDlpVAMerProcessCmd extends AbstractCmd {
-    private static final String accountSavePath = EnvUtil.getEnvValue("sh.account-save.path");
-
+public class YtDlpVAMerProcessCmd extends AbstractYtDlpCmd {
     private final StringBuilder sb = new StringBuilder();
     private List<String> mergeUrls = Lists.newArrayList();
 
     public YtDlpVAMerProcessCmd(String vodUrl, Integer channelType) {
         super("");
-        this.command = buildCmd(vodUrl, channelType);
-    }
-
-    private String buildCmd(String vodUrl, Integer channelType) {
-        String res = "yt-dlp -g " +
+        this.command = "yt-dlp -g " + buildChannelOption(channelType) +
                 " -f \"bestvideo[ext=mp4][vcodec*=avc1]+bestaudio[acodec*=aac]/best\" " +
                 " -S \"vcodec:avc1:av01:vp9,acodec:aac,res:desc,filesize:desc\" " +
                 vodUrl;
-        if (channelType == StreamChannelTypeEnum.AFREECA_TV.getType()) {
-            String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
-            String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
-            res = "yt-dlp -g --username " + soopUserName + " --password " + soopPassword +
-                    " -f \"bestvideo[ext=mp4][vcodec*=avc1]+bestaudio[acodec*=aac]/best\" " +
-                    " -S \"vcodec:avc1:av01:vp9,acodec:aac,res:desc,filesize:desc\" " +
-                    vodUrl;
-        } else if (channelType == StreamChannelTypeEnum.TWITCH.getType()) {
-            File cookiesFile = new File(accountSavePath, "twitch-cookies.txt");
-            if (cookiesFile.exists()) {
-                res = "yt-dlp -g " +
-                        " -f \"bestvideo[ext=mp4][vcodec*=avc1]+bestaudio[acodec*=aac]/best\" " +
-                        " -S \"vcodec:avc1:av01:vp9,acodec:aac,res:desc,filesize:desc\" " +
-                        " --cookies " + cookiesFile.getAbsolutePath() + " " +
-                        vodUrl;
-            }
-        }
-        return res;
     }
 
     @Override

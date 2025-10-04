@@ -11,26 +11,14 @@ import java.util.List;
  * @Author caiwen
  * @Date 2025 06 07 17 12
  **/
-public class YtDlpVASepProcessCmd extends AbstractCmd {
+public class YtDlpVASepProcessCmd extends AbstractYtDlpCmd {
     private final StringBuilder sb = new StringBuilder();
     private List<String> videoM3u8Urls = Lists.newArrayList();
     private List<String> audioM3u8Urls = Lists.newArrayList();
 
     public YtDlpVASepProcessCmd(String vodUrl, Integer channelType) {
         super("");
-        this.command = buildCmd(vodUrl, channelType);
-    }
-
-    private String buildCmd(String vodUrl, Integer channelType) {
-        String res;
-        if (channelType == StreamChannelTypeEnum.AFREECA_TV.getType()) {
-            String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
-            String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
-            res = "yt-dlp -g --username " + soopUserName + " --password " + soopPassword + " -f \"bestvideo+bestaudio\" " + vodUrl;
-        } else {
-            res = "yt-dlp -g -f \"bestvideo+bestaudio\" " + vodUrl;
-        }
-        return res;
+        this.command = "yt-dlp -g" + buildChannelOption(channelType) + "-f \"bestvideo+bestaudio\" " + vodUrl;
     }
 
     @Override

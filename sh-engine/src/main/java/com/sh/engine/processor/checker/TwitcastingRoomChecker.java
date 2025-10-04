@@ -3,7 +3,7 @@ package com.sh.engine.processor.checker;
 import com.alibaba.fastjson.JSONObject;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.model.ffmpeg.YtDlpVideoJsonCmd;
+import com.sh.engine.model.ffmpeg.YtDlpVideoMetaProcessCmd;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
@@ -46,11 +46,11 @@ public class TwitcastingRoomChecker extends AbstractRoomChecker {
 
     private StreamRecorder fetchVodRecord(StreamerConfig streamerConfig) {
         String vodUrl = streamerConfig.getRoomUrl();
-        YtDlpVideoJsonCmd ytDlpVideoJsonCmd = new YtDlpVideoJsonCmd(vodUrl, getType().getType());
+        YtDlpVideoMetaProcessCmd ytDlpVideoJsonCmd = new YtDlpVideoMetaProcessCmd(vodUrl, getType().getType());
         ytDlpVideoJsonCmd.execute(20);
 
-        JSONObject meta = ytDlpVideoJsonCmd.getMeta();
-        Date regDate = new Date(meta.getLong("timestamp") * 1000L);
+        YtDlpVideoMetaProcessCmd.YtDlpVideoMeta meta = ytDlpVideoJsonCmd.getVideoMetaMap();
+        Date regDate = new Date(meta.getUploadTimeStamp());
         if (!checkVodIsNew(streamerConfig, regDate)) {
             return null;
         }

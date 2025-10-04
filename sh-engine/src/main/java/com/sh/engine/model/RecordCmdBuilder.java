@@ -173,7 +173,7 @@ public class RecordCmdBuilder {
 
     public RecordCmdBuilder vodM3u8(String mergeM3u8Url) {
         // 计算分端视频开始index(默认从1开始)
-        Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
+        int segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
                 .stream()
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
@@ -185,12 +185,18 @@ public class RecordCmdBuilder {
         if (recordByTime) {
             this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         } else {
-            StreamBitrateCmd streamBitrateCmd = new StreamBitrateCmd(mergeM3u8Url);
-            streamBitrateCmd.execute(20);
+            int kbitrate = 0;
+            try {
+                StreamBitrateCmd streamBitrateCmd = new StreamBitrateCmd(mergeM3u8Url);
+                streamBitrateCmd.execute(20);
 
-            // 计算出对应的时间间隔
-            int kbitrate = streamBitrateCmd.getKbitrate();
-            this.intervalPerVideo = calIntervalBySize(kbitrate);
+                // 计算出对应的时间间隔
+                kbitrate = streamBitrateCmd.getKbitrate();
+                this.intervalPerVideo = calIntervalBySize(kbitrate);
+            } catch (Exception e) {
+                log.error("biterate parse error, will use 3600 per video", e);
+                this.intervalPerVideo = 3600;
+            }
             log.info("the kbitrate is {}kb/s, mSize: {}M, secondPerVideo: {}s", kbitrate, this.mSizePerVideo, this.intervalPerVideo);
 
             this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);

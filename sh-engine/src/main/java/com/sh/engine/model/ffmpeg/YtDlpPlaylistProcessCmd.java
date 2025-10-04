@@ -9,12 +9,12 @@ import java.util.List;
  * @Author caiwen
  * @Date 2025 02 09 17 11
  **/
-public class YtDlpPlaylistProcessCmd extends AbstractCmd {
+public class YtDlpPlaylistProcessCmd extends AbstractYtDlpCmd {
     private List<String> videoUrls = Lists.newArrayList();
 
-    public YtDlpPlaylistProcessCmd(String channelUrl, int latestN) {
+    public YtDlpPlaylistProcessCmd(String channelUrl, int channelType, int latestN) {
         super("");
-        this.command = "yt-dlp --flat-playlist --get-url --playlist-end " + latestN + " " + channelUrl;
+        this.command = "yt-dlp" + buildChannelOption(channelType) + "--flat-playlist --get-url --playlist-end " + latestN + " " + channelUrl;
     }
 
     @Override
