@@ -147,7 +147,7 @@ public class RecordCmdBuilder {
 
         File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME_V2);
 
-        ArrayList<String> streamUrls = Lists.newArrayList(audioM3u8Url, videoM3u8Url);
+        ArrayList<String> streamUrls = Lists.newArrayList("\"" + audioM3u8Url + "\"", "\"" + videoM3u8Url + "\"");
         if (recordByTime) {
             this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         } else {
@@ -181,7 +181,7 @@ public class RecordCmdBuilder {
 
         File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME_V2);
 
-        ArrayList<String> streamUrls = Lists.newArrayList(mergeM3u8Url);
+        ArrayList<String> streamUrls = Lists.newArrayList("\"" + mergeM3u8Url + "\"");
         if (recordByTime) {
             this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
         } else {
