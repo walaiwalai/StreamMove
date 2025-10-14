@@ -122,7 +122,7 @@ public class LolSequenceScorer {
         // 1.kda数值增加分数
         int deltaK = cur.getK() - pre.getK();
         int deltaA = cur.getA() - pre.getA();
-        float kadGain = (float) (3 * deltaK + deltaA);
+        float kadGain = (float) (6 * deltaK + 2 * deltaA);
 
         // 2.击杀细节分数，参与击杀人数越少越精彩（包括单杀）
         float killOrAssistGain = 0f;
@@ -137,22 +137,22 @@ public class LolSequenceScorer {
                     curGain += 8.0f;
                 } else {
                     // 减1是因为有一个被击杀的敌方
-                    curGain += (float) 6.0f / Math.max(sameLine.size() - 1, 1);
+                    curGain += 6.0f / Math.max(sameLine.size() - 1, 1);
                 }
             }
 
             if (sameLine.contains(LOLHeroPositionEnum.MYSELF_ASSIST.getLabelId())) {
                 // 我助攻，减1是因为有一个被击杀的敌方
-                curGain += (float) 4.0f / Math.max(sameLine.size() - 1, 1);
+                curGain += 4.0f / Math.max(sameLine.size() - 1, 1);
             }
 
             if (sameLine.contains(LOLHeroPositionEnum.MYSELF_KILLED.getLabelId())) {
-                // 我被击杀，有扣分,减1是因为排除我被击杀
-                curGain -= 4.0f / Math.max(sameLine.size() - 1, 1);
+                // 我被击杀，扣分
+                curGain -= 10.0f;
             }
 
 
-            killOrAssistGain += Math.max(curGain, 0f);
+            killOrAssistGain += curGain;
         }
 
         return kadGain + killOrAssistGain;

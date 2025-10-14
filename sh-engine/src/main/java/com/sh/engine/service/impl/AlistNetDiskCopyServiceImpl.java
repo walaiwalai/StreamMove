@@ -56,6 +56,7 @@ public class AlistNetDiskCopyServiceImpl implements NetDiskCopyService {
         UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.QUARK_PAN.getType(), "/夸克云盘");
         UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.UC_PAN.getType(), "/UC网盘");
         UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.TIAN_YI_PAN.getType(), "/天翼云盘");
+        UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.put(UploadPlatformEnum.ALY_OSS.getType(), "/阿里云OSS");
     }
 
     @Override
