@@ -43,19 +43,6 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
 
     @Override
     public boolean process(String recordPath) {
-        boolean acquired = semaphore.tryAcquire();
-        if (!acquired) {
-            throw new StreamerRecordException(ErrorEnum.OTHER_VIDEO_CONVERTING);
-        }
-
-        try {
-            return doProcess(recordPath);
-        } finally {
-            semaphore.release();
-        }
-    }
-
-    public boolean doProcess(String recordPath) {
         // 只有录像才能进行合并
         List<File> tsFiles = FileUtils.listFiles(new File(recordPath), FileFilterUtils.suffixFileFilter("ts"), null)
                 .stream()
@@ -69,7 +56,18 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
             if (mp4File.exists()) {
                 continue;
             }
-            boolean success = videoMergeService.ts2Mp4(tsFile);
+            boolean acquired = semaphore.tryAcquire();
+            if (!acquired) {
+                throw new StreamerRecordException(ErrorEnum.OTHER_VIDEO_CONVERTING);
+            }
+
+            boolean success = false;
+            try {
+                success = videoMergeService.ts2Mp4(tsFile);
+            } finally {
+                semaphore.release();
+            }
+
             if (success) {
                 if (EnvUtil.isProd()) {
                     FileUtils.deleteQuietly(tsFile);
