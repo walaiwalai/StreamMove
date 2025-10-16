@@ -58,7 +58,8 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
             }
 
             for (String pluginName : videoPlugins) {
-                if (plugins.get(pluginName) == null) {
+                ProcessPluginEnum pluginEnum = ProcessPluginEnum.of(pluginName);
+                if (plugins.get(pluginName) == null || pluginEnum == null) {
                     throw new StreamerRecordException(ErrorEnum.PLUGIN_NOT_EXIST);
                 }
 
@@ -70,6 +71,9 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
                     log.info("{}'s {} plugin process success, path: {}. ", streamerName, pluginName, curRecordPath);
                 } catch (Exception e) {
                     log.error("{}'s {} plugin process failed, path: {}.", streamerName, pluginName, curRecordPath, e);
+                    if (pluginEnum.isSystem()) {
+                        throw e;
+                    }
                 } finally {
                     // 移除后置处理标志位
                     statusManager.finishPostProcess(curRecordPath);

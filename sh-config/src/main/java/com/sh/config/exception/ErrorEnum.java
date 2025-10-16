@@ -82,6 +82,11 @@ public enum ErrorEnum {
      */
     ROOM_CHECK_PARAM_ERROR(15, "room check param error"),
 
+    /**
+     * 其它视频正在进行ts到mp4的转化
+     */
+    OTHER_VIDEO_CONVERTING(16, "other video converting"),
+
 
     ;
     private int errorCode;

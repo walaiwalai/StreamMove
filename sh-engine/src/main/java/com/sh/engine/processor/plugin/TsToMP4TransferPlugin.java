@@ -1,5 +1,8 @@
 package com.sh.engine.processor.plugin;
 
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
+import com.sh.config.manager.LocalCacheManager;
 import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.service.VideoMergeService;
@@ -14,6 +17,7 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 /**
@@ -27,6 +31,10 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
     private VideoMergeService videoMergeService;
     @Resource
     MsgSendService msgSendService;
+    /**
+     * 信号量：控制process方法的最大并发数（n）
+     */
+    private final Semaphore semaphore = new Semaphore(2, true);
 
     @Override
     public String getPluginName() {
@@ -35,6 +43,19 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
 
     @Override
     public boolean process(String recordPath) {
+        boolean acquired = semaphore.tryAcquire();
+        if (!acquired) {
+            throw new StreamerRecordException(ErrorEnum.OTHER_VIDEO_CONVERTING);
+        }
+
+        try {
+            return doProcess(recordPath);
+        } finally {
+            semaphore.release();
+        }
+    }
+
+    public boolean doProcess(String recordPath) {
         // 只有录像才能进行合并
         List<File> tsFiles = FileUtils.listFiles(new File(recordPath), FileFilterUtils.suffixFileFilter("ts"), null)
                 .stream()
