@@ -74,7 +74,8 @@ public class BiliWebVideoUploadCommand {
         CountDownLatch countDownLatch = new CountDownLatch(partCount);
         List<Integer> failChunkNums = Lists.newCopyOnWriteArrayList();
 
-        File targetFile = EnvUtil.isStorageMounted() ? VideoFileUtil.copyMountedFileToLocal(videoFile) : videoFile;
+//        File targetFile = EnvUtil.isStorageMounted() ? VideoFileUtil.copyMountedFileToLocal(videoFile) : videoFile;
+        File targetFile = videoFile;
         String cookies = fetchBiliCookies();
         // 保证记录的顺序和实际上传的顺序一致
         LinkedBlockingQueue<Integer> completedPartsQueue = new LinkedBlockingQueue<>();
@@ -150,9 +151,9 @@ public class BiliWebVideoUploadCommand {
         String fileNameOnServer = tmps[tmps.length - 1].split(".mp4")[0];
 
         // 5. 删除临时文件夹
-        if (EnvUtil.isStorageMounted()) {
-            FileUtils.deleteQuietly(targetFile.getParentFile());
-        }
+//        if (EnvUtil.isStorageMounted()) {
+//            FileUtils.deleteQuietly(targetFile.getParentFile());
+//        }
         return new RemoteSeverVideo(fileNameOnServer, videoFile.getAbsolutePath());
     }
 
