@@ -24,6 +24,10 @@ public class MainWorker extends ProcessWorker {
         List<StreamerConfig> streamerConfigs = ConfigFetcher.getStreamerInfoList();
         for (StreamerConfig streamerConfig : streamerConfigs) {
             recordStateMachine.start(streamerConfig);
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException ignored) {
+            }
         }
 
         String info = statusManager.printInfo();

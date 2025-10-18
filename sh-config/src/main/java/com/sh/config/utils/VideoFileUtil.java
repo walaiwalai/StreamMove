@@ -144,6 +144,8 @@ public class VideoFileUtil {
         } catch (IOException e) {
             log.error("copy file fail, from: {}, to: {}", amountedFile.getAbsolutePath(), localFile.getAbsolutePath(), e);
             return null;
+        } finally {
+            FileUtils.deleteQuietly(tmpDir);
         }
         return localFile;
     }

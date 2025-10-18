@@ -75,7 +75,6 @@ public class BiliWebVideoUploadCommand {
         List<Integer> failChunkNums = Lists.newCopyOnWriteArrayList();
 
         File targetFile = EnvUtil.isStorageMounted() ? VideoFileUtil.copyMountedFileToLocal(videoFile) : videoFile;
-//        File targetFile = videoFile;
         String cookies = fetchBiliCookies();
         // 保证记录的顺序和实际上传的顺序一致
         LinkedBlockingQueue<Integer> completedPartsQueue = new LinkedBlockingQueue<>();
