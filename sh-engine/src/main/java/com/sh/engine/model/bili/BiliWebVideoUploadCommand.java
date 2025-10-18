@@ -125,7 +125,9 @@ public class BiliWebVideoUploadCommand {
         }
         countDownLatch.await();
 
-
+        if (EnvUtil.isStorageMounted()) {
+            FileUtils.deleteQuietly(targetFile.getParentFile());
+        }
         if (hasFailed.get()) {
             log.error("video chunks upload fail, videoPath: {}", videoFile.getAbsolutePath());
             return null;
@@ -156,10 +158,6 @@ public class BiliWebVideoUploadCommand {
         String[] tmps = uposUri.split("//")[1].split("/");
         String fileNameOnServer = tmps[tmps.length - 1].split(".mp4")[0];
 
-        // 5. 删除临时文件夹
-        if (EnvUtil.isStorageMounted()) {
-            FileUtils.deleteQuietly(targetFile.getParentFile());
-        }
         return new RemoteSeverVideo(fileNameOnServer, videoFile.getAbsolutePath());
     }
 
