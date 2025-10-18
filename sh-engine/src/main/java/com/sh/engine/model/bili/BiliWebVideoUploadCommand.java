@@ -9,12 +9,17 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.config.utils.*;
+import com.sh.config.utils.EnvUtil;
+import com.sh.config.utils.ExecutorPoolUtil;
+import com.sh.config.utils.OkHttpClientUtil;
+import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.video.RemoteSeverVideo;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.RequestBody;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 public class BiliWebVideoUploadCommand {
-    public static final int CHUNK_RETRY = 10;
+    public static final int CHUNK_RETRY = 5;
     public static final int CHUNK_RETRY_DELAY = 500;
 
     private File videoFile;
@@ -45,7 +50,7 @@ public class BiliWebVideoUploadCommand {
     public BiliWebVideoUploadCommand(File videoFile) {
         this.videoFile = videoFile;
 
-        this.biliWebPreUploadParams = fetchPreUploadInfo();
+        biliWebPreUploadParams = fetchPreUploadInfo();
         if (biliWebPreUploadParams.getOk() == 1) {
             String upUrl = "https:" + biliWebPreUploadParams.getEndpoint()
                     + biliWebPreUploadParams.getUposUri().split("upos:/")[1];
@@ -62,13 +67,13 @@ public class BiliWebVideoUploadCommand {
      * @return 上传的视频
      */
     public RemoteSeverVideo upload() throws Exception {
-        if (this.biliWebPreUploadParams == null) {
+        if (biliWebPreUploadParams == null) {
             throw new StreamerRecordException(ErrorEnum.PRE_UPLOAD_ERROR);
         }
-        long fileSize = FileUtil.size(this.videoFile);
-        String videoName = this.videoFile.getName();
-        int chunkSize = this.biliWebPreUploadParams.getChunkSize();
-        int partCount = (int) Math.ceil(fileSize * 1.0 / this.biliWebPreUploadParams.getChunkSize());
+        long fileSize = FileUtil.size(videoFile);
+        String videoName = videoFile.getName();
+        int chunkSize = biliWebPreUploadParams.getChunkSize();
+        int partCount = (int) Math.ceil(fileSize * 1.0 / biliWebPreUploadParams.getChunkSize());
         log.info("video size is {}M, seg {} parts to upload.", fileSize / 1024 / 1024, partCount);
 
         CountDownLatch countDownLatch = new CountDownLatch(partCount);
@@ -87,10 +92,13 @@ public class BiliWebVideoUploadCommand {
 
             int finalI = i;
             CompletableFuture.supplyAsync(() -> {
+                        if (hasFailed.get()) {
+                            return false;
+                        }
                         String chunkUploadUrl = RecordConstant.BILI_VIDEO_CHUNK_UPLOAD_URL
-                                .replace("{uploadUrl}", this.biliWebPreUploadParams.getUploadUrl())
+                                .replace("{uploadUrl}", biliWebPreUploadParams.getUploadUrl())
                                 .replace("{partNumber}", String.valueOf(finalI + 1))
-                                .replace("{uploadId}", this.biliWebPreUploadParams.getUploadId())
+                                .replace("{uploadId}", biliWebPreUploadParams.getUploadId())
                                 .replace("{chunk}", String.valueOf(finalI))
                                 .replace("{chunks}", String.valueOf(partCount))
                                 .replace("{size}", String.valueOf(curChunkSize))
@@ -135,17 +143,17 @@ public class BiliWebVideoUploadCommand {
         }
 
         String finishUrl = String.format(RecordConstant.BILI_CHUNK_UPLOAD_FINISH_URL,
-                this.biliWebPreUploadParams.getUploadUrl(),
+                biliWebPreUploadParams.getUploadUrl(),
                 URLUtil.encode(videoName),
-                this.biliWebPreUploadParams.getUploadId(),
-                this.biliWebPreUploadParams.getBizId());
+                biliWebPreUploadParams.getUploadId(),
+                biliWebPreUploadParams.getBizId());
         boolean isFinish = finishChunks(finishUrl, completedPartNumbers);
         if (!isFinish) {
             return null;
         }
 
         // 4. 组装服务器端的视频
-        String uposUri = this.biliWebPreUploadParams.getUposUri();
+        String uposUri = biliWebPreUploadParams.getUposUri();
         String[] tmps = uposUri.split("//")[1].split("/");
         String fileNameOnServer = tmps[tmps.length - 1].split(".mp4")[0];
 
@@ -192,7 +200,7 @@ public class BiliWebVideoUploadCommand {
                 .addHeader("sec-fetch-mode", "cors")
                 .addHeader("sec-fetch-site", "cross-site")
                 .addHeader("cookie", cookies)
-                .addHeader("x-upos-auth", this.biliWebPreUploadParams.getAuth())
+                .addHeader("x-upos-auth", biliWebPreUploadParams.getAuth())
                 .put(chunkRequestBody)
                 .build();
 
@@ -245,7 +253,7 @@ public class BiliWebVideoUploadCommand {
                 .addHeader("sec-fetch-mode", "cors")
                 .addHeader("sec-fetch-site", "cross-site")
                 .addHeader("cookie", fetchBiliCookies())
-                .addHeader("x-upos-auth", this.biliWebPreUploadParams.getAuth())
+                .addHeader("x-upos-auth", biliWebPreUploadParams.getAuth())
                 .post(requestBody)
                 .build();
 
@@ -255,8 +263,8 @@ public class BiliWebVideoUploadCommand {
 
     private BiliWebPreUploadParams fetchPreUploadInfo() {
         String preUploadUrl = RecordConstant.BILI_WEB_PRE_UPLOAD_URL
-                .replace("{name}", this.videoFile.getName())
-                .replace("{size}", String.valueOf(FileUtil.size(this.videoFile)));
+                .replace("{name}", videoFile.getName())
+                .replace("{size}", String.valueOf(FileUtil.size(videoFile)));
         Request request = new Request.Builder()
                 .url(preUploadUrl)
                 .addHeader("Accept", "*/*")
@@ -272,10 +280,10 @@ public class BiliWebVideoUploadCommand {
      * 获取视频上传的id
      */
     private String fetchUploadId() {
-        String url = this.biliWebPreUploadParams.getUploadUrl()
-                + "?uploads&output=json&biz_id=" + this.biliWebPreUploadParams.getBizId()
-                + "&filesize=" + FileUtil.size(this.videoFile)
-                + "&profile=ugcfx%2Fbup&partsize=" + this.biliWebPreUploadParams.getChunkSize();
+        String url = biliWebPreUploadParams.getUploadUrl()
+                + "?uploads&output=json&biz_id=" + biliWebPreUploadParams.getBizId()
+                + "&filesize=" + FileUtil.size(videoFile)
+                + "&profile=ugcfx%2Fbup&partsize=" + biliWebPreUploadParams.getChunkSize();
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("Accept", "*/*")
@@ -284,7 +292,7 @@ public class BiliWebVideoUploadCommand {
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) Chrome/63.0.3239.132 Safari/537.36")
                 .addHeader("Origin", "https://member.bilibili.com")
                 .addHeader("Referer", "https://member.bilibili.com/platform/upload/video/frame")
-                .addHeader("X-Upos-Auth", this.biliWebPreUploadParams.getAuth())
+                .addHeader("X-Upos-Auth", biliWebPreUploadParams.getAuth())
                 .post(RequestBody.create(MediaType.parse("application/json"), ""))
                 .build();
 

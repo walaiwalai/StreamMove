@@ -87,6 +87,11 @@ public enum ErrorEnum {
      */
     OTHER_VIDEO_CONVERTING(16, "other video converting"),
 
+    /**
+     * 其它视频正在进行上传
+     */
+    OTHER_VIDEO_UPLOADING(16, "other video uploading"),
+
 
     ;
     private int errorCode;

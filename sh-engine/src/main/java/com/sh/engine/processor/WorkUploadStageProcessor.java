@@ -1,10 +1,13 @@
 package com.sh.engine.processor;
 
 import cn.hutool.core.io.FileUtil;
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.storage.FileStatusModel;
+import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.model.RecordContext;
@@ -17,6 +20,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.concurrent.Semaphore;
 
 /**
  * @Author caiwen
@@ -29,6 +33,12 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
     StatusManager statusManager;
     @Resource
     MsgSendService msgSendService;
+
+    /**
+     * 信号量：控制process方法的最大并发数（n）
+     */
+    private final Semaphore semaphore = new Semaphore(2, true);
+
 
     @Override
     public void processInternal(RecordContext context) {
@@ -63,7 +73,12 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                 }
 
                 // 2.需要上传的地址
+                boolean acquired = semaphore.tryAcquire();
+                if (!acquired && EnvUtil.isStorageMounted()) {
+                    throw new StreamerRecordException(ErrorEnum.OTHER_VIDEO_UPLOADING);
+                }
                 statusManager.lockRecordForSubmission(curRecordPath, platform);
+
                 boolean success = false;
                 try {
                     try {
@@ -76,6 +91,7 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                     log.error("upload error, platform: {}", platform, e);
                 } finally {
                     statusManager.releaseRecordForSubmission(curRecordPath);
+                    semaphore.release();
                 }
 
                 if (success) {
