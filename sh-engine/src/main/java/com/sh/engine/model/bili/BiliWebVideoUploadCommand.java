@@ -26,10 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -75,26 +72,15 @@ public class BiliWebVideoUploadCommand {
         int chunkSize = biliWebPreUploadParams.getChunkSize();
         int partCount = (int) Math.ceil(fileSize * 1.0 / biliWebPreUploadParams.getChunkSize());
         log.info("video size is {}M, seg {} parts to upload.", fileSize / 1024 / 1024, partCount);
-
-        CountDownLatch countDownLatch = new CountDownLatch(partCount);
-        List<Integer> failChunkNums = Lists.newCopyOnWriteArrayList();
-
         File targetFile = EnvUtil.isStorageMounted() ? VideoFileUtil.copyMountedFileToLocal(videoFile) : videoFile;
         String cookies = fetchBiliCookies();
-        // 保证记录的顺序和实际上传的顺序一致
-        LinkedBlockingQueue<Integer> completedPartsQueue = new LinkedBlockingQueue<>();
-        AtomicBoolean hasFailed = new AtomicBoolean(false);
-
+        List<CompletableFuture<Boolean>> futures = new ArrayList<>();
         for (int i = 0; i < partCount; i++) {
             long curChunkStart = (long) i * chunkSize;
             long curChunkSize = (i + 1 == partCount) ? (fileSize - curChunkStart) : chunkSize;
             long curChunkEnd = curChunkStart + curChunkSize;
-
             int finalI = i;
-            CompletableFuture.supplyAsync(() -> {
-                        if (hasFailed.get()) {
-                            return false;
-                        }
+            CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
                         String chunkUploadUrl = RecordConstant.BILI_VIDEO_CHUNK_UPLOAD_URL
                                 .replace("{uploadUrl}", biliWebPreUploadParams.getUploadUrl())
                                 .replace("{partNumber}", String.valueOf(finalI + 1))
@@ -106,32 +92,45 @@ public class BiliWebVideoUploadCommand {
                                 .replace("{end}", String.valueOf(curChunkEnd))
                                 .replace("{total}", String.valueOf(fileSize));
                         return uploadChunk(chunkUploadUrl, targetFile, finalI, partCount, (int) curChunkSize, curChunkStart, cookies);
-                    }, ExecutorPoolUtil.getUploadPool())
-                    .whenComplete((isSuccess, throwbale) -> {
-                        try {
-                            if (isSuccess) {
-                                // 按完成顺序入队
-                                completedPartsQueue.put(finalI + 1);
-                            } else {
-                                if (hasFailed.compareAndSet(false, true)) {
-                                    failChunkNums.add(finalI);
+                    }, ExecutorPoolUtil.getUploadPool());
+            futures.add(future);
+        }
+
+        // 保证记录的顺序和实际上传的顺序一致
+        LinkedBlockingQueue<Integer> completedPartsQueue = new LinkedBlockingQueue<>();
+        CountDownLatch countDownLatch = new CountDownLatch(partCount);
+        AtomicBoolean hasFailed = new AtomicBoolean(false);
+        for (int i = 0; i < futures.size(); i++) {
+            final int index = i;
+            futures.get(i).whenComplete((isSuccess, throwable) -> {
+                try {
+                    if (isSuccess) {
+                        completedPartsQueue.put(index + 1);
+                    } else {
+                        if (hasFailed.compareAndSet(false, true)) {
+                            // 取消所有其他未完成的任务
+                            for (int j = 0; j < futures.size(); j++) {
+                                if (j != index && !futures.get(j).isDone()) {
+                                    futures.get(j).cancel(true);
                                 }
                             }
-                        } catch (Exception e) {
-                            log.error("fuck uploading chunks", e);
-                        } finally {
-                            countDownLatch.countDown();
                         }
-                    });
+                    }
+                } catch (Exception e) {
+                    log.error("Error handling chunk completion", e);
+                } finally {
+                    countDownLatch.countDown();
+                }
+            });
         }
         countDownLatch.await();
 
 
-        if (CollectionUtils.isEmpty(failChunkNums)) {
-            log.info("video chunks upload success, videoPath: {}", videoFile.getAbsolutePath());
-        } else {
-            log.error("video chunks upload fail, failed chunkNos: {}", JSON.toJSONString(failChunkNums));
+        if (hasFailed.get()) {
+            log.error("video chunks upload fail, videoPath: {}", videoFile.getAbsolutePath());
             return null;
+        } else {
+            log.info("video chunks upload success, videoPath: {}", videoFile.getAbsolutePath());
         }
 
         // 3. 完成分块的上传
