@@ -43,12 +43,12 @@ public class RoomCheckStageProcessor extends AbstractStageProcessor {
         StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(streamInfo.getRoomUrl());
         if (channelEnum == null) {
             log.error("roomUrl not match any existed platform, use outer api, roomUrl: {}", streamInfo.getRoomUrl());
-            channelEnum = StreamChannelTypeEnum.LIVE_RECORD_API;
+            return;
         }
         AbstractRoomChecker streamerService = streamerServiceMap.get(channelEnum);
         if (streamerService == null) {
-            log.error("streamerService is null, type: {}", channelEnum.getDesc());
-            return;
+            log.error("streamerService is null, use outer api, type: {},  roomUrl: {}", channelEnum.getDesc(), streamInfo.getRoomUrl());
+            streamerService = streamerServiceMap.get(StreamChannelTypeEnum.LIVE_RECORD_API);
         }
 
         // 直播录像机
