@@ -23,14 +23,14 @@ import java.util.Map;
  * @Date 2025 06 07 17 02
  **/
 @Slf4j
-public class VodM3U8StreamRecorder extends StreamRecorder {
+public class YtdlpStreamRecorder extends StreamRecorder {
     private String vodUrl;
 
-    public VodM3U8StreamRecorder(Date regDate, Integer streamChannelType, String vodUrl) {
+    public YtdlpStreamRecorder( Date regDate, Integer streamChannelType, String vodUrl) {
         this(regDate, streamChannelType, vodUrl, Maps.newHashMap());
     }
 
-    public VodM3U8StreamRecorder(Date regDate, Integer streamChannelType, String vodUrl, Map<String, String> extra) {
+    public YtdlpStreamRecorder( Date regDate, Integer streamChannelType, String vodUrl, Map<String, String> extra) {
         super(regDate, streamChannelType, extra);
         this.vodUrl = vodUrl;
     }

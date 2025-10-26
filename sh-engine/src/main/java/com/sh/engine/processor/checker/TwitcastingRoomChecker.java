@@ -1,13 +1,12 @@
 package com.sh.engine.processor.checker;
 
-import com.alibaba.fastjson.JSONObject;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.YtDlpVideoMetaProcessCmd;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
-import com.sh.engine.processor.recorder.stream.VodM3U8StreamRecorder;
+import com.sh.engine.processor.recorder.stream.YtdlpStreamRecorder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Component;
@@ -55,6 +54,6 @@ public class TwitcastingRoomChecker extends AbstractRoomChecker {
             return null;
         }
 
-        return new VodM3U8StreamRecorder(regDate, getType().getType(), vodUrl);
+        return new YtdlpStreamRecorder(regDate, getType().getType(), vodUrl);
     }
 }

@@ -7,7 +7,7 @@ import com.sh.engine.model.ffmpeg.YtDlpVideoMetaProcessCmd;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
-import com.sh.engine.processor.recorder.stream.VodM3U8StreamRecorder;
+import com.sh.engine.processor.recorder.stream.YtdlpStreamRecorder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -67,6 +67,6 @@ public class YoutubeRoomChecker extends AbstractRoomChecker {
         if (!checkVodIsNew(streamerConfig, regDate)) {
             return null;
         }
-        return new VodM3U8StreamRecorder(regDate, getType().getType(), videoMeta.getVideoUrl());
+        return new YtdlpStreamRecorder(regDate, getType().getType(), videoMeta.getVideoUrl());
     }
 }

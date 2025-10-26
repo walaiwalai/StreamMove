@@ -13,7 +13,7 @@ import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
-import com.sh.engine.processor.recorder.stream.VodM3U8StreamRecorder;
+import com.sh.engine.processor.recorder.stream.YtdlpStreamRecorder;
 import com.sh.engine.util.RegexUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -115,7 +115,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         extra.put("finishKey", key);
         extra.put("finishField", videoId);
 
-        return new VodM3U8StreamRecorder(date, getType().getType(), curVodUrl, extra);
+        return new YtdlpStreamRecorder(date, getType().getType(), curVodUrl, extra);
     }
 
 

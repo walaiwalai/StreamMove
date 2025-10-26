@@ -12,7 +12,7 @@ import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
-import com.sh.engine.processor.recorder.stream.VodM3U8StreamRecorder;
+import com.sh.engine.processor.recorder.stream.YtdlpStreamRecorder;
 import com.sh.engine.util.RegexUtil;
 import com.sh.message.constant.MessageConstant;
 import lombok.extern.slf4j.Slf4j;
@@ -97,7 +97,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         extra.put("finishKey", key);
         extra.put("finishField", videoId);
 
-        return new VodM3U8StreamRecorder(date, getType().getType(), curVodUrl, extra);
+        return new YtdlpStreamRecorder(date, getType().getType(), curVodUrl, extra);
     }
 
     private StreamRecorder fetchVodInfo(StreamerConfig streamerConfig) {
@@ -114,7 +114,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         Long titleNo = curVod.getLong("title_no");
         Date date = DateUtil.covertStr2Date(curVod.getString("reg_date"), DateUtil.YYYY_MM_DD_HH_MM_SS);
         String vodUrl = "https://vod.sooplive.co.kr/player/" + titleNo;
-        return new VodM3U8StreamRecorder(date, getType().getType(), vodUrl);
+        return new YtdlpStreamRecorder(date, getType().getType(), vodUrl);
     }
 
     private JSONObject fetchCurVodInfo(String videoId) {

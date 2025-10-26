@@ -47,7 +47,7 @@ public class RoomCheckStageProcessor extends AbstractStageProcessor {
         }
         AbstractRoomChecker streamerService = streamerServiceMap.get(channelEnum);
         if (streamerService == null) {
-            log.error("streamerService is null, use outer api, type: {},  roomUrl: {}", channelEnum.getDesc(), streamInfo.getRoomUrl());
+            log.warn("streamerService is null, use outer api, type: {},  roomUrl: {}", channelEnum.getDesc(), streamInfo.getRoomUrl());
             streamerService = streamerServiceMap.get(StreamChannelTypeEnum.LIVE_RECORD_API);
         }
 

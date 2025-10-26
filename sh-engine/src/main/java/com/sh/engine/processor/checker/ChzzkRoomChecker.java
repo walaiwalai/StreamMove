@@ -1,7 +1,6 @@
 package com.sh.engine.processor.checker;
 
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.Maps;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.DateUtil;
 import com.sh.config.utils.OkHttpClientUtil;
@@ -9,7 +8,7 @@ import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
-import com.sh.engine.processor.recorder.stream.VodM3U8StreamRecorder;
+import com.sh.engine.processor.recorder.stream.YtdlpStreamRecorder;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
@@ -17,7 +16,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
-import java.util.Map;
 
 /**
  * 采用streamLink支持直播和录像
@@ -79,7 +77,7 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
             return null;
         }
 
-        return new VodM3U8StreamRecorder(
+        return new YtdlpStreamRecorder(
                 date, getType().getType(),
                 "https://chzzk.naver.com/video/" + videoObj.getString("videoNo")
         );

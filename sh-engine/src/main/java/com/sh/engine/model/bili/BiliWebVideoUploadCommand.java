@@ -71,7 +71,7 @@ public class BiliWebVideoUploadCommand {
         String videoName = videoFile.getName();
         int chunkSize = biliWebPreUploadParams.getChunkSize();
         int partCount = (int) Math.ceil(fileSize * 1.0 / biliWebPreUploadParams.getChunkSize());
-        log.info("video size is {}M, seg {} parts to upload.", fileSize / 1024 / 1024, partCount);
+        log.info("video size is {}M, seg {} parts to upload, param: {}", fileSize / 1024 / 1024, partCount, JSON.toJSONString(biliWebPreUploadParams));
         File targetFile = EnvUtil.isStorageMounted() ? VideoFileUtil.copyMountedFileToLocal(videoFile) : videoFile;
         String cookies = fetchBiliCookies();
         List<CompletableFuture<Boolean>> futures = new ArrayList<>();

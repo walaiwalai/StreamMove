@@ -2,7 +2,7 @@ version: '3.3'
 
 services:
   alist:
-    image: 'xhofe/alist:latest'
+    image: 'xhofe/alist:v3.45.1'
     container_name: alist
     volumes:
       - "/etc/alist:/opt/alist/data"
@@ -17,16 +17,14 @@ services:
     networks:
       - stream-docker
 
-  stream-ocr:
-    image: stream-ocr:latest
-    container_name: stream-ocr
-    volumes:
-      - /home/admin/stream/download:/home/admin/stream/download
-    ports:
-      - "5000:5000"
-    environment:
-      - HEADER_TOKEN=your_token_value  # 请替换为实际的token值
-    restart: unless-stopped
+#  stream-ocr:
+#    image: stream-ocr:latest
+#    container_name: stream-ocr
+#    ports:
+#      - "5000:5000"
+#    environment:
+#      - HEADER_TOKEN=your_token_value  # 请替换为实际的token值
+#    restart: unless-stopped
 
   stream-move:
     image: stream-move:latest

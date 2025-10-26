@@ -7,8 +7,8 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.stream.LiveApiStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
-import com.sh.engine.processor.recorder.stream.StreamUrlStreamRecorder;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -24,6 +24,14 @@ import java.util.Map;
 /**
  * 外部部署的api
  *
+ *     QUALITY_MAPPING = {
+ *         "原画": "OD",
+ *         "蓝光": "BD",
+ *         "超清": "UHD",
+ *         "高清": "HD",
+ *         "标清": "SD",
+ *         "流畅": "LD"
+ *     }
  * @Author caiwen
  * @Date 2025 06 19 23 35
  **/
@@ -57,7 +65,7 @@ public class OuterApiRoomChecker extends AbstractRoomChecker {
             return null;
         }
         log.info("get stream info success, resp: {}", resp);
-        return new StreamUrlStreamRecorder(new Date(), getType().getType(), respObj.getString("record_url"));
+        return new LiveApiStreamRecorder(new Date(), getType().getType(), Maps.newHashMap(), streamerConfig.getRoomUrl(), "原画");
     }
 
     @Override
