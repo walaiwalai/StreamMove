@@ -34,7 +34,7 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
     /**
      * 信号量：控制process方法的最大并发数（n）
      */
-    private final Semaphore semaphore = new Semaphore(1, true);
+    private final Semaphore semaphore = new Semaphore(2, true);
 
     @Override
     public String getPluginName() {
