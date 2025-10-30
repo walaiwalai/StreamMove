@@ -1,11 +1,9 @@
 package com.sh.config.utils;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.Getter;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * 线程池工具类
@@ -15,6 +13,8 @@ import java.util.concurrent.TimeUnit;
  **/
 public class ExecutorPoolUtil {
     private static final int CORE_COUNT = Runtime.getRuntime().availableProcessors();
+
+    @Getter
     private static final ExecutorService uploadPool = new ThreadPoolExecutor(
             CORE_COUNT * 2,
             CORE_COUNT * 2,
@@ -25,7 +25,6 @@ public class ExecutorPoolUtil {
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
 
-    public static ExecutorService getUploadPool() {
-        return uploadPool;
-    }
+    @Getter
+    private static final ScheduledExecutorService flushPool = Executors.newScheduledThreadPool(CORE_COUNT);
 }
