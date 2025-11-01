@@ -90,7 +90,12 @@ public enum ErrorEnum {
     /**
      * 其它视频正在进行上传
      */
-    OTHER_VIDEO_UPLOADING(16, "other video uploading"),
+    OTHER_VIDEO_UPLOADING(17, "other video uploading"),
+
+    /**
+     * 其它视频正在进行弹幕合并
+     */
+    OTHER_VIDEO_DAMAKU_MERGING(18, "other video damaku merging"),
 
 
     ;

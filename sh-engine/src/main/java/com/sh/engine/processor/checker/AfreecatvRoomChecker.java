@@ -97,7 +97,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         extra.put("finishKey", key);
         extra.put("finishField", videoId);
 
-        return new YtdlpStreamRecorder(date, getType().getType(), curVodUrl, extra);
+        return new YtdlpStreamRecorder(date, streamerConfig.getRoomUrl(), getType().getType(), curVodUrl, extra);
     }
 
     private StreamRecorder fetchVodInfo(StreamerConfig streamerConfig) {
@@ -114,7 +114,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         Long titleNo = curVod.getLong("title_no");
         Date date = DateUtil.covertStr2Date(curVod.getString("reg_date"), DateUtil.YYYY_MM_DD_HH_MM_SS);
         String vodUrl = "https://vod.sooplive.co.kr/player/" + titleNo;
-        return new YtdlpStreamRecorder(date, getType().getType(), vodUrl);
+        return new YtdlpStreamRecorder(date,streamerConfig.getRoomUrl(), getType().getType(), vodUrl);
     }
 
     private JSONObject fetchCurVodInfo(String videoId) {

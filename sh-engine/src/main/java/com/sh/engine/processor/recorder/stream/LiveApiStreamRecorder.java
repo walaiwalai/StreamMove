@@ -11,6 +11,8 @@ import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.RecordCmdBuilder;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
+import com.sh.engine.model.ffmpeg.StreamMetaDetectCmd;
+import com.sh.engine.model.video.StreamMetaInfo;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -30,18 +32,28 @@ public class LiveApiStreamRecorder extends StreamRecorder {
     private static final String liveHost = EnvUtil.getEnvValue("live.api.server.host");
     private static final String livePort = EnvUtil.getEnvValue("live.api.server.port");
 
-    private String roomUrl;
-    private String quality;
+    private String streamUrl;
+    private final String quality;
 
-    public LiveApiStreamRecorder( Date regDate, Integer streamChannelType, Map<String, String> extraInfo, String roomUrl, String quality) {
-        super(regDate, streamChannelType, extraInfo);
-        this.roomUrl = roomUrl;
+    public LiveApiStreamRecorder(Date regDate, String roomUrl, Integer streamChannelType, Map<String, String> extraInfo, String streamUrl, String quality) {
+        super(regDate, roomUrl, streamChannelType, extraInfo);
+        this.streamUrl = streamUrl;
         this.quality = quality;
     }
 
     @Override
     public void start( String savePath ) {
         recordOnline(savePath);
+    }
+
+    @Override
+    public StreamMetaInfo fetchMeta() {
+        this.streamUrl = getLiveStreamUrl();
+
+        StreamMetaDetectCmd streamMetaDetectCmd = new StreamMetaDetectCmd(this.streamUrl);
+        streamMetaDetectCmd.execute(60);
+
+        return streamMetaDetectCmd.getMetaInfo();
     }
 
     private void recordOnline(String savePath) {
@@ -51,7 +63,7 @@ public class LiveApiStreamRecorder extends StreamRecorder {
 
         for (int i = 0; i < totalCnt; i++) {
             // 如果是在线的录制，再次检查是否在线
-            String liveStreamUrl = getLiveStreamUrl();
+            String liveStreamUrl = i == 0 ? this.streamUrl : getLiveStreamUrl();
             if (StringUtils.isBlank(liveStreamUrl)) {
                 try {
                     // 睡40s防止重试太快
@@ -79,7 +91,7 @@ public class LiveApiStreamRecorder extends StreamRecorder {
     private String getLiveStreamUrl() {
         MediaType mediaType = MediaType.parse("application/json");
         Map<String, String> params = Maps.newHashMap();
-        params.put("url", roomUrl);
+        params.put("url", this.roomUrl);
         params.put("quality", quality);
         RequestBody body = RequestBody.create(mediaType, JSON.toJSONString(params));
         Request request = new Request.Builder()

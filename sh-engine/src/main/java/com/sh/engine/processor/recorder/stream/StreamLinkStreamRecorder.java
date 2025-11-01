@@ -1,5 +1,6 @@
 package com.sh.engine.processor.recorder.stream;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
@@ -10,6 +11,9 @@ import com.sh.engine.model.RecordCmdBuilder;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import com.sh.engine.model.ffmpeg.StreamLinkCheckCmd;
+import com.sh.engine.model.ffmpeg.StreamLinkUrlFetchCmd;
+import com.sh.engine.model.ffmpeg.StreamMetaDetectCmd;
+import com.sh.engine.model.video.StreamMetaInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -28,16 +32,10 @@ import java.util.Optional;
  **/
 @Slf4j
 public class StreamLinkStreamRecorder extends StreamRecorder {
-    private String streamUrl;
+    private String qualityParam;
 
-    public StreamLinkStreamRecorder(Date regDate, Integer streamChannelType, String streamUrl) {
-        super(regDate, streamChannelType, Maps.newHashMap());
-        this.streamUrl = streamUrl;
-    }
-
-    public StreamLinkStreamRecorder(Date regDate, Integer streamChannelType, String streamUrl, Map<String, String> extraInfo) {
-        super(regDate, streamChannelType, extraInfo);
-        this.streamUrl = streamUrl;
+    public StreamLinkStreamRecorder(Date regDate, Integer streamChannelType, String roomUrl) {
+        super(regDate, roomUrl, streamChannelType, Maps.newHashMap());
     }
 
     @Override
@@ -52,22 +50,35 @@ public class StreamLinkStreamRecorder extends StreamRecorder {
         }
     }
 
-    private void recordReplay(String savePath) {
-        // 如果是在线的录制，再次检查是否在线
-        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.streamUrl);
+    @Override
+    public StreamMetaInfo fetchMeta() {
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
+
+        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.roomUrl);
         checkCmd.execute(40);
-        String bestResolution = checkCmd.getBestResolution();
-        if (!StringUtils.contains(bestResolution, "720") && !StringUtils.contains(bestResolution, "1080")) {
-            log.error("Resolution is too low {}, stopping recording...", bestResolution);
+        this.qualityParam = checkCmd.selectQuality(Optional.ofNullable(streamerConfig.getRecordQuality()).orElse(0));
+
+        StreamLinkUrlFetchCmd streamLinkUrlFetchCmd = new StreamLinkUrlFetchCmd(this.roomUrl, this.qualityParam);
+        streamLinkUrlFetchCmd.execute(20);
+
+        StreamMetaDetectCmd streamMetaDetectCmd = new StreamMetaDetectCmd(streamLinkUrlFetchCmd.getStreamUrl());
+        streamMetaDetectCmd.execute(60);
+
+        return streamMetaDetectCmd.getMetaInfo();
+    }
+
+    private void recordReplay(String savePath) {
+        if (!streamMeta.isValid() || streamMeta.getHeight() < 720) {
+            log.error("Resolution is too low {}, stopping recording...", JSON.toJSONString(streamMeta));
             FileUtils.deleteQuietly(new File(savePath));
             throw new StreamerRecordException(ErrorEnum.RECORD_BAD_QUALITY);
         }
 
-        log.info("Resolution is OK {}, start recording...", bestResolution);
+        log.info("Resolution is OK {}, start recording...", JSON.toJSONString(streamMeta));
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
-        String qualityParam = checkCmd.selectQuality(Optional.ofNullable(streamerConfig.getRecordQuality()).orElse(0));
+
         RecordCmdBuilder builder = new RecordCmdBuilder(streamerConfig, this.streamChannelType, savePath);
-        String cmd = builder.streamlink(this.streamUrl, qualityParam).build();
+        String cmd = builder.streamlink(this.roomUrl, this.qualityParam).build();
 
         FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(cmd);
 
@@ -88,7 +99,7 @@ public class StreamLinkStreamRecorder extends StreamRecorder {
         RecordCmdBuilder builder = new RecordCmdBuilder(streamerConfig, this.streamChannelType, savePath);
         for (int i = 0; i < totalCnt; i++) {
             // 如果是在线的录制，再次检查是否在线
-            StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.streamUrl);
+            StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.roomUrl);
             checkCmd.execute(40);
             if (!checkCmd.isStreamOnline()) {
                 try {
@@ -101,8 +112,7 @@ public class StreamLinkStreamRecorder extends StreamRecorder {
             }
 
             log.info("living stream record begin, savePath: {}, retry: {}/{}", savePath, i + 1, totalCnt);
-            String qualityParam = checkCmd.selectQuality(Optional.ofNullable(streamerConfig.getRecordQuality()).orElse(0));
-            String cmd = builder.streamlink(this.streamUrl, qualityParam).build();
+            String cmd = builder.streamlink(this.roomUrl, this.qualityParam).build();
 
             FfmpegRecordCmd rfCmd = new FfmpegRecordCmd(cmd);
 

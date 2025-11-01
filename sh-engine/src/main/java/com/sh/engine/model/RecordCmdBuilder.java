@@ -124,6 +124,9 @@ public class RecordCmdBuilder {
 
                 // 计算出对应的时间间隔
                 kbitrate = streamBitrateCmd.getKbitrate();
+                if (kbitrate < 0) {
+                    throw new RuntimeException("kbitrate < 0");
+                }
                 this.intervalPerVideo = calIntervalBySize(streamBitrateCmd.getKbitrate());
             } catch (Exception e) {
                 log.error("biterate parse error, will use 3600 per video", e);

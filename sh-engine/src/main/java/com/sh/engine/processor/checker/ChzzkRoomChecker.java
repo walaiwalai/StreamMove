@@ -78,7 +78,7 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
         }
 
         return new YtdlpStreamRecorder(
-                date, getType().getType(),
+                date,streamerConfig.getRoomUrl(), getType().getType(),
                 "https://chzzk.naver.com/video/" + videoObj.getString("videoNo")
         );
     }

@@ -87,7 +87,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             return null;
         }
         String downloadLink = latestRecord.getJSONArray("sources").getJSONObject(0).getString("downloadlink");
-        return new StreamUrlStreamRecorder(recordedAt, getType().getType(), downloadLink);
+        return new StreamUrlStreamRecorder(recordedAt, streamerConfig.getRoomUrl(), getType().getType(), downloadLink);
     }
 
     @Override

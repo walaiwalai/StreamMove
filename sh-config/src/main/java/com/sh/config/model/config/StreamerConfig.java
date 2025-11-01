@@ -72,6 +72,11 @@ public class StreamerConfig {
     private boolean onlyAudio;
 
     /**
+     * 是否录制弹幕
+     */
+    private boolean recordDamaku;
+
+    /**
      * 录制质量
      * 0表示最好, 依次递减
      */

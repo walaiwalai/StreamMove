@@ -3,9 +3,11 @@ package com.sh.engine.processor.checker;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.danmu.OrdinaryroadDamakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -30,7 +32,8 @@ public class HuyaRoomChecker extends AbstractRoomChecker {
 
     @Override
     public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
-        return null;
+        boolean recordDamaku = BooleanUtils.isTrue(streamerConfig.isRecordDamaku());
+        return recordDamaku ? new OrdinaryroadDamakuRecorder(streamerConfig) : null;
     }
 
     @Override

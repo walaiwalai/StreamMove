@@ -9,6 +9,7 @@ import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import com.sh.engine.model.ffmpeg.YtDlpVAMerProcessCmd;
 import com.sh.engine.model.ffmpeg.YtDlpVASepProcessCmd;
+import com.sh.engine.model.video.StreamMetaInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -24,14 +25,14 @@ import java.util.Map;
  **/
 @Slf4j
 public class YtdlpStreamRecorder extends StreamRecorder {
-    private String vodUrl;
+    private final String vodUrl;
 
-    public YtdlpStreamRecorder( Date regDate, Integer streamChannelType, String vodUrl) {
-        this(regDate, streamChannelType, vodUrl, Maps.newHashMap());
+    public YtdlpStreamRecorder( Date regDate, String roomUrl, Integer streamChannelType, String vodUrl) {
+        this(regDate, roomUrl, streamChannelType, vodUrl, Maps.newHashMap());
     }
 
-    public YtdlpStreamRecorder( Date regDate, Integer streamChannelType, String vodUrl, Map<String, String> extra) {
-        super(regDate, streamChannelType, extra);
+    public YtdlpStreamRecorder( Date regDate, String roomUrl,  Integer streamChannelType, String vodUrl, Map<String, String> extra) {
+        super(regDate, roomUrl, streamChannelType, extra);
         this.vodUrl = vodUrl;
     }
 
@@ -65,6 +66,11 @@ public class YtdlpStreamRecorder extends StreamRecorder {
         } else {
             doVAMerRecord(savePath, mergeUrls);
         }
+    }
+
+    @Override
+    protected StreamMetaInfo fetchMeta() {
+        return new StreamMetaInfo();
     }
 
 

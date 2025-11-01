@@ -27,6 +27,10 @@ public class StreamerExtraDO {
     private DouyinUploadInfoDO douyinUploadInfo;
     private List<String> certainVodUrls;
     private boolean onlyAudio;
+    /**
+     * 是否录制弹幕
+     */
+    private boolean recordDamaku;
     private boolean onlinePushCheck;
     private int recordQuality;
 

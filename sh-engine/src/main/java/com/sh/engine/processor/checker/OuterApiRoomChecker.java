@@ -7,6 +7,7 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.processor.recorder.danmu.OrdinaryroadDamakuRecorder;
 import com.sh.engine.processor.recorder.stream.LiveApiStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import lombok.extern.slf4j.Slf4j;
@@ -65,12 +66,13 @@ public class OuterApiRoomChecker extends AbstractRoomChecker {
             return null;
         }
         log.info("get stream info success, resp: {}", resp);
-        return new LiveApiStreamRecorder(new Date(), getType().getType(), Maps.newHashMap(), streamerConfig.getRoomUrl(), "原画");
+        return new LiveApiStreamRecorder(new Date(), streamerConfig.getRoomUrl(), getType().getType(), Maps.newHashMap(), respObj.getString("record_url"), "原画");
     }
 
     @Override
     public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
-        return null;
+        boolean recordDamaku = BooleanUtils.isTrue(streamerConfig.isRecordDamaku());
+        return recordDamaku ? new OrdinaryroadDamakuRecorder(streamerConfig) : null;
     }
 
     @Override

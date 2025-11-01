@@ -115,7 +115,7 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         extra.put("finishKey", key);
         extra.put("finishField", videoId);
 
-        return new YtdlpStreamRecorder(date, getType().getType(), curVodUrl, extra);
+        return new YtdlpStreamRecorder(date, streamerConfig.getRoomUrl(), getType().getType(), curVodUrl, extra);
     }
 
 

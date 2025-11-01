@@ -54,6 +54,6 @@ public class TwitcastingRoomChecker extends AbstractRoomChecker {
             return null;
         }
 
-        return new YtdlpStreamRecorder(regDate, getType().getType(), vodUrl);
+        return new YtdlpStreamRecorder(regDate, streamerConfig.getRoomUrl(), getType().getType(), vodUrl);
     }
 }

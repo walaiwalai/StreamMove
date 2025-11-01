@@ -64,7 +64,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
                 .headers(Headers.of(headers))
                 .build();
         String resp = OkHttpClientUtil.execute(request);
-        return parseStreamData(resp);
+        return parseStreamData(resp, streamerConfig);
     }
 
     @Override
@@ -84,7 +84,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
     }
 
 
-    private StreamRecorder parseStreamData(String htmlStr) {
+    private StreamRecorder parseStreamData(String htmlStr, StreamerConfig streamerConfig) {
         Matcher initialStateMatcher = INITIAL_STATE_PATTERN.matcher(htmlStr);
         if (!initialStateMatcher.find()) {
             return null;
@@ -135,7 +135,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
                     .sorted(Comparator.comparingInt(x -> ((JSONObject) x).getInteger("bitrate")).reversed())
                     .map(x -> (JSONObject) x)
                     .collect(Collectors.toList());
-            return new StreamUrlStreamRecorder(new Date(), getType().getType(), urlObjs.get(0).getString("url"));
+            return new StreamUrlStreamRecorder(new Date(), streamerConfig.getRoomUrl(), getType().getType(), urlObjs.get(0).getString("url"));
 
 //            if (urlObjs.get(0).getInteger("bitrate") <= 6000) {
 //                return new StreamUrlRecorder(new Date(), urlObjs.get(0).getString("url"));
@@ -144,7 +144,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
 //            }
         } else {
             JSONObject lastUrlObj = represents.getJSONObject(represents.size() - 1);
-            return new StreamUrlStreamRecorder(new Date(), getType().getType(), lastUrlObj.getString("url"));
+            return new StreamUrlStreamRecorder(new Date(), streamerConfig.getRoomUrl(),getType().getType(), lastUrlObj.getString("url"));
         }
     }
 

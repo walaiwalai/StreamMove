@@ -67,6 +67,6 @@ public class YoutubeRoomChecker extends AbstractRoomChecker {
         if (!checkVodIsNew(streamerConfig, regDate)) {
             return null;
         }
-        return new YtdlpStreamRecorder(regDate, getType().getType(), videoMeta.getVideoUrl());
+        return new YtdlpStreamRecorder(regDate, streamerConfig.getRoomUrl(), getType().getType(), videoMeta.getVideoUrl());
     }
 }

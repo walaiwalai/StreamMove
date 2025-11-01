@@ -10,6 +10,7 @@ import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.StreamerInfoHolder;
+import com.sh.engine.model.video.StreamMetaInfo;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
@@ -73,8 +74,13 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         // 2. 录制
         statusManager.addRoomPathStatus(savePath, name);
         try {
-            if (context.getDanmakuRecorder() != null) {
-                context.getDanmakuRecorder().init(savePath);
+            // 初始化
+            context.getStreamRecorder().init();
+            StreamMetaInfo streamMeta = context.getStreamRecorder().getStreamMeta();
+
+            if (context.getDanmakuRecorder() != null && streamMeta.isValid()) {
+                context.getDanmakuRecorder().init(savePath, streamMeta);
+                context.getDanmakuRecorder().start();
             }
             // 录像(长时间)
             context.getStreamRecorder().start(savePath);
