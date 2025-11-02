@@ -51,4 +51,9 @@ public class RecordConstant {
     public static final String THUMBNAIL_FILE_NAME = "work-thumbnail.jpg";
 
     public static final String DEFAULT_THUMBNAIL_URL = "/home/admin/stream/thumbnail/default.jpg";
+
+    /**
+     * 弹幕文件前缀
+     */
+    public static final String DAMAKU_FILE_PREFIX = "带弹幕-";
 }

@@ -70,10 +70,6 @@ public enum ProcessPluginEnum {
                 if (pluginEnum == null) {
                     continue;
                 }
-                if (pluginEnum == ProcessPluginEnum.DAMAKU_MERGE) {
-                    // 移除TS_2_MP4_TRANSFER
-                    allPlugins.remove(ProcessPluginEnum.TS_2_MP4_TRANSFER);
-                }
                 allPlugins.add(pluginEnum);
             }
         }

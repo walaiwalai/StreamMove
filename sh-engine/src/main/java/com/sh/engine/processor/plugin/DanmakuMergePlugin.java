@@ -5,8 +5,8 @@ import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.utils.EnvUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.ProcessPluginEnum;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.ffmpeg.AssVideoMergeCmd;
-import com.sh.engine.service.VideoMergeService;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -23,9 +23,6 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class DanmakuMergePlugin implements VideoProcessPlugin {
-    @Resource
-    private VideoMergeService videoMergeService;
-
     @Resource
     MsgSendService msgSendService;
 
@@ -50,12 +47,13 @@ public class DanmakuMergePlugin implements VideoProcessPlugin {
         }
 
         for (File assFile : assFiles) {
-            File mp4File = new File(assFile.getParent(), assFile.getName().replace(".ass", ".mp4"));
-            if (mp4File.exists()) {
+            String damakuFileName = RecordConstant.DAMAKU_FILE_PREFIX + assFile.getName().replace(".ass", ".mp4");
+            File damakuFile = new File(assFile.getParent(), damakuFileName);
+            if (damakuFile.exists()) {
                 continue;
             }
-            File tsFile = new File(assFile.getParent(), assFile.getName().replace(".ass", ".ts"));
-            if (!tsFile.exists()) {
+            File mp4File = new File(assFile.getParent(), assFile.getName().replace(".ass", ".mp4"));
+            if (!mp4File.exists()) {
                 continue;
             }
 
@@ -65,18 +63,20 @@ public class DanmakuMergePlugin implements VideoProcessPlugin {
             }
 
             try {
-                AssVideoMergeCmd assVideoMergeCmd = new AssVideoMergeCmd(assFile, tsFile);
+                AssVideoMergeCmd assVideoMergeCmd = new AssVideoMergeCmd(assFile, mp4File);
                 assVideoMergeCmd.execute(10 * 3600);
-                boolean success = false;
                 if (assVideoMergeCmd.isNormalExit()) {
-                    msgSendService.sendText("合并弹幕文件成功！路径为：" + mp4File.getAbsolutePath());
+                    msgSendService.sendText("合并弹幕文件成功！路径为：" + damakuFile.getAbsolutePath());
+                    // 成功就刪除原始MP4文件
                     if (EnvUtil.isProd()) {
-                        FileUtils.deleteQuietly(tsFile);
+                        FileUtils.deleteQuietly(mp4File);
                     }
-                    success = true;
                 } else {
-                    msgSendService.sendText("合并弹幕文件失败！路径为：" + mp4File.getAbsolutePath() + "。尝试兜底合成mp4文件");
-                    success = videoMergeService.ts2Mp4(tsFile);
+                    msgSendService.sendText("合并弹幕文件失败！路径为：" + damakuFile.getAbsolutePath());
+                    // 失敗就刪除合成的彈幕文件
+                    if (EnvUtil.isProd()) {
+                        FileUtils.deleteQuietly(damakuFile);
+                    }
                 }
             } finally {
                 semaphore.release();

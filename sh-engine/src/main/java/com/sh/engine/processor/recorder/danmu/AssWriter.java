@@ -117,7 +117,7 @@ public class AssWriter implements AutoCloseable {
     }
 
     public AssWriter(String description, int width, int height) {
-        this(description, width, height, 10, 0.3f, "SimSun", 20, 10, 20, 15.0f, 0.8f, true, "000000", 2, null);
+        this(description, width, height, 10, 0.3f, "SimSun", 20, 10, 20, 15.0f, 1.0f, true, "000000", 1, null);
     }
 
     /**
@@ -311,32 +311,32 @@ public class AssWriter implements AutoCloseable {
             return "";
         }
 
-        // 1. 先处理控制字符：换行、回车、制表符、换页符 → 替换为普通空格
+        // 1. 处理控制字符：换行、回车等→空格
         String filteredText = rawText.replace("\n", " ")
                 .replace("\r", " ")
                 .replace("\t", " ")
                 .replace("\f", " ");
 
-        // 2. 处理ASS语法敏感字符：逗号、冒号、分号、中括号、等号 → 转义（加反斜杠）
-        filteredText = filteredText.replace(",", "\\,")  // ASS中逗号是字段分隔符，需转义
-                .replace(":", "\\:")  // 避免与ASS时间格式（如 00:00:00.00）冲突
-                .replace(";", "\\;")  // ASS中分号是注释符，需转义
-                .replace("[", "\\[")  // 避免与ASS段落标记（如 [V4+ Styles]）冲突
+        // 2. 处理ASS语法敏感字符：逗号、冒号、中括号等→转义
+        filteredText = filteredText.replace(",", "\\,")
+                .replace(":", "\\:")
+                .replace(";", "\\;")
+                .replace("[", "\\[")  // 中括号仅需单次转义
                 .replace("]", "\\]")
-                .replace("=", "\\=");  // 避免与ASS键值对（如 Fontsize=28）冲突
+                .replace("=", "\\=");
 
-        // 3. 处理转义符本身：反斜杠 → 双反斜杠（ASS中反斜杠是转义符，需二次转义）
-        filteredText = filteredText.replace("\\", "\\\\");
+        // 3. 移除反斜杠全局转义（避免二次转义导致冗余）
+        // （删除原有的 filteredText = filteredText.replace("\\", "\\\\"); ）
 
-        // 4. 处理不可见/异常字符：全角空格→普通空格，零宽字符→删除（可选，根据需求调整）
-        filteredText = filteredText.replace("　", " ")  // 全角空格（Unicode：U+3000）→ 半角空格（U+0020）
-                .replaceAll("[\\p{Cf}]", "");  // 匹配所有控制字符（零宽、不可见字符）并删除
+        // 4. 处理全角空格和不可见字符
+        filteredText = filteredText.replace("　", " ")
+                .replaceAll("[\\p{Cf}]", "");
 
-        // 5. 处理潜在风险字符：尖括号、引号（可选，避免显示异常）
+        // 5. 处理尖括号和引号
         filteredText = filteredText.replace("<", "\\<")
                 .replace(">", "\\>")
-                .replace("\"", "\\\"")  // 双引号转义
-                .replace("'", "\\'");   // 单引号转义
+                .replace("\"", "\\\"")
+                .replace("'", "\\'");
 
         return filteredText;
     }
@@ -480,95 +480,5 @@ public class AssWriter implements AutoCloseable {
         String g = rgb.substring(2, 4);
         String b = rgb.substring(4, 6);
         return b + g + r;
-    }
-
-    public static void main(String[] args) throws IOException {
-        // 总时长：20分40秒 = 20*60 + 40 = 1240秒
-        final int totalSeconds = 1240;
-        // 弹幕数量
-        final int danmuCount = 5000;
-        // 随机数生成器（用于生成随机文本和颜色）
-        Random random = new Random();
-
-        // 记录开始时间（用于性能测试）
-        long startTime = System.currentTimeMillis();
-
-        // 1. 创建AssWriter实例
-        AssWriter assWriter = new AssWriter(
-                "性能测试弹幕",
-                1920,
-                1080,
-                10,
-                0.3f,
-                "SimSun",
-                20,
-                10,
-                20,
-                15.0f,
-                0.8f,
-                true,
-                "000000",
-                2,
-                null
-        );
-
-        // 2. 打开ASS文件
-        String filePath = "G:\\stream_record\\performance_test_danmaku.ass";
-        assWriter.open(filePath);
-
-        // 3. 生成1000条弹幕（均匀分布在1240秒内）
-        for (int i = 0; i < danmuCount; i++) {
-            // 计算当前弹幕的时间（均匀分布）
-            // 公式：第i条弹幕时间 = (总时长 / (总数量-1)) * i （确保最后一条在1240秒左右）
-            float time = (totalSeconds / (float) (danmuCount - 1)) * i;
-
-            // 生成随机文本（长度5-15字）
-            int textLength = 5 + random.nextInt(11); // 5-15
-            String text = generateRandomText(textLength, i);
-
-            // 生成随机颜色（6位十六进制）
-//            String color = generateRandomColor(random);
-
-            // 添加弹幕
-            assWriter.add(new SimpleDanmaku(time, text, "ffffff"));
-        }
-
-        // 4. 关闭资源
-        assWriter.close();
-
-        // 计算耗时（性能测试结果）
-        long endTime = System.currentTimeMillis();
-        long costMs = endTime - startTime;
-
-        System.out.printf("ASS文件生成完成：%s%n", filePath);
-        System.out.printf("生成信息：%d条弹幕，总时长%d秒%n", danmuCount, totalSeconds);
-        System.out.printf("性能测试：生成耗时%.2f秒%n", costMs / 1000.0);
-    }
-
-    /**
-     * 生成随机文本（包含序号，模拟真实弹幕内容）
-     */
-    private static String generateRandomText(int length, int index) {
-        // 常用汉字库（简化版）
-        String chars = "一二三四五六七八九十甲乙丙丁戊己庚辛壬癸金木水火土天地日月风云雨雪春夏秋冬前后左右上下高低大小多少远近里外快慢强弱轻重好坏对错真假公私正反";
-        StringBuilder sb = new StringBuilder();
-        // 前缀：弹幕序号
-        sb.append("[").append(index).append("]");
-        // 随机添加汉字
-        Random random = new Random();
-        for (int i = 0; i < length; i++) {
-            int pos = random.nextInt(chars.length());
-            sb.append(chars.charAt(pos));
-        }
-        return sb.toString();
-    }
-
-    /**
-     * 生成随机6位十六进制颜色码
-     */
-    private static String generateRandomColor(Random random) {
-        // 生成0-0xFFFFFF的随机数，转换为6位十六进制
-        int colorValue = random.nextInt(0xFFFFFF + 1);
-        return String.format("%06X", colorValue);
     }
 }

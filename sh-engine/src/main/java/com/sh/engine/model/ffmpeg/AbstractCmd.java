@@ -74,13 +74,14 @@ public abstract class AbstractCmd {
             long endTime = System.currentTimeMillis();
             log.info("Command executed successfully in {}s, command: {}", (endTime - startTime) / 1000, command);
         } catch (ExecuteException e) {
+            exitCode = e.getExitValue();
             long endTime = System.currentTimeMillis();
             if (watchdog.killedProcess()) {
                 isTimeout.set(true);
                 log.info("Command timed out after {}s, command: {}", (endTime - startTime) / 1000, command);
                 handleTimeout();
             } else {
-                log.error("Command execution failed with exit code: {}, errorMsg: {}, command: {}", e.getExitValue(), e.getMessage(), command);
+                log.info("Command execution failed with exit code: {}, errorMsg: {}, command: {}", exitCode, e.getMessage(), command);
                 throw new StreamerRecordException(ErrorEnum.CMD_EXIT_CODE_UN_NORMAL);
             }
         } catch (IOException e) {
