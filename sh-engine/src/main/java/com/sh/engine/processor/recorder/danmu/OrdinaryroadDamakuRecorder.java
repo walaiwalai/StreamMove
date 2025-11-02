@@ -38,13 +38,13 @@ import java.util.concurrent.locks.ReentrantLock;
  **/
 @Slf4j
 public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
-    private static final Boolean proxyEnable = EnvUtil.getEnvBoolean("proxy.server.enable");
-    private static final String proxyHost = EnvUtil.getEnvValue("proxy.server.host");
-    private static final Integer proxyPort = EnvUtil.getEnvInt("proxy.server.port");
+    private static final Boolean PROXY_ENABLE = EnvUtil.getEnvBoolean("proxy.server.enable");
+    private static final String PROXY_HOST = EnvUtil.getEnvValue("proxy.server.host");
+    private static final Integer PROXY_PORT = EnvUtil.getEnvInt("proxy.server.port");
     /**
      * 计数器（用于生成文件名：P01.ass、P02.ass...）
      */
-    private static final AtomicInteger FILE_COUNT = new AtomicInteger(1);
+    private AtomicInteger assFileIndex = new AtomicInteger(1);
 
     /**
      * 全局开始时间（用于计算周期）
@@ -204,7 +204,7 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
             currentPeriodStartTime = System.currentTimeMillis();
 
             // 生成新文件名（P01.ass、P02.ass...）
-            int count = FILE_COUNT.getAndIncrement();
+            int count = assFileIndex.getAndIncrement();
             File assFile = new File(savePath, String.format("P%02d.ass", count));
 
             // 创建新的AssWriter
@@ -268,8 +268,8 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
         DouyinLiveChatClientConfig.DouyinLiveChatClientConfigBuilder<?, ?> builder = DouyinLiveChatClientConfig.builder()
                 .roomId(Long.valueOf(roomId))
                 .giftCountCalculationTime(DouyinGiftCountCalculationTimeEnum.COMBO_END);
-        if (BooleanUtils.isTrue(proxyEnable)) {
-            builder.socks5ProxyHost(proxyHost).socks5ProxyPort(proxyPort);
+        if (BooleanUtils.isTrue(PROXY_ENABLE)) {
+            builder.socks5ProxyHost(PROXY_HOST).socks5ProxyPort(PROXY_PORT);
         }
         DouyinLiveChatClientConfig config = builder.build();
 
