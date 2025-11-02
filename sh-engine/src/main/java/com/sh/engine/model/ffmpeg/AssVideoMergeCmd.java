@@ -58,9 +58,12 @@ public class AssVideoMergeCmd extends AbstractCmd {
     private static String buildCommand(File assFile, File mp4File) {
         File outputFile = new File(mp4File.getParentFile(), RecordConstant.DAMAKU_FILE_PREFIX + mp4File.getName());
 
+
         // 拼接FFmpeg命令
         return String.format(
-                "ffmpeg -progress pipe:1 -i %s -vf \"subtitles=%s\" -c:v libx264 -preset superfast -crf 26 -c:a copy -threads %s -y %s",
+                "ffmpeg -progress pipe:1 -i %s -vf \"subtitles=%s\" -c:v libx264 -preset ultrafast -tune zerolatency " +
+                        "-x264-params bframes=0:ref=1:scenecut=0 " +
+                        "-crf 28 -c:a copy -threads %s -y %s",
                 "\"" + mp4File.getAbsolutePath() + "\"",
                 processAssPath(assFile.getAbsolutePath()),
                 CORE_COUNT,
@@ -88,8 +91,8 @@ public class AssVideoMergeCmd extends AbstractCmd {
     }
 
     public static void main(String[] args) {
-        File assFile = new File("G:\\动漫\\凡人\\performance_test_danmaku.ass");
-        File videoFile = new File("G:\\动漫\\凡人\\S01E166.2160p.WEB-DL.H264.AAC.mp4");
+        File assFile = new File("G:\\stream_record\\download\\mytest-mac\\2025-11-02-10-04-00\\P01.ass");
+        File videoFile = new File("G:\\stream_record\\download\\mytest-mac\\2025-11-02-10-04-00\\P01.mp4");
         AssVideoMergeCmd cmd = new AssVideoMergeCmd(assFile, videoFile);
         cmd.execute(100 * 60);
     }
