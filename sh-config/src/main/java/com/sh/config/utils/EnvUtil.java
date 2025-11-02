@@ -43,4 +43,22 @@ public class EnvUtil {
         return SpringUtil.getApplicationContext().getEnvironment()
                 .getProperty(key, String.class);
     }
+
+    public static Integer getEnvInt(String key) {
+        if (SpringUtil.getApplicationContext() == null) {
+            log.info("applicationContext not inited !!!");
+            return null;
+        }
+        return SpringUtil.getApplicationContext().getEnvironment()
+                .getProperty(key, Integer.class);
+    }
+
+    public static Boolean getEnvBoolean(String key) {
+        if (SpringUtil.getApplicationContext() == null) {
+            log.info("applicationContext not inited !!!");
+            return null;
+        }
+        return SpringUtil.getApplicationContext().getEnvironment()
+                .getProperty(key, Boolean.class);
+    }
 }

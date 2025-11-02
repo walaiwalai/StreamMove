@@ -1,9 +1,11 @@
 package com.sh.engine.processor.recorder.danmu;
 
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.video.StreamMetaInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import tech.ordinaryroad.live.chat.client.bilibili.client.BilibiliLiveChatClient;
 import tech.ordinaryroad.live.chat.client.bilibili.config.BilibiliLiveChatClientConfig;
@@ -36,6 +38,9 @@ import java.util.concurrent.locks.ReentrantLock;
  **/
 @Slf4j
 public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
+    private static final Boolean proxyEnable = EnvUtil.getEnvBoolean("proxy.server.enable");
+    private static final String proxyHost = EnvUtil.getEnvValue("proxy.server.host");
+    private static final Integer proxyPort = EnvUtil.getEnvInt("proxy.server.port");
     /**
      * 计数器（用于生成文件名：P01.ass、P02.ass...）
      */
@@ -260,10 +265,13 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
      * 创建抖音弹幕接收器
      */
     private BaseLiveChatClient getDouyinReceiver(String roomId) {
-        DouyinLiveChatClientConfig config = DouyinLiveChatClientConfig.builder()
+        DouyinLiveChatClientConfig.DouyinLiveChatClientConfigBuilder<?, ?> builder = DouyinLiveChatClientConfig.builder()
                 .roomId(Long.valueOf(roomId))
-                .giftCountCalculationTime(DouyinGiftCountCalculationTimeEnum.COMBO_END)
-                .build();
+                .giftCountCalculationTime(DouyinGiftCountCalculationTimeEnum.COMBO_END);
+        if (BooleanUtils.isTrue(proxyEnable)) {
+            builder.socks5ProxyHost(proxyHost).socks5ProxyPort(proxyPort);
+        }
+        DouyinLiveChatClientConfig config = builder.build();
 
         return new DouyinLiveChatClient(config, new IDouyinMsgListener() {
             @Override
@@ -296,7 +304,7 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     public static void main(String[] args) {
         OrdinaryroadDamakuRecorder recorder = new OrdinaryroadDamakuRecorder(
                 StreamerConfig.builder()
-                        .roomUrl("https://live.douyin.com/510200350291")
+                        .roomUrl("https://live.douyin.com/962565925628")
                         .recordMode("t_150")
                         .build()
         );
@@ -305,7 +313,7 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
         streamMetaInfo.setHeight(1080);
 
         try {
-            recorder.init("G:\\stream_record\\download\\test\\2025-08-15-20-59-48", streamMetaInfo);
+            recorder.init("G:\\stream_record\\download\\test\\2025-11-02-10-04-00", streamMetaInfo);
             recorder.start();
             Thread.sleep(1000 * 60 * 5);
         } catch (InterruptedException e) {
