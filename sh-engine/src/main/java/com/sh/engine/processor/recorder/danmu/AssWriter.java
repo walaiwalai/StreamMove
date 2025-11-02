@@ -117,7 +117,7 @@ public class AssWriter implements AutoCloseable {
     }
 
     public AssWriter(String description, int width, int height) {
-        this(description, width, height, 10, 0.3f, "SimSun", 20, 10, 20, 15.0f, 1.0f, true, "000000", 1, null);
+        this(description, width, height, 10, 0.3f, "SimSun", 50, 10, 20, 15.0f, 1.0f, true, "000000", 1, null);
     }
 
     /**
