@@ -25,6 +25,8 @@ public abstract class AbstractCmd {
      */
     private int exitCode = -1;
 
+    private long startTime;
+
 
     protected String command;
 
@@ -68,7 +70,7 @@ public abstract class AbstractCmd {
                 }
         ));
 
-        long startTime = System.currentTimeMillis();
+        startTime = System.currentTimeMillis();
         try {
             exitCode = executor.execute(cmdLine);
             long endTime = System.currentTimeMillis();
@@ -115,6 +117,10 @@ public abstract class AbstractCmd {
 
     protected int getExitCode() {
         return exitCode;
+    }
+
+    protected long getStartTime() {
+        return startTime;
     }
 
     /**

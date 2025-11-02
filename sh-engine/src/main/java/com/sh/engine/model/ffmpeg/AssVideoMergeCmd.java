@@ -1,12 +1,24 @@
 package com.sh.engine.model.ffmpeg;
 
 import com.sh.engine.constant.RecordConstant;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.File;
 
+@Slf4j
 public class AssVideoMergeCmd extends AbstractCmd {
+    // 字符串前缀常量（避免重复创建）
+    private static final String OUT_TIME_PREFIX = "out_time=";
+    private static final String SPEED_PREFIX = "speed=";
+
     private static final int CORE_COUNT = Runtime.getRuntime().availableProcessors();
+    // 计数阈值：每累计200次打印一次
+    private static final int PRINT_THRESHOLD = 500;
+    // 累计计数器
+    private int matchCount = 0;
+    private String latestOutTime = "";
+    private String latestSpeed = "";
 
     public AssVideoMergeCmd(File assFile, File mp4File) {
         super(buildCommand(assFile, mp4File));
@@ -14,12 +26,28 @@ public class AssVideoMergeCmd extends AbstractCmd {
 
     @Override
     protected void processOutputLine(String line) {
+        if (line == null) {
+            return;
+        }
+        if (line.startsWith(OUT_TIME_PREFIX)) {
+            latestOutTime = line.substring(OUT_TIME_PREFIX.length()).trim();
+            matchCount++;
+        } else if (line.startsWith(SPEED_PREFIX)) {
+            latestSpeed = line.substring(SPEED_PREFIX.length()).trim();
+            matchCount++;
+        }
 
+        // 达到阈值时打印
+        if (matchCount >= PRINT_THRESHOLD) {
+            long costSeconds = (System.currentTimeMillis() - getStartTime()) / 1000;
+            log.info("merge detail show, out_time: {}, speed: {}, cost: {}s",
+                    latestOutTime, latestSpeed, costSeconds);
+            matchCount = 0;
+        }
     }
 
     @Override
     protected void processErrorLine(String line) {
-
     }
 
 
@@ -32,7 +60,7 @@ public class AssVideoMergeCmd extends AbstractCmd {
 
         // 拼接FFmpeg命令
         return String.format(
-                "ffmpeg -i %s -vf \"subtitles=%s\" -c:v libx264 -preset superfast -crf 26 -c:a copy -threads %s -y %s",
+                "ffmpeg -progress pipe:1 -i %s -vf \"subtitles=%s\" -c:v libx264 -preset superfast -crf 26 -c:a copy -threads %s -y %s",
                 "\"" + mp4File.getAbsolutePath() + "\"",
                 processAssPath(assFile.getAbsolutePath()),
                 CORE_COUNT,
@@ -60,8 +88,8 @@ public class AssVideoMergeCmd extends AbstractCmd {
     }
 
     public static void main(String[] args) {
-        File assFile = new File("G:\\stream_record\\download\\mytest-mac\\2025-11-02-10-04-00\\P01.ass");
-        File videoFile = new File("G:\\stream_record\\download\\mytest-mac\\2025-11-02-10-04-00\\P01.mp4");
+        File assFile = new File("G:\\动漫\\凡人\\performance_test_danmaku.ass");
+        File videoFile = new File("G:\\动漫\\凡人\\S01E166.2160p.WEB-DL.H264.AAC.mp4");
         AssVideoMergeCmd cmd = new AssVideoMergeCmd(assFile, videoFile);
         cmd.execute(100 * 60);
     }
