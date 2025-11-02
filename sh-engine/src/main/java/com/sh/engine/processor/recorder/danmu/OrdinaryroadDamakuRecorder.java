@@ -13,6 +13,7 @@ import tech.ordinaryroad.live.chat.client.codec.bilibili.msg.DanmuMsgMsg;
 import tech.ordinaryroad.live.chat.client.codec.douyin.constant.DouyinGiftCountCalculationTimeEnum;
 import tech.ordinaryroad.live.chat.client.codec.douyin.msg.DouyinDanmuMsg;
 import tech.ordinaryroad.live.chat.client.commons.client.BaseLiveChatClient;
+import tech.ordinaryroad.live.chat.client.commons.client.enums.ClientStatusEnums;
 import tech.ordinaryroad.live.chat.client.douyin.client.DouyinLiveChatClient;
 import tech.ordinaryroad.live.chat.client.douyin.config.DouyinLiveChatClientConfig;
 import tech.ordinaryroad.live.chat.client.douyin.listener.IDouyinMsgListener;
@@ -126,8 +127,21 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
                 TimeUnit.SECONDS
         );
 
+        // 檢查狀態
+        this.scheduler.scheduleAtFixedRate(
+                this::checkClientStatus,
+                30,
+                30,
+                TimeUnit.SECONDS
+        );
+
         // 连接弹幕客户端
-        this.client.connect();
+        this.client.connect(() -> {
+            log.info("danmu client connected");
+        }, throwable -> {
+            log.error("danmu client connect failed", throwable);
+        });
+
         log.info("danmu recorder start，interval：{}s，savePath：{}", intervalSeconds, savePath);
     }
 
@@ -198,6 +212,20 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
             log.error("switch ass writer failed", e);
         } finally {
             lock.unlock();
+        }
+    }
+
+    private void checkClientStatus() {
+        ClientStatusEnums status = this.client.getStatus();
+        if (status == ClientStatusEnums.CONNECT_FAILED || status == ClientStatusEnums.DISCONNECTED || status == ClientStatusEnums.DESTROYED) {
+            log.warn("client are not connect, status: {}, try to re connect", status.name());
+            this.client.connect(() -> {
+                log.info("danmu client reconnect success");
+            }, throwable -> {
+                log.error("danmu client reconnect failed", throwable);
+            });
+        } else {
+            log.info("client are normal, status: {}", status.name());
         }
     }
 
