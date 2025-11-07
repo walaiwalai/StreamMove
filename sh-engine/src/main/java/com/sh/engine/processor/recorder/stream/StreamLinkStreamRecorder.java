@@ -9,19 +9,14 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.RecordCmdBuilder;
 import com.sh.engine.model.StreamerInfoHolder;
-import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
-import com.sh.engine.model.ffmpeg.StreamLinkCheckCmd;
-import com.sh.engine.model.ffmpeg.StreamLinkUrlFetchCmd;
-import com.sh.engine.model.ffmpeg.StreamMetaDetectCmd;
+import com.sh.engine.model.ffmpeg.*;
 import com.sh.engine.model.video.StreamMetaInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.Date;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -51,7 +46,7 @@ public class StreamLinkStreamRecorder extends StreamRecorder {
     }
 
     @Override
-    public StreamMetaInfo fetchMeta() {
+    public StreamMetaInfo fetchMeta(String savePath) {
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
 
         StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.roomUrl);

@@ -105,6 +105,6 @@ public abstract class AbstractNetDiskUploader extends Uploader {
      */
     @Override
     public int getMaxUploadParallel() {
-        return 2;
+        return 1;
     }
 }

@@ -47,7 +47,7 @@ public class LiveApiStreamRecorder extends StreamRecorder {
     }
 
     @Override
-    public StreamMetaInfo fetchMeta() {
+    public StreamMetaInfo fetchMeta(String savePath) {
         this.streamUrl = getLiveStreamUrl();
 
         StreamMetaDetectCmd streamMetaDetectCmd = new StreamMetaDetectCmd(this.streamUrl);

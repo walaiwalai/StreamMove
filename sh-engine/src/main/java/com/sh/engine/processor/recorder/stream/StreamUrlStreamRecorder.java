@@ -31,7 +31,7 @@ public class StreamUrlStreamRecorder extends StreamRecorder {
     }
 
     @Override
-    protected StreamMetaInfo fetchMeta() {
+    protected StreamMetaInfo fetchMeta(String savePath) {
         StreamMetaDetectCmd streamMetaDetectCmd = new StreamMetaDetectCmd(this.streamUrl);
         streamMetaDetectCmd.execute(60);
 

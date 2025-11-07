@@ -69,8 +69,11 @@ public class YtdlpStreamRecorder extends StreamRecorder {
     }
 
     @Override
-    protected StreamMetaInfo fetchMeta() {
-        return new StreamMetaInfo();
+    protected StreamMetaInfo fetchMeta(String savePath) {
+        StreamMetaInfo info = new StreamMetaInfo();
+        info.setWidth(1920);
+        info.setHeight(1080);
+        return info;
     }
 
 

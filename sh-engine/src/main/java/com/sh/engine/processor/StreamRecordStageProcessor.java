@@ -75,7 +75,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         statusManager.addRoomPathStatus(savePath, name);
         try {
             // 初始化
-            context.getStreamRecorder().init();
+            context.getStreamRecorder().init(savePath);
             StreamMetaInfo streamMeta = context.getStreamRecorder().getStreamMeta();
 
             if (context.getDanmakuRecorder() != null && streamMeta.isValid()) {

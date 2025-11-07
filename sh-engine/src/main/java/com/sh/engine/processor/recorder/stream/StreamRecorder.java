@@ -58,16 +58,18 @@ public abstract class StreamRecorder {
         return streamMeta;
     }
 
-    public void init() {
+
+    public void init(String savePath) {
         StreamMetaInfo info = new StreamMetaInfo();
         try {
-            info = fetchMeta();
+            info = fetchMeta(savePath);
             if (!info.isValid()) {
-                log.error("stream meta is invalid, will retry");
-                info = fetchMeta();
+                throw new RuntimeException("stream meta is invalid");
             }
         } catch (Exception e) {
-            log.error("fetch stream meta fail, roomUrl: {}", roomUrl, e);
+            log.error("stream meta is invalid, will use default 1080*1920, roomUrl: {}", roomUrl, e);
+            info.setWidth(1920);
+            info.setHeight(1080);
         }
         this.streamMeta = info;
     }
@@ -82,5 +84,5 @@ public abstract class StreamRecorder {
      *
      * @return 元信息
      */
-    protected abstract StreamMetaInfo fetchMeta();
+    protected abstract StreamMetaInfo fetchMeta(String savePath);
 }
