@@ -59,7 +59,6 @@ public abstract class AbstractNetDiskUploader extends Uploader {
                 saveUploadedVideo(remoteSeverVideo);
             } else {
                 msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传" + uploadPlatformEnum.getType() + "云盘失败！");
-                throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
             }
         }
 
@@ -77,7 +76,7 @@ public abstract class AbstractNetDiskUploader extends Uploader {
         int i = 0;
         int reTryCnt = 0;
         boolean isFinish = false;
-        while (i++ < 10000 && reTryCnt < 5) {
+        while (i++ < 10000 && reTryCnt < 3) {
             Integer status = netDiskCopyService.getCopyTaskStatus(taskId);
             if (status == 2) {
                 // 上传任务成功
