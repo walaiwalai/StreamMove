@@ -53,6 +53,11 @@ public class ThumbnailGeneratePlugin implements VideoProcessPlugin {
         return true;
     }
 
+    @Override
+    public int getMaxProcessParallel() {
+        return 99;
+    }
+
     /**
      * 生成封面
      *

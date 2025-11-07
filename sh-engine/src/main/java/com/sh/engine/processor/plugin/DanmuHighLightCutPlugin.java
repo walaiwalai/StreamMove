@@ -106,6 +106,11 @@ public class DanmuHighLightCutPlugin implements VideoProcessPlugin {
         return success;
     }
 
+    @Override
+    public int getMaxProcessParallel() {
+        return 5;
+    }
+
     /**
      * 划分4秒基础区间，找出评分最高的区间
      *

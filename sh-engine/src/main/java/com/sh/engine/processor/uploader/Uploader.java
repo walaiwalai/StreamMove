@@ -29,6 +29,12 @@ public abstract class Uploader {
 
     public abstract String getType();
 
+
+    /**
+     * 最大并行处理量
+     */
+    public abstract int getMaxUploadParallel();
+
     /**
      * 初始化上传器
      * 如：用户cookies获取

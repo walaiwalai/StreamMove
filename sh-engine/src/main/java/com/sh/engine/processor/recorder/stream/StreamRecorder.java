@@ -1,6 +1,7 @@
 package com.sh.engine.processor.recorder.stream;
 
 import com.sh.engine.model.video.StreamMetaInfo;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
 import java.util.Map;
@@ -11,6 +12,7 @@ import java.util.Map;
  * @Author caiwen
  * @Date 2024 09 28 10 10
  **/
+@Slf4j
 public abstract class StreamRecorder {
     /**
      * 录像时间
@@ -57,11 +59,17 @@ public abstract class StreamRecorder {
     }
 
     public void init() {
-        this.streamMeta = fetchMeta();
-        if (this.streamMeta.isValid()) {
-            return;
+        StreamMetaInfo info = new StreamMetaInfo();
+        try {
+            info = fetchMeta();
+            if (!info.isValid()) {
+                log.error("stream meta is invalid, will retry");
+                info = fetchMeta();
+            }
+        } catch (Exception e) {
+            log.error("fetch stream meta fail, roomUrl: {}", roomUrl, e);
         }
-        this.streamMeta = fetchMeta();
+        this.streamMeta = info;
     }
 
     /**

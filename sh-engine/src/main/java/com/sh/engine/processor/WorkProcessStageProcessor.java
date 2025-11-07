@@ -1,11 +1,13 @@
 package com.sh.engine.processor;
 
+import cn.hutool.core.io.FileUtil;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
@@ -20,6 +22,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 
 /**
  * @Author caiwen
@@ -36,11 +39,14 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
     StatusManager statusManager;
 
     Map<String, VideoProcessPlugin> plugins = Maps.newHashMap();
+    Map<String, Semaphore> pluginSemaphoreMap = Maps.newHashMap();
 
     @PostConstruct
     private void init() {
         Map<String, VideoProcessPlugin> beansOfType = applicationContext.getBeansOfType(VideoProcessPlugin.class);
         beansOfType.forEach((key, value) -> plugins.put(value.getPluginName(), value));
+
+        beansOfType.forEach(( key, value ) -> pluginSemaphoreMap.put(value.getPluginName(), new Semaphore(value.getMaxProcessParallel(), true)));
     }
 
     @Override
@@ -52,6 +58,10 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
         List<String> videoPlugins = ProcessPluginEnum.getAllPlugins(streamerConfig.getVideoPlugins());
         List<String> curRecordPaths = StreamerInfoHolder.getCurRecordPaths();
         for (String curRecordPath : curRecordPaths) {
+            if (!FileUtil.exist(curRecordPath)) {
+                log.error("{}'s record path not exist, maybe deleted, path: {}", streamerName, curRecordPath);
+                continue;
+            }
             if (statusManager.isPathOccupied(curRecordPath, streamerName)) {
                 log.info("{} is doing other process, plugin: {}.", streamerName, statusManager.getCurPostProcessType(curRecordPath));
                 continue;
@@ -65,6 +75,10 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
 
                 // 加入当前处理的插件类型
                 statusManager.doPostProcess(curRecordPath, pluginName);
+                boolean acquired = pluginSemaphoreMap.get(pluginName).tryAcquire();
+                if (!acquired) {
+                    throw new StreamerRecordException(ErrorEnum.PROCESS_LATER);
+                }
 
                 try {
                     plugins.get(pluginName).process(curRecordPath);
@@ -75,7 +89,7 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
                         throw e;
                     }
                 } finally {
-                    // 移除后置处理标志位
+                    pluginSemaphoreMap.get(pluginName).release();
                     statusManager.finishPostProcess(curRecordPath);
                 }
             }

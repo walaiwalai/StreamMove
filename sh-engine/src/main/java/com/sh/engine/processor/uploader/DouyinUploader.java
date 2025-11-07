@@ -36,24 +36,20 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 public class DouyinUploader extends Uploader {
-    @Resource
-    private CacheManager cacheManager;
-    @Resource
-    private LocalCacheManager localCacheManager;
-    @Resource
-    private MsgSendService msgSendService;
 
     @Value("${playwright.headless}")
     private boolean headless;
     @Value("${sh.account-save.path}")
     private String accountSavePath;
 
-    public static final String AUTH_CODE_KEY = "douyin_login_authcode";
-    private static final String IS_SETTING_UP = "douyin_set_up_flag";
-
     @Override
     public String getType() {
         return UploadPlatformEnum.DOU_YIN.getType();
+    }
+
+    @Override
+    public int getMaxUploadParallel() {
+        return 1;
     }
 
     @Override
@@ -74,18 +70,8 @@ public class DouyinUploader extends Uploader {
             return true;
         }
 
-        // 卡一下，只允许同时只有一个抖音视频上传
-        if (localCacheManager.hasKey(IS_SETTING_UP)) {
-            throw new StreamerRecordException(ErrorEnum.UPLOAD_COOKIES_IS_FETCHING);
-        }
-
-        localCacheManager.set(IS_SETTING_UP, 1, 1, TimeUnit.HOURS);
-        try {
-            initUploader();
-            return doUpload(recordPath);
-        } finally {
-            localCacheManager.delete(IS_SETTING_UP);
-        }
+        initUploader();
+        return doUpload(recordPath);
     }
 
     private boolean doUpload(String recordPath) {

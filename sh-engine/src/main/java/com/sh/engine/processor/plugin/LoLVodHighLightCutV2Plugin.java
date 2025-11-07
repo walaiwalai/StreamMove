@@ -146,6 +146,11 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         return success;
     }
 
+    @Override
+    public int getMaxProcessParallel() {
+        return 2;
+    }
+
 
     private List<SnapshotVideoInterval> mergeInterval(List<SnapshotVideoInterval> rawIntervals) {
         // 按照视频分块

@@ -17,7 +17,6 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 /**
@@ -31,10 +30,6 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
     private VideoMergeService videoMergeService;
     @Resource
     MsgSendService msgSendService;
-    /**
-     * 信号量：控制process方法的最大并发数（n）
-     */
-    private final Semaphore semaphore = new Semaphore(2, true);
 
     @Override
     public String getPluginName() {
@@ -56,18 +51,8 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
             if (mp4File.exists()) {
                 continue;
             }
-            boolean acquired = semaphore.tryAcquire();
-            if (!acquired) {
-                throw new StreamerRecordException(ErrorEnum.OTHER_VIDEO_CONVERTING);
-            }
 
-            boolean success = false;
-            try {
-                success = videoMergeService.ts2Mp4(tsFile);
-            } finally {
-                semaphore.release();
-            }
-
+            boolean success = videoMergeService.ts2Mp4(tsFile);
             if (success) {
                 if (EnvUtil.isProd()) {
                     FileUtils.deleteQuietly(tsFile);
@@ -77,5 +62,10 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
             }
         }
         return true;
+    }
+
+    @Override
+    public int getMaxProcessParallel() {
+        return 2;
     }
 }

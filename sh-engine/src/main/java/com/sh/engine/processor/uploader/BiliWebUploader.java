@@ -6,6 +6,7 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.StreamerInfoHolder;
@@ -42,6 +43,11 @@ public class BiliWebUploader extends Uploader {
     @Override
     public String getType() {
         return UploadPlatformEnum.BILI_WEB.getType();
+    }
+
+    @Override
+    public int getMaxUploadParallel() {
+        return EnvUtil.isStorageMounted() ? 2 : 10;
     }
 
     @Override

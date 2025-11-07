@@ -1,6 +1,7 @@
 package com.sh.engine.processor;
 
 import cn.hutool.core.io.FileUtil;
+import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
@@ -12,14 +13,18 @@ import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.StreamerInfoHolder;
+import com.sh.engine.processor.plugin.VideoProcessPlugin;
 import com.sh.engine.processor.uploader.Uploader;
 import com.sh.engine.processor.uploader.UploaderFactory;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.util.Map;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -33,11 +38,19 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
     StatusManager statusManager;
     @Resource
     MsgSendService msgSendService;
+    @Resource
+    ApplicationContext applicationContext;
 
-    /**
-     * 信号量：控制process方法的最大并发数（n）
-     */
-    private final Semaphore semaphore = new Semaphore(2, true);
+    private static Map<String, Uploader> uploaderMap = Maps.newHashMap();
+    private static Map<String, Semaphore> uploaderSemaphoreMap = Maps.newHashMap();
+
+    @PostConstruct
+    private void init() {
+        Map<String, Uploader> beansOfType = applicationContext.getBeansOfType(Uploader.class);
+
+        beansOfType.forEach((key, value) -> uploaderMap.put(value.getType(), value));
+        beansOfType.forEach(( key, value ) -> uploaderSemaphoreMap.put(value.getType(), new Semaphore(value.getMaxUploadParallel(), true)));
+    }
 
 
     @Override
@@ -60,7 +73,7 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
             }
 
             for (String platform : streamerConfig.getUploadPlatforms()) {
-                Uploader service = UploaderFactory.getUploader(platform);
+                Uploader service = uploaderMap.get(platform);
                 if (service == null) {
                     log.info("no available platform for uploading, will skip, platform: {}", platform);
                     continue;
@@ -72,10 +85,9 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                     continue;
                 }
 
-                // 2.需要上传的地址
-                boolean acquired = semaphore.tryAcquire();
-                if (!acquired && EnvUtil.isStorageMounted()) {
-                    throw new StreamerRecordException(ErrorEnum.OTHER_VIDEO_UPLOADING);
+                boolean acquired = uploaderSemaphoreMap.get(platform).tryAcquire();
+                if (!acquired) {
+                    throw new StreamerRecordException(ErrorEnum.PROCESS_LATER);
                 }
                 statusManager.lockRecordForSubmission(curRecordPath, platform);
 
@@ -91,7 +103,7 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                     log.error("upload error, platform: {}", platform, e);
                 } finally {
                     statusManager.releaseRecordForSubmission(curRecordPath);
-                    semaphore.release();
+                    uploaderSemaphoreMap.get(platform).release();
                 }
 
                 if (success) {

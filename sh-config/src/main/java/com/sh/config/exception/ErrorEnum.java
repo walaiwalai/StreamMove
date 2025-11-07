@@ -88,14 +88,9 @@ public enum ErrorEnum {
     OTHER_VIDEO_CONVERTING(16, "other video converting"),
 
     /**
-     * 其它视频正在进行上传
+     * 等会处理
      */
-    OTHER_VIDEO_UPLOADING(17, "other video uploading"),
-
-    /**
-     * 其它视频正在进行弹幕合并
-     */
-    OTHER_VIDEO_DAMAKU_MERGING(18, "other video damaku merging"),
+    PROCESS_LATER(18, "PROCESS_LATER"),
 
 
     ;

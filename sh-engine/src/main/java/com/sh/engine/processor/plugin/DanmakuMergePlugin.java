@@ -17,7 +17,6 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 @Component
@@ -25,11 +24,6 @@ import java.util.stream.Collectors;
 public class DanmakuMergePlugin implements VideoProcessPlugin {
     @Resource
     MsgSendService msgSendService;
-
-    /**
-     * 信号量：控制process方法的最大并发数（n）
-     */
-    private final Semaphore semaphore = new Semaphore(1, true);
 
     @Override
     public String getPluginName() {
@@ -57,31 +51,27 @@ public class DanmakuMergePlugin implements VideoProcessPlugin {
                 continue;
             }
 
-            boolean acquired = semaphore.tryAcquire();
-            if (!acquired) {
-                throw new StreamerRecordException(ErrorEnum.OTHER_VIDEO_DAMAKU_MERGING);
-            }
-
-            try {
-                AssVideoMergeCmd assVideoMergeCmd = new AssVideoMergeCmd(assFile, mp4File);
-                assVideoMergeCmd.execute(10 * 3600);
-                if (assVideoMergeCmd.isNormalExit()) {
-                    msgSendService.sendText("合并弹幕文件成功！路径为：" + damakuFile.getAbsolutePath());
-                    // 成功就刪除原始MP4文件
-                    if (EnvUtil.isProd()) {
-                        FileUtils.deleteQuietly(mp4File);
-                    }
-                } else {
-                    msgSendService.sendText("合并弹幕文件失败！路径为：" + damakuFile.getAbsolutePath());
-                    // 失敗就刪除合成的彈幕文件
-                    if (EnvUtil.isProd()) {
-                        FileUtils.deleteQuietly(damakuFile);
-                    }
+            AssVideoMergeCmd assVideoMergeCmd = new AssVideoMergeCmd(assFile, mp4File);
+            assVideoMergeCmd.execute(10 * 3600);
+            if (assVideoMergeCmd.isNormalExit()) {
+                msgSendService.sendText("合并弹幕文件成功！路径为：" + damakuFile.getAbsolutePath());
+                // 成功就刪除原始MP4文件
+                if (EnvUtil.isProd()) {
+                    FileUtils.deleteQuietly(mp4File);
                 }
-            } finally {
-                semaphore.release();
+            } else {
+                msgSendService.sendText("合并弹幕文件失败！路径为：" + damakuFile.getAbsolutePath());
+                // 失敗就刪除合成的彈幕文件
+                if (EnvUtil.isProd()) {
+                    FileUtils.deleteQuietly(damakuFile);
+                }
             }
         }
         return true;
+    }
+
+    @Override
+    public int getMaxProcessParallel() {
+        return 1;
     }
 }

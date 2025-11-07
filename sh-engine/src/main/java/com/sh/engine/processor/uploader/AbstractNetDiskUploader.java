@@ -100,4 +100,12 @@ public abstract class AbstractNetDiskUploader extends Uploader {
 
         return isFinish ? new RemoteSeverVideo(taskId, targetFile.getAbsolutePath()) : null;
     }
+
+    /**
+     * 最大并行上传数量
+     */
+    @Override
+    public int getMaxUploadParallel() {
+        return 2;
+    }
 }
