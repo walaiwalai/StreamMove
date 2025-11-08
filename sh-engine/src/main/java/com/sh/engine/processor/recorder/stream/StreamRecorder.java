@@ -1,6 +1,5 @@
 package com.sh.engine.processor.recorder.stream;
 
-import com.sh.engine.model.video.StreamMetaInfo;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
@@ -34,11 +33,6 @@ public abstract class StreamRecorder {
      */
     protected Map<String, String> extraInfo;
 
-    /**
-     * 录像元信息
-     */
-    protected StreamMetaInfo streamMeta;
-
     public StreamRecorder(Date regDate, String roomUrl, Integer streamChannelType, Map<String, String> extraInfo) {
         this.regDate = regDate;
         this.roomUrl = roomUrl;
@@ -54,24 +48,13 @@ public abstract class StreamRecorder {
         return extraInfo == null ? null : extraInfo.get(key);
     }
 
-    public StreamMetaInfo getStreamMeta() {
-        return streamMeta;
-    }
-
 
     public void init(String savePath) {
-        StreamMetaInfo info = new StreamMetaInfo();
         try {
-            info = fetchMeta(savePath);
-            if (!info.isValid()) {
-                throw new RuntimeException("stream meta is invalid");
-            }
+            initParam(savePath);
         } catch (Exception e) {
-            log.error("stream meta is invalid, will use default 1080*1920, roomUrl: {}", roomUrl, e);
-            info.setWidth(1920);
-            info.setHeight(1080);
+            log.error("stream init failed, roomUrl: {}", roomUrl, e);
         }
-        this.streamMeta = info;
     }
 
     /**
@@ -81,8 +64,6 @@ public abstract class StreamRecorder {
 
     /**
      * 获取录像元信息
-     *
-     * @return 元信息
      */
-    protected abstract StreamMetaInfo fetchMeta(String savePath);
+    protected abstract void initParam(String savePath);
 }

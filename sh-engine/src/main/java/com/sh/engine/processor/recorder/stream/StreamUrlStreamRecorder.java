@@ -7,7 +7,6 @@ import com.sh.engine.model.RecordCmdBuilder;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import com.sh.engine.model.ffmpeg.StreamMetaDetectCmd;
-import com.sh.engine.model.video.StreamMetaInfo;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
@@ -31,11 +30,7 @@ public class StreamUrlStreamRecorder extends StreamRecorder {
     }
 
     @Override
-    protected StreamMetaInfo fetchMeta(String savePath) {
-        StreamMetaDetectCmd streamMetaDetectCmd = new StreamMetaDetectCmd(this.streamUrl);
-        streamMetaDetectCmd.execute(60);
-
-        return streamMetaDetectCmd.getMetaInfo();
+    protected void initParam(String savePath) {
     }
 
     private void recordOnline(String savePath) {

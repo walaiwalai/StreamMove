@@ -1,6 +1,5 @@
 package com.sh.engine.processor.recorder.stream;
 
-import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
@@ -10,10 +9,10 @@ import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.RecordCmdBuilder;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.*;
-import com.sh.engine.model.video.StreamMetaInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.Date;
@@ -28,6 +27,7 @@ import java.util.Optional;
 @Slf4j
 public class StreamLinkStreamRecorder extends StreamRecorder {
     private String qualityParam;
+    private String streamUrl;
 
     public StreamLinkStreamRecorder(Date regDate, Integer streamChannelType, String roomUrl) {
         super(regDate, roomUrl, streamChannelType, Maps.newHashMap());
@@ -46,7 +46,7 @@ public class StreamLinkStreamRecorder extends StreamRecorder {
     }
 
     @Override
-    public StreamMetaInfo fetchMeta(String savePath) {
+    public void initParam(String savePath) {
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
 
         StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.roomUrl);
@@ -55,21 +55,21 @@ public class StreamLinkStreamRecorder extends StreamRecorder {
 
         StreamLinkUrlFetchCmd streamLinkUrlFetchCmd = new StreamLinkUrlFetchCmd(this.roomUrl, this.qualityParam);
         streamLinkUrlFetchCmd.execute(20);
-
-        StreamMetaDetectCmd streamMetaDetectCmd = new StreamMetaDetectCmd(streamLinkUrlFetchCmd.getStreamUrl());
-        streamMetaDetectCmd.execute(60);
-
-        return streamMetaDetectCmd.getMetaInfo();
+        this.streamUrl = streamLinkUrlFetchCmd.getStreamUrl();
     }
 
     private void recordReplay(String savePath) {
-        if (!streamMeta.isValid() || streamMeta.getHeight() < 720) {
-            log.error("Resolution is too low {}, stopping recording...", JSON.toJSONString(streamMeta));
+        // 如果是在线的录制，再次检查是否在线
+        StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.streamUrl);
+        checkCmd.execute(40);
+        String bestResolution = checkCmd.getBestResolution();
+        if (!StringUtils.contains(bestResolution, "720") && !StringUtils.contains(bestResolution, "1080")) {
+            log.error("Resolution is too low {}, stopping recording...", bestResolution);
             FileUtils.deleteQuietly(new File(savePath));
             throw new StreamerRecordException(ErrorEnum.RECORD_BAD_QUALITY);
         }
 
-        log.info("Resolution is OK {}, start recording...", JSON.toJSONString(streamMeta));
+        log.info("Resolution is OK {}, start recording...", bestResolution);
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
 
         RecordCmdBuilder builder = new RecordCmdBuilder(streamerConfig, this.streamChannelType, savePath);

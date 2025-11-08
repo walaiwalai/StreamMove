@@ -9,7 +9,6 @@ import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import com.sh.engine.model.ffmpeg.YtDlpVAMerProcessCmd;
 import com.sh.engine.model.ffmpeg.YtDlpVASepProcessCmd;
-import com.sh.engine.model.video.StreamMetaInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -69,11 +68,7 @@ public class YtdlpStreamRecorder extends StreamRecorder {
     }
 
     @Override
-    protected StreamMetaInfo fetchMeta(String savePath) {
-        StreamMetaInfo info = new StreamMetaInfo();
-        info.setWidth(1920);
-        info.setHeight(1080);
-        return info;
+    protected void initParam(String savePath) {
     }
 
 

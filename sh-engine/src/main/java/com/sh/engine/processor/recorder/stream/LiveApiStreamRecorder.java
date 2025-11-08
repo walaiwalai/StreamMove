@@ -12,7 +12,6 @@ import com.sh.engine.model.RecordCmdBuilder;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
 import com.sh.engine.model.ffmpeg.StreamMetaDetectCmd;
-import com.sh.engine.model.video.StreamMetaInfo;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -47,13 +46,7 @@ public class LiveApiStreamRecorder extends StreamRecorder {
     }
 
     @Override
-    public StreamMetaInfo fetchMeta(String savePath) {
-        this.streamUrl = getLiveStreamUrl();
-
-        StreamMetaDetectCmd streamMetaDetectCmd = new StreamMetaDetectCmd(this.streamUrl);
-        streamMetaDetectCmd.execute(60);
-
-        return streamMetaDetectCmd.getMetaInfo();
+    public void initParam(String savePath) {
     }
 
     private void recordOnline(String savePath) {
@@ -63,7 +56,7 @@ public class LiveApiStreamRecorder extends StreamRecorder {
 
         for (int i = 0; i < totalCnt; i++) {
             // 如果是在线的录制，再次检查是否在线
-            String liveStreamUrl = i == 0 ? this.streamUrl : getLiveStreamUrl();
+            String liveStreamUrl = getLiveStreamUrl();
             if (StringUtils.isBlank(liveStreamUrl)) {
                 try {
                     // 睡40s防止重试太快
