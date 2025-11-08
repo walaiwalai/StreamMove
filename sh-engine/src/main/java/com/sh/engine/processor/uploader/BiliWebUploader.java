@@ -47,7 +47,7 @@ public class BiliWebUploader extends Uploader {
 
     @Override
     public int getMaxUploadParallel() {
-        return EnvUtil.isStorageMounted() ? 2 : 10;
+        return 2;
     }
 
     @Override
