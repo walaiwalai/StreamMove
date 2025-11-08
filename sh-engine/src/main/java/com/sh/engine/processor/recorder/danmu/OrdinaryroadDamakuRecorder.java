@@ -277,7 +277,6 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
      * 添加普通弹幕（线程安全）
      */
     private void addDanmaku(String content) {
-        log.info("add danmu：{}", content);
         if (currentJsonWriter == null) {
             log.error("inactive json writer，skip danmu：{}", content);
             return;
