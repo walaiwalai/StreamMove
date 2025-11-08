@@ -260,7 +260,7 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
      */
     private BaseLiveChatClient getDouyinReceiver(String roomId) {
         DouyinLiveChatClientConfig.DouyinLiveChatClientConfigBuilder<?, ?> builder = DouyinLiveChatClientConfig.builder()
-                .roomId(Long.valueOf(roomId))
+                .roomId(roomId)
                 .giftCountCalculationTime(DouyinGiftCountCalculationTimeEnum.COMBO_END);
         if (BooleanUtils.isTrue(PROXY_ENABLE)) {
             builder.socks5ProxyHost(PROXY_HOST).socks5ProxyPort(PROXY_PORT);
@@ -332,7 +332,7 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     public static void main(String[] args) {
         OrdinaryroadDamakuRecorder recorder = new OrdinaryroadDamakuRecorder(
                 StreamerConfig.builder()
-                        .roomUrl("https://live.douyin.com/458599614630")
+                        .roomUrl("https://live.douyin.com/no1TAO")
                         .recordMode("t_150")
                         .build()
         );
