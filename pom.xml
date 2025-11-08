@@ -36,6 +36,7 @@
         <httpclient.version>4.5.2</httpclient.version>
         <httpclient.component.version>4.5.8</httpclient.component.version>
         <quartz.version>2.3.0</quartz.version>
+        <ordinaryroad-live-chat-client.version>1.5.3</ordinaryroad-live-chat-client.version>
     </properties>
 
     <parent>
@@ -228,7 +229,7 @@
             <dependency>
                 <groupId>tech.ordinaryroad</groupId>
                 <artifactId>live-chat-client-bilibili</artifactId>
-                <version>1.5.3</version>
+                <version>${ordinaryroad-live-chat-client.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.graalvm.sdk</groupId>
@@ -240,7 +241,7 @@
             <dependency>
                 <groupId>tech.ordinaryroad</groupId>
                 <artifactId>live-chat-client-douyin</artifactId>
-                <version>1.5.3</version>
+                <version>${ordinaryroad-live-chat-client.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.graalvm.sdk</groupId>
@@ -248,6 +249,31 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+
+            <dependency>
+                <groupId>tech.ordinaryroad</groupId>
+                <artifactId>live-chat-client-huya</artifactId>
+                <version>${ordinaryroad-live-chat-client.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.graalvm.sdk</groupId>
+                        <artifactId>nativeimage</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>tech.ordinaryroad</groupId>
+                <artifactId>live-chat-client-douyu</artifactId>
+                <version>${ordinaryroad-live-chat-client.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.graalvm.sdk</groupId>
+                        <artifactId>nativeimage</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
 
             <!--            csv文件处理-->
             <dependency>

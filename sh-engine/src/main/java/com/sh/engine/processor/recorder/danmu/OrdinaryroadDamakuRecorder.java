@@ -14,12 +14,23 @@ import tech.ordinaryroad.live.chat.client.bilibili.netty.handler.BilibiliBinaryF
 import tech.ordinaryroad.live.chat.client.codec.bilibili.msg.DanmuMsgMsg;
 import tech.ordinaryroad.live.chat.client.codec.douyin.constant.DouyinGiftCountCalculationTimeEnum;
 import tech.ordinaryroad.live.chat.client.codec.douyin.msg.DouyinDanmuMsg;
+import tech.ordinaryroad.live.chat.client.codec.douyu.msg.ChatmsgMsg;
+import tech.ordinaryroad.live.chat.client.codec.huya.msg.MessageNoticeMsg;
 import tech.ordinaryroad.live.chat.client.commons.client.BaseLiveChatClient;
 import tech.ordinaryroad.live.chat.client.commons.client.enums.ClientStatusEnums;
 import tech.ordinaryroad.live.chat.client.douyin.client.DouyinLiveChatClient;
 import tech.ordinaryroad.live.chat.client.douyin.config.DouyinLiveChatClientConfig;
 import tech.ordinaryroad.live.chat.client.douyin.listener.IDouyinMsgListener;
 import tech.ordinaryroad.live.chat.client.douyin.netty.handler.DouyinBinaryFrameHandler;
+import tech.ordinaryroad.live.chat.client.douyu.client.DouyuLiveChatClient;
+import tech.ordinaryroad.live.chat.client.douyu.client.DouyuWsLiveChatClient;
+import tech.ordinaryroad.live.chat.client.douyu.config.DouyuLiveChatClientConfig;
+import tech.ordinaryroad.live.chat.client.douyu.listener.IDouyuMsgListener;
+import tech.ordinaryroad.live.chat.client.douyu.netty.handler.DouyuBinaryFrameHandler;
+import tech.ordinaryroad.live.chat.client.huya.client.HuyaLiveChatClient;
+import tech.ordinaryroad.live.chat.client.huya.config.HuyaLiveChatClientConfig;
+import tech.ordinaryroad.live.chat.client.huya.listener.IHuyaMsgListener;
+import tech.ordinaryroad.live.chat.client.huya.netty.handler.HuyaBinaryFrameHandler;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -45,6 +56,8 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     private static final Integer PROXY_PORT = EnvUtil.getEnvInt("proxy.server.port");
     private static final String PROXY_USER_NAME = EnvUtil.getEnvValue("proxy.server.username");
     private static final String PROXY_USER_PASSWORD = EnvUtil.getEnvValue("proxy.server.password");
+
+    public static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
     /**
      * 计数器（用于生成文件名：P01.json、P02.json...）
      */
@@ -239,17 +252,51 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
             String[] split = StringUtils.split(url, "/");
             String roomId = split[split.length - 1];
             return getDouyinReceiver(roomId);
+        } else if (channelEnum == StreamChannelTypeEnum.DOUYU) {
+            String[] split = StringUtils.split(url, "/");
+            String roomId = split[split.length - 1];
+            return getDouyuReceiver(roomId);
+        } else if (channelEnum == StreamChannelTypeEnum.HUYA) {
+            String[] split = StringUtils.split(url, "/");
+            String roomId = split[split.length - 1];
+            return getHuyaReceiver(roomId);
         }
         return null;
     }
 
     private BaseLiveChatClient getBiliReceiver(String roomId) {
         BilibiliLiveChatClientConfig config = BilibiliLiveChatClientConfig.builder()
-                .roomId(Long.valueOf(roomId))
+                .roomId(roomId)
                 .build();
         return new BilibiliLiveChatClient(config, new IBilibiliMsgListener() {
             @Override
             public void onDanmuMsg(BilibiliBinaryFrameHandler handler, DanmuMsgMsg msg) {
+                addDanmaku(msg.getContent());
+            }
+        });
+    }
+
+    private BaseLiveChatClient getHuyaReceiver(String roomId) {
+        HuyaLiveChatClientConfig config = HuyaLiveChatClientConfig.builder()
+                .roomId(roomId)
+                .build();
+        return new HuyaLiveChatClient(config, new IHuyaMsgListener() {
+            @Override
+            public void onDanmuMsg(HuyaBinaryFrameHandler handler, MessageNoticeMsg msg) {
+                log.info("receive huya danmu: {}", msg.getContent());
+                addDanmaku(msg.getContent());
+            }
+        });
+    }
+
+    private BaseLiveChatClient getDouyuReceiver(String roomId) {
+        DouyuLiveChatClientConfig config = DouyuLiveChatClientConfig.builder()
+                .roomId(roomId)
+                .build();
+        return new DouyuLiveChatClient(config, new IDouyuMsgListener() {
+            @Override
+            public void onDanmuMsg(DouyuBinaryFrameHandler handler, ChatmsgMsg msg) {
+                log.info("receive douyu danmu: {}", msg.getContent());
                 addDanmaku(msg.getContent());
             }
         });
@@ -261,6 +308,7 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     private BaseLiveChatClient getDouyinReceiver(String roomId) {
         DouyinLiveChatClientConfig.DouyinLiveChatClientConfigBuilder<?, ?> builder = DouyinLiveChatClientConfig.builder()
                 .roomId(roomId)
+                .userAgent(USER_AGENT)
                 .giftCountCalculationTime(DouyinGiftCountCalculationTimeEnum.COMBO_END);
         if (BooleanUtils.isTrue(PROXY_ENABLE)) {
             builder.socks5ProxyHost(PROXY_HOST).socks5ProxyPort(PROXY_PORT);
@@ -332,7 +380,7 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     public static void main(String[] args) {
         OrdinaryroadDamakuRecorder recorder = new OrdinaryroadDamakuRecorder(
                 StreamerConfig.builder()
-                        .roomUrl("https://live.douyin.com/no1TAO")
+                        .roomUrl("https://www.douyu.com/810975")
                         .recordMode("t_150")
                         .build()
         );

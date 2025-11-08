@@ -57,6 +57,15 @@
         </dependency>
 
         <dependency>
+            <groupId>tech.ordinaryroad</groupId>
+            <artifactId>live-chat-client-huya</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>tech.ordinaryroad</groupId>
+            <artifactId>live-chat-client-douyu</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.microsoft.playwright</groupId>
             <artifactId>playwright</artifactId>
         </dependency>
