@@ -76,12 +76,11 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         try {
             // 初始化
             context.getStreamRecorder().init(savePath);
-            StreamMetaInfo streamMeta = context.getStreamRecorder().getStreamMeta();
-
-            if (context.getDanmakuRecorder() != null && streamMeta.isValid()) {
-                context.getDanmakuRecorder().init(savePath, streamMeta);
+            if (context.getDanmakuRecorder() != null) {
+                context.getDanmakuRecorder().init(savePath);
                 context.getDanmakuRecorder().start();
             }
+
             // 录像(长时间)
             context.getStreamRecorder().start(savePath);
         } catch (Exception e) {

@@ -56,4 +56,9 @@ public class RecordConstant {
      * 弹幕文件前缀
      */
     public static final String DAMAKU_FILE_PREFIX = "带弹幕-";
+
+    /**
+     * 弹幕文件前缀
+     */
+    public static final String DAMAKU_JSON_FILE_FORMAT = "P%02d.json";
 }

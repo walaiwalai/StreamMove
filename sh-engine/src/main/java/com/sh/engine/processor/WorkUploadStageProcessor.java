@@ -38,19 +38,6 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
     StatusManager statusManager;
     @Resource
     MsgSendService msgSendService;
-    @Resource
-    ApplicationContext applicationContext;
-
-    private static Map<String, Uploader> uploaderMap = Maps.newHashMap();
-    private static Map<String, Semaphore> uploaderSemaphoreMap = Maps.newHashMap();
-
-    @PostConstruct
-    private void init() {
-        Map<String, Uploader> beansOfType = applicationContext.getBeansOfType(Uploader.class);
-
-        beansOfType.forEach((key, value) -> uploaderMap.put(value.getType(), value));
-        beansOfType.forEach(( key, value ) -> uploaderSemaphoreMap.put(value.getType(), new Semaphore(value.getMaxUploadParallel(), true)));
-    }
 
 
     @Override
@@ -73,7 +60,7 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
             }
 
             for (String platform : streamerConfig.getUploadPlatforms()) {
-                Uploader service = uploaderMap.get(platform);
+                Uploader service = UploaderFactory.getUploader(platform);
                 if (service == null) {
                     log.info("no available platform for uploading, will skip, platform: {}", platform);
                     continue;
@@ -85,8 +72,8 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                     continue;
                 }
 
-                boolean acquired = uploaderSemaphoreMap.get(platform).tryAcquire();
-                if (!acquired) {
+                Semaphore semaphore = UploaderFactory.getUploaderSemaphore(platform);
+                if (!semaphore.tryAcquire()) {
                     throw new StreamerRecordException(ErrorEnum.PROCESS_LATER);
                 }
                 statusManager.lockRecordForSubmission(curRecordPath, platform);
@@ -103,7 +90,7 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                     log.error("upload error, platform: {}", platform, e);
                 } finally {
                     statusManager.releaseRecordForSubmission(curRecordPath);
-                    uploaderSemaphoreMap.get(platform).release();
+                    semaphore.release();
                 }
 
                 if (success) {

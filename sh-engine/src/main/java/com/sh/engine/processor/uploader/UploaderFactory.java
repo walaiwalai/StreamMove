@@ -17,6 +17,7 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 
 /**
  * @Author : caiwen
@@ -31,6 +32,7 @@ public class UploaderFactory {
      * 上传器
      */
     private static Map<String, Uploader> uploaderMap = Maps.newHashMap();
+    private static Map<String, Semaphore> uploaderSemaphoreMap = Maps.newHashMap();
 
     /**
      * 存储个人信息的key
@@ -42,6 +44,7 @@ public class UploaderFactory {
     private void init() {
         for (Uploader uploader : uploaders) {
             uploaderMap.put(uploader.getType(), uploader);
+            uploaderSemaphoreMap.put(uploader.getType(), new Semaphore(uploader.getMaxUploadParallel(), true));
         }
 
         accountKeymap.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin-cookies.json");
@@ -53,6 +56,10 @@ public class UploaderFactory {
 
     public static String getAccountFileName(String type) {
         return accountKeymap.get(type);
+    }
+
+    public static Semaphore getUploaderSemaphore(String type) {
+        return uploaderSemaphoreMap.get(type);
     }
 
 

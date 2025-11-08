@@ -1,9 +1,9 @@
 package com.sh.engine.processor.recorder.danmu;
 
+import com.alibaba.fastjson.JSONWriter;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.model.video.StreamMetaInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -21,13 +21,15 @@ import tech.ordinaryroad.live.chat.client.douyin.config.DouyinLiveChatClientConf
 import tech.ordinaryroad.live.chat.client.douyin.listener.IDouyinMsgListener;
 import tech.ordinaryroad.live.chat.client.douyin.netty.handler.DouyinBinaryFrameHandler;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static com.sh.engine.constant.RecordConstant.DAMAKU_JSON_FILE_FORMAT;
 
 /**
  * 基于ordinaryroad-live-chat-client的弹幕录制器
@@ -42,9 +44,9 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     private static final String PROXY_HOST = EnvUtil.getEnvValue("proxy.server.host");
     private static final Integer PROXY_PORT = EnvUtil.getEnvInt("proxy.server.port");
     /**
-     * 计数器（用于生成文件名：P01.ass、P02.ass...）
+     * 计数器（用于生成文件名：P01.json、P02.json...）
      */
-    private AtomicInteger assFileIndex = new AtomicInteger(1);
+    private AtomicInteger jsonFileIndex = new AtomicInteger(1);
 
     /**
      * 全局开始时间（用于计算周期）
@@ -67,9 +69,9 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     private BaseLiveChatClient client;
 
     /**
-     * 当前活跃的AssWriter实例（每个周期一个）
+     * 当前JSON文件写入器
      */
-    private AssWriter currentAssWriter;
+    private JSONWriter currentJsonWriter;
 
     /**
      * 定时任务调度器（用于周期性生成文件）
@@ -87,9 +89,9 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     private String savePath;
 
     /**
-     * 视频元信息（分辨率等）
+     * 总弹幕数量
      */
-    private StreamMetaInfo metaInfo;
+    private int totalDanmuCnt = 0;
 
 
     public OrdinaryroadDamakuRecorder(StreamerConfig config) {
@@ -97,9 +99,8 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     }
 
     @Override
-    public void init(String savePath, StreamMetaInfo metaInfo) {
+    public void init(String savePath) {
         this.savePath = savePath;
-        this.metaInfo = metaInfo;
         this.intervalSeconds = Integer.parseInt(config.getRecordMode().substring(2));
 
         // 初始化客户端
@@ -142,19 +143,17 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
 
         // 连接弹幕客户端
         this.client.connect(() -> {
-            log.info("danmu client connected");
+            log.info("danmu client connected, interval：{}s，savePath：{}", intervalSeconds, savePath);
         }, throwable -> {
             log.error("danmu client connect failed", throwable);
         });
-
-        log.info("danmu recorder start，interval：{}s，savePath：{}", intervalSeconds, savePath);
     }
 
     @Override
     public void close() {
         // 1. 先关闭定时任务调度器，停止文件切换
         if (scheduler != null) {
-            scheduler.shutdownNow(); // 立即停止所有任务
+            scheduler.shutdownNow();
             try {
                 // 等待任务终止（最多等1秒，避免阻塞）
                 if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -174,13 +173,11 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
             log.info("close danmu client success");
         }
 
-        // 3. 最后关闭当前ASS文件，确保所有数据写入
+        // 3. 最后关闭当前json文件，确保所有数据写入
         lock.lock();
         try {
-            if (currentAssWriter != null) {
-                currentAssWriter.close();
-                currentAssWriter = null;
-                log.info("close ass writer success");
+            if (currentJsonWriter != null) {
+                closeJsonWriter();
             }
         } finally {
             lock.unlock();
@@ -195,26 +192,21 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
         lock.lock();
         try {
             // 关闭上一个周期的ASS文件
-            if (currentAssWriter != null) {
-                currentAssWriter.close();
+            if (currentJsonWriter != null) {
+                closeJsonWriter();
                 log.info("closed last period ass writer，cost：{}s", (System.currentTimeMillis() - currentPeriodStartTime) / 1000);
             }
 
             // 更新当前周期开始时间
             currentPeriodStartTime = System.currentTimeMillis();
 
-            // 生成新文件名（P01.ass、P02.ass...）
-            int count = assFileIndex.getAndIncrement();
-            File assFile = new File(savePath, String.format("P%02d.ass", count));
+            // 生成新文件名
+            int count = jsonFileIndex.getAndIncrement();
+            File jsonFile = new File(savePath, String.format(DAMAKU_JSON_FILE_FORMAT, count));
 
             // 创建新的AssWriter
-            currentAssWriter = new AssWriter("直播弹幕", metaInfo.getWidth(), metaInfo.getHeight());
-
-            // 打开新文件
-            currentAssWriter.open(assFile.getAbsolutePath());
-            log.info("create new ass writer, path: {}，resolution：{}x{}", assFile.getAbsolutePath(), metaInfo.getWidth(), metaInfo.getHeight());
-        } catch (IOException e) {
-            log.error("switch ass writer failed", e);
+            initJsonWriter(jsonFile);
+            log.info("create new json writer, path: {}", jsonFile.getAbsolutePath());
         } finally {
             lock.unlock();
         }
@@ -285,8 +277,9 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
      * 添加普通弹幕（线程安全）
      */
     private void addDanmaku(String content) {
-        if (currentAssWriter == null) {
-            log.error("in active ass writer，skip danmu：{}", content);
+        log.info("add danmu：{}", content);
+        if (currentJsonWriter == null) {
+            log.error("inactive json writer，skip danmu：{}", content);
             return;
         }
 
@@ -294,26 +287,53 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
         try {
             // 计算当前周期内的相对时间（秒）
             float time = (float) ((System.currentTimeMillis() - currentPeriodStartTime) / 1000.0);
-            currentAssWriter.add(new SimpleDanmaku(time, content, "ffffff"));
+            currentJsonWriter.writeObject(new SimpleDanmaku(time, content, "ffffff"));
+            totalDanmuCnt++;
+            if (totalDanmuCnt % 100 == 0) {
+                log.info("write danmu success, total: {}", totalDanmuCnt);
+            }
         } finally {
             lock.unlock();
         }
+    }
+
+    public void initJsonWriter(File jsonFile) {
+        try {
+            OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(jsonFile), StandardCharsets.UTF_8);
+            currentJsonWriter = new JSONWriter(osw);
+
+            currentJsonWriter.startArray();
+            log.info("init json writer success");
+
+        } catch (FileNotFoundException e) {
+            log.error("init json writer failed", e);
+        }
+    }
+
+    public void closeJsonWriter() {
+        currentJsonWriter.endArray();
+
+        try {
+            currentJsonWriter.close();
+            log.info("close json writer success");
+        } catch (IOException e) {
+            log.error("close json writer failed", e);
+        }
+
+        currentJsonWriter = null;
     }
 
 
     public static void main(String[] args) {
         OrdinaryroadDamakuRecorder recorder = new OrdinaryroadDamakuRecorder(
                 StreamerConfig.builder()
-                        .roomUrl("https://live.douyin.com/962565925628")
+                        .roomUrl("https://live.douyin.com/458599614630")
                         .recordMode("t_150")
                         .build()
         );
-        StreamMetaInfo streamMetaInfo = new StreamMetaInfo();
-        streamMetaInfo.setWidth(1920);
-        streamMetaInfo.setHeight(1080);
 
         try {
-            recorder.init("G:\\stream_record\\download\\test\\2025-11-02-10-04-00", streamMetaInfo);
+            recorder.init("G:\\stream_record\\download\\mytest-mac\\2025-11-07-22-27-01");
             recorder.start();
             Thread.sleep(1000 * 60 * 5);
         } catch (InterruptedException e) {

@@ -1,7 +1,6 @@
 package com.sh.engine.processor.recorder.danmu;
 
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.engine.model.video.StreamMetaInfo;
 
 /**
  * 弹幕录制机
@@ -24,7 +23,7 @@ public abstract class DanmakuRecorder {
      *
      * @param savePath 弹幕文件保存地址
      */
-    public abstract void init(String savePath, StreamMetaInfo metaInfo);
+    public abstract void init(String savePath);
 
     /**
      * 开始弹幕录制

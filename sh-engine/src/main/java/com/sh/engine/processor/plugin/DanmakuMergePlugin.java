@@ -1,12 +1,15 @@
 package com.sh.engine.processor.plugin;
 
-import com.sh.config.exception.ErrorEnum;
-import com.sh.config.exception.StreamerRecordException;
+import com.alibaba.fastjson.TypeReference;
 import com.sh.config.utils.EnvUtil;
+import com.sh.config.utils.FileStoreUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.ffmpeg.AssVideoMergeCmd;
+import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
+import com.sh.engine.processor.recorder.danmu.AssWriter;
+import com.sh.engine.processor.recorder.danmu.SimpleDanmaku;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.File;
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,14 +36,25 @@ public class DanmakuMergePlugin implements VideoProcessPlugin {
 
     @Override
     public boolean process(String recordPath) {
+        List<File> jsonFiles = FileUtils.listFiles(new File(recordPath), new String[]{"json"}, false)
+                .stream()
+                .filter(file -> file.getName().startsWith("P"))
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(jsonFiles)) {
+            return true;
+        }
+
+        VideoSizeDetectCmd videoSizeDetectCmd = new VideoSizeDetectCmd(new File(recordPath, "P01.mp4").getAbsolutePath());
+        videoSizeDetectCmd.execute(60 * 5);
+        for (File jsonFile : jsonFiles) {
+            convert2AssFile(jsonFile, videoSizeDetectCmd.getWidth(), videoSizeDetectCmd.getHeight());
+        }
+
+        // 弹幕ass文件
         List<File> assFiles = FileUtils.listFiles(new File(recordPath), new String[]{"ass"}, false)
                 .stream()
                 .sorted(Comparator.comparingInt(VideoFileUtil::getVideoIndex))
                 .collect(Collectors.toList());
-        if (CollectionUtils.isEmpty(assFiles)) {
-            return true;
-        }
-
         for (File assFile : assFiles) {
             String damakuFileName = RecordConstant.DAMAKU_FILE_PREFIX + assFile.getName().replace(".ass", ".mp4");
             File damakuFile = new File(assFile.getParent(), damakuFileName);
@@ -73,5 +88,24 @@ public class DanmakuMergePlugin implements VideoProcessPlugin {
     @Override
     public int getMaxProcessParallel() {
         return 1;
+    }
+
+
+    private void convert2AssFile(File jsonFile, int width, int height) {
+        AssWriter assWriter = new AssWriter("直播弹幕", width, height);
+        String assFile = jsonFile.getAbsolutePath().replace(".json", ".ass");
+        List<SimpleDanmaku> simpleDanmakus = FileStoreUtil.loadFromFile(jsonFile, new TypeReference<List<SimpleDanmaku>>() {
+        });
+
+        try {
+            assWriter.open(assFile);
+            for (SimpleDanmaku danmakus : simpleDanmakus) {
+                assWriter.add(danmakus);
+            }
+        } catch (IOException e) {
+            log.error("covert danmu error", e);
+        } finally {
+            assWriter.close();
+        }
     }
 }
