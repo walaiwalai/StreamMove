@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.VideoFileUtil;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.model.ffmpeg.StreamBitrateCmd;
 import com.sh.engine.model.ffmpeg.StreamLinkUrlFetchCmd;
@@ -64,9 +65,13 @@ public class RecordCmdBuilder {
 
         List<String> streamLinkParams = Lists.newArrayList(
                 "streamlink", StringUtils.join(buildStreamlinkChannelParams(), " "),
-                "--stream-segment-threads 3",
+                "--stream-segment-threads 2",
                 "--retry-streams 3",
                 "--retry-open 3",
+                "--hls-segment-attempts 2",
+                "--hls-segment-timeout 10",
+                "--no-part",
+                "--http-header", "\"" + RecordConstant.USER_AGENT + "\"",
                 url, qualityParam,
                 "--stdout"
         );

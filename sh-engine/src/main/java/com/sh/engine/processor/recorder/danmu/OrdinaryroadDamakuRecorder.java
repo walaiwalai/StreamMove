@@ -3,6 +3,7 @@ package com.sh.engine.processor.recorder.danmu;
 import com.alibaba.fastjson.JSONWriter;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.EnvUtil;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
@@ -57,7 +58,6 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     private static final String PROXY_USER_NAME = EnvUtil.getEnvValue("proxy.server.username");
     private static final String PROXY_USER_PASSWORD = EnvUtil.getEnvValue("proxy.server.password");
 
-    public static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
     /**
      * 计数器（用于生成文件名：P01.json、P02.json...）
      */
@@ -308,7 +308,7 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
     private BaseLiveChatClient getDouyinReceiver(String roomId) {
         DouyinLiveChatClientConfig.DouyinLiveChatClientConfigBuilder<?, ?> builder = DouyinLiveChatClientConfig.builder()
                 .roomId(roomId)
-                .userAgent(USER_AGENT)
+                .userAgent(RecordConstant.USER_AGENT)
                 .giftCountCalculationTime(DouyinGiftCountCalculationTimeEnum.COMBO_END);
         if (BooleanUtils.isTrue(PROXY_ENABLE)) {
             builder.socks5ProxyHost(PROXY_HOST).socks5ProxyPort(PROXY_PORT);

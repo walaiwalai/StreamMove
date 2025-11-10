@@ -5,6 +5,8 @@ package com.sh.engine.constant;
  * @date 2023/1/25 19:07
  */
 public class RecordConstant {
+    public static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+
     public static final String BILI_TOKEN_CHECK_URL_PREFIX = "https://api.snm0516.aisee" +
             ".tv/x/tv/account/myinfo?access_key=";
     public static final String BILI_VIDEO_UPLOAD_APP_SECRET = "af125a0d5279fd576c1b4418a3e8276d";
