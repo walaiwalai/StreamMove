@@ -71,13 +71,17 @@ public class ThumbnailGeneratePlugin implements VideoProcessPlugin {
         PictureFileUtil.createTextOnImage(coverFile, thumbFile, buildThumbTitle(recordPath));
     }
 
-    private List<String> buildThumbTitle(String recordPath) {
+    private List<String> buildThumbTitle( String recordPath ) {
+        File danmuFile = new File(recordPath, RecordConstant.DAMAKU_FILE_PREFIX + "P01.mp4");
+        StreamerInfoHolder.getCurStreamerName();
+
         String timeV = new File(recordPath).getName();
+        String suffix = danmuFile.exists() ? "弹幕版" : " 直播回放";
 
         List<String> res = Lists.newArrayList();
         LocalDateTime dateTime = LocalDateTime.parse(timeV, DateTimeFormatter.ofPattern(DateUtil.YYYY_MM_DD_HH_MM_SS_V2));
         res.add(dateTime.getYear() + "-" + dateTime.getMonthValue() + "-" + dateTime.getDayOfMonth() + " " + dateTime.getHour() + "时");
-        res.add(StreamerInfoHolder.getCurStreamerName() + " 直播回放");
+        res.add(StreamerInfoHolder.getCurStreamerName() + suffix);
         return res;
     }
 }

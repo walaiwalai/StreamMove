@@ -3,6 +3,7 @@ package com.sh.engine.processor.uploader;
 import com.google.common.collect.Maps;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.DateUtil;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.processor.uploader.meta.BiliWorkMetaData;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
@@ -112,10 +113,12 @@ public class UploaderFactory {
      * @return 视频标题
      */
     private static String genTitle(StreamerConfig streamerConfig, String recordPath) {
+        File danmuFile = new File(recordPath, RecordConstant.DAMAKU_FILE_PREFIX + "P01.mp4");
+
         String timeV = new File(recordPath).getName();
         Map<String, String> paramsMap = Maps.newHashMap();
         paramsMap.put("time", DateUtil.describeTime(timeV, DateUtil.YYYY_MM_DD_HH_MM_SS_V2));
-        paramsMap.put("name", streamerConfig.getName());
+        paramsMap.put("name", danmuFile.exists() ? streamerConfig.getName() + "-带弹幕" : streamerConfig.getName());
 
         if (StringUtils.isNotBlank(streamerConfig.getTemplateTitle())) {
             StringSubstitutor sub = new StringSubstitutor(paramsMap);
