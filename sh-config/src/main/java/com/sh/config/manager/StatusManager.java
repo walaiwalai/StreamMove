@@ -53,15 +53,6 @@ public class StatusManager {
     }
 
     /**
-     * 录像是否在往某个平台投稿中
-     *
-     * @return 是否在投稿中
-     */
-    public boolean isRecordOnSubmission(String recordPath) {
-        return uploadStatusMap.containsKey(recordPath);
-    }
-
-    /**
      * 锁住当前录像路径正在被某个平台投递
      *
      * @param recordPath 录像存储路径
@@ -99,8 +90,7 @@ public class StatusManager {
     }
 
     public Integer count() {
-        // 录制和处理占用空间，上传不用
-        return recordStatusMap.keySet().size() + +postProcessMap.keySet().size() + uploadStatusMap.keySet().size();
+        return recordStatusMap.keySet().size();
     }
 
 
@@ -112,10 +102,6 @@ public class StatusManager {
         return postProcessMap.get(recordPath);
     }
 
-    public boolean isDoPostProcess(String recordPath) {
-        return postProcessMap.containsKey(recordPath);
-    }
-
     public void finishPostProcess(String recordPath) {
         postProcessMap.remove(recordPath);
     }
@@ -125,6 +111,6 @@ public class StatusManager {
         String onRecordPath = recordStatusMap.get(streamerName);
         boolean isPathOnRecording = StringUtils.equals(recordPath, onRecordPath);
 
-        return isRecordOnSubmission(recordPath) || isPathOnRecording || isDoPostProcess(recordPath);
+        return uploadStatusMap.containsKey(recordPath) || isPathOnRecording || postProcessMap.containsKey(recordPath);
     }
 }

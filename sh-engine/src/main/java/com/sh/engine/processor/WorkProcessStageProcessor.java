@@ -70,26 +70,29 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
             for (String pluginName : videoPlugins) {
                 ProcessPluginEnum pluginEnum = ProcessPluginEnum.of(pluginName);
                 if (plugins.get(pluginName) == null || pluginEnum == null) {
-                    throw new StreamerRecordException(ErrorEnum.PLUGIN_NOT_EXIST);
+                    continue;
                 }
 
                 // 加入当前处理的插件类型
                 statusManager.doPostProcess(curRecordPath, pluginName);
-                boolean acquired = pluginSemaphoreMap.get(pluginName).tryAcquire();
-                if (!acquired) {
-                    throw new StreamerRecordException(ErrorEnum.PROCESS_LATER);
-                }
-
                 try {
-                    plugins.get(pluginName).process(curRecordPath);
-                    log.info("{}'s {} plugin process success, path: {}. ", streamerName, pluginName, curRecordPath);
-                } catch (Exception e) {
-                    log.error("{}'s {} plugin process failed, path: {}.", streamerName, pluginName, curRecordPath, e);
-                    if (pluginEnum.isSystem()) {
-                        throw e;
+                    boolean acquired = pluginSemaphoreMap.get(pluginName).tryAcquire();
+                    if (!acquired) {
+                        throw new StreamerRecordException(ErrorEnum.PROCESS_LATER);
+                    }
+
+                    try {
+                        plugins.get(pluginName).process(curRecordPath);
+                        log.info("{}'s {} plugin process success, path: {}. ", streamerName, pluginName, curRecordPath);
+                    } catch (Exception e) {
+                        log.error("{}'s {} plugin process failed, path: {}.", streamerName, pluginName, curRecordPath, e);
+                        if (pluginEnum.isSystem()) {
+                            throw e;
+                        }
+                    } finally {
+                        pluginSemaphoreMap.get(pluginName).release();
                     }
                 } finally {
-                    pluginSemaphoreMap.get(pluginName).release();
                     statusManager.finishPostProcess(curRecordPath);
                 }
             }
