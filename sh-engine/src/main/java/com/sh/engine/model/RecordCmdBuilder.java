@@ -68,9 +68,6 @@ public class RecordCmdBuilder {
                 "--stream-segment-threads 2",
                 "--retry-streams 3",
                 "--retry-open 3",
-                "--hls-segment-attempts 2",
-                "--hls-segment-timeout 10",
-                "--no-part",
                 "--http-header", "\"User-Agent=" + RecordConstant.USER_AGENT + "\"",
                 url, qualityParam,
                 "--stdout"
