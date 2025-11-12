@@ -71,7 +71,7 @@ public class RecordCmdBuilder {
                 "--hls-segment-attempts 2",
                 "--hls-segment-timeout 10",
                 "--no-part",
-                "--http-header", "\"" + RecordConstant.USER_AGENT + "\"",
+                "--http-header", "\"User-Agent=" + RecordConstant.USER_AGENT + "\"",
                 url, qualityParam,
                 "--stdout"
         );
