@@ -182,13 +182,6 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         }
     }
 
-    public static void main(String[] args) throws IOException {
-        StreamrecorderIOChecker streamrecorderIOChecker = new StreamrecorderIOChecker();
-        StreamRecorder streamRecorder = streamrecorderIOChecker.getStreamRecorder(StreamerConfig.builder()
-                .roomUrl("streamercord.io/2081784")
-                .build());
-    }
-
     static class CustomCookieJar implements CookieJar {
         private final Map<String, List<Cookie>> cookieStore = new HashMap<>();
 

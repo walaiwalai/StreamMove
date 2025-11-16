@@ -2,6 +2,7 @@ package com.sh.engine.processor;
 
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.InitConfig;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
@@ -42,13 +43,20 @@ public class RoomCheckStageProcessor extends AbstractStageProcessor {
 
         StreamChannelTypeEnum channelEnum = StreamChannelTypeEnum.findChannelByUrl(streamInfo.getRoomUrl());
         if (channelEnum == null) {
-            log.error("roomUrl not match any existed platform, use outer api, roomUrl: {}", streamInfo.getRoomUrl());
+            log.error("roomUrl not match any existed platform, roomUrl: {}", streamInfo.getRoomUrl());
             return;
         }
-        AbstractRoomChecker streamerService = streamerServiceMap.get(channelEnum);
-        if (streamerService == null) {
-            log.warn("streamerService is null, use outer api, type: {},  roomUrl: {}", channelEnum.getDesc(), streamInfo.getRoomUrl());
+
+        // 检测服务
+        AbstractRoomChecker streamerService;
+        if (ConfigFetcher.getInitConfig().getOutApiRoomCheckPlatforms().contains(channelEnum.name())) {
             streamerService = streamerServiceMap.get(StreamChannelTypeEnum.LIVE_RECORD_API);
+        } else {
+            streamerService = streamerServiceMap.get(channelEnum);
+        }
+        if (streamerService == null) {
+            log.error("streamerService is null, will skip,  roomUrl: {}", streamInfo.getRoomUrl());
+            return;
         }
 
         // 直播录像机

@@ -52,11 +52,11 @@ import static com.sh.engine.constant.RecordConstant.DAMAKU_JSON_FILE_FORMAT;
  **/
 @Slf4j
 public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
-    private static final Boolean PROXY_ENABLE = EnvUtil.getEnvBoolean("proxy.server.enable");
-    private static final String PROXY_HOST = EnvUtil.getEnvValue("proxy.server.host");
-    private static final Integer PROXY_PORT = EnvUtil.getEnvInt("proxy.server.port");
-    private static final String PROXY_USER_NAME = EnvUtil.getEnvValue("proxy.server.username");
-    private static final String PROXY_USER_PASSWORD = EnvUtil.getEnvValue("proxy.server.password");
+//    private static final Boolean PROXY_ENABLE = EnvUtil.getEnvBoolean("proxy.server.enable");
+//    private static final String PROXY_HOST = EnvUtil.getEnvValue("proxy.server.host");
+//    private static final Integer PROXY_PORT = EnvUtil.getEnvInt("proxy.server.port");
+//    private static final String PROXY_USER_NAME = EnvUtil.getEnvValue("proxy.server.username");
+//    private static final String PROXY_USER_PASSWORD = EnvUtil.getEnvValue("proxy.server.password");
 
     /**
      * 计数器（用于生成文件名：P01.json、P02.json...）
@@ -310,13 +310,12 @@ public class OrdinaryroadDamakuRecorder extends DanmakuRecorder {
                 .roomId(roomId)
                 .userAgent(RecordConstant.USER_AGENT)
                 .giftCountCalculationTime(DouyinGiftCountCalculationTimeEnum.COMBO_END);
-        if (BooleanUtils.isTrue(PROXY_ENABLE)) {
-            builder.socks5ProxyHost(PROXY_HOST).socks5ProxyPort(PROXY_PORT);
-            if (!"nvl".equals(PROXY_USER_NAME)) {
-                builder.socks5ProxyUsername(PROXY_USER_NAME).socks5ProxyPassword(PROXY_USER_PASSWORD);
-            }
-
-        }
+//        if (BooleanUtils.isTrue(PROXY_ENABLE)) {
+//            builder.socks5ProxyHost(PROXY_HOST).socks5ProxyPort(PROXY_PORT);
+//            if (!"nvl".equals(PROXY_USER_NAME)) {
+//                builder.socks5ProxyUsername(PROXY_USER_NAME).socks5ProxyPassword(PROXY_USER_PASSWORD);
+//            }
+//        }
         DouyinLiveChatClientConfig config = builder.build();
 
         return new DouyinLiveChatClient(config, new IDouyinMsgListener() {

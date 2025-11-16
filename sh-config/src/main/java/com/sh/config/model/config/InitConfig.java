@@ -1,9 +1,12 @@
 package com.sh.config.model.config;
 
+import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 /**
  * @Author caiwen
@@ -66,4 +69,11 @@ public class InitConfig {
     // *********************上传网站配置**********************
     // *********************B站视频上传**********************
     private String biliCookies;
+
+
+    // *********************其他配置**********************
+    /**
+     * 采用outApi形式检测房间是否开播
+     */
+    private List<String> outApiRoomCheckPlatforms = Lists.newArrayList();
 }
