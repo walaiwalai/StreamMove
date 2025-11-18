@@ -66,6 +66,6 @@ public class TsToMP4TransferPlugin implements VideoProcessPlugin {
 
     @Override
     public int getMaxProcessParallel() {
-        return 2;
+        return 3;
     }
 }

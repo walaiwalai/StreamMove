@@ -107,7 +107,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
             File toMp4File = new File(tmpDir, FileNameUtil.getPrefix(fromVideo) + ".mp4");
 
             Ts2Mp4ProcessCmd ts2Mp4ProcessCmd = new Ts2Mp4ProcessCmd(fromVideo, toMp4File);
-            ts2Mp4ProcessCmd.execute(4 * 3600L);
+            ts2Mp4ProcessCmd.execute(2 * 3600L);
 
             // copy文件
             File targetFile = new File(fromVideo.getParent(), FileNameUtil.getPrefix(fromVideo) + ".mp4");
