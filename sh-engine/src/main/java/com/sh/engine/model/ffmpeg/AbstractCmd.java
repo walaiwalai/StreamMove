@@ -89,7 +89,7 @@ public abstract class AbstractCmd {
         } catch (IOException e) {
             log.error("IO error occurred while executing command: {}", command, e);
             throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("Unexpected error occurred while executing command: {}", command, e);
             throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
 
