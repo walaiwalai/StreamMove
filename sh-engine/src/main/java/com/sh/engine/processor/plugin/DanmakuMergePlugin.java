@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,7 +46,11 @@ public class DanmakuMergePlugin implements VideoProcessPlugin {
             return true;
         }
 
-        VideoSizeDetectCmd videoSizeDetectCmd = new VideoSizeDetectCmd(new File(recordPath, "P01.mp4").getAbsolutePath());
+        List<File> videoFiles = new ArrayList<>(FileUtils.listFiles(new File(recordPath), new String[]{"mp4"}, false));
+        if (CollectionUtils.isEmpty(videoFiles)) {
+            return true;
+        }
+        VideoSizeDetectCmd videoSizeDetectCmd = new VideoSizeDetectCmd(videoFiles.get(0).getAbsolutePath());
         videoSizeDetectCmd.execute(60 * 5);
         for (File jsonFile : jsonFiles) {
             convert2AssFile(jsonFile, videoSizeDetectCmd.getWidth(), videoSizeDetectCmd.getHeight());
