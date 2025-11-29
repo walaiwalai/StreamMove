@@ -1,6 +1,6 @@
 package com.sh.engine.processor.recorder.danmu;
 
-import com.sh.config.model.config.StreamerConfig;
+import java.io.File;
 
 /**
  * 弹幕录制机
@@ -8,30 +8,33 @@ import com.sh.config.model.config.StreamerConfig;
  * @Author caiwen
  * @Date 2025 08 29 23 05
  **/
-public abstract class DanmakuRecorder {
-    /**
-     * 直播间地址
-     */
-    protected StreamerConfig config;
-
-    public DanmakuRecorder(StreamerConfig config) {
-        this.config = config;
-    }
-
+public interface DanmakuRecorder {
     /**
      * 弹幕初始化
      *
-     * @param savePath 弹幕文件保存地址
+     * @param saveFile 弹幕文件保存地址
      */
-    public abstract void init(String savePath);
+    void init(File saveFile);
+
+    /**
+     * 刷新弹幕初
+     *
+     * @param saveFile 弹幕文件保存地址
+     */
+    void refresh(File saveFile);
 
     /**
      * 开始弹幕录制
      */
-    public abstract void start();
+    void start();
 
     /**
      * 关闭弹幕录制
      */
-    public abstract void close();
+    void close();
+
+    /**
+     * 显示弹幕录制详情
+     */
+    void showRecordDetail();
 }

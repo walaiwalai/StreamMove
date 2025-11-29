@@ -11,6 +11,8 @@ import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.video.StreamMetaInfo;
+import com.sh.engine.processor.recorder.danmu.DanmakuSwitchStrategy;
+import com.sh.engine.processor.recorder.danmu.OrdinaryroadDamakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +49,11 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
     private ConfigFetcher configFetcher;
     @Resource
     private CacheManager cacheManager;
+    
+    /**
+     * 弹幕文件切换策略
+     */
+    private DanmakuSwitchStrategy danmakuSwitchStrategy;
 
 
     @Override
@@ -77,8 +84,9 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
             // 初始化
             context.getStreamRecorder().init(savePath);
             if (context.getDanmakuRecorder() != null) {
-                context.getDanmakuRecorder().init(savePath);
-                context.getDanmakuRecorder().start();
+                danmakuSwitchStrategy = new DanmakuSwitchStrategy(context.getDanmakuRecorder());
+                danmakuSwitchStrategy.init(savePath);
+                danmakuSwitchStrategy.start();
             }
 
             // 录像(长时间)
@@ -87,8 +95,9 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
             log.error("record error, savePath: {}", savePath, e);
             throw e;
         } finally {
-            if (context.getDanmakuRecorder() != null) {
-                context.getDanmakuRecorder().close();
+            // 关闭弹幕文件切换任务
+            if (danmakuSwitchStrategy != null) {
+                danmakuSwitchStrategy.stop();
             }
             statusManager.deleteRoomPathStatus(name);
         }
