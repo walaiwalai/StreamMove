@@ -30,6 +30,7 @@ import tech.ordinaryroad.live.chat.client.huya.config.HuyaLiveChatClientConfig;
 import tech.ordinaryroad.live.chat.client.huya.listener.IHuyaMsgListener;
 import tech.ordinaryroad.live.chat.client.huya.netty.handler.HuyaBinaryFrameHandler;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -67,7 +68,7 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
     private BaseLiveChatClient<?, ?, ?> client;
 
     /**
-     * 线程安全锁（切换AssWriter时使用）
+     * 线程安全锁（切换Writer时使用）
      */
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -84,7 +85,7 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
     /**
      * 当前弹幕写入器
      */
-    private JSONWriter currentDanmuWriter;
+    private BufferedWriter currentDanmuWriter;
     
     /**
      * 待写入的弹幕缓存列表
@@ -94,7 +95,7 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
     /**
      * 批量写入大小
      */
-    private static final int BATCH_SIZE = 100;
+    private static final int BATCH_SIZE = 50;
 
 
     public OrdinaryroadDamakuRecorder(StreamerConfig config) {
@@ -185,10 +186,14 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         lock.lock();
         try {
             for (SimpleDanmaku danmaku : pendingDanmakus) {
-                currentDanmuWriter.writeObject(danmaku);
+                currentDanmuWriter.write(danmaku.toLine());
+                currentDanmuWriter.newLine();
             }
+            currentDanmuWriter.flush();
             log.warn("flushed {} danmakus to file", pendingDanmakus.size());
             pendingDanmakus.clear();
+        } catch (IOException e) {
+            log.error("flush danmakus failed", e);
         } finally {
             lock.unlock();
         }
@@ -221,8 +226,7 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         // 创建新的弹幕写入器
         try {
             OutputStreamWriter osw = new OutputStreamWriter(Files.newOutputStream(saveFile.toPath()), StandardCharsets.UTF_8);
-            currentDanmuWriter = new JSONWriter(osw);
-            currentDanmuWriter.startArray();
+            currentDanmuWriter = new BufferedWriter(osw);
             log.info("create new danmu file, path: {}", saveFile.getAbsolutePath());
         } catch (Exception e) {
             log.error("init danmu writer failed", e);
@@ -236,9 +240,10 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         // 刷新剩余的弹幕
         flushPendingDanmakus();
         try {
-            currentDanmuWriter.endArray();
-            currentDanmuWriter.close();
-            log.info("close danmu file success");
+            if (currentDanmuWriter != null) {
+                currentDanmuWriter.close();
+                log.info("close danmu file success");
+            }
         } catch (IOException e) {
             log.error("close danmu file failed", e);
         }

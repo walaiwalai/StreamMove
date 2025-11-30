@@ -74,4 +74,32 @@ public class SimpleDanmaku implements Danmaku {
     public SimpleDanmaku(float time, String content, String color) {
         this(time, null, null, null, color, content, null, null);
     }
+    
+    /**
+     * 将弹幕转换为一行文本格式
+     * 格式: 时间__SEP__内容__SEP__颜色
+     * @return 弹幕的文本表示
+     */
+    public String toLine() {
+        return String.format("%.3f__SEP__%s__SEP__%s", time, content, color);
+    }
+    
+    /**
+     * 从一行文本还原弹幕对象
+     * @param line 文本行
+     * @return 弹幕对象
+     */
+    public static SimpleDanmaku fromLine(String line) {
+        if (line == null || line.isEmpty()) {
+            return null;
+        }
+        String[] parts = line.split("__SEP__");
+        if (parts.length >= 3) {
+            float time = Float.parseFloat(parts[0]);
+            String content = parts[1];
+            String color = parts[2];
+            return new SimpleDanmaku(time, content, color);
+        }
+        return null;
+    }
 }

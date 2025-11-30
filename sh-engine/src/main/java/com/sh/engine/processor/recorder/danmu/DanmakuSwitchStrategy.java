@@ -8,7 +8,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.sh.engine.constant.RecordConstant.DAMAKU_JSON_FILE_FORMAT;
+import static com.sh.engine.constant.RecordConstant.DAMAKU_TXT_FILE_FORMAT;
 
 /**
  * 弹幕文件切换策略
@@ -44,13 +44,13 @@ public class DanmakuSwitchStrategy {
     }
     
     /**
-     * 初始化弹幕录制器（创建第一个JSON文件）
+     * 初始化弹幕录制器
      */
     public void init(String savePath) {
         this.savePath = savePath;
 
-        File jsonFile = new File(savePath, String.format(DAMAKU_JSON_FILE_FORMAT, danmuFileIndex.getAndIncrement()));
-        danmakuRecorder.init(jsonFile);
+        File txtFile = new File(savePath, String.format(DAMAKU_TXT_FILE_FORMAT, danmuFileIndex.getAndIncrement()));
+        danmakuRecorder.init(txtFile);
     }
     
     /**
@@ -66,7 +66,7 @@ public class DanmakuSwitchStrategy {
 
         // 每3秒检查一次TS文件变化
         this.scheduler.scheduleAtFixedRate(
-                this::checkTsFilesAndCreateJson,
+                this::checkTsFilesAndCreateTxt,
                 0,
                 3,
                 TimeUnit.SECONDS
@@ -104,22 +104,22 @@ public class DanmakuSwitchStrategy {
     /**
      * 检查TS文件变化，当有新的TS文件产生时通知弹幕录制器切换文件
      */
-    private void checkTsFilesAndCreateJson() {
+    private void checkTsFilesAndCreateTxt() {
+        if (Thread.currentThread().isInterrupted()) {
+            return;
+        }
         File[] tsFiles = new File(savePath).listFiles((d, name) -> name.endsWith(".ts"));
         if (tsFiles == null) {
             return;
         }
 
-        // 获取当前已创建的JSON文件数量
-        int createdJsonCount = danmuFileIndex.get() - 1;
+        int createdTxtCount = danmuFileIndex.get() - 1;
 
-        // 如果TS文件数量大于已创建的JSON文件数量，说明有新的TS文件
-        if (tsFiles.length > createdJsonCount) {
-            for (int i = createdJsonCount; i < tsFiles.length; i++) {
-                // 重新初始化弹幕录制器以创建新的JSON文件
-                // 生成完整的JSON文件路径
-                File jsonFile = new File(savePath, String.format(DAMAKU_JSON_FILE_FORMAT, danmuFileIndex.getAndIncrement()));
-                danmakuRecorder.refresh(jsonFile);
+        // 如果TS文件数量大于已创建的txt文件数量，说明有新的TS文件
+        if (tsFiles.length > createdTxtCount) {
+            for (int i = createdTxtCount; i < tsFiles.length; i++) {
+                File txtFile = new File(savePath, String.format(DAMAKU_TXT_FILE_FORMAT, danmuFileIndex.getAndIncrement()));
+                danmakuRecorder.refresh(txtFile);
             }
         }
     }

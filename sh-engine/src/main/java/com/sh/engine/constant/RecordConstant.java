@@ -62,5 +62,5 @@ public class RecordConstant {
     /**
      * 弹幕文件前缀
      */
-    public static final String DAMAKU_JSON_FILE_FORMAT = "P%02d.json";
+    public static final String DAMAKU_TXT_FILE_FORMAT = "P%02d.txt";
 }
