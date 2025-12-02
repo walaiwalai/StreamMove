@@ -104,10 +104,8 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
 
 
     @Override
-    public void init(File saveFile) {
-        this.saveFile = saveFile;
-
-        // 初始化客户端
+    public void init() {
+        // 获取客户端
         this.client = getReceiver(config.getRoomUrl());
     }
 
@@ -127,7 +125,7 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
 
 
     @Override
-    public void start() {
+    public void start(File saveFile) {
         if (this.client == null) {
             log.error("no client for danmu record, will skip");
             return;
@@ -345,8 +343,8 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         );
 
         try {
-            recorder.init(new File("G:\\stream_record\\download\\mytest-mac\\2025-11-07-22-27-01"));
-            recorder.start();
+            recorder.init();
+            recorder.start(new File("G:\\stream_record\\download\\mytest-mac\\2025-11-07-22-27-01"));
             Thread.sleep(1000 * 60 * 5);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

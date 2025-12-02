@@ -11,10 +11,8 @@ import java.io.File;
 public interface DanmakuRecorder {
     /**
      * 弹幕初始化
-     *
-     * @param saveFile 弹幕文件保存地址
      */
-    void init(File saveFile);
+    void init();
 
     /**
      * 刷新弹幕初
@@ -26,7 +24,7 @@ public interface DanmakuRecorder {
     /**
      * 开始弹幕录制
      */
-    void start();
+    void start(File saveFile);
 
     /**
      * 关闭弹幕录制

@@ -27,11 +27,6 @@ public class DanmakuSwitchStrategy {
     private ScheduledExecutorService scheduler;
     
     /**
-     * 保存路径
-     */
-    private String savePath;
-    
-    /**
      * 关联的弹幕录制器
      */
     private DanmakuRecorder danmakuRecorder;
@@ -46,18 +41,17 @@ public class DanmakuSwitchStrategy {
     /**
      * 初始化弹幕录制器
      */
-    public void init(String savePath) {
-        this.savePath = savePath;
-
-        File txtFile = new File(savePath, String.format(DAMAKU_TXT_FILE_FORMAT, danmuFileIndex.getAndIncrement()));
-        danmakuRecorder.init(txtFile);
+    public void init() {
+        danmakuRecorder.init();
     }
     
     /**
      * 启动弹幕录制器和文件切换任务
      */
-    public void start() {
-        danmakuRecorder.start();
+    public void start(String savePath) {
+        File txtFile = new File(savePath, String.format(DAMAKU_TXT_FILE_FORMAT, danmuFileIndex.getAndIncrement()));
+        danmakuRecorder.start(txtFile);
+
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "damaku-scheduler-switch");
             t.setDaemon(true);
@@ -66,7 +60,7 @@ public class DanmakuSwitchStrategy {
 
         // 每3秒检查一次TS文件变化
         this.scheduler.scheduleAtFixedRate(
-                this::checkTsFilesAndCreateTxt,
+                () -> checkTsFilesAndCreateTxt(savePath),
                 0,
                 3,
                 TimeUnit.SECONDS
@@ -104,7 +98,7 @@ public class DanmakuSwitchStrategy {
     /**
      * 检查TS文件变化，当有新的TS文件产生时通知弹幕录制器切换文件
      */
-    private void checkTsFilesAndCreateTxt() {
+    private void checkTsFilesAndCreateTxt(String savePath) {
         if (Thread.currentThread().isInterrupted()) {
             return;
         }

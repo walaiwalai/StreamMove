@@ -49,11 +49,6 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
     private ConfigFetcher configFetcher;
     @Resource
     private CacheManager cacheManager;
-    
-    /**
-     * 弹幕文件切换策略
-     */
-    private DanmakuSwitchStrategy danmakuSwitchStrategy;
 
 
     @Override
@@ -80,13 +75,14 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
 
         // 2. 录制
         statusManager.addRoomPathStatus(savePath, name);
+        DanmakuSwitchStrategy danmakuSwitchStrategy = null;
         try {
             // 初始化
             context.getStreamRecorder().init(savePath);
             if (context.getDanmakuRecorder() != null) {
                 danmakuSwitchStrategy = new DanmakuSwitchStrategy(context.getDanmakuRecorder());
-                danmakuSwitchStrategy.init(savePath);
-                danmakuSwitchStrategy.start();
+                danmakuSwitchStrategy.init();
+                danmakuSwitchStrategy.start(savePath);
             }
 
             // 录像(长时间)
