@@ -108,7 +108,7 @@ public class RecordStateMachine {
                 processor.process(context);
             } catch (StreamerRecordException recordException) {
                 if (Objects.equals(ErrorEnum.FORCE_TO_PROCESS.getErrorCode(), recordException.getErrorEnum().getErrorCode())) {
-                    context.setState(RecordTaskStateEnum.VIDEO_PROCESS_FINISH);
+                    context.setState(RecordTaskStateEnum.STREAM_RECORD_FINISH);
                 } else {
                     log.info("record error, state: {}", processor.getStage().getCode(), recordException);
                     context.setState(RecordTaskStateEnum.ERROR);
