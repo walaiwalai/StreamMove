@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 public class BiliWebVideoUploadCommand {
-    public static final int CHUNK_RETRY = 5;
+    public static final int CHUNK_RETRY = 3;
     public static final int CHUNK_RETRY_DELAY = 500;
 
     private File videoFile;
