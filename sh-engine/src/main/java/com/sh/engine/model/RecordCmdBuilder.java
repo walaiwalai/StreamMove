@@ -246,6 +246,8 @@ public class RecordCmdBuilder {
                 "-rw_timeout", "30000000",
                 "-reconnect_streamed", "1",
                 "-reconnect_delay_max", "60",
+                "-reconnect_at_eof", "0",
+                "-timeout", "15000000",
                 "-thread_queue_size", "4096",
                 "-max_muxing_queue_size", "4096",
                 "-analyzeduration", "40000000",
