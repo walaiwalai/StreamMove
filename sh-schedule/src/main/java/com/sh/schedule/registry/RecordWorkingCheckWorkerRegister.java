@@ -20,7 +20,7 @@ public class RecordWorkingCheckWorkerRegister extends ProcessWorkerRegister {
 
     @Override
     public String getCronExpr() {
-        return "* 0/10 * * * ?";
+        return "0 0/10 * * * ?";
     }
 
     @Override
