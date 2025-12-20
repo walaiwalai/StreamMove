@@ -1,3 +1,4 @@
 com.sh.schedule.registry.MainWorkerRegister
 com.sh.schedule.registry.FileCleanWorkerRegister
 com.sh.schedule.registry.ConfigRefreshWorkerRegister
+com.sh.schedule.registry.RecordWorkingCheckWorkerRegister

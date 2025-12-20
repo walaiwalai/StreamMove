@@ -3,11 +3,11 @@ package com.sh.schedule.worker;
 import cn.hutool.extra.spring.SpringUtil;
 import com.sh.config.manager.StatusManager;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.lang3.SystemUtils;
 import org.quartz.JobExecutionContext;
@@ -17,17 +17,17 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.StringReader;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 /**
  * @author caiWen
  * @date 2025/12/19 10:30
  */
 @Slf4j
-public class RecordProcessCheckWorker extends ProcessWorker {
-    public static final Environment environment = SpringUtil.getBean(Environment.class);
+public class RecordWorkingCheckWorker extends ProcessWorker {
     private static final StatusManager statusManager = SpringUtil.getBean(StatusManager.class);
     
     // 记录每个录制目录下最大TS文件的大小
@@ -37,109 +37,64 @@ public class RecordProcessCheckWorker extends ProcessWorker {
 
     @Override
     protected void executeJob(JobExecutionContext jobExecutionContext) {
-        checkRecordProcesses();
-    }
+        ConcurrentMap<String, String> recordingMap = statusManager.getRecordingMap();
+        // 遍历所有正在录制的直播间
+        for (Map.Entry<String, String> entry : recordingMap.entrySet()) {
+            String recordPath = entry.getValue();
 
-    private void checkRecordProcesses() {
-        try {
-            // 获取所有正在录制的目录
-            String videoSavePath = environment.getProperty("sh.video-save.path");
-            File baseDir = new File(videoSavePath);
-            
-            if (!baseDir.exists() || !baseDir.isDirectory()) {
-                return;
+            if (StringUtils.isBlank(recordPath)) {
+                continue;
             }
-            
-            // 遍历所有正在录制的直播间
-            ConcurrentMap<String, String> recordingMap = statusManager.getRecordingMap();
-            for (Map.Entry<String, String> entry : recordingMap.entrySet()) {
-                String streamerName = entry.getKey();
-                String recordPath = entry.getValue();
-                
-                if (StringUtils.isBlank(recordPath)) {
-                    continue;
-                }
-                
-                checkTsFileSize(recordPath);
-            }
-        } catch (Exception e) {
-            log.error("Error checking record processes", e);
+            checkTsFileSize(recordPath);
+        }
+
+        // 修复类型转换问题，正确处理subtract的结果
+        Collection<String> clearPaths = CollectionUtils.subtract(lastFileSizeMap.keySet(), recordingMap.values());
+        for (String clearPath : clearPaths) {
+            clearRecordData(clearPath);
         }
     }
     
     private void checkTsFileSize(String recordPath) {
-        try {
-            File recordDir = new File(recordPath);
-            if (!recordDir.exists() || !recordDir.isDirectory()) {
-                // 清除已不存在目录的数据
-                clearRecordData(recordPath);
-                return;
-            }
-            
-            // 查找最大的TS文件
-            File[] tsFiles = recordDir.listFiles((dir, name) -> name.matches("P\\d+\\.ts"));
-            if (tsFiles == null || tsFiles.length == 0) {
-                // 没有TS文件，清除记录
-                clearRecordData(recordPath);
-                return;
-            }
-            
-            // 找到编号最大的TS文件（最新的）
-            File latestTsFile = null;
-            int maxIndex = -1;
-            for (File tsFile : tsFiles) {
-                String fileName = tsFile.getName();
-                int index = Integer.parseInt(fileName.replaceAll("[^\\d]", ""));
-                if (index > maxIndex) {
-                    maxIndex = index;
-                    latestTsFile = tsFile;
-                }
-            }
-            
-            if (latestTsFile == null) {
-                clearRecordData(recordPath);
-                return;
-            }
-            
-            // 检查文件大小
-            long currentSize = latestTsFile.length();
-            Long lastSize = lastFileSizeMap.get(recordPath);
-            
-            if (lastSize != null && lastSize.equals(currentSize)) {
-                // 文件大小没有变化，增加计数
-                int sameCount = sameSizeCountMap.getOrDefault(recordPath, 0) + 1;
-                sameSizeCountMap.put(recordPath, sameCount);
-                
-                log.info("TS file size unchanged for {} times, path: {}, size: {}", sameCount, recordPath, currentSize);
-                
-                // 如果连续3次大小相同，强制终止录制进程
-                if (sameCount >= 3) {
-                    log.warn("TS file size unchanged for 3 consecutive checks, will force kill recording process, path: {}", recordPath);
-                    forceKillRecordingProcess(recordPath);
-                    // 重置计数
-                    sameSizeCountMap.put(recordPath, 0);
-                }
-            } else {
-                // 文件大小有变化，重置计数
-                sameSizeCountMap.put(recordPath, 0);
-            }
-            
-            // 更新最后一次记录的大小
-            lastFileSizeMap.put(recordPath, currentSize);
-        } catch (Exception e) {
-            log.error("Error checking TS file size, path: {}", recordPath, e);
+        File recordDir = new File(recordPath);
+        if (!recordDir.exists()) {
+            clearRecordData(recordPath);
+            return;
         }
+
+        // 计算目录下所有文件的大小总和
+        long currentTotalSize = FileUtils.sizeOfDirectory(recordDir);
+        Long lastTotalSize = lastFileSizeMap.get(recordPath);
+
+        if (lastTotalSize != null && lastTotalSize.equals(currentTotalSize)) {
+            // 文件大小总和没有变化，增加计数
+            int sameCount = sameSizeCountMap.getOrDefault(recordPath, 0) + 1;
+            sameSizeCountMap.put(recordPath, sameCount);
+
+            log.info("Directory total size unchanged for {} times, path: {}, size: {}", sameCount, recordPath, currentTotalSize);
+
+            // 如果连续3次大小总和相同，强制终止录制进程
+            if (sameCount >= 3) {
+                log.warn("Directory total size unchanged for 3 consecutive checks, will force kill recording process, path: {}", recordPath);
+                forceKillRecordingProcess(recordPath);
+                // 重置计数
+                sameSizeCountMap.remove(recordPath);
+            }
+        } else {
+            // 文件大小总和有变化，重置计数
+            sameSizeCountMap.put(recordPath, 0);
+        }
+
+        // 更新最后一次记录的大小总和
+        lastFileSizeMap.put(recordPath, currentTotalSize);
     }
     
     private void forceKillRecordingProcess(String recordPath) {
+        log.info("Attempting to kill ffmpeg processes for path: {}", recordPath);
         try {
-            log.info("Attempting to kill ffmpeg processes for path: {}", recordPath);
-            
             if (SystemUtils.IS_OS_WINDOWS) {
-                // Windows系统处理
                 killProcessOnWindows(recordPath);
             } else {
-                // Linux/Unix/Mac系统处理
                 killProcessOnLinux(recordPath);
             }
         } catch (Exception e) {
@@ -148,7 +103,6 @@ public class RecordProcessCheckWorker extends ProcessWorker {
     }
     
     private void killProcessOnWindows(String recordPath) throws Exception {
-        // Windows系统使用tasklist和taskkill命令
         String escapedPath = recordPath.replace("\\", "\\\\").replace("'", "\\'");
         
         // 查找包含指定录制路径的ffmpeg进程
@@ -206,7 +160,6 @@ public class RecordProcessCheckWorker extends ProcessWorker {
     }
     
     private void killProcessOnWindowsAlt(String recordPath) throws Exception {
-        // 备用方法：使用tasklist命令
         CommandLine cmdLine = CommandLine.parse("tasklist");
         cmdLine.addArgument("/FI");
         cmdLine.addArgument("IMAGENAME eq ffmpeg.exe");

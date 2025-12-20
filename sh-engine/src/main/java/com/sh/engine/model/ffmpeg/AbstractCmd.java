@@ -73,7 +73,6 @@ public abstract class AbstractCmd {
 
         startTime = System.currentTimeMillis();
         try {
-            // 使用 CompletableFuture 在另一个线程中执行命令，以支持强制中断
             CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> {
                 try {
                     return executor.execute(cmdLine);
@@ -81,20 +80,15 @@ public abstract class AbstractCmd {
                     throw new RuntimeException(e);
                 }
             });
-
-            // 在指定超时时间内等待结果
             exitCode = future.get(timeoutSeconds, TimeUnit.SECONDS);
-            long endTime = System.currentTimeMillis();
-            log.info("Command executed successfully in {}s, command: {}", (endTime - startTime) / 1000, command);
+            log.info("Command executed successfully in {}s, command: {}", (System.currentTimeMillis() - startTime) / 1000, command);
         } catch (Exception e) {
             long endTime = System.currentTimeMillis();
             // 检查是否是超时引起的异常
             if (watchdog.killedProcess() || (endTime - startTime) >= TimeUnit.SECONDS.toMillis(timeoutSeconds)) {
                 isTimeout.set(true);
-                log.info("Command timed out after {}s, command: {}", (endTime - startTime) / 1000, command);
-                handleTimeout();
-                // 确保进程被强制终止
                 killProcess();
+                log.info("Command timed out after {}s, command: {}", (endTime - startTime) / 1000, command);
             } else {
                 // 其他异常处理
                 if (e.getCause() instanceof IOException) {
@@ -148,10 +142,4 @@ public abstract class AbstractCmd {
      * @param line
      */
     protected abstract void processErrorLine(String line);
-
-    /**
-     * 可选的超时处理钩子方法
-     */
-    protected void handleTimeout() {
-    }
 }
