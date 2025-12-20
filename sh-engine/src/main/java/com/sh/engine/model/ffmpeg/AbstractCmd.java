@@ -7,8 +7,7 @@ import org.apache.commons.exec.*;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -19,6 +18,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  **/
 @Slf4j
 public abstract class AbstractCmd {
+    private static final ExecutorService CMD_EXECUTOR = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r);
+        t.setName("cmd-exec-thread-" + t.getId());
+        t.setDaemon(true);
+        return t;
+    });
+
     private volatile ExecuteWatchdog watchdog;
     private final AtomicBoolean isTimeout = new AtomicBoolean(false);
     /**
@@ -76,27 +82,41 @@ public abstract class AbstractCmd {
             CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> {
                 try {
                     return executor.execute(cmdLine);
+                } catch (ExecuteException e) {
+                    exitCode = e.getExitValue();
+                    throw new RuntimeException("Command exit with non-zero code", e);
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    throw new RuntimeException("Command IO error", e);
                 }
-            });
+            }, CMD_EXECUTOR);
+
             exitCode = future.get(timeoutSeconds, TimeUnit.SECONDS);
             log.info("Command executed successfully in {}s, command: {}", (System.currentTimeMillis() - startTime) / 1000, command);
         } catch (Exception e) {
             long endTime = System.currentTimeMillis();
-            // 检查是否是超时引起的异常
-            if (watchdog.killedProcess() || (endTime - startTime) >= TimeUnit.SECONDS.toMillis(timeoutSeconds)) {
+            // 1. 超时场景
+            if (e instanceof TimeoutException || watchdog.killedProcess()) {
                 isTimeout.set(true);
                 killProcess();
                 log.info("Command timed out after {}s, command: {}", (endTime - startTime) / 1000, command);
             } else {
-                // 其他异常处理
-                if (e.getCause() instanceof IOException) {
-                    log.error("IO error occurred while executing command: {}", command, e);
-                    throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
+                // 2. 非超时异常：区分类型（还原原逻辑）
+                Throwable rootCause = e.getCause();
+                if (rootCause instanceof RuntimeException && rootCause.getCause() instanceof IOException) {
+                    IOException ioEx = (IOException) rootCause.getCause();
+                    if (ioEx instanceof ExecuteException) {
+                        // 命令执行返回非0退出码（原逻辑的ExecuteException场景）
+                        log.info("Command execution failed with exit code: {}, command: {}", exitCode, command);
+                        throw new StreamerRecordException(ErrorEnum.CMD_EXIT_CODE_UN_NORMAL);
+                    } else {
+                        // 普通IO异常（原逻辑的IOException场景）
+                        log.error("IO error occurred while executing command: {}", command, e);
+                        throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
+                    }
                 } else {
-                    log.info("Command execution failed with exit code: {}, errorMsg: {}, command: {}", exitCode, e.getMessage(), command);
-                    throw new StreamerRecordException(ErrorEnum.CMD_EXIT_CODE_UN_NORMAL);
+                    // 其他未知异常（原逻辑的兜底Exception）
+                    log.error("Unexpected error occurred while executing command: {}", command, e);
+                    throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
                 }
             }
         }
