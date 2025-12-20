@@ -51,6 +51,14 @@ public class StatusManager {
         sb.append("\n");
         return sb.toString();
     }
+    
+    /**
+     * 获取正在录制的直播间映射
+     * @return 正在录制的直播间映射
+     */
+    public ConcurrentMap<String, String> getRecordingMap() {
+        return recordStatusMap;
+    }
 
     /**
      * 锁住当前录像路径正在被某个平台投递

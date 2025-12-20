@@ -3,6 +3,7 @@ package com.sh.message.service;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.PictureFileUtil;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
@@ -21,7 +22,6 @@ import java.util.Map;
 @Component
 @Slf4j
 public class MsgSendServiceImpl implements MsgSendService {
-    private static final OkHttpClient client = new OkHttpClient().newBuilder().build();
     private static final String WECOM_WEBHOOK_URL = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=";
 
     @Value("${wecom.webhook.secret}")
@@ -56,9 +56,9 @@ public class MsgSendServiceImpl implements MsgSendService {
 
         // 发送请求并处理响应
         try {
-            client.newCall(request).execute();
-            log.info("send msg success, msg: {}", message);
-        } catch (IOException e) {
+            String resp = OkHttpClientUtil.execute(request);
+            log.info("send msg success, msg: {}, resp: {}", message, resp);
+        } catch (Exception e) {
             log.error("send weCom msg error, msg: {}", message, e);
         }
     }
@@ -83,9 +83,9 @@ public class MsgSendServiceImpl implements MsgSendService {
 
         // 发送请求并处理响应
         try {
-            client.newCall(request).execute();
-            log.info("send image success, path: {}", imageFile.getAbsolutePath());
-        } catch (IOException e) {
+            String resp = OkHttpClientUtil.execute(request);
+            log.info("send image success, resp: {}", resp);
+        } catch (Exception e) {
             log.error("send weCom image error, path: {}", imageFile.getAbsolutePath(), e);
         }
     }

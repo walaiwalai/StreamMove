@@ -155,7 +155,7 @@ public class StreamLinkCheckCmd extends AbstractCmd {
 
     public static void main(String[] args) {
         StreamLinkCheckCmd streamLinkCheckCmd = new StreamLinkCheckCmd("https://live.douyin.com/510200350291");
-        streamLinkCheckCmd.execute(10);
+        streamLinkCheckCmd.execute(1);
         System.out.println(streamLinkCheckCmd.isStreamOnline());
         System.out.println(streamLinkCheckCmd.selectQuality(0));
     }

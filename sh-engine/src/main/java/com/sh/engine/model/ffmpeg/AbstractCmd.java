@@ -7,6 +7,7 @@ import org.apache.commons.exec.*;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -72,27 +73,38 @@ public abstract class AbstractCmd {
 
         startTime = System.currentTimeMillis();
         try {
-            exitCode = executor.execute(cmdLine);
+            // 使用 CompletableFuture 在另一个线程中执行命令，以支持强制中断
+            CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return executor.execute(cmdLine);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+            // 在指定超时时间内等待结果
+            exitCode = future.get(timeoutSeconds, TimeUnit.SECONDS);
             long endTime = System.currentTimeMillis();
             log.info("Command executed successfully in {}s, command: {}", (endTime - startTime) / 1000, command);
-        } catch (ExecuteException e) {
-            exitCode = e.getExitValue();
+        } catch (Exception e) {
             long endTime = System.currentTimeMillis();
-            if (watchdog.killedProcess()) {
+            // 检查是否是超时引起的异常
+            if (watchdog.killedProcess() || (endTime - startTime) >= TimeUnit.SECONDS.toMillis(timeoutSeconds)) {
                 isTimeout.set(true);
                 log.info("Command timed out after {}s, command: {}", (endTime - startTime) / 1000, command);
                 handleTimeout();
+                // 确保进程被强制终止
+                killProcess();
             } else {
-                log.info("Command execution failed with exit code: {}, errorMsg: {}, command: {}", exitCode, e.getMessage(), command);
-                throw new StreamerRecordException(ErrorEnum.CMD_EXIT_CODE_UN_NORMAL);
+                // 其他异常处理
+                if (e.getCause() instanceof IOException) {
+                    log.error("IO error occurred while executing command: {}", command, e);
+                    throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
+                } else {
+                    log.info("Command execution failed with exit code: {}, errorMsg: {}, command: {}", exitCode, e.getMessage(), command);
+                    throw new StreamerRecordException(ErrorEnum.CMD_EXIT_CODE_UN_NORMAL);
+                }
             }
-        } catch (IOException e) {
-            log.error("IO error occurred while executing command: {}", command, e);
-            throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
-        } catch (Throwable e) {
-            log.error("Unexpected error occurred while executing command: {}", command, e);
-            throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
-
         }
     }
 
