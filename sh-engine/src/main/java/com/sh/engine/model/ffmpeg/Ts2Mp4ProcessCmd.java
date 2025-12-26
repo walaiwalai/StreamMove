@@ -10,7 +10,7 @@ import java.io.File;
 public class Ts2Mp4ProcessCmd extends AbstractCmd {
     public Ts2Mp4ProcessCmd(File tsFile, File mp4File) {
         super("");
-        this.command = "ffmpeg -cache 256M -threads 2 -i " + tsFile.getAbsolutePath() + " -c copy -movflags faststart -threads 2 \"" + mp4File.getAbsolutePath() + "\"";
+        this.command = "ffmpeg -threads 2 -i " + tsFile.getAbsolutePath() + " -c copy -movflags faststart \"" + mp4File.getAbsolutePath() + "\"";
     }
 
     @Override
