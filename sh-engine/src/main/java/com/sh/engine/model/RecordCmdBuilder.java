@@ -34,6 +34,11 @@ public class RecordCmdBuilder {
      * 录制的方式
      */
     private final boolean recordByTime;
+    /**
+     * 录制的格式
+     * mp4,ts
+     */
+    private String recordFormat;
     private int mSizePerVideo;
     private int intervalPerVideo;
 
@@ -48,6 +53,7 @@ public class RecordCmdBuilder {
         this.streamChannelType = streamChannelType;
         this.savePath = savePath;
         this.recordByTime = config.getRecordMode().startsWith("t_");
+        this.recordFormat = StringUtils.isBlank(config.getRecordFormat()) ? "mp4" : config.getRecordFormat();
         if (this.recordByTime) {
             this.intervalPerVideo = Integer.parseInt(config.getRecordMode().substring(2));
         } else {
@@ -61,8 +67,6 @@ public class RecordCmdBuilder {
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
                 .orElse(0) + 1;
-        File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME_V2);
-
         List<String> streamLinkParams = Lists.newArrayList(
                 "streamlink", StringUtils.join(buildStreamlinkChannelParams(), " "),
                 "--stream-segment-threads 2",
@@ -76,7 +80,7 @@ public class RecordCmdBuilder {
 
         ArrayList<String> streamUrls = Lists.newArrayList("-");
         if (recordByTime) {
-            ffmpegParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
+            ffmpegParams = buildFfmpegByTime(streamUrls, savePath, segStartIndex);
         } else {
             int kbitrate = 0;
             try {
@@ -95,7 +99,7 @@ public class RecordCmdBuilder {
 
             // 计算出对应的时间间隔
             log.info("the kbitrate is {}kb/s, mSize: {}M, secondPerVideo: {}s", kbitrate, this.mSizePerVideo, this.intervalPerVideo);
-            ffmpegParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
+            ffmpegParams = buildFfmpegByTime(streamUrls, savePath, segStartIndex);
         }
 
         List<String> params = Lists.newArrayList();
@@ -113,11 +117,10 @@ public class RecordCmdBuilder {
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
                 .orElse(0) + 1;
-        File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME_V2);
 
         ArrayList<String> streamUrls = Lists.newArrayList("\"" + streamUrl + "\"");
         if (recordByTime) {
-            this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
+            this.cmdParams = buildFfmpegByTime(streamUrls, savePath, segStartIndex);
         } else {
             int kbitrate = 0;
             try {
@@ -137,7 +140,7 @@ public class RecordCmdBuilder {
 
             log.info("the kbitrate is {}kb/s, mSize: {}M, secondPerVideo: {}s", kbitrate, this.mSizePerVideo, this.intervalPerVideo);
 
-            this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
+            this.cmdParams = buildFfmpegByTime(streamUrls, savePath, segStartIndex);
         }
         return this;
     }
@@ -150,11 +153,10 @@ public class RecordCmdBuilder {
                 .max(Integer::compare)
                 .orElse(0) + 1;
 
-        File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME_V2);
 
         ArrayList<String> streamUrls = Lists.newArrayList("\"" + audioM3u8Url + "\"", "\"" + videoM3u8Url + "\"");
         if (recordByTime) {
-            this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
+            this.cmdParams = buildFfmpegByTime(streamUrls, savePath, segStartIndex);
         } else {
             int kbitrate = 0;
             try {
@@ -171,7 +173,7 @@ public class RecordCmdBuilder {
 
             log.info("the kbitrate is {}kb/s, mSize: {}M, secondPerVideo: {}s", kbitrate, this.mSizePerVideo, this.intervalPerVideo);
 
-            this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
+            this.cmdParams = buildFfmpegByTime(streamUrls, savePath, segStartIndex);
         }
         return this;
     }
@@ -183,12 +185,9 @@ public class RecordCmdBuilder {
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
                 .orElse(0) + 1;
-
-        File segFile = new File(savePath, VideoFileUtil.SEG_FILE_NAME_V2);
-
         ArrayList<String> streamUrls = Lists.newArrayList("\"" + mergeM3u8Url + "\"");
         if (recordByTime) {
-            this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
+            this.cmdParams = buildFfmpegByTime(streamUrls, savePath, segStartIndex);
         } else {
             int kbitrate = 0;
             try {
@@ -204,7 +203,7 @@ public class RecordCmdBuilder {
             }
             log.info("the kbitrate is {}kb/s, mSize: {}M, secondPerVideo: {}s", kbitrate, this.mSizePerVideo, this.intervalPerVideo);
 
-            this.cmdParams = buildFfmpegByTime(streamUrls, segFile, segStartIndex);
+            this.cmdParams = buildFfmpegByTime(streamUrls, savePath, segStartIndex);
         }
         return this;
     }
@@ -236,8 +235,12 @@ public class RecordCmdBuilder {
         return extraArgs;
     }
 
-    private List<String> buildFfmpegByTime(List<String> sourceUrls, File segFile, int segStartIndex) {
-        return Lists.newArrayList(
+    private List<String> buildFfmpegByTime(List<String> sourceUrls, String recordPath, int segStartIndex) {
+        File segFile = new File(recordPath, VideoFileUtil.SEG_FILE_PREFIX + "." + this.recordFormat);
+        boolean isMp4 = "mp4".equals(recordFormat);
+
+        // 构建参数
+        List<String> params = Lists.newArrayList(
                 "ffmpeg",
                 "-y",
                 "-loglevel error",
@@ -256,15 +259,32 @@ public class RecordCmdBuilder {
                 "-correct_ts_overflow", "1",
                 "-avoid_negative_ts", "1",
                 "-rtbufsize", "100M",
-                "-bufsize", "50000k",
-                StringUtils.join(BooleanUtils.isTrue(streamerConfig.isOnlyAudio()) ? buildOnlyAudioParams() : buildVideoParams(), " "),
+                "-bufsize", "50000k"
+        );
+        if (isMp4) {
+            // 保证分片MP4稳定、断流不损坏
+            params.addAll(Lists.newArrayList("-movflags", "frag_keyframe+empty_moov+default_base_moof"));
+        }
+
+        // 音频参数
+        if (BooleanUtils.isTrue(streamerConfig.isOnlyAudio())) {
+            params.addAll(buildOnlyAudioParams());
+        } else {
+            params.addAll(buildVideoParams());
+        }
+
+        // 片段保存
+        List<String> segmentParams = Lists.newArrayList(
                 "-f", "segment",
-                "-segment_format", "mpegts",
+                "-segment_format", buildSegmentFormat(),
                 "-reset_timestamps", "1",
                 "-segment_time", String.valueOf(intervalPerVideo),
-                "-segment_start_number", String.valueOf(segStartIndex),
-                "\"" + segFile.getAbsolutePath() + "\""
+                "-segment_start_number", String.valueOf(segStartIndex)
         );
+        params.addAll(segmentParams);
+
+        params.add("\"" + segFile.getAbsolutePath() + "\"");
+        return params;
     }
 
     private Integer calIntervalBySize(int kbitrate) {
@@ -289,5 +309,15 @@ public class RecordCmdBuilder {
                 "-map 0:a",
                 "-map 0:s?"
         );
+    }
+
+    private String buildSegmentFormat() {
+        if (Objects.equals(this.recordFormat, "mp4")) {
+            return "mp4";
+        } else if (Objects.equals(this.recordFormat, "ts")) {
+            return "mpegts";
+        } else {
+            return "mpegts";
+        }
     }
 }

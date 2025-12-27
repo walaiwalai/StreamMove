@@ -131,6 +131,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
             config.setRecordDamaku(streamerExtraDO.isRecordDamaku());
             config.setRecordQuality(streamerExtraDO.getRecordQuality());
             config.setOnlinePushCheck(streamerExtraDO.isOnlinePushCheck());
+            config.setRecordFormat(streamerExtraDO.getRecordFormat());
         }
 
         return config;

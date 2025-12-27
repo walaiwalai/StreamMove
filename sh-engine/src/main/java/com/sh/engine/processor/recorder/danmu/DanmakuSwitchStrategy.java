@@ -96,13 +96,18 @@ public class DanmakuSwitchStrategy {
     }
     
     /**
-     * 检查TS文件变化，当有新的TS文件产生时通知弹幕录制器切换文件
+     * 检查文件变化，当有新的TS文件产生时通知弹幕录制器切换文件
      */
     private void checkTsFilesAndCreateTxt(String savePath) {
         if (Thread.currentThread().isInterrupted()) {
             return;
         }
-        File[] tsFiles = new File(savePath).listFiles((d, name) -> name.endsWith(".ts"));
+        File[] tsFiles = new File(savePath).listFiles((d, name) -> {
+            if (!name.startsWith("P")) {
+                return false;
+            }
+            return name.endsWith(".ts") || name.endsWith(".mp4");
+        });
         if (tsFiles == null) {
             return;
         }
