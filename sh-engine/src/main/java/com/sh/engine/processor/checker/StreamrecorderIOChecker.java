@@ -1,19 +1,25 @@
 package com.sh.engine.processor.checker;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
+import com.sh.config.manager.CacheManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamUrlStreamRecorder;
+import com.sh.engine.processor.recorder.stream.YtdlpStreamRecorder;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +36,8 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
     private String name;
     @Value("${streamerrecord.io.password}")
     private String password;
+    @Resource
+    private CacheManager cacheManager;
 
     private static final OkHttpClient client = new OkHttpClient.Builder()
             .cookieJar(new CustomCookieJar())
@@ -41,6 +49,82 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
 
     @Override
     public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
+        if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
+            return fetchCertainRecords(streamerConfig);
+        } else {
+            return fetchLatestRecord(streamerConfig);
+        }
+    }
+
+
+    private StreamRecorder fetchCertainRecords(StreamerConfig streamerConfig) {
+        String roomUrl = streamerConfig.getRoomUrl();
+        String[] split = roomUrl.split("/");
+        String targetId = split[split.length - 1];
+
+        // 从client获取对应的cookie
+        CustomCookieJar customCookieJar = (CustomCookieJar) client.cookieJar();
+        List<Cookie> cookies = customCookieJar.getCookiesByDomain("streamrecorder.io");
+        if (cookies.isEmpty()) {
+            log.info("cookie not found, do login");
+            doLogin();
+        }
+
+        Request request = new Request.Builder()
+                .url(String.format("https://streamrecorder.io/api/user/recordingsv2?targetid=%s&offset=0&limit=100", targetId))
+                .get()
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Cookie", customCookieJar.getCookieString("streamrecorder.io"))
+                .build();
+
+        String resp;
+        try {
+            resp = OkHttpClientUtil.execute(request);
+        } catch (Exception e) {
+            if (e.getMessage().contains("authenticated")) {
+                log.error("cookie expired, re-login in next term");
+                customCookieJar.clearAllCookies();
+                return null;
+            } else {
+                throw e;
+            }
+        }
+
+
+        JSONObject respObj = JSON.parseObject(resp);
+        String key = "certain_keys_" + streamerConfig.getName();
+        String videoId = null;
+        for (String vid : streamerConfig.getCertainVodUrls()) {
+            String finishFlag = cacheManager.getHash(key, vid, new TypeReference<String>() {
+            });
+            if (StringUtils.isBlank(finishFlag)) {
+                videoId = vid;
+                break;
+            }
+        }
+        if (videoId == null) {
+            return null;
+        }
+
+        String downloadLink = null;
+        Date recordedAt = null;
+        for (Object data : respObj.getJSONArray("data")) {
+            JSONObject dataObj = (JSONObject) data;
+            String id = String.valueOf(dataObj.getLong("id"));
+            if (StringUtils.equals(id, videoId)) {
+                recordedAt = dataObj.getDate("recorded_at");
+                downloadLink = dataObj.getJSONArray("sources").getJSONObject(0).getString("downloadlink");
+                break;
+            }
+        }
+        Map<String, String> extra = new HashMap<>();
+        extra.put("finishKey", key);
+        extra.put("finishField", videoId);
+
+        return new StreamUrlStreamRecorder(recordedAt, streamerConfig.getRoomUrl(), getType().getType(), downloadLink, extra);
+    }
+
+    private StreamRecorder fetchLatestRecord(StreamerConfig streamerConfig) {
         String roomUrl = streamerConfig.getRoomUrl();
         String[] split = roomUrl.split("/");
         String targetId = split[split.length - 1];

@@ -10,6 +10,7 @@ import com.sh.engine.model.ffmpeg.StreamMetaDetectCmd;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
+import java.util.Map;
 
 /**
  * @Author : caiwen
@@ -21,6 +22,11 @@ public class StreamUrlStreamRecorder extends StreamRecorder {
 
     public StreamUrlStreamRecorder(Date regDate, String roomUrl, Integer streamChannelType, String streamUrl) {
         super(regDate, roomUrl, streamChannelType, Maps.newHashMap());
+        this.streamUrl = streamUrl;
+    }
+
+    public StreamUrlStreamRecorder(Date regDate, String roomUrl, Integer streamChannelType, String streamUrl, Map<String, String> extraInfo) {
+        super(regDate, roomUrl, streamChannelType, extraInfo);
         this.streamUrl = streamUrl;
     }
 
