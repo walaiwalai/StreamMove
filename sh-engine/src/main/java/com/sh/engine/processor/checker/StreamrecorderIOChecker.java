@@ -63,8 +63,10 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             doLogin();
         }
 
+        boolean isCertainVod = CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls());
+        int limit = isCertainVod ? 100 : 1;
         Request request = new Request.Builder()
-                .url(String.format("https://streamrecorder.io/api/user/recordingsv2?targetid=%s&offset=0&limit=100", targetId))
+                .url(String.format("https://streamrecorder.io/api/user/recordingsv2?targetid=%s&offset=0&limit=" + limit, targetId))
                 .get()
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Cookie", customCookieJar.getCookieString("streamrecorder.io"))
@@ -83,7 +85,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         }
 
         JSONObject respObj = JSON.parseObject(resp);
-        if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
+        if (isCertainVod) {
             return fetchCertainRecords(streamerConfig, respObj);
         } else {
             return fetchLatestRecord(streamerConfig, respObj);
