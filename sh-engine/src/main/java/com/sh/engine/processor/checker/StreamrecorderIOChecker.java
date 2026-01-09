@@ -16,11 +16,13 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -49,15 +51,6 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
 
     @Override
     public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
-        if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
-            return fetchCertainRecords(streamerConfig);
-        } else {
-            return fetchLatestRecord(streamerConfig);
-        }
-    }
-
-
-    private StreamRecorder fetchCertainRecords(StreamerConfig streamerConfig) {
         String roomUrl = streamerConfig.getRoomUrl();
         String[] split = roomUrl.split("/");
         String targetId = split[split.length - 1];
@@ -76,7 +69,6 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Cookie", customCookieJar.getCookieString("streamrecorder.io"))
                 .build();
-
         String resp;
         try {
             resp = OkHttpClientUtil.execute(request);
@@ -90,8 +82,15 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             }
         }
 
-
         JSONObject respObj = JSON.parseObject(resp);
+        if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
+            return fetchCertainRecords(streamerConfig, respObj);
+        } else {
+            return fetchLatestRecord(streamerConfig, respObj);
+        }
+    }
+
+    private StreamRecorder fetchCertainRecords(StreamerConfig streamerConfig, JSONObject respObj) {
         String key = "certain_keys_" + streamerConfig.getName();
         String videoId = null;
         for (String vid : streamerConfig.getCertainVodUrls()) {
@@ -112,7 +111,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             JSONObject dataObj = (JSONObject) data;
             String id = String.valueOf(dataObj.getLong("id"));
             if (StringUtils.equals(id, videoId)) {
-                recordedAt = dataObj.getDate("recorded_at");
+                recordedAt = parseGMT8Date(dataObj.getString("recorded_at"));
                 downloadLink = dataObj.getJSONArray("sources").getJSONObject(0).getString("downloadlink");
                 break;
             }
@@ -124,44 +123,10 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         return new StreamUrlStreamRecorder(recordedAt, streamerConfig.getRoomUrl(), getType().getType(), downloadLink, extra);
     }
 
-    private StreamRecorder fetchLatestRecord(StreamerConfig streamerConfig) {
-        String roomUrl = streamerConfig.getRoomUrl();
-        String[] split = roomUrl.split("/");
-        String targetId = split[split.length - 1];
-
-        // 从client获取对应的cookie
-        CustomCookieJar customCookieJar = (CustomCookieJar) client.cookieJar();
-        List<Cookie> cookies = customCookieJar.getCookiesByDomain("streamrecorder.io");
-        if (cookies.isEmpty()) {
-            log.info("cookie not found, do login");
-            doLogin();
-        }
-
-        Request request = new Request.Builder()
-                .url(String.format("https://streamrecorder.io/api/user/recordingsv2?targetid=%s&offset=0&limit=20", targetId))
-                .get()
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Cookie", customCookieJar.getCookieString("streamrecorder.io"))
-                .build();
-
-        String resp;
-        try {
-            resp = OkHttpClientUtil.execute(request);
-        } catch (Exception e) {
-            if (e.getMessage().contains("authenticated")) {
-                log.error("cookie expired, re-login in next term");
-                customCookieJar.clearAllCookies();
-                return null;
-            } else {
-                throw e;
-            }
-        }
-
-
-        JSONObject respObj = JSON.parseObject(resp);
+    private StreamRecorder fetchLatestRecord(StreamerConfig streamerConfig, JSONObject respObj) {
         JSONObject latestRecord = respObj.getJSONArray("data").getJSONObject(0);
         String status = latestRecord.getString("status");
-        Date recordedAt = latestRecord.getDate("recorded_at");
+        Date recordedAt = parseGMT8Date(latestRecord.getString("recorded_at"));
         log.info("streamer io check, status: {}, lastRecordAt: {}", status, recordedAt);
         if (!StringUtils.equals(status, "finished")) {
             return null;
@@ -182,6 +147,30 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
     @Override
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.STREAM_RECORDER_IO;
+    }
+
+
+    /**
+     * 解析GMT+8时间
+     * 直接加上8小时
+     * @param dateStr
+     * @return
+     */
+    private Date parseGMT8Date(String dateStr) {
+        Date recordedAt = null;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        try {
+            recordedAt = DateUtils.addHours(sdf.parse(dateStr), 8);
+        } catch (Exception e) {
+            log.error("parse date failed, dateStr: {}", dateStr, e);
+        }
+        return recordedAt;
+    }
+
+    public static void main(String[] args) {
+        StreamrecorderIOChecker streamrecorderIOChecker = new StreamrecorderIOChecker();
+        Date date = streamrecorderIOChecker.parseGMT8Date("2026-01-09T02:06:32");
+        System.out.println(date);
     }
 
     private void doLogin() {
