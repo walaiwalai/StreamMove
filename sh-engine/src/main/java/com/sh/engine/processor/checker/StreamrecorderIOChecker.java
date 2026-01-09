@@ -124,6 +124,9 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
     }
 
     private StreamRecorder fetchLatestRecord(StreamerConfig streamerConfig, JSONObject respObj) {
+        if (CollectionUtils.isEmpty(respObj.getJSONArray("data"))) {
+            return null;
+        }
         JSONObject latestRecord = respObj.getJSONArray("data").getJSONObject(0);
         String status = latestRecord.getString("status");
         Date recordedAt = parseGMT8Date(latestRecord.getString("recorded_at"));
