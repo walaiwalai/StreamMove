@@ -62,6 +62,12 @@ public class StreamerConfig {
     private String recordMode;
 
     /**
+     * 录制格式
+     * mp4/ts
+     */
+    private String recordFormat;
+
+    /**
      * 针对录制录像的特定链接
      */
     private List<String> certainVodUrls;
