@@ -53,7 +53,7 @@ public class RecordCmdBuilder {
         this.streamChannelType = streamChannelType;
         this.savePath = savePath;
         this.recordByTime = config.getRecordMode().startsWith("t_");
-        this.recordFormat = StringUtils.isBlank(config.getRecordFormat()) ? "mp4" : config.getRecordFormat();
+        this.recordFormat = StringUtils.isBlank(ConfigFetcher.getInitConfig().getRecordFormat()) ? "ts" : ConfigFetcher.getInitConfig().getRecordFormat();
         if (this.recordByTime) {
             this.intervalPerVideo = Integer.parseInt(config.getRecordMode().substring(2));
         } else {

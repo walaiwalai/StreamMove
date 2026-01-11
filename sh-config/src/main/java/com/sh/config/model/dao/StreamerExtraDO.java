@@ -32,11 +32,6 @@ public class StreamerExtraDO {
      */
     private boolean recordDamaku;
     private int recordQuality;
-    /**
-     * 录制格式
-     * mp4/ts
-     */
-    private String recordFormat;
 
 
     @Data

@@ -43,6 +43,12 @@ public class InitConfig {
      */
     private Integer videoPartLimitSize = 0;
 
+    /**
+     * 录制格式
+     * ts/mp4
+     */
+    private String recordFormat;
+
     // *********************twitchApi请求header Authorization**********************
     private String twitchAuthorization;
 
