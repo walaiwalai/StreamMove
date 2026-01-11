@@ -318,7 +318,6 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         return new HuyaLiveChatClient(config, new IHuyaMsgListener() {
             @Override
             public void onDanmuMsg(HuyaBinaryFrameHandler handler, MessageNoticeMsg msg) {
-                log.info("receive huya danmu: {}", msg.getContent());
                 addDanmaku(msg.getContent());
             }
         });
@@ -331,7 +330,6 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         return new DouyuLiveChatClient(config, new IDouyuMsgListener() {
             @Override
             public void onDanmuMsg(DouyuBinaryFrameHandler handler, ChatmsgMsg msg) {
-                log.info("receive douyu danmu: {}", msg.getContent());
                 addDanmaku(msg.getContent());
             }
         });
