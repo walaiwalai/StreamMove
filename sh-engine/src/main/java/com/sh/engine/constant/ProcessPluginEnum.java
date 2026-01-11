@@ -13,7 +13,8 @@ import java.util.stream.Collectors;
  * @Date: 2024/9/30
  */
 public enum ProcessPluginEnum {
-    TS_2_MP4_TRANSFER("TS_2_MP4_TRANSFER", "ts文件转成MP4", true, 5),
+    TS_2_MP4_TRANSFER("TS_2_MP4_TRANSFER", "ts文件转成MP4", true, 4),
+    VIDEO_META_DETECT("VIDEO_META_DETECT", "视频元数据检测", true, 5),
     DAMAKU_MERGE("DAMAKU_MERGE", "弹幕合成", false, 6),
     DAN_MU_HL_VOD_CUT("DAN_MU_HL_VOD_CUT", "根据弹幕片段剪辑", false, 7),
     LOL_HL_VOD_CUT_V2("LOL_HL_VOD_CUT_V2", "lol精彩片段剪辑", false, 8),

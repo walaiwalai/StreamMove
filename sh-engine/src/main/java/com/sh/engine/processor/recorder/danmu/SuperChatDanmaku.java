@@ -15,17 +15,13 @@ public class SuperChatDanmaku extends SimpleDanmaku {
     // 展示时长（秒）
     private int duration;
 
-    public SuperChatDanmaku(Float time, Float timestamp, String content, String text, Map<String, Object> extra,
+    public SuperChatDanmaku(Float time, long timestamp, String content, String text, Map<String, Object> extra,
                             float price, String priceUnit, int duration, String name) {
         super(time, timestamp, "superchat", name, null, content, text, extra);
 
         this.price = price;
         this.priceUnit = priceUnit;
         this.duration = duration;
-    }
-
-    public SuperChatDanmaku(float time, String name, String content, float price, String priceUnit, int duration) {
-        this(time, null, content, null, null, price, priceUnit, duration, name);
     }
 
     public float getPrice() {

@@ -15,13 +15,6 @@ public interface DanmakuRecorder {
     void init();
 
     /**
-     * 刷新弹幕初
-     *
-     * @param saveFile 弹幕文件保存地址
-     */
-    void refresh(File saveFile);
-
-    /**
      * 开始弹幕录制
      */
     void start(File saveFile);
@@ -30,9 +23,4 @@ public interface DanmakuRecorder {
      * 关闭弹幕录制
      */
     void close();
-
-    /**
-     * 显示弹幕录制详情
-     */
-    void showRecordDetail();
 }

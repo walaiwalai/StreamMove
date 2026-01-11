@@ -85,6 +85,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
         StreamerConfig config = StreamerConfig.builder()
                 .name(streamerDO.getName())
                 .roomUrl(streamerDO.getRoomUrl())
+                .originalRoomUrl(streamerDO.getOriginalRoomUrl())
                 .recordWhenOnline("living".equals(streamerDO.getRecordType()))
                 .lastRecordTime(streamerDO.getLastRecordTime())
                 .expireTime(streamerDO.getExpireTime())
@@ -130,8 +131,6 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
             config.setOnlyAudio(streamerExtraDO.isOnlyAudio());
             config.setRecordDamaku(streamerExtraDO.isRecordDamaku());
             config.setRecordQuality(streamerExtraDO.getRecordQuality());
-            config.setOnlinePushCheck(streamerExtraDO.isOnlinePushCheck());
-            config.setRecordFormat(streamerExtraDO.getRecordFormat());
         }
 
         return config;

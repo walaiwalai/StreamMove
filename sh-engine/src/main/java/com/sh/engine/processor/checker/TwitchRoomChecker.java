@@ -10,6 +10,7 @@ import com.sh.config.manager.CacheManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
+import com.sh.engine.manager.CacheBizManager;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
@@ -33,7 +34,7 @@ import java.util.*;
 @Slf4j
 public class TwitchRoomChecker extends AbstractRoomChecker {
     @Resource
-    private CacheManager cacheManager;
+    private CacheBizManager cacheBizManager;
     private static final String GQL_ENDPOINT = "https://gql.twitch.tv/gql";
     private static final String VALID_URL_BASE = "(?:https?://)?(?:(?:www|go|m)\\.)?twitch\\.tv/([0-9_a-zA-Z]+)";
 
@@ -88,13 +89,11 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
     private StreamRecorder fetchCertainRecords(StreamerConfig streamerConfig) {
         String channelName = RegexUtil.fetchMatchedOne(streamerConfig.getRoomUrl(), VALID_URL_BASE);
 
-        String key = "certain_keys_" + streamerConfig.getName();
         String videoId = null;
         for (String vodUrl : streamerConfig.getCertainVodUrls()) {
             String vid = vodUrl.split("videos/")[1];
-            String finishFlag = cacheManager.getHash(key, vid, new TypeReference<String>() {
-            });
-            if (StringUtils.isBlank(finishFlag)) {
+            boolean isFinished = cacheBizManager.isCertainVideoFinished(streamerConfig.getName(), vid);
+            if (!isFinished) {
                 videoId = vid;
                 break;
             }
@@ -112,7 +111,6 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
 
         Date date = curVod.getDate("publishedAt");
         Map<String, String> extra = new HashMap<>();
-        extra.put("finishKey", key);
         extra.put("finishField", videoId);
 
         return new YtdlpStreamRecorder(date, streamerConfig.getRoomUrl(), getType().getType(), curVodUrl, extra);

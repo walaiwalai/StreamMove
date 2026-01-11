@@ -33,6 +33,11 @@ public class FileStatusModel {
      * 各平台上传情况
      */
     private Map<String, Boolean> postMap = Maps.newHashMap();
+    
+    /**
+     * 视频元信息映射，键为视频文件名，值为视频相关信息
+     */
+    private Map<String, VideoMetaInfo> metaMap = Maps.newHashMap();
 
     /**
      * 写到fileStatus.json
@@ -66,5 +71,39 @@ public class FileStatusModel {
             allPost = allPost && isPost(platform);
         }
         return allPost;
+    }
+    
+    /**
+     * 视频元信息类
+     */
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class VideoMetaInfo {
+        /**
+         * 视频时长（秒）
+         */
+        private int durationSecond;
+        
+        /**
+         * 视频宽度
+         */
+        private int width;
+        
+        /**
+         * 视频高度
+         */
+        private int height;
+        
+        /**
+         * 记录开始时间戳
+         */
+        private long recordStartTimeStamp;
+        
+        /**
+         * 记录结束时间戳
+         */
+        private long recordEndTimeStamp;
     }
 }

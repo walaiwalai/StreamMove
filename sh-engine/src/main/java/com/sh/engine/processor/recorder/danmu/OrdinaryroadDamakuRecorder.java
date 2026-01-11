@@ -1,6 +1,5 @@
 package com.sh.engine.processor.recorder.danmu;
 
-import com.alibaba.fastjson.JSONWriter;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.StreamChannelTypeEnum;
@@ -38,6 +37,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -49,12 +51,6 @@ import java.util.concurrent.locks.ReentrantLock;
  **/
 @Slf4j
 public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
-//    private static final Boolean PROXY_ENABLE = EnvUtil.getEnvBoolean("proxy.server.enable");
-//    private static final String PROXY_HOST = EnvUtil.getEnvValue("proxy.server.host");
-//    private static final Integer PROXY_PORT = EnvUtil.getEnvInt("proxy.server.port");
-//    private static final String PROXY_USER_NAME = EnvUtil.getEnvValue("proxy.server.username");
-//    private static final String PROXY_USER_PASSWORD = EnvUtil.getEnvValue("proxy.server.password");
-
     private final StreamerConfig config;
 
     /**
@@ -97,6 +93,11 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
      */
     private static final int BATCH_SIZE = 50;
 
+    /**
+     * 定时任务调度器（用于周期性生成文件）
+     */
+    private ScheduledExecutorService scheduler;
+
 
     public OrdinaryroadDamakuRecorder(StreamerConfig config) {
         this.config = config;
@@ -106,33 +107,27 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
     @Override
     public void init() {
         // 获取客户端
-        this.client = getReceiver(config.getRoomUrl());
-    }
+        this.client = getReceiver(config.getOriginalRoomUrl());
 
-    @Override
-    public void refresh(File saveFile) {
-        this.saveFile = saveFile;
-        this.currentPeriodStartTime = System.currentTimeMillis();
-        if (currentDanmuWriter != null) {
-            closeCurrentDanmuWriter();
-        }
-
-        // 创建新的弹幕文件
-        if (currentDanmuWriter == null) {
-            createNewDanmuWriter();
-        }
+        // 初始化定时任务
+        this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "damaku-monitor");
+            t.setDaemon(true);
+            return t;
+        });
     }
 
 
     @Override
     public void start(File saveFile) {
         if (this.client == null) {
-            log.error("no client for danmu record, will skip");
+            log.error("no client for danmu");
             return;
         }
-        if (currentDanmuWriter == null) {
-            refresh(saveFile);
-        }
+
+        this.saveFile = saveFile;
+        this.currentPeriodStartTime = System.currentTimeMillis();
+        createNewDanmuWriter();
 
         // 连接弹幕客户端
         this.client.connect(() -> {
@@ -140,6 +135,9 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         }, throwable -> {
             log.error("danmu client connect failed", throwable);
         });
+
+        // 打印一下录制细节
+        this.scheduler.scheduleAtFixedRate(this::showRecordDetail ,30, 30, TimeUnit.SECONDS);
     }
 
     @Override
@@ -154,10 +152,23 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         if (currentDanmuWriter != null) {
             closeCurrentDanmuWriter();
         }
+
+        if (scheduler != null) {
+            scheduler.shutdownNow();
+            try {
+                // 等待任务终止（最多等1秒，避免阻塞）
+                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    log.error("close danmu scheduler failed");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            scheduler = null;
+            log.info("close danmu scheduler success");
+        }
     }
 
-    @Override
-    public void showRecordDetail() {
+    private void showRecordDetail() {
         if (this.client == null) {
             log.warn("no client for danmu");
             return;
@@ -188,7 +199,6 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
                 currentDanmuWriter.newLine();
             }
             currentDanmuWriter.flush();
-            log.warn("flushed {} danmakus to file", pendingDanmakus.size());
             pendingDanmakus.clear();
         } catch (IOException e) {
             log.error("flush danmakus failed", e);
@@ -205,7 +215,8 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         try {
             totalDamakuCnt++;
             // 创建弹幕对象并加入待写入列表
-            SimpleDanmaku danmaku = new SimpleDanmaku((System.currentTimeMillis() - currentPeriodStartTime) / 1000.0f, content, "ffffff");
+            long cur = System.currentTimeMillis();
+            SimpleDanmaku danmaku = new SimpleDanmaku((cur - currentPeriodStartTime) / 1000.0f, cur / 1000, content, "ffffff");
             pendingDanmakus.add(danmaku);
             
             // 如果待写入列表达到批次大小，则立即刷新
@@ -224,8 +235,7 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         // 创建新的弹幕写入器
         try {
             OutputStreamWriter osw = new OutputStreamWriter(Files.newOutputStream(saveFile.toPath()), StandardCharsets.UTF_8);
-            currentDanmuWriter = new BufferedWriter(osw);
-            log.info("create new danmu file, path: {}", saveFile.getAbsolutePath());
+            this.currentDanmuWriter = new BufferedWriter(osw);
         } catch (Exception e) {
             log.error("init danmu writer failed", e);
         }
@@ -279,12 +289,6 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
                 .roomId(roomId)
                 .userAgent(RecordConstant.USER_AGENT)
                 .giftCountCalculationTime(DouyinGiftCountCalculationTimeEnum.COMBO_END);
-//        if (BooleanUtils.isTrue(PROXY_ENABLE)) {
-//            builder.socks5ProxyHost(PROXY_HOST).socks5ProxyPort(PROXY_PORT);
-//            if (!"nvl".equals(PROXY_USER_NAME)) {
-//                builder.socks5ProxyUsername(PROXY_USER_NAME).socks5ProxyPassword(PROXY_USER_PASSWORD);
-//            }
-//        }
         DouyinLiveChatClientConfig config = builder.build();
 
         return new DouyinLiveChatClient(config, new IDouyinMsgListener() {

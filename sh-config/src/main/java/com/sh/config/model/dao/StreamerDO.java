@@ -30,6 +30,9 @@ public class StreamerDO {
      */
     private String roomUrl;
 
+    private String originalRoomUrl;
+
+
     /**
      * 录制类型, vod为录像，living为直播
      */

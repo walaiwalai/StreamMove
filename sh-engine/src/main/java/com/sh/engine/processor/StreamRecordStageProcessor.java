@@ -1,6 +1,5 @@
 package com.sh.engine.processor;
 
-import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
@@ -8,26 +7,25 @@ import com.sh.config.model.storage.FileStatusModel;
 import com.sh.config.repo.StreamerRepoService;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
+import com.sh.engine.event.StreamRecordEndEvent;
+import com.sh.engine.event.StreamRecordStartEvent;
+import com.sh.engine.manager.CacheBizManager;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.StreamerInfoHolder;
-import com.sh.engine.model.video.StreamMetaInfo;
-import com.sh.engine.processor.recorder.danmu.DanmakuSwitchStrategy;
-import com.sh.engine.processor.recorder.danmu.OrdinaryroadDamakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @Author caiwen
@@ -47,8 +45,10 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
     private StreamerRepoService streamerRepoService;
     @Autowired
     private ConfigFetcher configFetcher;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
     @Resource
-    private CacheManager cacheManager;
+    private CacheBizManager cacheBizManager;
 
 
     @Override
@@ -75,15 +75,12 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
 
         // 2. 录制
         statusManager.addRoomPathStatus(savePath, name);
-        DanmakuSwitchStrategy danmakuSwitchStrategy = null;
         try {
             // 初始化
             context.getStreamRecorder().init(savePath);
-            if (context.getDanmakuRecorder() != null) {
-                danmakuSwitchStrategy = new DanmakuSwitchStrategy(context.getDanmakuRecorder());
-                danmakuSwitchStrategy.init();
-                danmakuSwitchStrategy.start(savePath);
-            }
+            // 发布录制开始事件，让监听器处理弹幕录制
+            StreamRecordStartEvent event = new StreamRecordStartEvent(this, name, context.getStreamRecorder().getRegDate());
+            eventPublisher.publishEvent(event);
 
             // 录像(长时间)
             context.getStreamRecorder().start(savePath);
@@ -91,10 +88,10 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
             log.error("record error, savePath: {}", savePath, e);
             throw e;
         } finally {
-            // 关闭弹幕文件切换任务
-            if (danmakuSwitchStrategy != null) {
-                danmakuSwitchStrategy.stop();
-            }
+            // 发布录制结束事件，让监听器处理弹幕录制停止
+            StreamRecordEndEvent finishEvent = new StreamRecordEndEvent(this, name);
+            eventPublisher.publishEvent(finishEvent);
+
             statusManager.deleteRoomPathStatus(name);
         }
         // 3. 后置操作
@@ -128,11 +125,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         // 刷一下临时下载的内存
         String name = streamerConfig.getName();
         if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
-            String finishKey = streamRecorder.getExtraValue("finishKey");
-            String finishField = streamRecorder.getExtraValue("finishField");
-            if (StringUtils.isNotBlank(finishKey)) {
-                cacheManager.setHash(finishKey, finishField, "1", 2, TimeUnit.DAYS);
-            }
+            cacheBizManager.finishCertainVideo(name, streamRecorder.getExtraValue("finishField"));
         }
 
         // 更新数据库

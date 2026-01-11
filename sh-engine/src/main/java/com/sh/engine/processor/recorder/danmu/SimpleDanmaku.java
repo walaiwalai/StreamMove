@@ -18,7 +18,7 @@ public class SimpleDanmaku implements Danmaku {
     /**
      * 绝对时间戳（秒）
      */
-    private float timestamp;
+    private long timestamp;
     /**
      * 弹幕类型（如'gift'/'superchat'/'entry'/'other'）
      */
@@ -45,18 +45,11 @@ public class SimpleDanmaku implements Danmaku {
     private Map<String, Object> extra = new HashMap<>();
 
 
-    public SimpleDanmaku(Float time, Float timestamp, String dtype, String uname, String color,
+    public SimpleDanmaku(Float time, long timestamp, String dtype, String uname, String color,
                          String content, String text, Map<String, Object> extra) {
         // 处理相对时间
         this.time = time != null ? time : 0.0f;
-
-        // 处理绝对时间戳（默认当前时间）
-        if (timestamp != null) {
-            this.timestamp = timestamp;
-        } else {
-            this.timestamp = System.currentTimeMillis() / 1000.0f;
-        }
-
+        this.timestamp = timestamp;
         this.dtype = dtype;
         this.uname = uname;
         this.color = color != null ? color : "ffffff";
@@ -71,8 +64,8 @@ public class SimpleDanmaku implements Danmaku {
         }
     }
 
-    public SimpleDanmaku(float time, String content, String color) {
-        this(time, null, null, null, color, content, null, null);
+    public SimpleDanmaku(float time, long timestamp, String content, String color) {
+        this(time, timestamp, null, null, color, content, null, null);
     }
     
     /**
@@ -81,7 +74,7 @@ public class SimpleDanmaku implements Danmaku {
      * @return 弹幕的文本表示
      */
     public String toLine() {
-        return String.format("%.3f__SEP__%s__SEP__%s", time, content, color);
+        return String.format("%.3f__SEP__%s__SEP__%s__SEP__%s", time, timestamp, content, color);
     }
     
     /**
@@ -94,11 +87,12 @@ public class SimpleDanmaku implements Danmaku {
             return null;
         }
         String[] parts = line.split("__SEP__");
-        if (parts.length >= 3) {
+        if (parts.length >= 4) {
             float time = Float.parseFloat(parts[0]);
-            String content = parts[1];
-            String color = parts[2];
-            return new SimpleDanmaku(time, content, color);
+            long timestamp = Long.parseLong(parts[1]);
+            String content = parts[2];
+            String color = parts[3];
+            return new SimpleDanmaku(time, timestamp, content, color);
         }
         return null;
     }

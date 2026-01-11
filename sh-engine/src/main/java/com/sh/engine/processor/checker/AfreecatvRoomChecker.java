@@ -2,19 +2,17 @@ package com.sh.engine.processor.checker;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
-import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.DateUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
+import com.sh.engine.manager.CacheBizManager;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import com.sh.engine.processor.recorder.stream.YtdlpStreamRecorder;
 import com.sh.engine.util.RegexUtil;
-import com.sh.message.constant.MessageConstant;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
 import okhttp3.Request;
@@ -42,7 +40,7 @@ import java.util.Map;
 @Slf4j
 public class AfreecatvRoomChecker extends AbstractRoomChecker {
     @Resource
-    private CacheManager cacheManager;
+    private CacheBizManager cacheBizManager;
 
     private static final String BID_REGEX = "(?<=com/)([^/]+)$";
     private static final String RECORD_HISTORY_URL = "https://chapi.sooplive.co.kr/api/%s/vods/all?page=1&per_page=50&orderby=reg_date&created=false";
@@ -73,13 +71,11 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
     }
 
     private StreamRecorder fetchCertainTsUploadInfo(StreamerConfig streamerConfig) {
-        String key = "certain_keys_" + streamerConfig.getName();
         String videoId = null;
         for (String vodUrl : streamerConfig.getCertainVodUrls()) {
             String vid = vodUrl.split("player/")[1];
-            String finishFlag = cacheManager.getHash(key, vid, new TypeReference<String>() {
-            });
-            if (StringUtils.isBlank(finishFlag)) {
+            boolean isFinished = cacheBizManager.isCertainVideoFinished(streamerConfig.getName(), vid);
+            if (!isFinished) {
                 videoId = vid;
                 break;
             }
@@ -94,7 +90,6 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
 
         Date date = DateUtil.covertStr2Date(curVod.getJSONObject("data").getString("broad_start"), DateUtil.YYYY_MM_DD_HH_MM_SS);
         Map<String, String> extra = new HashMap<>();
-        extra.put("finishKey", key);
         extra.put("finishField", videoId);
 
         return new YtdlpStreamRecorder(date, streamerConfig.getRoomUrl(), getType().getType(), curVodUrl, extra);
@@ -114,7 +109,7 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
         Long titleNo = curVod.getLong("title_no");
         Date date = DateUtil.covertStr2Date(curVod.getString("reg_date"), DateUtil.YYYY_MM_DD_HH_MM_SS);
         String vodUrl = "https://vod.sooplive.co.kr/player/" + titleNo;
-        return new YtdlpStreamRecorder(date,streamerConfig.getRoomUrl(), getType().getType(), vodUrl);
+        return new YtdlpStreamRecorder(date, streamerConfig.getRoomUrl(), getType().getType(), vodUrl);
     }
 
     private JSONObject fetchCurVodInfo(String videoId) {
@@ -206,19 +201,8 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
 
 
     private StreamRecorder fetchOnlineLivingInfo(StreamerConfig streamerConfig) {
-        if (BooleanUtils.isTrue(streamerConfig.isOnlinePushCheck())) {
-            // 有些主播过多检测会封IP，通过检测有无开播消息推送，减少服务器检测次数
-            if (!checkHasOnlinePushMsg(streamerConfig)) {
-                return null;
-            }
-        }
         boolean isLiving = checkIsLivingByStreamLink(streamerConfig.getRoomUrl());
         Date date = new Date();
         return isLiving ? new StreamLinkStreamRecorder(date, getType().getType(), streamerConfig.getRoomUrl()) : null;
-    }
-
-    private boolean checkHasOnlinePushMsg(StreamerConfig streamerConfig) {
-        String flag = cacheManager.get(MessageConstant.PLAT_PUSH_LIVE_PREFIX_KEY + MessageConstant.SOOP_PLATFORM);
-        return StringUtils.isNotBlank(flag);
     }
 }

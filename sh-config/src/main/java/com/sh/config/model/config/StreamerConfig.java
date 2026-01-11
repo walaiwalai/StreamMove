@@ -37,9 +37,9 @@ public class StreamerConfig {
     private String roomUrl;
 
     /**
-     * 直播消息推送检测
+     * 原始直播间地址
      */
-    private boolean onlinePushCheck;
+    private String originalRoomUrl;
 
     /**
      * 是否直播时录制

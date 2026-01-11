@@ -11,6 +11,7 @@
         <result column="gmt_modified" property="gmtModified"/>
         <result column="name" property="name"/>
         <result column="room_url" property="roomUrl"/>
+        <result column="original_room_url" property="originalRoomUrl"/>
         <result column="record_type" property="recordType"/>
         <result column="last_record_time" property="lastRecordTime"/>
         <result column="expire_time" property="expireTime"/>
@@ -34,6 +35,7 @@
         `gmt_modified`,
         `name`,
         `room_url`,
+        `original_room_url`,
         `record_type`,
         `last_record_time`,
         `expire_time`,

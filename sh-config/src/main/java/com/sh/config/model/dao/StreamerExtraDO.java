@@ -31,7 +31,6 @@ public class StreamerExtraDO {
      * 是否录制弹幕
      */
     private boolean recordDamaku;
-    private boolean onlinePushCheck;
     private int recordQuality;
     /**
      * 录制格式

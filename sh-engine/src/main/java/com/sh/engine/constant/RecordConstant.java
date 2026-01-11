@@ -63,4 +63,9 @@ public class RecordConstant {
      * 弹幕文件前缀
      */
     public static final String DAMAKU_TXT_FILE_FORMAT = "P%02d.txt";
+
+    /**
+     * 弹幕文件前缀
+     */
+    public static final String DAMAKU_TXT_ALL_FILE = "damaku.txt";
 }
