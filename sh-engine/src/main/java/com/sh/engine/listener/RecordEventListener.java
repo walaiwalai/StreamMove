@@ -52,7 +52,7 @@ public class RecordEventListener {
 
         File recordDir = new File(genRegPathByRegDate(event.getRecordAt(), name));
         if (!recordDir.exists()) {
-            recordDir.mkdir();
+            recordDir.mkdirs();
         }
         File txtFile = new File(recordDir, DAMAKU_TXT_ALL_FILE);
         if (txtFile.exists()) {
