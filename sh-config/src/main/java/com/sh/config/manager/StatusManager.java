@@ -98,7 +98,7 @@ public class StatusManager {
     }
 
     public Integer count() {
-        return recordStatusMap.keySet().size();
+        return recordStatusMap.keySet().size() + uploadStatusMap.keySet().size() + postProcessMap.keySet().size();
     }
 
 
