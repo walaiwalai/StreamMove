@@ -3,8 +3,6 @@ package com.sh.engine.processor.checker;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.TypeReference;
-import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
@@ -12,14 +10,11 @@ import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamUrlStreamRecorder;
-import com.sh.message.constant.MessageConstant;
-import com.sh.message.model.message.LiveOnReceiveModel;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Headers;
 import okhttp3.Request;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,8 +29,6 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class KuaishouRoomChecker extends AbstractRoomChecker {
-    @Resource
-    private CacheManager cacheManager;
     // 定义正则表达式模式
     private static final Pattern INITIAL_STATE_PATTERN =
             Pattern.compile("<script>window.__INITIAL_STATE__=(.*?);\\(function\\(\\)\\{var s;");
@@ -45,9 +38,6 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
 
     @Override
     public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
-        if (!checkOnline(streamerConfig)) {
-            return null;
-        }
         log.warn("{} is online by kuaishou receiving message", streamerConfig.getName());
         String roomUrl = streamerConfig.getRoomUrl();
         Map<String, String> headers = new HashMap<>();
@@ -76,13 +66,6 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.KUAISHOU;
     }
-
-    private boolean checkOnline(StreamerConfig streamerConfig) {
-        LiveOnReceiveModel liveOnModel = cacheManager.getHash(MessageConstant.LIVE_ON_HASH_PREFIX_KEY + "KUAISHOU", streamerConfig.getName(), new TypeReference<LiveOnReceiveModel>() {
-        });
-        return liveOnModel != null;
-    }
-
 
     private StreamRecorder parseStreamData(String htmlStr, StreamerConfig streamerConfig) {
         Matcher initialStateMatcher = INITIAL_STATE_PATTERN.matcher(htmlStr);
@@ -144,7 +127,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
 //            }
         } else {
             JSONObject lastUrlObj = represents.getJSONObject(represents.size() - 1);
-            return new StreamUrlStreamRecorder(new Date(), streamerConfig.getRoomUrl(),getType().getType(), lastUrlObj.getString("url"));
+            return new StreamUrlStreamRecorder(new Date(), streamerConfig.getRoomUrl(), getType().getType(), lastUrlObj.getString("url"));
         }
     }
 }

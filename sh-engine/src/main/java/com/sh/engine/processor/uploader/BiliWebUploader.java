@@ -6,7 +6,6 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
-import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.StreamerInfoHolder;
@@ -16,7 +15,6 @@ import com.sh.engine.model.video.RemoteSeverVideo;
 import com.sh.engine.service.VideoMergeService;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -67,7 +65,7 @@ public class BiliWebUploader extends Uploader {
         List<RemoteSeverVideo> remoteVideos = Lists.newArrayList();
         for (int i = 0; i < localVideos.size(); i++) {
             File localVideo = localVideos.get(i);
-            RemoteSeverVideo uploadedVideo = getUploadedVideo(localVideo);
+            RemoteSeverVideo uploadedVideo = getUploadedVideo(recordPath, localVideo);
             if (uploadedVideo != null) {
                 log.info("video has been uploaded, will skip, path: {}", localVideo.getAbsolutePath());
                 remoteVideos.add(uploadedVideo);
@@ -84,7 +82,7 @@ public class BiliWebUploader extends Uploader {
                 throw new StreamerRecordException(ErrorEnum.UPLOAD_CHUNK_ERROR);
             }
 
-            saveUploadedVideo(uploadedVideo);
+            saveUploadedVideo(recordPath, uploadedVideo);
             remoteVideos.add(uploadedVideo);
 
             // 1.2 发消息
@@ -97,9 +95,6 @@ public class BiliWebUploader extends Uploader {
         if (!isPostSuccess) {
             throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
         }
-
-        // 3. 提交成功清理一下缓存
-        clearUploadedVideos();
 
         return true;
     }

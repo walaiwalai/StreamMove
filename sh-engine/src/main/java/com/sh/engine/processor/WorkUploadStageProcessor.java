@@ -1,30 +1,24 @@
 package com.sh.engine.processor;
 
 import cn.hutool.core.io.FileUtil;
-import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.storage.FileStatusModel;
-import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
 import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.StreamerInfoHolder;
-import com.sh.engine.processor.plugin.VideoProcessPlugin;
 import com.sh.engine.processor.uploader.Uploader;
 import com.sh.engine.processor.uploader.UploaderFactory;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.util.Map;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -98,7 +92,7 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                     msgSendService.sendText(curRecordPath + "路径下的视频上传成功, 类型:" + platform);
 
                     // 上传平台成功状态记录
-                    fileStatusModel.postSuccess(platform);
+                    fileStatusModel.finishPost(platform);
                     fileStatusModel.writeSelfToFile(curRecordPath);
                 } else {
                     log.info("{}'s {} platform upload fail, path: {}. ", streamerName, platform, curRecordPath);

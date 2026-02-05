@@ -73,9 +73,12 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
 
     @Override
     public void updateTrafficGB(String name, float trafficGBCost) {
-        StreamerConfig config = getByName(name);
-        float curTrafficGB = config.getCurTrafficGB() + trafficGBCost;
-        streamerMapper.updateTrafficGB(name, curTrafficGB);
+        try {
+            StreamerConfig config = getByName(name);
+            streamerMapper.updateTrafficGB(name, config.getCurTrafficGB() + trafficGBCost);
+        } catch (Exception e) {
+            log.error("updateTrafficGB error", e);
+        }
     }
 
     private StreamerConfig convertToStreamerConfig(StreamerDO streamerDO) {

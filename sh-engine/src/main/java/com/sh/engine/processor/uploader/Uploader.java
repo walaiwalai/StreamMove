@@ -1,9 +1,8 @@
 package com.sh.engine.processor.uploader;
 
 import cn.hutool.core.io.FileUtil;
-import com.alibaba.fastjson.TypeReference;
 import com.microsoft.playwright.Page;
-import com.sh.config.manager.CacheManager;
+import com.sh.config.model.storage.FileStatusModel;
 import com.sh.config.repo.StreamerRepoService;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.video.RemoteSeverVideo;
@@ -19,8 +18,6 @@ import java.nio.file.Paths;
  * @Date 2024 09 28 22 26
  **/
 public abstract class Uploader {
-    @Resource
-    private CacheManager cacheManager;
     @Resource
     private StreamerRepoService streamerRepoService;
 
@@ -51,27 +48,22 @@ public abstract class Uploader {
      */
     public abstract boolean upload(String recordPath) throws Exception;
 
-    protected RemoteSeverVideo getUploadedVideo(File videoFile) {
-        String path = videoFile.getAbsolutePath();
-        String remoteFileName = cacheManager.getHash(buildFinishKey(), path, new TypeReference<String>() {
-        });
-        return StringUtils.isNotBlank(remoteFileName) ?
-                new RemoteSeverVideo(remoteFileName, path) : null;
+    protected RemoteSeverVideo getUploadedVideo(String recordPath, File videoFile) {
+        FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(recordPath);
+        String remoteFileName = fileStatusModel.fetchRemoteVideoName(getType(), videoFile.getName());
+        return StringUtils.isNotBlank(remoteFileName) ? new RemoteSeverVideo(remoteFileName, videoFile.getAbsolutePath()) : null;
     }
 
-    protected void saveUploadedVideo(RemoteSeverVideo remoteSeverVideo) {
+    protected void saveUploadedVideo(String recordPath, RemoteSeverVideo remoteSeverVideo) {
         String localFilePath = remoteSeverVideo.getLocalFilePath();
 
-        // 写一下缓存
-        cacheManager.setHash(buildFinishKey(), localFilePath, remoteSeverVideo.getServerFileName());
+        FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(recordPath);
+        fileStatusModel.finishUpload(getType(), new File(remoteSeverVideo.getLocalFilePath()).getName(), remoteSeverVideo.getServerFileName());
+        fileStatusModel.writeSelfToFile(recordPath);
 
         // 记录一下上传的视频流量
         long fileSize = FileUtil.size(new File(localFilePath));
         streamerRepoService.updateTrafficGB(StreamerInfoHolder.getCurStreamerName(), (float) fileSize / 1024 / 1024 / 1024);
-    }
-
-    protected void clearUploadedVideos() {
-        cacheManager.delete(buildFinishKey());
     }
 
     /**
@@ -86,9 +78,5 @@ public abstract class Uploader {
     protected void snapshot(Page page) {
         File sapshotFile = new File(accountSavePath, getType() + "-" + System.currentTimeMillis() + ".png");
         page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(sapshotFile.getAbsolutePath())).setFullPage(true));
-    }
-
-    private String buildFinishKey() {
-        return StreamerInfoHolder.getCurStreamerName() + "_" + getType() + "_uploaded_videos";
     }
 }

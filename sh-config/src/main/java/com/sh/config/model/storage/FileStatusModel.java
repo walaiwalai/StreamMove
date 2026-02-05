@@ -40,6 +40,12 @@ public class FileStatusModel {
     private Map<String, VideoMetaInfo> metaMap = Maps.newHashMap();
 
     /**
+     * 上传视频情况
+     * key是平台，value的key是视频名称，value是上传之后视频名称
+     */
+    private Map<String, Map<String, String>> uploadInfo = Maps.newHashMap();
+
+    /**
      * 写到fileStatus.json
      */
     public void writeSelfToFile(String path) {
@@ -57,11 +63,27 @@ public class FileStatusModel {
         });
     }
 
+    public void finishUpload(String platform, String localVideoName, String remoteVideoName) {
+        uploadInfo.computeIfAbsent(platform, k -> Maps.newHashMap());
+        uploadInfo.get(platform).put(localVideoName, remoteVideoName);
+    }
+
+    public boolean isUpload(String platform, String localVideoName) {
+        return uploadInfo.containsKey(platform) && uploadInfo.get(platform).containsKey(localVideoName);
+    }
+
+    public String fetchRemoteVideoName(String platform, String localVideoName) {
+        if (!isUpload(platform, localVideoName)) {
+            return null;
+        }
+        return uploadInfo.get(platform).get(localVideoName);
+    }
+
     public boolean isPost(String platform) {
         return BooleanUtils.isTrue(postMap.get(platform));
     }
 
-    public void postSuccess(String platform) {
+    public void finishPost(String platform) {
         postMap.put(platform, true);
     }
 

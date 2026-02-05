@@ -2,24 +2,18 @@ package com.sh.engine.processor.uploader;
 
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Cookie;
-import com.sh.config.exception.ErrorEnum;
-import com.sh.config.exception.StreamerRecordException;
-import com.sh.config.manager.CacheManager;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.manager.LocalCacheManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
-import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.io.File;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -27,7 +21,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @Author caiwen

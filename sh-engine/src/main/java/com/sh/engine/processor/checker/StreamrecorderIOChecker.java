@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
+import com.sh.config.utils.FileStoreUtil;
 import com.sh.engine.event.StreamRecordEndEvent;
 import com.sh.engine.event.StreamRecordStartEvent;
 import com.sh.engine.manager.CacheBizManager;
@@ -22,6 +23,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -36,10 +38,13 @@ import java.util.stream.Collectors;
 @Slf4j
 public class StreamrecorderIOChecker extends AbstractRoomChecker {
     private static final String STREAMER_RECORDER_DOMAIN = "streamrecorder.io";
+    private static final String COOKIES_FILE_NAME = "streamrecorder-io-cookies.json";
     @Value("${streamerrecord.io.name}")
     private String name;
     @Value("${streamerrecord.io.password}")
     private String password;
+    @Value("${sh.account-save.path}")
+    private String accountSavePath;
     @Resource
     private CacheBizManager cacheBizManager;
     @Autowired
@@ -63,8 +68,16 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         CustomCookieJar customCookieJar = (CustomCookieJar) client.cookieJar();
         List<Cookie> cookies = customCookieJar.getCookiesByDomain(STREAMER_RECORDER_DOMAIN);
         if (cookies.isEmpty()) {
-            log.info("cookie not found, do login");
-            doLogin();
+            // 尝试从文件加载cookies
+            log.info("cookie not found in memory, trying to load from file");
+            loadCookiesFromFile();
+
+            // 再次检查cookies是否存在
+            cookies = customCookieJar.getCookiesByDomain(STREAMER_RECORDER_DOMAIN);
+            if (cookies.isEmpty()) {
+                log.info("cookie not found in file, do login");
+                doLogin();
+            }
         }
 
         boolean isCertainVod = CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls());
@@ -82,6 +95,12 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             if (e.getMessage().contains("authenticated")) {
                 log.error("cookie expired, re-login in next term");
                 customCookieJar.clearAllCookies();
+                // 删除本地cookies文件
+                File cookiesFile = new File(accountSavePath, COOKIES_FILE_NAME);
+                if (cookiesFile.exists()) {
+                    cookiesFile.delete();
+                    log.info("Deleted expired cookies file: {}", cookiesFile.getAbsolutePath());
+                }
                 return null;
             } else {
                 throw e;
@@ -93,6 +112,41 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             return fetchCertainRecords(streamerConfig, respObj);
         } else {
             return fetchLatestRecord(streamerConfig, respObj);
+        }
+    }
+
+    private void loadCookiesFromFile() {
+        try {
+            File cookiesFile = new File(accountSavePath, COOKIES_FILE_NAME);
+            if (!cookiesFile.exists()) {
+                log.info("Cookies file does not exist: {}", cookiesFile.getAbsolutePath());
+                return;
+            }
+
+            // 读取cookies文件
+            List<Cookie> cookies = FileStoreUtil.loadFromFile(cookiesFile, new com.alibaba.fastjson.TypeReference<List<Cookie>>() {});
+            if (cookies != null && !cookies.isEmpty()) {
+                CustomCookieJar customCookieJar = (CustomCookieJar) client.cookieJar();
+                customCookieJar.loadCookiesFromFile(cookies, STREAMER_RECORDER_DOMAIN);
+                log.info("Loaded {} cookies from file: {}", cookies.size(), cookiesFile.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            log.error("Failed to load cookies from file", e);
+        }
+    }
+
+    private void saveCookiesToFile() {
+        try {
+            CustomCookieJar customCookieJar = (CustomCookieJar) client.cookieJar();
+            List<Cookie> cookies = customCookieJar.getCookiesByDomain(STREAMER_RECORDER_DOMAIN);
+
+            if (cookies != null && !cookies.isEmpty()) {
+                File cookiesFile = new File(accountSavePath, COOKIES_FILE_NAME);
+                FileStoreUtil.saveToFile(cookiesFile, cookies);
+                log.info("Saved {} cookies to file: {}", cookies.size(), cookiesFile.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            log.error("Failed to save cookies to file", e);
         }
     }
 
@@ -247,9 +301,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             if (response.code() == 302) {
                 String redirectUrl = response.header("Location");
                 if (redirectUrl != null && redirectUrl.contains("/userdashboard")) {
-                    System.out.println("登录成功！重定向到用户面板: " + redirectUrl);
-                } else {
-                    System.out.println("登录失败，重定向地址异常: " + redirectUrl);
+                    saveCookiesToFile();
                 }
                 return;
             }
@@ -257,10 +309,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             // 若未重定向，检查响应内容是否为用户面板
             String responseBody = response.body().string();
             if (responseBody.contains("userdashboard") && !responseBody.contains("Sign in to Streamrecorder")) {
-                System.out.println("登录成功，直接返回用户面板");
-            } else {
-                System.out.println("登录失败，服务器仍返回登录页面");
-                System.out.println("响应片段: " + responseBody.substring(0, Math.min(200, responseBody.length())));
+                saveCookiesToFile();
             }
         }
     }
@@ -287,6 +336,11 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         // 新增：获取指定域名的所有Cookie
         public List<Cookie> getCookiesByDomain(String domain) {
             return cookieStore.getOrDefault(domain, new ArrayList<>());
+        }
+
+        // 新增：从文件加载cookies
+        public void loadCookiesFromFile(List<Cookie> cookies, String domain) {
+            cookieStore.put(domain, cookies);
         }
 
         public void clearAllCookies() {
