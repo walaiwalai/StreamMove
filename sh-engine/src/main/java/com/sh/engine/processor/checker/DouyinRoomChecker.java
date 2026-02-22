@@ -28,11 +28,6 @@ public class DouyinRoomChecker extends AbstractRoomChecker {
     }
 
     @Override
-    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
-        return new OrdinaryroadDamakuRecorder(streamerConfig);
-    }
-
-    @Override
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.DOU_YIN;
     }

@@ -61,11 +61,6 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
     }
 
     @Override
-    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
-        return null;
-    }
-
-    @Override
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.AFREECA_TV;
     }

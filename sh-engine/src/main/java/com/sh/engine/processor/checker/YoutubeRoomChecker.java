@@ -38,11 +38,6 @@ public class YoutubeRoomChecker extends AbstractRoomChecker {
     }
 
     @Override
-    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
-        return null;
-    }
-
-    @Override
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.YOUTUBE;
     }

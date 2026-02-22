@@ -58,11 +58,6 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
     }
 
     @Override
-    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
-        return null;
-    }
-
-    @Override
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.KUAISHOU;
     }

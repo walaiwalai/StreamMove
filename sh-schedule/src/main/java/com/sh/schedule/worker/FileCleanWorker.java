@@ -2,6 +2,8 @@ package com.sh.schedule.worker;
 
 import cn.hutool.extra.spring.SpringUtil;
 import com.google.common.collect.Lists;
+import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.storage.FileStatusModel;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -35,9 +37,9 @@ public class FileCleanWorker extends ProcessWorker {
                     DirectoryFileFilter.INSTANCE);
             for (File statusFile : statusFiles) {
                 String curRecordPath = statusFile.getParent();
+                String streamerName = statusFile.getParentFile().getParent();
                 try {
-                    FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
-                    if (!fileStatusModel.allPost()) {
+                    if (!isAllPost(streamerName, curRecordPath)) {
                         // 没有上传的
                         continue;
                     }
@@ -60,5 +62,19 @@ public class FileCleanWorker extends ProcessWorker {
             }
         }
         return res;
+    }
+
+    private boolean isAllPost( String streamerName, String curRecordPath ) {
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
+        if (streamerConfig == null) {
+            return true;
+        }
+
+        FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
+        boolean allPost = true;
+        for (String platform : streamerConfig.getUploadPlatforms()) {
+            allPost = allPost && fileStatusModel.isFinishPost(platform);
+        }
+        return allPost;
     }
 }

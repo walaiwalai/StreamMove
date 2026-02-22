@@ -31,12 +31,6 @@ public class HuyaRoomChecker extends AbstractRoomChecker {
     }
 
     @Override
-    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
-        boolean recordDamaku = BooleanUtils.isTrue(streamerConfig.isRecordDamaku());
-        return recordDamaku ? new OrdinaryroadDamakuRecorder(streamerConfig) : null;
-    }
-
-    @Override
     public StreamChannelTypeEnum getType() {
         return StreamChannelTypeEnum.HUYA;
     }

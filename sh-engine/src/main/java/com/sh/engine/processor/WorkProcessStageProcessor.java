@@ -7,6 +7,7 @@ import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.model.storage.FileStatusModel;
 import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.RecordStageEnum;
@@ -67,12 +68,23 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
                 continue;
             }
 
+            FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
+            if (fileStatusModel == null) {
+                log.error("fileStatus not exist, maybe deleted, path: {}", curRecordPath);
+                continue;
+            }
+
             for (String pluginName : videoPlugins) {
                 ProcessPluginEnum pluginEnum = ProcessPluginEnum.of(pluginName);
                 if (plugins.get(pluginName) == null || pluginEnum == null) {
                     continue;
                 }
+                if (fileStatusModel.isFinishedPlugin(pluginName)) {
+                    log.info("{}'s {} plugin has been processed, path: {}.", streamerName, pluginName, curRecordPath);
+                    continue;
+                }
 
+                log.info("{}'s {} plugin begin processing, path: {}.", streamerName, pluginName, curRecordPath);
                 // 加入当前处理的插件类型
                 statusManager.doPostProcess(curRecordPath, pluginName);
                 try {
@@ -83,6 +95,9 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
 
                     try {
                         plugins.get(pluginName).process(curRecordPath);
+
+                        fileStatusModel.finishPlugin(pluginName);
+                        fileStatusModel.writeSelfToFile(curRecordPath);
                         log.info("{}'s {} plugin process success, path: {}. ", streamerName, pluginName, curRecordPath);
                     } catch (Exception e) {
                         log.error("{}'s {} plugin process failed, path: {}.", streamerName, pluginName, curRecordPath, e);

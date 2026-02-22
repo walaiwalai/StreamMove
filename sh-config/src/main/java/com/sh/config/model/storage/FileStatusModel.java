@@ -1,6 +1,7 @@
 package com.sh.config.model.storage;
 
 import com.alibaba.fastjson.TypeReference;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.FileStoreUtil;
 import lombok.AllArgsConstructor;
@@ -8,7 +9,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.BooleanUtils;
 
 import java.io.File;
 import java.util.List;
@@ -25,14 +25,14 @@ import java.util.Map;
 @Slf4j
 public class FileStatusModel {
     /**
-     * 各平台上传情况
+     * 各插件处理
      */
-    private List<String> platforms;
+    private List<String> finishedPlugins = Lists.newArrayList();
 
     /**
-     * 各平台上传情况
+     * 各平台上传完成情况
      */
-    private Map<String, Boolean> postMap = Maps.newHashMap();
+    private List<String> finishedPlatforms = Lists.newArrayList();
     
     /**
      * 视频元信息映射，键为视频文件名，值为视频相关信息
@@ -79,20 +79,20 @@ public class FileStatusModel {
         return uploadInfo.get(platform).get(localVideoName);
     }
 
-    public boolean isPost(String platform) {
-        return BooleanUtils.isTrue(postMap.get(platform));
+    public boolean isFinishPost( String platform) {
+        return finishedPlatforms.contains(platform);
     }
 
     public void finishPost(String platform) {
-        postMap.put(platform, true);
+        finishedPlatforms.add(platform);
     }
 
-    public boolean allPost() {
-        boolean allPost = true;
-        for (String platform : platforms) {
-            allPost = allPost && isPost(platform);
-        }
-        return allPost;
+    public boolean isFinishedPlugin(String pluginName) {
+        return finishedPlugins.contains(pluginName);
+    }
+
+    public void finishPlugin(String pluginName) {
+        finishedPlugins.add(pluginName);
     }
     
     /**

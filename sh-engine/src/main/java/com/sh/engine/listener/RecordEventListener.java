@@ -27,9 +27,6 @@ import static com.sh.engine.constant.RecordConstant.DAMAKU_TXT_ALL_FILE;
 @Slf4j
 @Component
 public class RecordEventListener {
-    @Value("${sh.video-save.path}")
-    private String videoSavePath;
-
     private Map<String, DanmakuRecorder> danmakuRecorderMap = Maps.newHashMap();
 
     /**
@@ -50,22 +47,10 @@ public class RecordEventListener {
             return;
         }
 
-        File recordDir = new File(genRegPathByRegDate(event.getRecordAt(), name));
-        if (!recordDir.exists()) {
-            recordDir.mkdirs();
-        }
-        File txtFile = new File(recordDir, DAMAKU_TXT_ALL_FILE);
-        if (txtFile.exists()) {
-            log.warn("{} record start, but txt file exists, path: {}, will skip", name, txtFile.getAbsolutePath());
-            return;
-        }
-
-
-        log.info("{} record start, begin record danmaku, path: {}", name, txtFile.getAbsolutePath());
-
-        OrdinaryroadDamakuRecorder recorder = new OrdinaryroadDamakuRecorder(streamerConfig);
+        log.info("{} record start, begin recording danmaku", event.getStreamName());
+        OrdinaryroadDamakuRecorder recorder = new OrdinaryroadDamakuRecorder(streamerConfig, event.getRecordAt());
         recorder.init();
-        recorder.start(txtFile);
+        recorder.start();
 
         danmakuRecorderMap.put(name, recorder);
     }
@@ -80,25 +65,10 @@ public class RecordEventListener {
             return;
         }
 
-        log.info("{} record end, stop record danmaku", event.getStreamName());
+        log.info("{} record end, stop recording danmaku", event.getStreamName());
         DanmakuRecorder recorder = danmakuRecorderMap.get(event.getStreamName());
         recorder.close();
 
         danmakuRecorderMap.remove(event.getStreamName());
-    }
-
-
-    /**
-     * 生成录像保存地址
-     *
-     * @param recordAt
-     * @return
-     */
-    private String genRegPathByRegDate(Date recordAt, String name) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        String timeV = dateFormat.format(recordAt);
-
-        File regFile = new File(new File(videoSavePath, name), timeV);
-        return regFile.getAbsolutePath();
     }
 }

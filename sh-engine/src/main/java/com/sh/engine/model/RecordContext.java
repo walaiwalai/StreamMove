@@ -26,9 +26,4 @@ public class RecordContext {
      * 对应的录像机
      */
     private StreamRecorder streamRecorder;
-
-    /**
-     * 对应的弹幕机
-     */
-    private DanmakuRecorder danmakuRecorder;
 }

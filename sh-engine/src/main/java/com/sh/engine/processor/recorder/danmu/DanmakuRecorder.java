@@ -17,7 +17,7 @@ public interface DanmakuRecorder {
     /**
      * 开始弹幕录制
      */
-    void start(File saveFile);
+    void start();
 
     /**
      * 关闭弹幕录制

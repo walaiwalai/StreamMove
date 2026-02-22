@@ -61,8 +61,6 @@ public class RoomCheckStageProcessor extends AbstractStageProcessor {
 
         // 直播录像机
         context.setStreamRecorder(streamerService.getStreamRecorder(streamInfo));
-        // 弹幕录像机
-        context.setDanmakuRecorder(streamerService.getDanmakuRecorder(streamInfo));
     }
 
     @Override

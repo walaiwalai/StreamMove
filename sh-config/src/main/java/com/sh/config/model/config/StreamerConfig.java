@@ -171,4 +171,26 @@ public class StreamerConfig {
      * 抖音投稿相关
      */
     private String location;
+
+    // -------------------------------AI高光剪辑相关--------------------------------
+    /**
+     * DeepSeek API Key for AI highlight analysis
+     */
+    private String deepSeekApiKey;
+
+    /**
+     * ASR service provider (aliyun/xunfei/whisper/none)
+     */
+    private String asrProvider = "none";
+
+    /**
+     * ASR service API Key
+     */
+    private String asrApiKey;
+
+    /**
+     * AI highlight minimum score threshold (1-10)
+     */
+    private int aiHighlightMinScore = 7;
+    // -------------------------------AI高光剪辑结尾--------------------------------
 }

@@ -107,7 +107,6 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
 
         // 2.写fileStatus.json
         FileStatusModel fileStatusModel = new FileStatusModel();
-        fileStatusModel.setPlatforms(streamerConfig.getUploadPlatforms());
         fileStatusModel.writeSelfToFile(recordPath);
 
         // 3.将录像文件加到threadLocal

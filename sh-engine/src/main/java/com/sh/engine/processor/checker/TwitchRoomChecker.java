@@ -48,11 +48,6 @@ public class TwitchRoomChecker extends AbstractRoomChecker {
         }
     }
 
-    @Override
-    public DanmakuRecorder getDanmakuRecorder(StreamerConfig streamerConfig) {
-        return null;
-    }
-
     private StreamRecorder fetchLivingRecord(StreamerConfig streamerConfig) {
         String roomUrl = streamerConfig.getRoomUrl();
         boolean isLiving = checkIsLivingByStreamLink(roomUrl);

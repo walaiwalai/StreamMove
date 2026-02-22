@@ -1,6 +1,10 @@
 package com.sh.engine.processor.recorder.danmu;
 
+import com.alibaba.fastjson.JSON;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Preconditions;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import lombok.extern.slf4j.Slf4j;
@@ -35,12 +39,16 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static com.sh.engine.constant.RecordConstant.DAMAKU_TXT_ALL_FILE;
 
 /**
  * 基于ordinaryroad-live-chat-client的弹幕录制器
@@ -51,27 +59,19 @@ import java.util.concurrent.locks.ReentrantLock;
  **/
 @Slf4j
 public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
+    private static final String videoSavePath = EnvUtil.getEnvValue("sh.video-save.path");
     private final StreamerConfig config;
+    private final Date recordAt;
 
     /**
      * 当前周期开始时间（用于计算周期内相对时间）
      */
-    private long currentPeriodStartTime;
-
-    /**
-     * 弹幕客户端
-     */
-    private BaseLiveChatClient<?, ?, ?> client;
+    private final long currentPeriodStartTime;
 
     /**
      * 线程安全锁（切换Writer时使用）
      */
     private final ReentrantLock lock = new ReentrantLock();
-
-    /**
-     * 保存文件
-     */
-    private File saveFile;
 
     /**
      * 总弹幕数量
@@ -94,13 +94,28 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
     private static final int BATCH_SIZE = 50;
 
     /**
+     * 弹幕客户端
+     */
+    private BaseLiveChatClient<?, ?, ?> client;
+
+    /**
      * 定时任务调度器（用于周期性生成文件）
      */
     private ScheduledExecutorService scheduler;
 
+    /**
+     * 保存文件
+     */
+    private File saveFile;
 
-    public OrdinaryroadDamakuRecorder(StreamerConfig config) {
+
+    public OrdinaryroadDamakuRecorder( StreamerConfig config, Date recordAt) {
+        Preconditions.checkNotNull(config, "config is null");
+        Preconditions.checkNotNull(recordAt, "recordAt is null");
+
         this.config = config;
+        this.recordAt = recordAt;
+        this.currentPeriodStartTime = this.recordAt.getTime();
     }
 
 
@@ -108,6 +123,7 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
     public void init() {
         // 获取客户端
         this.client = getReceiver(config.getOriginalRoomUrl());
+        Preconditions.checkNotNull(this.client, "client is null");
 
         // 初始化定时任务
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -115,24 +131,18 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
             t.setDaemon(true);
             return t;
         });
+
+        // 生成保存文件
+        this.saveFile = genDamakuFile();
     }
 
 
     @Override
-    public void start(File saveFile) {
-        if (this.client == null) {
-            log.error("no client for danmu");
-            return;
-        }
-
-        this.saveFile = saveFile;
-        this.currentPeriodStartTime = System.currentTimeMillis();
+    public void start() {
         createNewDanmuWriter();
 
         // 连接弹幕客户端
-        this.client.connect(() -> {
-            log.info("danmu client connected，savePath：{}", saveFile.getAbsolutePath());
-        }, throwable -> {
+        this.client.connect(null, throwable -> {
             log.error("danmu client connect failed", throwable);
         });
 
@@ -177,7 +187,7 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         ClientStatusEnums status = this.client.getStatus();
         if (status == ClientStatusEnums.CONNECT_FAILED || status == ClientStatusEnums.DISCONNECTED || status == ClientStatusEnums.DESTROYED) {
             log.warn("client are not connect, status: {}, try to re connect", status.name());
-            this.client.connect(() -> {}, throwable -> {
+            this.client.connect(null, throwable -> {
                 log.error("danmu client reconnect failed", throwable);
             });
         } else {
@@ -210,13 +220,12 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
     /**
      * 添加普通弹幕（线程安全）
      */
-    public void addDanmaku(String content) {
+    public void addDanmaku(long createTime, String content) {
         lock.lock();
         try {
             totalDamakuCnt++;
             // 创建弹幕对象并加入待写入列表
-            long cur = System.currentTimeMillis();
-            SimpleDanmaku danmaku = new SimpleDanmaku((cur - currentPeriodStartTime) / 1000.0f, cur / 1000, content, "ffffff");
+            SimpleDanmaku danmaku = new SimpleDanmaku((createTime - currentPeriodStartTime) / 1000.0f, createTime / 1000, content, "ffffff");
             pendingDanmakus.add(danmaku);
             
             // 如果待写入列表达到批次大小，则立即刷新
@@ -294,7 +303,7 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         return new DouyinLiveChatClient(config, new IDouyinMsgListener() {
             @Override
             public void onDanmuMsg(DouyinBinaryFrameHandler handler, DouyinDanmuMsg msg) {
-                addDanmaku(msg.getContent());
+                addDanmaku(msg.getMsg().getEventTime() * 1000, msg.getContent());
             }
         });
     }
@@ -306,7 +315,7 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         return new BilibiliLiveChatClient(config, new IBilibiliMsgListener() {
             @Override
             public void onDanmuMsg(BilibiliBinaryFrameHandler handler, DanmuMsgMsg msg) {
-                addDanmaku(msg.getContent());
+                addDanmaku(msg.getInfo().get(0).get(4).asLong(), msg.getContent());
             }
         });
     }
@@ -318,7 +327,7 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         return new HuyaLiveChatClient(config, new IHuyaMsgListener() {
             @Override
             public void onDanmuMsg(HuyaBinaryFrameHandler handler, MessageNoticeMsg msg) {
-                addDanmaku(msg.getContent());
+                addDanmaku(System.currentTimeMillis(), msg.getContent());
             }
         });
     }
@@ -330,23 +339,36 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         return new DouyuLiveChatClient(config, new IDouyuMsgListener() {
             @Override
             public void onDanmuMsg(DouyuBinaryFrameHandler handler, ChatmsgMsg msg) {
-                addDanmaku(msg.getContent());
+                addDanmaku(System.currentTimeMillis(), msg.getContent());
             }
         });
+    }
+
+
+
+    private File genDamakuFile() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        String timeV = dateFormat.format(this.recordAt);
+
+        File recordDir = new File(new File(videoSavePath, this.config.getName()), timeV);
+        if (!recordDir.exists()) {
+            recordDir.mkdirs();
+        }
+        return new File(recordDir, DAMAKU_TXT_ALL_FILE);
     }
 
 
     public static void main(String[] args) {
         OrdinaryroadDamakuRecorder recorder = new OrdinaryroadDamakuRecorder(
                 StreamerConfig.builder()
-                        .roomUrl("https://www.douyu.com/810975")
-                        .recordMode("t_150")
-                        .build()
+                        .originalRoomUrl("https://www.huya.com/chuhe")
+                        .build(),
+                new Date()
         );
 
         try {
             recorder.init();
-            recorder.start(new File("G:\\stream_record\\download\\mytest-mac\\2025-11-07-22-27-01"));
+            recorder.start();
             Thread.sleep(1000 * 60 * 5);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

@@ -60,7 +60,7 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                     continue;
                 }
 
-                boolean isPost = fileStatusModel.isPost(platform);
+                boolean isPost = fileStatusModel.isFinishPost(platform);
                 if (isPost) {
                     log.info("video has been uploaded, will skip, platform: {}", platform);
                     continue;
