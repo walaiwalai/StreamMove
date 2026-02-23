@@ -20,8 +20,6 @@ import java.security.MessageDigest;
  */
 @Slf4j
 public class VideoFileUtil {
-    public static final String SEG_FILE_NAME_V2 = "P%02d.ts";
-    public static final String SEG_MP4_FILE_NAME_V2 = "P%02d.mp4";
     public static final String SEG_FILE_PREFIX = "P%02d";
     /**
      * 临时处理文件的路径
