@@ -36,6 +36,25 @@ public class FileStoreUtil {
         return JSON.parseObject(contentStr, typeReference);
     }
 
+    public static void saveStringToFile(File targetFile, String content) {
+        createFileIfNotExisted(targetFile);
+
+        try {
+            IOUtils.write(content, Files.newOutputStream(targetFile.toPath()), "utf-8");
+        } catch (IOException e) {
+            log.error("write to file fail, savePath: {}", targetFile.getAbsolutePath(), e);
+        }
+    }
+
+    public static String loadStringFromFile(File targetFile) {
+        try (InputStream inputStream = Files.newInputStream(targetFile.toPath())) {
+            return IOUtils.toString(inputStream, "utf-8");
+        } catch (IOException e) {
+            log.error("open file fail, savePath: {}", targetFile.getAbsolutePath(), e);
+        }
+        return null;
+    }
+
     private static void createFileIfNotExisted(File targetFile) {
         if (targetFile.exists()) {
             return;
