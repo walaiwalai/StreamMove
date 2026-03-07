@@ -37,7 +37,7 @@ public class FileCleanWorker extends ProcessWorker {
                     DirectoryFileFilter.INSTANCE);
             for (File statusFile : statusFiles) {
                 String curRecordPath = statusFile.getParent();
-                String streamerName = statusFile.getParentFile().getParent();
+                String streamerName = statusFile.getParentFile().getParentFile().getName();
                 try {
                     if (!isAllPost(streamerName, curRecordPath)) {
                         // 没有上传的
@@ -64,15 +64,27 @@ public class FileCleanWorker extends ProcessWorker {
         return res;
     }
 
-    private boolean isAllPost( String streamerName, String curRecordPath ) {
+    private boolean isAllPost(String streamerName, String curRecordPath) {
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
         if (streamerConfig == null) {
-            return true;
+            log.warn("Streamer config not found for name: {}, skip deleting {}", streamerName, curRecordPath);
+            return false;
+        }
+
+        List<String> uploadPlatforms = streamerConfig.getUploadPlatforms();
+        if (uploadPlatforms == null || uploadPlatforms.isEmpty()) {
+            log.info("No upload platforms configured for streamer: {}, skip deleting {}", streamerName, curRecordPath);
+            return false;
         }
 
         FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(curRecordPath);
+        if (fileStatusModel == null) {
+            log.warn("Failed to load fileStatus.json from: {}, skip deleting", curRecordPath);
+            return false;
+        }
+
         boolean allPost = true;
-        for (String platform : streamerConfig.getUploadPlatforms()) {
+        for (String platform : uploadPlatforms) {
             allPost = allPost && fileStatusModel.isFinishPost(platform);
         }
         return allPost;
