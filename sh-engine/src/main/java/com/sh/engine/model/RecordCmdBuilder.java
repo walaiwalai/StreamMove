@@ -62,7 +62,7 @@ public class RecordCmdBuilder {
     }
 
     public RecordCmdBuilder streamlink(String url, String qualityParam) {
-        Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
+        Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{this.recordFormat}, false)
                 .stream()
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
@@ -112,7 +112,7 @@ public class RecordCmdBuilder {
     }
 
     public RecordCmdBuilder streamUrl(String streamUrl) {
-        Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
+        Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{this.recordFormat}, false)
                 .stream()
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
@@ -147,7 +147,7 @@ public class RecordCmdBuilder {
 
     public RecordCmdBuilder vodM3u8(String audioM3u8Url, String videoM3u8Url) {
         // 计算分端视频开始index(默认从1开始)
-        Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
+        Integer segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{this.recordFormat}, false)
                 .stream()
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
@@ -180,7 +180,7 @@ public class RecordCmdBuilder {
 
     public RecordCmdBuilder vodM3u8(String mergeM3u8Url) {
         // 计算分端视频开始index(默认从1开始)
-        int segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{"ts"}, false)
+        int segStartIndex = FileUtils.listFiles(new File(savePath), new String[]{this.recordFormat}, false)
                 .stream()
                 .map(file -> VideoFileUtil.genIndex(file.getName()))
                 .max(Integer::compare)
