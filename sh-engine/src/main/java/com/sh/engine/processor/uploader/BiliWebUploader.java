@@ -124,7 +124,7 @@ public class BiliWebUploader extends Uploader {
         // 根据streamerName的hash随机取BiliOpeningAnimations的片头
         int index = Math.abs(recordPath.hashCode() % biliOpeningAnimations.size());
         String biliOpeningAnimation = biliOpeningAnimations.get(index);
-        List<String> localFps = FileUtils.listFiles(highlightTmpDir, FileFilterUtils.suffixFileFilter("ts"), null)
+        List<String> localFps = FileUtils.listFiles(highlightTmpDir, FileFilterUtils.suffixFileFilter("mp4"), null)
                 .stream()
                 .sorted(Comparator.comparingLong(File::lastModified))
                 .map(File::getAbsolutePath)
