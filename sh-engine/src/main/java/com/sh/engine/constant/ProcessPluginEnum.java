@@ -1,6 +1,9 @@
 package com.sh.engine.constant;
 
+import com.google.common.collect.Lists;
+import com.sh.config.model.config.StreamerConfig;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -60,11 +63,16 @@ public enum ProcessPluginEnum {
         return null;
     }
 
-    public static List<String> getAllPlugins(List<String> plugins) {
+    public static List<String> getAllPlugins(StreamerConfig streamerConfig) {
+        if (BooleanUtils.isTrue(streamerConfig.isOnlyAudio())) {
+            return Lists.newArrayList();
+        }
+
         List<ProcessPluginEnum> allPlugins = Arrays.stream(ProcessPluginEnum.values())
                 .filter(ProcessPluginEnum::isSystem)
                 .collect(Collectors.toList());
 
+        List<String> plugins = streamerConfig.getVideoPlugins();
         if (CollectionUtils.isNotEmpty(plugins)) {
             for (String plugin : plugins) {
                 ProcessPluginEnum pluginEnum = ProcessPluginEnum.of(plugin);

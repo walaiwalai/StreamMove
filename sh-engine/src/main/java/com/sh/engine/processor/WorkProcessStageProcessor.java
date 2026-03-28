@@ -56,7 +56,7 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
 
         // 1. 解析处理对应插件，并处理, 加上系统的对应的插件
-        List<String> videoPlugins = ProcessPluginEnum.getAllPlugins(streamerConfig.getVideoPlugins());
+        List<String> videoPlugins = ProcessPluginEnum.getAllPlugins(streamerConfig);
         List<String> curRecordPaths = StreamerInfoHolder.getCurRecordPaths();
         for (String curRecordPath : curRecordPaths) {
             if (!FileUtil.exist(curRecordPath)) {
