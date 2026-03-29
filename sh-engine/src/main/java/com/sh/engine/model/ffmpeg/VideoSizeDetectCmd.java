@@ -34,7 +34,14 @@ public class VideoSizeDetectCmd extends AbstractCmd {
         super.execute(timeoutSeconds);
 
         // 执行完成后
-        String[] split = StringUtils.trim(output.toString()).split("\n")[0].split(",");
+        String outputStr = StringUtils.trim(output.toString());
+        if (StringUtils.isEmpty(outputStr)) {
+            // 没有视频流（纯音频录制），设置宽高为0
+            width = 0;
+            height = 0;
+            return;
+        }
+        String[] split = outputStr.split("\n")[0].split(",");
         width = Integer.parseInt(split[0]);
         height = Integer.parseInt(split[1]);
     }

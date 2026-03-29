@@ -6,6 +6,7 @@ import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.StreamerInfoHolder;
@@ -124,7 +125,7 @@ public class BiliWebUploader extends Uploader {
         // 根据streamerName的hash随机取BiliOpeningAnimations的片头
         int index = Math.abs(recordPath.hashCode() % biliOpeningAnimations.size());
         String biliOpeningAnimation = biliOpeningAnimations.get(index);
-        List<String> localFps = FileUtils.listFiles(highlightTmpDir, FileFilterUtils.suffixFileFilter("mp4"), null)
+        List<String> localFps = VideoFileUtil.listRecordedFiles(highlightTmpDir.getAbsolutePath())
                 .stream()
                 .sorted(Comparator.comparingLong(File::lastModified))
                 .map(File::getAbsolutePath)
@@ -148,8 +149,8 @@ public class BiliWebUploader extends Uploader {
     private List<File> fetchUploadVideos(String recordPath) {
         long videoPartLimitSize = ConfigFetcher.getInitConfig().getVideoPartLimitSize() * 1024L * 1024L;
 
-        // 遍历本地的视频文件
-        List<File> allVideos = FileUtils.listFiles(new File(recordPath), FileFilterUtils.suffixFileFilter("mp4"), null)
+        // 遍历本地的录制文件（支持所有媒体格式）
+        List<File> allVideos = VideoFileUtil.listRecordedFiles(recordPath)
                 .stream()
                 .sorted(Comparator.comparingLong(f -> {
                     if (f.getName().equals(RecordConstant.HL_VIDEO)) {
@@ -166,7 +167,7 @@ public class BiliWebUploader extends Uploader {
         File exclusiveDir = new File(recordPath, getType());
         Collection<File> exclusiveFiles;
         if (exclusiveDir.exists()) {
-            exclusiveFiles = FileUtils.listFiles(exclusiveDir, FileFilterUtils.suffixFileFilter("mp4"), null);
+            exclusiveFiles = VideoFileUtil.listRecordedFiles(exclusiveDir.getAbsolutePath());
         } else {
             exclusiveFiles = Collections.emptyList();
         }

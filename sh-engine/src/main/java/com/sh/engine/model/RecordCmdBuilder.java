@@ -53,7 +53,12 @@ public class RecordCmdBuilder {
         this.streamChannelType = streamChannelType;
         this.savePath = savePath;
         this.recordByTime = config.getRecordMode().startsWith("t_");
-        this.recordFormat = StringUtils.isBlank(ConfigFetcher.getInitConfig().getRecordFormat()) ? "ts" : ConfigFetcher.getInitConfig().getRecordFormat();
+        // 纯音频录制时使用 m4a 格式
+        if (BooleanUtils.isTrue(config.isOnlyAudio())) {
+            this.recordFormat = "m4a";
+        } else {
+            this.recordFormat = StringUtils.isBlank(ConfigFetcher.getInitConfig().getRecordFormat()) ? "ts" : ConfigFetcher.getInitConfig().getRecordFormat();
+        }
         if (this.recordByTime) {
             this.intervalPerVideo = Integer.parseInt(config.getRecordMode().substring(2));
         } else {
@@ -237,7 +242,7 @@ public class RecordCmdBuilder {
 
     private List<String> buildFfmpegByTime(List<String> sourceUrls, String recordPath, int segStartIndex) {
         File segFile = new File(recordPath, VideoFileUtil.SEG_FILE_PREFIX + "." + this.recordFormat);
-        boolean isMp4 = "mp4".equals(recordFormat);
+        boolean isMp4 = "mp4".equals(this.recordFormat) || "m4a".equals(this.recordFormat);
 
         // 构建参数
         List<String> params = Lists.newArrayList(
@@ -313,12 +318,10 @@ public class RecordCmdBuilder {
     }
 
     private String buildSegmentFormat() {
-        if (Objects.equals(this.recordFormat, "mp4")) {
+        // mp4 和 m4a 都用 mp4 作为 segment 格式
+        if ("mp4".equals(this.recordFormat) || "m4a".equals(this.recordFormat)) {
             return "mp4";
-        } else if (Objects.equals(this.recordFormat, "ts")) {
-            return "mpegts";
-        } else {
-            return "mpegts";
         }
+        return "mpegts";
     }
 }

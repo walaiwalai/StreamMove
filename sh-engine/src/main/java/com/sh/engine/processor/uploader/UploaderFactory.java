@@ -3,6 +3,7 @@ package com.sh.engine.processor.uploader;
 import com.google.common.collect.Maps;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.DateUtil;
+import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.processor.uploader.meta.BiliWorkMetaData;
@@ -113,7 +114,9 @@ public class UploaderFactory {
      * @return 视频标题
      */
     private static String genTitle(StreamerConfig streamerConfig, String recordPath) {
-        File danmuFile = new File(recordPath, RecordConstant.DAMAKU_FILE_PREFIX + "P01.mp4");
+        // 检查弹幕文件（支持所有媒体格式）
+        List<File> recordedFiles = VideoFileUtil.listRecordedFiles(recordPath);
+        File danmuFile = recordedFiles.isEmpty() ? new File(recordPath, RecordConstant.DAMAKU_FILE_PREFIX + "P01.mp4") : recordedFiles.get(0);
 
         String timeV = new File(recordPath).getName();
         Map<String, String> paramsMap = Maps.newHashMap();

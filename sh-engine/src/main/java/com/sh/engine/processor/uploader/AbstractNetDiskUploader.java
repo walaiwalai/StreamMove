@@ -2,18 +2,18 @@ package com.sh.engine.processor.uploader;
 
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
+import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.video.RemoteSeverVideo;
 import com.sh.engine.service.NetDiskCopyService;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.io.FileUtils;
 
 import javax.annotation.Resource;
 import java.io.File;
-import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -40,7 +40,8 @@ public abstract class AbstractNetDiskUploader extends Uploader {
     @Override
     public boolean upload(String recordPath) throws Exception {
         UploadPlatformEnum uploadPlatformEnum = UploadPlatformEnum.of(getType());
-        Collection<File> files = FileUtils.listFiles(new File(recordPath), new String[]{"mp4"}, false).stream()
+        List<File> files = VideoFileUtil.listRecordedFiles(recordPath)
+                .stream()
                 .sorted(Comparator.comparingLong(File::lastModified))
                 .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(files)) {

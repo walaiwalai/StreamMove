@@ -8,7 +8,6 @@ import com.sh.engine.model.ffmpeg.VideoDurationDetectCmd;
 import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.io.FileUtils;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -26,10 +25,9 @@ public class VideoMetaDetectPlugin implements VideoProcessPlugin {
 
     @Override
     public boolean process(String recordPath) {
-        // 查找对应的mp4视频文件
-        List<File> videoFiles = new ArrayList<>(FileUtils.listFiles(new File(recordPath), new String[]{"mp4"}, false))
+        // 查找对应的录制文件（支持所有媒体格式）
+        List<File> videoFiles = VideoFileUtil.listRecordedFiles(recordPath)
                 .stream()
-                .filter(file -> file.getName().startsWith("P"))
                 .sorted(Comparator.comparingInt(VideoFileUtil::getVideoIndex))
                 .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(videoFiles)) {
@@ -76,8 +74,13 @@ public class VideoMetaDetectPlugin implements VideoProcessPlugin {
 
                 // 记录视频元信息
                 metaMap.put(name, info);
-                log.info("Detected video meta info for {}: duration={}s, resolution={}x{}",
-                        name, videoDuration, videoSizeDetectCmd.getWidth(), videoSizeDetectCmd.getHeight());
+                if (videoSizeDetectCmd.getWidth() == 0 && videoSizeDetectCmd.getHeight() == 0) {
+                    log.info("Detected audio-only meta info for {}: duration={}s, no video stream",
+                            name, videoDuration);
+                } else {
+                    log.info("Detected video meta info for {}: duration={}s, resolution={}x{}",
+                            name, videoDuration, videoSizeDetectCmd.getWidth(), videoSizeDetectCmd.getHeight());
+                }
             }
             cumulativeTime += videoDuration;
         }

@@ -13,6 +13,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author caiWen
@@ -21,6 +24,12 @@ import java.security.MessageDigest;
 @Slf4j
 public class VideoFileUtil {
     public static final String SEG_FILE_PREFIX = "P%02d";
+
+    /**
+     * 支持的媒体格式
+     */
+    private static final String[] SUPPORTED_MEDIA_FORMATS = {"mp4", "m4a", "ts", "mkv", "avi", "mov", "flv", "webm"};
+
     /**
      * 临时处理文件的路径
      */
@@ -148,4 +157,18 @@ public class VideoFileUtil {
         }
         return localFile;
     }
+
+    /**
+     * 查找目录下所有录制的分段文件（P开头的媒体文件）
+     *
+     * @param directory 目录路径
+     * @return 录制文件列表
+     */
+    public static List<File> listRecordedFiles(String directory) {
+        return FileUtils.listFiles(new File(directory), SUPPORTED_MEDIA_FORMATS, false)
+                .stream()
+                .filter(file -> file.getName().startsWith("P"))
+                .collect(Collectors.toList());
+    }
+
 }
