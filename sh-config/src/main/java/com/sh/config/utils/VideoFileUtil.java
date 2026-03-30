@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -165,10 +166,7 @@ public class VideoFileUtil {
      * @return 录制文件列表
      */
     public static List<File> listRecordedFiles(String directory) {
-        return FileUtils.listFiles(new File(directory), SUPPORTED_MEDIA_FORMATS, false)
-                .stream()
-                .filter(file -> file.getName().startsWith("P"))
-                .collect(Collectors.toList());
+        return new ArrayList<>(FileUtils.listFiles(new File(directory), SUPPORTED_MEDIA_FORMATS, false));
     }
 
 }
