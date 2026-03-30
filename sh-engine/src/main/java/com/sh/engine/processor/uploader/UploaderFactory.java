@@ -115,13 +115,13 @@ public class UploaderFactory {
      */
     private static String genTitle(StreamerConfig streamerConfig, String recordPath) {
         // 检查弹幕文件（支持所有媒体格式）
-        List<File> recordedFiles = VideoFileUtil.listRecordedFiles(recordPath);
-        File danmuFile = recordedFiles.isEmpty() ? new File(recordPath, RecordConstant.DAMAKU_FILE_PREFIX + "P01.mp4") : recordedFiles.get(0);
+        List<File> videos = VideoFileUtil.listRecordedFiles(recordPath);
+        boolean hasDanmuMerged = videos.stream().anyMatch(video -> video.getName().contains(RecordConstant.DAMAKU_FILE_PREFIX));
 
         String timeV = new File(recordPath).getName();
         Map<String, String> paramsMap = Maps.newHashMap();
         paramsMap.put("time", DateUtil.describeTime(timeV, DateUtil.YYYY_MM_DD_HH_MM_SS_V2));
-        paramsMap.put("name", danmuFile.exists() ? streamerConfig.getName() + "-带弹幕" : streamerConfig.getName());
+        paramsMap.put("name", hasDanmuMerged ? streamerConfig.getName() + "-带弹幕" : streamerConfig.getName());
 
         if (StringUtils.isNotBlank(streamerConfig.getTemplateTitle())) {
             StringSubstitutor sub = new StringSubstitutor(paramsMap);
