@@ -59,6 +59,8 @@ public class RoomCheckStageProcessor extends AbstractStageProcessor {
             return;
         }
 
+        context.setChannelEnum(channelEnum);
+
         // 直播录像机
         context.setStreamRecorder(streamerService.getStreamRecorder(streamInfo));
     }

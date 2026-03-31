@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -238,12 +239,15 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
     }
 
     /**
-     * 创建新的弹幕文件
+     * 创建新的弹幕文件（追加模式）
      */
     private void createNewDanmuWriter() {
-        // 创建新的弹幕写入器
+        // 创建新的弹幕写入器（使用追加模式，避免覆盖已有弹幕）
         try {
-            OutputStreamWriter osw = new OutputStreamWriter(Files.newOutputStream(saveFile.toPath()), StandardCharsets.UTF_8);
+            OutputStreamWriter osw = new OutputStreamWriter(
+                    Files.newOutputStream(saveFile.toPath(), StandardOpenOption.CREATE, StandardOpenOption.APPEND),
+                    StandardCharsets.UTF_8
+            );
             this.currentDanmuWriter = new BufferedWriter(osw);
         } catch (Exception e) {
             log.error("init danmu writer failed", e);

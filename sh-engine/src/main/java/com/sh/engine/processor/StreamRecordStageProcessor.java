@@ -7,6 +7,7 @@ import com.sh.config.model.storage.FileStatusModel;
 import com.sh.config.repo.StreamerRepoService;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
+import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.event.StreamRecordEndEvent;
 import com.sh.engine.event.StreamRecordStartEvent;
 import com.sh.engine.manager.CacheBizManager;
@@ -73,14 +74,19 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         // 1. 前期准备
         recordPreProcess(streamerConfig, savePath);
 
+        // streamrecorder.io 是下载VOD，不需要启动弹幕录制
+        boolean recordLocal = context.getChannelEnum() != StreamChannelTypeEnum.STREAM_RECORDER_IO;
+
         // 2. 录制
         statusManager.addRoomPathStatus(savePath, name);
         try {
             // 初始化
             context.getStreamRecorder().init(savePath);
             // 发布录制开始事件，让监听器处理弹幕录制
-            StreamRecordStartEvent event = new StreamRecordStartEvent(this, name, context.getStreamRecorder().getRegDate());
-            eventPublisher.publishEvent(event);
+            if (recordLocal) {
+                StreamRecordStartEvent event = new StreamRecordStartEvent(this, name, context.getStreamRecorder().getRegDate());
+                eventPublisher.publishEvent(event);
+            }
 
             // 录像(长时间)
             context.getStreamRecorder().start(savePath);
@@ -89,8 +95,10 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
             throw e;
         } finally {
             // 发布录制结束事件，让监听器处理弹幕录制停止
-            StreamRecordEndEvent finishEvent = new StreamRecordEndEvent(this, name);
-            eventPublisher.publishEvent(finishEvent);
+            if (recordLocal) {
+                StreamRecordEndEvent finishEvent = new StreamRecordEndEvent(this, name);
+                eventPublisher.publishEvent(finishEvent);
+            }
 
             statusManager.deleteRoomPathStatus(name);
         }

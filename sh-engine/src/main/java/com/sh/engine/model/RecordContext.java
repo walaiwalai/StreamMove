@@ -1,6 +1,7 @@
 package com.sh.engine.model;
 
 import com.sh.engine.constant.RecordTaskStateEnum;
+import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import lombok.AllArgsConstructor;
@@ -17,6 +18,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class RecordContext {
+    /**
+     * 渠道
+     */
+    private StreamChannelTypeEnum channelEnum;
+
     /**
      * 当前状态
      */
