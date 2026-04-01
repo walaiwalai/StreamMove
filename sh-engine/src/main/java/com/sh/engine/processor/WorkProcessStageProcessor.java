@@ -96,8 +96,10 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
                     try {
                         plugins.get(pluginName).process(curRecordPath);
 
-                        fileStatusModel.finishPlugin(pluginName);
-                        fileStatusModel.writeSelfToFile(curRecordPath);
+                        FileStatusModel cur = FileStatusModel.loadFromFile(curRecordPath);
+                        cur.finishPlugin(pluginName);
+                        cur.writeSelfToFile(curRecordPath);
+
                         log.info("{}'s {} plugin process success, path: {}. ", streamerName, pluginName, curRecordPath);
                     } catch (Exception e) {
                         log.error("{}'s {} plugin process failed, path: {}.", streamerName, pluginName, curRecordPath, e);
