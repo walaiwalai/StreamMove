@@ -5,17 +5,21 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.DateUtil;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
+import com.sh.engine.manager.CacheBizManager;
 import com.sh.engine.processor.recorder.stream.StreamLinkStreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import com.sh.engine.processor.recorder.stream.YtdlpStreamRecorder;
 import com.sh.engine.util.RegexUtil;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 采用streamLink支持直播和录像
@@ -26,6 +30,9 @@ import java.util.Date;
 @Component
 @Slf4j
 public class ChzzkRoomChecker extends AbstractRoomChecker {
+    @Resource
+    private CacheBizManager cacheBizManager;
+
     private static final String CHANNEL_REGEX = "/(\\p{XDigit}{32})$";
     private static final String LATEST_VIDEO_URL = "https://api.chzzk.naver.com/service/v1/channels/{channel_name}/videos?sortType=LATEST&pagingType=PAGE&page=0&size=24&publishDateAt=&videoType=";
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Whale/3.23.214.17 Safari/537.36";
@@ -35,7 +42,11 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
         if (BooleanUtils.isTrue(streamerConfig.isRecordWhenOnline())) {
             return fetchOnlineStream(streamerConfig);
         } else {
-            return fetchReplayStream(streamerConfig);
+            if (CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls())) {
+                return fetchCertainVodStream(streamerConfig);
+            } else {
+                return fetchReplayStream(streamerConfig);
+            }
         }
     }
 
@@ -51,6 +62,27 @@ public class ChzzkRoomChecker extends AbstractRoomChecker {
 
         Date date = new Date();
         return isLiving ? new StreamLinkStreamRecorder(date, getType().getType(), roomUrl) : null;
+    }
+
+    private StreamRecorder fetchCertainVodStream(StreamerConfig streamerConfig) {
+        String videoNo = null;
+        for (String vodUrl : streamerConfig.getCertainVodUrls()) {
+            String vid = vodUrl.split("video/")[1];
+            boolean isFinished = cacheBizManager.isCertainVideoFinished(streamerConfig.getName(), vid);
+            if (!isFinished) {
+                videoNo = vid;
+                break;
+            }
+        }
+        if (videoNo == null) {
+            return null;
+        }
+
+        String curVodUrl = "https://chzzk.naver.com/video/" + videoNo;
+        Map<String, String> extra = new HashMap<>();
+        extra.put("finishField", videoNo);
+
+        return new YtdlpStreamRecorder(new Date(), streamerConfig.getRoomUrl(), getType().getType(), curVodUrl, extra);
     }
 
     private StreamRecorder fetchReplayStream(StreamerConfig streamerConfig) {
