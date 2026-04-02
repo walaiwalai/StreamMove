@@ -55,12 +55,13 @@ public abstract class AbstractNetDiskUploader extends Uploader {
             }
 
             remoteSeverVideo = uploadFile(targetFile);
-            if (remoteSeverVideo != null) {
-                msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传" + uploadPlatformEnum.getType() + "云盘成功！");
-                saveUploadedVideo(recordPath, remoteSeverVideo);
-            } else {
+            if (remoteSeverVideo == null) {
                 msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传" + uploadPlatformEnum.getType() + "云盘失败！");
+                return false;
             }
+
+            msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传" + uploadPlatformEnum.getType() + "云盘成功！");
+            saveUploadedVideo(recordPath, remoteSeverVideo);
         }
 
 
