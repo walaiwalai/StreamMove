@@ -41,6 +41,11 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
     private static final String STREAMER_RECORDER_DOMAIN = "streamrecorder.io";
     private static final String COOKIES_FILE_NAME = "streamrecorder-io-cookies.txt";
 
+    /**
+     * 长视频阈值：7小时（秒），超过此时长使用720p下载
+     */
+    private static final int LONG_VIDEO_THRESHOLD_SECONDS = 7 * 60 * 60;
+
     @Value("${streamerrecord.io.name}")
     private String name;
     @Value("${streamerrecord.io.password}")
@@ -178,7 +183,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         try {
             return OkHttpClientUtil.execute(request);
         } catch (Exception e) {
-            log.warn("Cookie expired, clearing and retrying...");
+            log.error("Cookie expired, clearing and retrying...", e);
             clearAllCookies();
 
             // 重新登录并重试
@@ -215,7 +220,16 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             String id = String.valueOf(dataObj.getLong("id"));
             if (StringUtils.equals(id, videoId)) {
                 recordedAt = parseGMT8Date(dataObj.getString("recorded_at"));
-                downloadLink = dataObj.getJSONArray("sources").getJSONObject(0).getString("downloadlink");
+                int duration = dataObj.getIntValue("duration");
+                if (duration > LONG_VIDEO_THRESHOLD_SECONDS) {
+                    downloadLink = getSourceLink(dataObj, 720);
+                    log.info("Certain vod long video detected ({}s > {}s), using 720p: {}", duration, LONG_VIDEO_THRESHOLD_SECONDS, videoId);
+                } else {
+                    downloadLink = getSourceLink(dataObj, 1080);
+                    if (downloadLink == null) {
+                        downloadLink = dataObj.getJSONArray("sources").getJSONObject(0).getString("downloadlink");
+                    }
+                }
                 break;
             }
         }
@@ -263,15 +277,27 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         }
     }
 
+
+
     /**
      * 解析下载链接，实现 1080p 等待策略
-     * 优先级：1080p > 等待30分钟 > 720p
+     * 优先级：长视频直接720p > 1080p > 等待30分钟 > 720p
      */
     private String resolveDownloadLink(StreamerConfig streamerConfig, JSONObject latestRecord, Date recordedAt) {
         long detectFinishedTime = System.currentTimeMillis();
 
+        int duration = latestRecord.getIntValue("duration");
+        boolean isLongVideo = duration > LONG_VIDEO_THRESHOLD_SECONDS;
+
         String link1080 = getSourceLink(latestRecord, 1080);
         String link720 = getSourceLink(latestRecord, 720);
+
+        // 长视频直接使用720p，跳过1080p等待
+        if (isLongVideo) {
+            cacheBizManager.clearWaitingFor1080(streamerConfig.getName(), String.valueOf(recordedAt.getTime()));
+            log.info("Long video detected ({}s > {}s), using 720p: {}", duration, LONG_VIDEO_THRESHOLD_SECONDS, streamerConfig.getName());
+            return link720;
+        }
         String videoId = String.valueOf(recordedAt.getTime());
         String streamerName = streamerConfig.getName();
 
