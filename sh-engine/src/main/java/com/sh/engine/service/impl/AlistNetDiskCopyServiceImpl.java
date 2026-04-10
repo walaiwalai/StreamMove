@@ -120,7 +120,7 @@ public class AlistNetDiskCopyServiceImpl implements NetDiskCopyService {
         Integer state = dataObj.getInteger("state");
         if (state == 1) {
             // 正在上传
-            log.info("progress for {} is {}/100", taskId, dataObj.getFloat("progress"));
+            log.info("progress for {} is {}/100, data: {}", taskId, dataObj.getFloat("progress"), dataObj.toJSONString());
         } else if (state == 2) {
             // 上传完成
             log.info("copy task finished, taskId: {}", taskId);

@@ -76,7 +76,7 @@ public abstract class AbstractNetDiskUploader extends Uploader {
         int i = 0;
         int reTryCnt = 0;
         boolean isFinish = false;
-        while (i++ < 10000 && reTryCnt < 3) {
+        while (i++ < 10000 && reTryCnt < 2) {
             Integer status = netDiskCopyService.getCopyTaskStatus(taskId);
             if (status == 2) {
                 // 上传任务成功
