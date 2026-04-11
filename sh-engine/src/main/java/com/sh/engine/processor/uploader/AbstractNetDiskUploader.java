@@ -70,7 +70,7 @@ public abstract class AbstractNetDiskUploader extends Uploader {
 
     private RemoteSeverVideo uploadFile(File targetFile) {
         netDiskCopyService.copyFileToNetDisk(UploadPlatformEnum.of(getType()), targetFile);
-        return new RemoteSeverVideo(null, targetFile.getAbsolutePath());
+        return new RemoteSeverVideo(targetFile.getAbsolutePath(), targetFile.getAbsolutePath());
     }
 
     /**
