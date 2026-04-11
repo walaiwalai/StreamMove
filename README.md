@@ -17,7 +17,7 @@
 
 **支持视频上传平台**：
 
-- 各大网盘，采用alist进行本地存储 -> 目标网盘（百度云盘、阿里云盘、夸克网盘等）
+- 各大网盘，采用alist + rclone将本地存储 -> 目标网盘（百度云盘、阿里云盘、夸克网盘等）
 - Bilibili
 - 抖音
 
@@ -188,12 +188,14 @@ mvn package
 
 # 创建镜像（比较耗时）
 docker build -t stream-base:latest -f Dockerfile-base .
-docker build -t stream-ocr:latest -f Dockerfile-ocr .
 docker build -t stream-move:latest -f Dockerfile .
 
 # 启动docker
 docker-compose up -d
 ```
+
+# 登录alist，配置rclone账号
+
 
 ## 参考项目：
 

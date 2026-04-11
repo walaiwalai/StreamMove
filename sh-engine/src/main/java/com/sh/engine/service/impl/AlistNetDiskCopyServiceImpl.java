@@ -11,6 +11,7 @@ import com.sh.config.manager.LocalCacheManager;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.StreamerInfoHolder;
+import com.sh.engine.model.ffmpeg.RcloneCopyCmd;
 import com.sh.engine.service.NetDiskCopyService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
@@ -43,6 +44,10 @@ public class AlistNetDiskCopyServiceImpl implements NetDiskCopyService {
     private String username;
     @Value("${alist.server.password}")
     private String password;
+    @Value("${sh.video-save.path}")
+    private String videoSavePath;
+
+
     @Resource
     private LocalCacheManager localCacheManager;
 
@@ -73,76 +78,14 @@ public class AlistNetDiskCopyServiceImpl implements NetDiskCopyService {
      * @return 任务id
      */
     @Override
-    public String copyFileToNetDisk(UploadPlatformEnum platform, File targetFile) {
+    public void copyFileToNetDisk(UploadPlatformEnum platform, File targetFile) {
         String recordPath = targetFile.getParentFile().getAbsolutePath();
-        String streamerName = StreamerInfoHolder.getCurStreamerName();
-        String timeV = targetFile.getParentFile().getName();
 
-        // 创建目标文件夹
-        String dstDir = createFolder(platform, recordPath);
+        String fromFilePath = targetFile.getAbsolutePath();
+        String toFilePath = createFolder(platform, recordPath);
 
-        // 本地拷贝到目标网盘
-        Map<String, Object> params = ImmutableMap.of(
-                "src_dir", ALIST_LOCAL_STORAGE_PATH + "/" + streamerName + "/" + timeV,
-                "dst_dir", dstDir,
-                "names", Lists.newArrayList(targetFile.getName())
-        );
-        Request request = new Request.Builder()
-                .url(getDomainUrl() + "/api/fs/copy")
-                .post(RequestBody.create(MediaType.parse("application/json"), JSON.toJSONString(params)))
-                .addHeader("Authorization", getToken())
-                .addHeader("Content-Type", "application/json")
-                .build();
-
-        String resp = OkHttpClientUtil.execute(request);
-        log.info("copy to target netDisk resp: {}", resp);
-
-        JSONObject respObj = JSON.parseObject(resp);
-        return respObj.getJSONObject("data").getJSONArray("tasks").getJSONObject(0).getString("id");
-    }
-
-    @Override
-    public Integer getCopyTaskStatus(String taskId) {
-        Request request = new Request.Builder()
-                .url(getDomainUrl() + "/api/task/copy/info?tid=" + taskId)
-                .post(RequestBody.create(MediaType.parse("application/json"), "{}"))
-                .addHeader("Authorization", getToken())
-                .addHeader("Content-Type", "application/json")
-                .build();
-
-        String resp = OkHttpClientUtil.execute(request);
-        JSONObject respObj = JSON.parseObject(resp);
-        JSONObject dataObj = respObj.getJSONObject("data");
-        if (dataObj == null) {
-            log.info("taskId: {} not found", taskId);
-            return null;
-        }
-        Integer state = dataObj.getInteger("state");
-        if (state == 1) {
-            // 正在上传
-            log.info("progress for {} is {}/100, data: {}", taskId, dataObj.getFloat("progress"), dataObj.toJSONString());
-        } else if (state == 2) {
-            // 上传完成
-            log.info("copy task finished, taskId: {}", taskId);
-        } else if (state == 7) {
-            // 上传失败
-            log.info("copy task failed, taskId: {}, errorMsg: {}", taskId, dataObj.getString("error"));
-        }
-        return state;
-    }
-
-    @Override
-    public boolean retryCopyTask(String taskId) {
-        Request request = new Request.Builder()
-                .url(getDomainUrl() + "/api/task/copy/retry?tid=" + taskId)
-                .post(RequestBody.create(MediaType.parse("application/json"), "{}"))
-                .addHeader("Authorization", getToken())
-                .addHeader("Content-Type", "application/json")
-                .build();
-
-        String resp = OkHttpClientUtil.execute(request);
-        JSONObject respObj = JSON.parseObject(resp);
-        return respObj.getInteger("code") == 200;
+        RcloneCopyCmd rcloneCopyCmd = new RcloneCopyCmd(fromFilePath, toFilePath);
+        rcloneCopyCmd.execute(7200);
     }
 
     private String createFolder(UploadPlatformEnum platform, String recordPath) {

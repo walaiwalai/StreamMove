@@ -69,35 +69,8 @@ public abstract class AbstractNetDiskUploader extends Uploader {
     }
 
     private RemoteSeverVideo uploadFile(File targetFile) {
-        // 1. 发起网盘copy请求
-        String taskId = netDiskCopyService.copyFileToNetDisk(UploadPlatformEnum.of(getType()), targetFile);
-
-        // 2. 死循环调用查询copy状态
-        int i = 0;
-        int reTryCnt = 0;
-        boolean isFinish = false;
-        while (i++ < 10000 && reTryCnt < 2) {
-            Integer status = netDiskCopyService.getCopyTaskStatus(taskId);
-            if (status == 2) {
-                // 上传任务成功
-                isFinish = true;
-                break;
-            }
-            if (status == 7) {
-                // 失败重新发起任务
-                taskId = netDiskCopyService.copyFileToNetDisk(UploadPlatformEnum.of(getType()), targetFile);
-                reTryCnt++;
-            }
-
-            try {
-                // 10秒check一次
-                Thread.sleep(1000 * 10);
-            } catch (InterruptedException e) {
-                log.error("check task finish error", e);
-            }
-        }
-
-        return isFinish ? new RemoteSeverVideo(taskId, targetFile.getAbsolutePath()) : null;
+        netDiskCopyService.copyFileToNetDisk(UploadPlatformEnum.of(getType()), targetFile);
+        return new RemoteSeverVideo(null, targetFile.getAbsolutePath());
     }
 
     /**

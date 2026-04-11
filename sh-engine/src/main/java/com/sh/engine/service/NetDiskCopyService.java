@@ -24,21 +24,5 @@ public interface NetDiskCopyService {
      * @param targetFile
      * @return 任务id
      */
-    String copyFileToNetDisk(UploadPlatformEnum platform, File targetFile);
-
-    /**
-     * 检查拷贝任务是否完成
-     *
-     * @param taskId
-     * @return
-     */
-    Integer getCopyTaskStatus(String taskId);
-
-    /**
-     * 重试拷贝任务
-     *
-     * @param taskId
-     * @return
-     */
-    boolean retryCopyTask(String taskId);
+    void copyFileToNetDisk(UploadPlatformEnum platform, File targetFile);
 }
