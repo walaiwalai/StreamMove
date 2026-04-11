@@ -33,7 +33,7 @@ public class RcloneCopyCmd extends AbstractCmd {
                 "--low-level-retries", "10",
                 "--stats", "10s",
                 "--stats-one-line",
-                "--log-level", "NOTICE"
+                "-v"
         };
         return StringUtils.join(cmd, " ");
     }
