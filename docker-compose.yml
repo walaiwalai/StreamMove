@@ -17,15 +17,6 @@ services:
     networks:
       - stream-docker
 
-#  stream-ocr:
-#    image: stream-ocr:latest
-#    container_name: stream-ocr
-#    ports:
-#      - "5000:5000"
-#    environment:
-#      - HEADER_TOKEN=your_token_value  # 请替换为实际的token值
-#    restart: unless-stopped
-
   stream-move:
     image: stream-move:latest
     container_name: stream-move
@@ -38,6 +29,7 @@ services:
       - /home/admin/stream/dump:/home/admin/stream/dump
       - /home/admin/stream/account:/home/admin/stream/account
       - /home/admin/stream/thumbnail:/home/admin/stream/thumbnail
+      - /home/admin/stream/config/rclone.conf:/root/.config/rclone/rclone.conf:ro
     ports:
       - "8080:8080"
     restart: unless-stopped
