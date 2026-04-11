@@ -42,9 +42,9 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
     private static final String COOKIES_FILE_NAME = "streamrecorder-io-cookies.txt";
 
     /**
-     * 长视频阈值：7小时（秒），超过此时长使用720p下载
+     * 长视频阈值：14小时（秒），超过此时长使用720p下载
      */
-    private static final int LONG_VIDEO_THRESHOLD_SECONDS = 7 * 60 * 60;
+    private static final int LONG_VIDEO_THRESHOLD_SECONDS = 20 * 60 * 60;
 
     @Value("${streamerrecord.io.name}")
     private String name;
