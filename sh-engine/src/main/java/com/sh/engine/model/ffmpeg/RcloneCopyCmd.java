@@ -36,13 +36,19 @@ public class RcloneCopyCmd extends AbstractCmd {
                 "--transfers", "1",
                 "--buffer-size", "256M",
                 "--use-mmap",
-                "--drive-chunk-size", "64M",
+
+                // --- 核心传输逻辑 ---
+                "--drive-chunk-size", "32M",
                 "--multi-thread-streams", "0",
+
+                // --- 超时与重试控制 ---
                 "--timeout", "15m",
-                "--contimeout", "1m",
-                "--ignore-existing",
-                "--retries", "5",
+                "--contimeout", "2m",
+                "--retries", "10",
                 "--low-level-retries", "20",
+
+                // --- 策略优化 ---
+                "--ignore-existing",
                 "--stats", "10s",
                 "--stats-one-line",
                 "-v"
