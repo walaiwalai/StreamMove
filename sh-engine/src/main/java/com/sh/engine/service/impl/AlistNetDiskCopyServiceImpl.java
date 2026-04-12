@@ -113,6 +113,7 @@ public class AlistNetDiskCopyServiceImpl implements NetDiskCopyService {
 
         String resp = OkHttpClientUtil.execute(request);
         if (!Objects.equals(JSON.parseObject(resp).getString("message"), "success")) {
+            log.error("creat foler error, msg: {}", resp);
             throw new StreamerRecordException(ErrorEnum.INVALID_PARAM);
         }
         return tDirPath;
