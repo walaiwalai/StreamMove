@@ -29,16 +29,17 @@ public class RcloneCopyCmd extends AbstractCmd {
     }
 
     private static String buildCommand(String fromFilePath, String toRemotePath) {
+        String remoteTarget = toRemotePath.endsWith("/") ? toRemotePath : toRemotePath + "/";
+
         String[] cmd = new String[]{
                 "rclone", "copy",
                 "\"" + fromFilePath + "\"",
-                "alist_server:\"" + toRemotePath + "\"",
+                "alist_server:\"" + remoteTarget + "\"",
                 "--transfers", "1",
-                "--buffer-size", "256M",
+                "--buffer-size", "64M",
                 "--use-mmap",
 
-                // --- 核心传输逻辑 ---
-                "--drive-chunk-size", "32M",
+                "--dav-chunk-size", "32M",
                 "--multi-thread-streams", "0",
 
                 // --- 超时与重试控制 ---
@@ -46,9 +47,7 @@ public class RcloneCopyCmd extends AbstractCmd {
                 "--contimeout", "2m",
                 "--retries", "10",
                 "--low-level-retries", "20",
-
-                // --- 策略优化 ---
-                "--ignore-existing",
+                "--update",
                 "--stats", "10s",
                 "--stats-one-line",
                 "-v"
