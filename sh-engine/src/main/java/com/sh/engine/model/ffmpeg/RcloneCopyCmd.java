@@ -39,7 +39,7 @@ public class RcloneCopyCmd extends AbstractCmd {
                 "--buffer-size", "64M",
                 "--use-mmap",
 
-                "--dav-chunk-size", "32M",
+                "--webdav-chunk-size", "32M",
                 "--multi-thread-streams", "0",
 
                 // --- 超时与重试控制 ---
