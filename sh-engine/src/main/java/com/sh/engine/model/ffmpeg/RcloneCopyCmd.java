@@ -36,19 +36,19 @@ public class RcloneCopyCmd extends AbstractCmd {
                 "\"" + fromFilePath + "\"",
                 "alist_server:\"" + remoteTarget + "\"",
                 "--transfers", "1",
-                "--buffer-size", "32M",
-                "--use-mmap",
-
-                // --- 核心传输逻辑 (移除所有报错的特定参数) ---
+                "--buffer-size", "8M",
                 "--multi-thread-streams", "0",
 
-                // --- 你的重试与超时控制
-                "--timeout", "15m",
-                "--contimeout", "2m",
+                // --- 稳定性增强 ---
+                "--ignore-checksum",            // 避免因校验和延迟返回导致的重传
+
+                // --- 严格的重试与超时 ---
+                "--timeout", "120m",             // 这里的 60m 确保了大文件传输的耐心
+                "--contimeout", "10m",
                 "--retries", "10",
                 "--low-level-retries", "20",
 
-                // --- 覆盖策略优化 ---
+                // --- 策略与监控 ---
                 "--update",
                 "--stats", "10s",
                 "--stats-one-line",
