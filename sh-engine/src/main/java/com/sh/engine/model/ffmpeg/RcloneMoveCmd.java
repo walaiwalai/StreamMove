@@ -32,15 +32,15 @@ public class RcloneMoveCmd extends AbstractCmd {
         String remoteTarget = toRemotePath.endsWith("/") ? toRemotePath : toRemotePath + "/";
 
         String[] cmd = new String[]{
-                "rclone", "move",
-                "\"" + fromFilePath + "\"",
-                "alist_server:\"" + remoteTarget + "\"",
+                "rclone", "copy",
+                fromFilePath,                    // 直接传：/home/admin/test file.mp4
+                "alist_server:" + remoteTarget,  // 直接传：alist_server:/record/
                 "--transfers", "1",
-                "--timeout", "10m",
-                "--create-empty-src-dirs",
-                "--ignore-existing",
-                "--timeout", "30m",
                 "--contimeout", "10m",
+                "--timeout", "60m",              // 核心：给跨境收尾 60 分钟耐心
+                "--ignore-existing",             // 核心：防止因为重试导致分母翻倍
+                "--size-only",                   // 建议：跨境传输只比对大小，省去 MD5 握手
+                "--chunk-size", "64M",           // 核心：手动强制 64M 大分片，减少握手次数
                 "--low-level-retries", "100",
                 "--stats", "10s",
                 "--stats-one-line",
