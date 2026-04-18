@@ -4,8 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
-public class RcloneCopyCmd extends AbstractCmd {
-    public RcloneCopyCmd(String fromFilePath, String toRemotePath) {
+public class RcloneMoveCmd extends AbstractCmd {
+    public RcloneMoveCmd(String fromFilePath, String toRemotePath) {
         // 注意：此处建议给 toRemotePath 加引号，防止路径中有空格或特殊字符
         super(buildCommand(fromFilePath, toRemotePath));
     }
@@ -32,24 +32,22 @@ public class RcloneCopyCmd extends AbstractCmd {
         String remoteTarget = toRemotePath.endsWith("/") ? toRemotePath : toRemotePath + "/";
 
         String[] cmd = new String[]{
-                "rclone", "copy",
+                "rclone", "move",
                 "\"" + fromFilePath + "\"",
                 "alist_server:\"" + remoteTarget + "\"",
                 "--transfers", "1",
-                "--buffer-size", "8M",
-                "--multi-thread-streams", "0",
+//                "--buffer-size", "8M",
+//                "--multi-thread-streams", "0",
+                "--create-empty-src-dirs",
 
-                // --- 稳定性增强 ---
-                "--ignore-checksum",            // 避免因校验和延迟返回导致的重传
-
-                // --- 严格的重试与超时 ---
-                "--timeout", "120m",             // 这里的 60m 确保了大文件传输的耐心
-                "--contimeout", "10m",
-                "--retries", "10",
-                "--low-level-retries", "20",
+//                // --- 严格的重试与超时 ---
+//                "--timeout", "120m",             // 这里的 60m 确保了大文件传输的耐心
+//                "--contimeout", "10m",
+//                "--retries", "10",
+//                "--low-level-retries", "20",
 
                 // --- 策略与监控 ---
-                "--update",
+                "--ignore-existing",
                 "--stats", "10s",
                 "--stats-one-line",
                 "-v"

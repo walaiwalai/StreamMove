@@ -3,15 +3,13 @@ package com.sh.engine.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.LocalCacheManager;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.UploadPlatformEnum;
-import com.sh.engine.model.StreamerInfoHolder;
-import com.sh.engine.model.ffmpeg.RcloneCopyCmd;
+import com.sh.engine.model.ffmpeg.RcloneMoveCmd;
 import com.sh.engine.service.NetDiskCopyService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
@@ -84,8 +82,8 @@ public class AlistNetDiskCopyServiceImpl implements NetDiskCopyService {
         String fromFilePath = targetFile.getAbsolutePath();
         String toFilePath = createFolder(platform, recordPath);
 
-        RcloneCopyCmd rcloneCopyCmd = new RcloneCopyCmd(fromFilePath, toFilePath);
-        rcloneCopyCmd.execute(7200);
+        RcloneMoveCmd rcloneMoveCmd = new RcloneMoveCmd(fromFilePath, toFilePath);
+        rcloneMoveCmd.execute(14400);
     }
 
     private String createFolder(UploadPlatformEnum platform, String recordPath) {
