@@ -36,22 +36,21 @@ public class RcloneMoveCmd extends AbstractCmd {
                 "\"" + fromFilePath + "\"",
                 "alist_server:\"" + remoteTarget + "\"",
                 "--transfers", "1",
-//                "--buffer-size", "8M",
-//                "--multi-thread-streams", "0",
+                "--timeout", "10m",
                 "--create-empty-src-dirs",
-
-//                // --- 严格的重试与超时 ---
-//                "--timeout", "120m",             // 这里的 60m 确保了大文件传输的耐心
-//                "--contimeout", "10m",
-//                "--retries", "10",
-//                "--low-level-retries", "20",
-
-                // --- 策略与监控 ---
                 "--ignore-existing",
+                "--timeout", "30m",
+                "--contimeout", "10m",
+                "--low-level-retries", "100",
                 "--stats", "10s",
                 "--stats-one-line",
                 "-v"
         };
         return StringUtils.join(cmd, " ");
+    }
+
+    public static void main(String[] args) {
+        String s = RcloneMoveCmd.buildCommand("/home/admin/stream/download/af-wannabe33/2026-04-17-21-50-27/P01.mp4", "/夸克云盘/test1.mp4");
+        System.out.println(s);
     }
 }
