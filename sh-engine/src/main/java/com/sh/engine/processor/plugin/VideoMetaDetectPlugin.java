@@ -53,9 +53,17 @@ public class VideoMetaDetectPlugin implements VideoProcessPlugin {
             if (info != null) {
                 videoDuration = info.getDurationSecond();
             } else {
-                // 获取当前视频的时长和尺寸信息
+                // 获取当前视频的时长信息
                 VideoDurationDetectCmd videoDurationDetectCmd = new VideoDurationDetectCmd(videoFile.getAbsolutePath());
-                videoDurationDetectCmd.execute(60 * 5);
+                try {
+                    videoDurationDetectCmd.execute(60 * 5);
+                } catch (Exception e) {
+                    // ffprobe执行失败，多半是视频下载不完整，删除损坏的文件
+                    log.warn("Failed to detect video duration, likely incomplete download. Deleting file: {}", videoFile.getAbsolutePath(), e);
+                    videoFile.delete();
+                    metaMap.remove(name);
+                    continue;
+                }
                 videoDuration = (int) videoDurationDetectCmd.getDurationSeconds();
 
                 VideoSizeDetectCmd videoSizeDetectCmd = new VideoSizeDetectCmd(videoFile.getAbsolutePath());
