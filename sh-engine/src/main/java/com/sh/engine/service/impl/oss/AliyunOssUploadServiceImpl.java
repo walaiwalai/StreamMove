@@ -68,37 +68,19 @@ public class AliyunOssUploadServiceImpl implements OssUploadService {
 
     @Override
     public String uploadAndGetUrl(File file, String key) {
-        if (ossClient == null) {
-            throw new IllegalStateException("OSS client not initialized, check configuration");
-        }
+        // Upload file
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentType(getContentType(file.getName()));
+        ossClient.putObject(bucketName, key, file, metadata);
 
-        try {
-            // Upload file
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentType(getContentType(file.getName()));
-            ossClient.putObject(bucketName, key, file, metadata);
-
-            // Generate signed URL
-            Date expiredDate = DateUtils.addMinutes(new Date(), URL_EXPIRATION_MINUTES);
-            return ossClient.generatePresignedUrl(bucketName, key, expiredDate).toString();
-        } catch (Exception e) {
-            log.error("Failed to upload file to OSS: {}", file.getAbsolutePath(), e);
-            throw new RuntimeException("OSS upload failed", e);
-        }
+        // Generate signed URL
+        Date expiredDate = DateUtils.addMinutes(new Date(), URL_EXPIRATION_MINUTES);
+        return ossClient.generatePresignedUrl(bucketName, key, expiredDate).toString();
     }
 
     @Override
     public void delete(String key) {
-        if (ossClient == null) {
-            log.warn("OSS client not initialized, cannot delete: {}", key);
-            return;
-        }
-
-        try {
-            ossClient.deleteObject(bucketName, key);
-        } catch (Exception e) {
-            log.warn("Failed to delete object from OSS: {}", key, e);
-        }
+        ossClient.deleteObject(bucketName, key);
     }
 
     private String getContentType(String fileName) {

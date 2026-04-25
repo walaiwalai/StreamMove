@@ -23,14 +23,12 @@ public class OssUploadServiceNoopImpl implements OssUploadService {
 
     @Override
     public String uploadAndGetUrl(File file, String key) {
-        log.debug("No-op OSS upload service called for file: {}", file.getAbsolutePath());
-        throw new UnsupportedOperationException(
-                "OSS upload is not configured. Please configure oss.provider to enable OSS upload.");
+        throw new UnsupportedOperationException("OSS upload is not configured. Please configure oss.provider to enable OSS upload.");
     }
 
     @Override
     public void delete(String key) {
-        log.debug("No-op OSS delete service called for key: {}", key);
         // No-op, nothing to delete
+        throw new UnsupportedOperationException("OSS upload is not configured. Please configure oss.provider to enable OSS upload.");
     }
 }

@@ -26,8 +26,6 @@ public class AsrServiceNoopImpl implements AsrService {
 
     @Override
     public List<AsrSegment> transcribeSegment(File videoFile, int startSeconds, int endSeconds) {
-        log.debug("No-op ASR service called for video: {}, segment: {}s to {}s",
-                videoFile.getName(), startSeconds, endSeconds);
-        return Collections.emptyList();
+        throw new UnsupportedOperationException("asr service not available. Please configure asr.provider");
     }
 }

@@ -14,8 +14,8 @@ public interface DanmakuAnalysisService {
      * Analyze danmaku data to find peak intervals
      *
      * @param recordPath the path to the recorded video directory
-     * @param danmakus list of danmaku messages
+     * @param danmakus   list of danmaku messages
      * @return list of time buckets representing peak intervals
      */
-    List<DanmakuTimeBucket> analyzeDanmakuPeak( String recordPath, List<SimpleDanmaku> danmakus);
+    List<DanmakuTimeBucket> analyzeDanmakuPeak(String recordPath, List<SimpleDanmaku> danmakus);
 }

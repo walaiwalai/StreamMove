@@ -2,11 +2,14 @@ package com.sh.engine.manager;
 
 import com.alibaba.fastjson.TypeReference;
 import com.sh.config.manager.CacheManager;
+import com.sh.engine.model.asr.AsrSegment;
+import com.sh.engine.model.danmaku.HighlightAnalysisResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -66,5 +69,40 @@ public class CacheBizManager {
     public void clearWaitingFor1080(String streamerName, String videoId) {
         String key = "wait_1080_" + streamerName;
         cacheManager.deleteHashTag(key, videoId);
+    }
+
+    /**
+     * 获取 AI 高光分析缓存结果
+     * @param streamerName 主播名
+     * @param segmentKey 时间段标识（如 "5600-5670"）
+     */
+    public HighlightAnalysisResult getHighlightAnalysis(String streamerName, String segmentKey) {
+        String key = "hl_analysis_" + streamerName;
+        return cacheManager.getHash(key, segmentKey, new TypeReference<HighlightAnalysisResult>() {});
+    }
+
+    /**
+     * 缓存 AI 高光分析结果（7天过期）
+     */
+    public void saveHighlightAnalysis(String streamerName, String segmentKey, HighlightAnalysisResult result) {
+        String key = "hl_analysis_" + streamerName;
+        cacheManager.setHash(key, segmentKey, result, 7, TimeUnit.DAYS);
+    }
+
+    /**
+     * 获取 ASR 转写缓存结果
+     */
+    public List<AsrSegment> getAsrResult(String streamerName, String segmentKey) {
+        String key = "asr_" + streamerName;
+        return cacheManager.getHash(key, segmentKey, new TypeReference<List<AsrSegment>>() {});
+    }
+
+    /**
+     * 缓存 ASR 转写结果（7天过期）
+     */
+    public void saveAsrResult(String streamerName,
+                              String segmentKey, List<AsrSegment> segments) {
+        String key = "asr_" + streamerName;
+        cacheManager.setHash(key, segmentKey, segments, 7, TimeUnit.DAYS);
     }
 }

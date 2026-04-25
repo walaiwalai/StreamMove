@@ -7,30 +7,24 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.asr.AsrSegment;
 import com.sh.engine.model.ffmpeg.AudioExtractCmd;
 import com.sh.engine.service.AsrService;
 import com.sh.engine.service.OssUploadService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
+import okhttp3.Request;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-
 import javax.annotation.Resource;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Alibaba Cloud DashScope ASR (Fun-ASR) implementation.
@@ -66,24 +60,19 @@ public class AliyunAsrServiceImpl implements AsrService {
 
     @Override
     public List<AsrSegment> transcribeSegment(File videoFile, int startSeconds, int endSeconds) {
-        String ossKey = null;
-
         // 1. Extract audio from video segment
         File tempAudioFile = extractAudio(videoFile, startSeconds, endSeconds);
-        if (tempAudioFile == null || !tempAudioFile.exists()) {
-            log.error("Failed to extract audio from video: {}", videoFile.getAbsolutePath());
+        if (tempAudioFile == null) {
             return Collections.emptyList();
         }
 
         // 2. Upload to OSS to get public URL
         // Note: Alibaba Cloud ASR requires public HTTP URL, does not support local file path
-        ossKey = "asr/" + StreamerInfoHolder.getCurStreamerName() + "/" + tempAudioFile.getName();
+        String ossKey = "asr/" + StreamerInfoHolder.getCurStreamerName() + "/" + tempAudioFile.getName();
         String audioUrl = ossUploadService.uploadAndGetUrl(tempAudioFile, ossKey);
 
         // 3. Submit ASR task
-        List<AsrSegment> segments = submitAsrTask(audioUrl, startSeconds);
-
-        return segments;
+        return submitAsrTask(audioUrl, startSeconds);
     }
 
     /**
@@ -99,10 +88,10 @@ public class AliyunAsrServiceImpl implements AsrService {
         cmd.execute(300);
 
         if (cmd.isSuccess()) {
-            log.info("Audio extracted successfully: {} ({} bytes)", audioFile.getAbsolutePath(), audioFile.length());
+            log.error("Audio extraction successfully, video: {}, segment: {}-{}s", videoFile.getName(), startSeconds, endSeconds);
             return audioFile;
         } else {
-            log.error("Audio extraction failed for video: {}, segment: {}-{}s", videoFile.getName(), startSeconds, endSeconds);
+            log.error("Audio extraction failed, video: {}, segment: {}-{}s", videoFile.getName(), startSeconds, endSeconds);
             return null;
         }
     }
@@ -121,23 +110,17 @@ public class AliyunAsrServiceImpl implements AsrService {
 
         Transcription transcription = new Transcription();
 
-        try {
-            // Submit async task
-            TranscriptionResult result = transcription.asyncCall(param);
-            String taskId = result.getTaskId();
-            log.info("ASR task submitted, taskId: {}", taskId);
+        // Submit async task
+        TranscriptionResult result = transcription.asyncCall(param);
+        String taskId = result.getTaskId();
+        log.info("ASR task submitted, taskId: {}", taskId);
 
-            // Wait for task completion (blocking)
-            TranscriptionQueryParam queryParam = TranscriptionQueryParam.FromTranscriptionParam(param, taskId);
-            result = transcription.wait(queryParam);
+        // Wait for task completion (blocking)
+        TranscriptionQueryParam queryParam = TranscriptionQueryParam.FromTranscriptionParam(param, taskId);
+        result = transcription.wait(queryParam);
 
-            // Parse results
-            return parseAsrResult(result, segmentOffsetSeconds);
-
-        } catch (Exception e) {
-            log.error("ASR task failed", e);
-            throw new RuntimeException("ASR task failed", e);
-        }
+        // Parse results
+        return parseAsrResult(result, segmentOffsetSeconds);
     }
 
     /**
@@ -145,8 +128,7 @@ public class AliyunAsrServiceImpl implements AsrService {
      */
     private List<AsrSegment> parseAsrResult(TranscriptionResult result, int segmentOffsetSeconds) {
         List<AsrSegment> segments = new ArrayList<>();
-
-        if (result.getResults() == null || result.getResults().isEmpty()) {
+        if (CollectionUtils.isEmpty(result.getResults())) {
             log.warn("ASR result is empty");
             return segments;
         }
@@ -169,7 +151,6 @@ public class AliyunAsrServiceImpl implements AsrService {
             segments.addAll(taskSegments);
         }
 
-        log.info("ASR parsed {} segments", segments.size());
         return segments;
     }
 
@@ -178,51 +159,34 @@ public class AliyunAsrServiceImpl implements AsrService {
      */
     private List<AsrSegment> downloadAndParseTranscription(String url, int segmentOffsetSeconds) {
         List<AsrSegment> segments = new ArrayList<>();
+        Request request = new Request.Builder().url(url).get().build();
+        String json = OkHttpClientUtil.execute(request);
+        JsonObject jsonResult = gson.fromJson(json, JsonObject.class);
 
-        try {
-            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setRequestMethod("GET");
-            connection.setConnectTimeout(30000);
-            connection.setReadTimeout(30000);
-
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                JsonObject jsonResult = gson.fromJson(reader, JsonObject.class);
-
-                JsonArray transcripts = jsonResult.getAsJsonArray("transcripts");
-                if (transcripts == null || transcripts.isJsonNull()) {
-                    log.warn("No transcripts in ASR result");
-                    return segments;
-                }
-
-                for (JsonElement transcript : transcripts) {
-                    JsonArray sentences = transcript.getAsJsonObject().getAsJsonArray("sentences");
-                    if (sentences == null) {
-                        continue;
-                    }
-
-                    for (JsonElement sentence : sentences) {
-                        JsonObject sentObj = sentence.getAsJsonObject();
-
-                        // Time in milliseconds, convert to seconds
-                        int startMs = sentObj.get("begin_time").getAsInt();
-                        int endMs = sentObj.get("end_time").getAsInt();
-                        String text = sentObj.get("text").getAsString();
-
-                        AsrSegment segment = AsrSegment.builder()
-                                .startTime(segmentOffsetSeconds + (startMs / 1000))
-                                .endTime(segmentOffsetSeconds + (endMs / 1000))
-                                .text(text)
-                                .build();
-
-                        segments.add(segment);
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("Failed to download/parse ASR transcription from: {}", url, e);
+        JsonArray transcripts = jsonResult.getAsJsonArray("transcripts");
+        if (transcripts == null || transcripts.isJsonNull()) {
+            log.warn("No transcripts in ASR result");
+            return segments;
         }
 
+        for (JsonElement transcript : transcripts) {
+            JsonArray sentences = transcript.getAsJsonObject().getAsJsonArray("sentences");
+            if (sentences == null) {
+                continue;
+            }
+            for (JsonElement sentence : sentences) {
+                JsonObject sentObj = sentence.getAsJsonObject();
+                int startMs = sentObj.get("begin_time").getAsInt();
+                int endMs = sentObj.get("end_time").getAsInt();
+                String text = sentObj.get("text").getAsString();
+
+                segments.add(AsrSegment.builder()
+                        .startTime(segmentOffsetSeconds + (startMs / 1000))
+                        .endTime(segmentOffsetSeconds + (endMs / 1000))
+                        .text(text)
+                        .build());
+            }
+        }
         return segments;
     }
 }

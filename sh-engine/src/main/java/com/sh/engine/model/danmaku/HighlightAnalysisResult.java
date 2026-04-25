@@ -4,19 +4,11 @@ import lombok.Data;
 
 /**
  * Result of highlight analysis for a video segment.
- * <p>
- * Contains AI judgment on whether the segment is a highlight,
- * along with scoring, reasoning, and suggested clip times.
  */
 @Data
 public class HighlightAnalysisResult {
     /**
-     * Whether this segment is considered a highlight moment
-     */
-    private boolean highlight;
-
-    /**
-     * Highlight score (1-10), higher means more interesting
+     * Highlight score (0-100), higher means more interesting
      */
     private int score;
 

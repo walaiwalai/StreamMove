@@ -206,7 +206,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                         "-filter_complex " +
                         "\"[0:v]fade=out:st=%.1f:d=0.5[v_cut];[v_cut][1:v]overlay=enable='between(t,0,1)':format=auto[v_out];[0:a]afade=out:st=%.1f:d=0.5[a_out]\" " +
                         "-map \"[v_out]\" -map \"[a_out]\" " +
-                        "-c:v libx264 -preset superfast -crf 26 -c:a aac " +
+                        "-c:v libx264 -preset superfast -crf 23 -c:a aac " +
                         "\"%s\"",
                 startTime,
                 fromVideo.getAbsolutePath(),
@@ -249,7 +249,7 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                         "-filter_complex " +
                         "\"[0:v]fade=t=in:st=0:d=%.1f[v_out];[0:a]afade=t=in:st=0:d=%.1f[a_out]\" " +
                         "-map \"[v_out]\" -map \"[a_out]\" " +
-                        "-c:v libx264 -preset superfast -crf 26 -c:a aac " +
+                        "-c:v libx264 -preset superfast -crf 23 -c:a aac " +
                         "\"%s\"",
                 startTime, fromVideo.getAbsolutePath(), duration,
                 1.0, 1.0, fadeSeg.getAbsolutePath()

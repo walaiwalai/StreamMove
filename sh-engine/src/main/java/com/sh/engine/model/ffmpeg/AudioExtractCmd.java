@@ -56,13 +56,10 @@ public class AudioExtractCmd extends AbstractCmd {
 
     @Override
     protected void processOutputLine(String line) {
-        log.debug("AudioExtractCmd output: {}", line);
     }
 
     @Override
     protected void processErrorLine(String line) {
-        // FFmpeg outputs progress info to stderr
-        log.debug("AudioExtractCmd error: {}", line);
     }
 
     public boolean isSuccess() {
