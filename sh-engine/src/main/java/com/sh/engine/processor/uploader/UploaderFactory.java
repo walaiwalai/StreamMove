@@ -2,6 +2,7 @@ package com.sh.engine.processor.uploader;
 
 import com.google.common.collect.Maps;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.model.storage.FileStatusModel;
 import com.sh.config.utils.DateUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.RecordConstant;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.File;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
@@ -75,6 +77,7 @@ public class UploaderFactory {
             metaData.setTags(streamerConfig.getTags());
             metaData.setCover(streamerConfig.getCover());
             metaData.setTid(streamerConfig.getTid());
+            metaData.setCopyright(streamerConfig.getCopyright() == null ? 1 : streamerConfig.getCopyright());
             metaData.setSource(streamerConfig.getSource());
             metaData.setDynamic(title);
             return metaData;
@@ -114,13 +117,20 @@ public class UploaderFactory {
      * @return 视频标题
      */
     private static String genTitle(StreamerConfig streamerConfig, String recordPath) {
+        FileStatusModel fileStatusModel = FileStatusModel.loadFromFile(recordPath);
+
         // 检查弹幕文件（支持所有媒体格式）
         List<File> videos = VideoFileUtil.listRecordedFiles(recordPath);
         boolean hasDanmuMerged = videos.stream().anyMatch(video -> video.getName().contains(RecordConstant.DAMAKU_FILE_PREFIX));
 
         String timeV = new File(recordPath).getName();
+        Date recordDate = DateUtil.covertStr2Date(timeV, DateUtil.YYYY_MM_DD_HH_MM_SS_V2);
+
         Map<String, String> paramsMap = Maps.newHashMap();
         paramsMap.put("time", DateUtil.describeTime(timeV, DateUtil.YYYY_MM_DD_HH_MM_SS_V2));
+        paramsMap.put("date", DateUtil.formatTime(recordDate, DateUtil.YYYY_MM_DD));
+        paramsMap.put("hour24", DateUtil.formatTime(recordDate, DateUtil.HH));
+        paramsMap.put("streamTitle", StringUtils.isBlank(fileStatusModel.getStreamTitle()) ? "直播回放" : fileStatusModel.getStreamTitle());
         paramsMap.put("name", hasDanmuMerged ? streamerConfig.getName() + "-带弹幕" : streamerConfig.getName());
 
         if (StringUtils.isNotBlank(streamerConfig.getTemplateTitle())) {

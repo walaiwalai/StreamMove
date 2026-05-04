@@ -251,6 +251,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         String name = streamerConfig.getName();
         JSONObject latestRecord = respObj.getJSONArray("data").getJSONObject(0);
         String status = latestRecord.getString("status");
+        String streamTitle = latestRecord.getString("streamtitle");
         Date recordedAt = parseGMT8Date(latestRecord.getString("recorded_at"));
         log.info("streamer io check, status: {}, lastRecordAt: {}", status, recordedAt);
 
@@ -266,15 +267,13 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             eventPublisher.publishEvent(event);
 
             // 解析 sources，获取最佳下载链接（优先 1080p）
-            String downloadLink = resolveDownloadLink(streamerConfig, latestRecord, recordedAt);
-            if (downloadLink == null) {
-                return null;
-            }
+            Map<String, String> extra = new HashMap<>();
+            extra.put("streamTitle", streamTitle);
 
-            return new StreamUrlStreamRecorder(recordedAt, streamerConfig.getRoomUrl(), getType().getType(), downloadLink);
-        } else {
-            return null;
+            String downloadLink = resolveDownloadLink(streamerConfig, latestRecord, recordedAt);
+            return downloadLink == null ? null : new StreamUrlStreamRecorder(recordedAt, streamerConfig.getRoomUrl(), getType().getType(), downloadLink, extra);
         }
+        return null;
     }
 
 

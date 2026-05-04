@@ -21,6 +21,12 @@ public class BiliWorkMetaData extends WorkMetaData {
     private String cover;
 
     /**
+     * 版权类型
+     * 1是自制，2是转载
+     */
+    private Integer copyright;
+
+    /**
      * 视频来源描述
      */
     private String source;

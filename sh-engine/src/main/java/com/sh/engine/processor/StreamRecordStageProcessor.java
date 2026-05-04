@@ -72,7 +72,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         }
 
         // 1. 前期准备
-        recordPreProcess(streamerConfig, savePath);
+        recordPreProcess(context.getStreamRecorder(), streamerConfig, savePath);
 
         // streamrecorder.io 是下载VOD，不需要启动弹幕录制
         boolean recordLocal = context.getChannelEnum() != StreamChannelTypeEnum.STREAM_RECORDER_IO;
@@ -106,7 +106,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         recordPostProcess(context.getStreamRecorder(), streamerConfig);
     }
 
-    private void recordPreProcess(StreamerConfig streamerConfig, String recordPath) {
+    private void recordPreProcess(StreamRecorder streamRecorder, StreamerConfig streamerConfig, String recordPath) {
         // 1. 创建录像文件
         File recordFile = new File(recordPath);
         if (!recordFile.exists()) {
@@ -115,6 +115,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
 
         // 2.写fileStatus.json
         FileStatusModel fileStatusModel = new FileStatusModel();
+        fileStatusModel.setStreamTitle(streamRecorder.getExtraValue("streamTitle"));
         fileStatusModel.writeSelfToFile(recordPath);
 
         // 3.将录像文件加到threadLocal

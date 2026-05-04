@@ -25,6 +25,11 @@ import java.util.Map;
 @Slf4j
 public class FileStatusModel {
     /**
+     * 直播流标题
+     */
+    private String streamTitle;
+
+    /**
      * 各插件处理
      */
     private List<String> finishedPlugins = Lists.newArrayList();

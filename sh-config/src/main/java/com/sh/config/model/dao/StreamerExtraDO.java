@@ -45,6 +45,12 @@ public class StreamerExtraDO {
         private String certainBiliCookies;
 
         /**
+         * 版权类型
+         * 1是自制，2是转载
+         */
+        private Integer copyright;
+
+        /**
          * 来源
          */
         private String source;

@@ -153,6 +153,12 @@ public class StreamerConfig {
     private String coverFilePath;
 
     /**
+     * b站版权类型
+     * 1是自制，2是转载
+     */
+    private Integer copyright;
+
+    /**
      * b站来源
      */
     private String source;

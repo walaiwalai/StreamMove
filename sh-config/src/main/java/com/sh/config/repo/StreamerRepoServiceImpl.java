@@ -119,6 +119,7 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
         if (streamerExtraDO != null) {
             BiliUploadInfoDO biliUploadInfo = streamerExtraDO.getBiliUploadInfo();
             if (biliUploadInfo != null) {
+                config.setCopyright(biliUploadInfo.getCopyright());
                 config.setSource(biliUploadInfo.getSource());
                 config.setTid(biliUploadInfo.getTid());
                 config.setCover(biliUploadInfo.getCover());

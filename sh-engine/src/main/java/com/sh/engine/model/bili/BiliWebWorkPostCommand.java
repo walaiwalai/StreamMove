@@ -106,7 +106,7 @@ public class BiliWebWorkPostCommand {
         params.put("tag", StringUtils.join(workMetaData.getTags(), ","));
         params.put("desc", workMetaData.getDesc());
         params.put("dynamic", workMetaData.getDynamic());
-        params.put("copyright", 1);
+        params.put("copyright", workMetaData.getCopyright());
         params.put("source", workMetaData.getSource());
         params.put("videos", videoObjs);
         params.put("no_reprint", 0);
