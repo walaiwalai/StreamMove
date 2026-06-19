@@ -2,13 +2,17 @@ package com.sh.engine.processor.uploader;
 
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
+import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.repo.StreamerRepoService;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.UploadPlatformEnum;
+import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.video.RemoteSeverVideo;
 import com.sh.engine.service.NetDiskCopyService;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Resource;
 import java.io.File;
@@ -24,6 +28,8 @@ import java.util.stream.Collectors;
 public abstract class AbstractNetDiskUploader extends Uploader {
     @Resource
     private NetDiskCopyService netDiskCopyService;
+    @Resource
+    private StreamerRepoService streamerRepoService;
 
     @Override
     public void initUploader() {
@@ -59,7 +65,19 @@ public abstract class AbstractNetDiskUploader extends Uploader {
     }
 
     private RemoteSeverVideo uploadFile(File targetFile) {
-        netDiskCopyService.copyFileToNetDisk(UploadPlatformEnum.of(getType()), targetFile);
+        UploadPlatformEnum platform = UploadPlatformEnum.of(getType());
+        netDiskCopyService.copyFileToNetDisk(platform, targetFile);
+
+        // 部分主播会被网盘判定为违规，按配置对上传后的文件后缀进行重命名（默认不重命名）
+        StreamerConfig config = streamerRepoService.getByName(StreamerInfoHolder.getCurStreamerName());
+        String renameSuffix = config == null ? null : config.getNetDiskFileRenameSuffix();
+        if (StringUtils.isNotBlank(renameSuffix)) {
+            try {
+                netDiskCopyService.renameFileSuffix(platform, targetFile, renameSuffix);
+            } catch (Exception e) {
+                log.error("rename file suffix failed, file: {}, suffix: {}", targetFile.getAbsolutePath(), renameSuffix, e);
+            }
+        }
         return new RemoteSeverVideo(targetFile.getAbsolutePath(), targetFile.getAbsolutePath());
     }
 

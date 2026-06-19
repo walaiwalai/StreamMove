@@ -86,6 +86,54 @@ public class AlistNetDiskCopyServiceImpl implements NetDiskCopyService {
         rcloneMoveCmd.execute(14400);
     }
 
+    @Override
+    public void renameFileSuffix(UploadPlatformEnum platform, File targetFile, String newSuffix) {
+        if (StringUtils.isBlank(newSuffix)) {
+            return;
+        }
+
+        String originalName = targetFile.getName();
+        String newName = buildRenamedName(originalName, newSuffix);
+        if (StringUtils.equals(originalName, newName)) {
+            return;
+        }
+
+        // 推算网盘上文件的完整路径：/{平台目录}/{streamerName}/{timeV}/{originalName}
+        String recordPath = targetFile.getParentFile().getAbsolutePath();
+        String timeV = new File(recordPath).getName();
+        String streamerName = new File(recordPath).getParentFile().getName();
+        String remoteFilePath = UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.get(platform.getType())
+                + "/" + streamerName + "/" + timeV + "/" + originalName;
+
+        Map<String, String> params = ImmutableMap.of(
+                "path", remoteFilePath,
+                "name", newName
+        );
+        Request request = new Request.Builder()
+                .url(getDomainUrl() + "/api/fs/rename")
+                .post(RequestBody.create(MediaType.parse("application/json"), JSON.toJSONString(params)))
+                .addHeader("Authorization", getToken())
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        String resp = OkHttpClientUtil.execute(request);
+        JSONObject respObj = JSON.parseObject(resp);
+        if (respObj == null || !Objects.equals(respObj.getString("message"), "success")) {
+            log.error("alist rename file error, path: {}, name: {}, resp: {}", remoteFilePath, newName, resp);
+            throw new StreamerRecordException(ErrorEnum.INVALID_PARAM);
+        }
+        log.info("alist rename file success, path: {} -> name: {}", remoteFilePath, newName);
+    }
+
+    /**
+     * 用新的后缀替换原文件名后缀；原文件名无后缀时直接追加
+     */
+    private String buildRenamedName(String originalName, String newSuffix) {
+        int dotIdx = originalName.lastIndexOf('.');
+        String baseName = dotIdx > 0 ? originalName.substring(0, dotIdx) : originalName;
+        return baseName + "." + newSuffix;
+    }
+
     private String createFolder(UploadPlatformEnum platform, String recordPath) {
         if (!UPLOAD_PLATFORM_TO_ALIST_PATH_MAP.containsKey(platform.getType())) {
             throw new StreamerRecordException(ErrorEnum.INVALID_PARAM);

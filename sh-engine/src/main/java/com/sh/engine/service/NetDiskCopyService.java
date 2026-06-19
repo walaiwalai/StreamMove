@@ -25,4 +25,13 @@ public interface NetDiskCopyService {
      * @return 任务id
      */
     void copyFileToNetDisk(UploadPlatformEnum platform, File targetFile);
+
+    /**
+     * 重命名网盘上已上传文件的后缀
+     *
+     * @param platform 目标网盘
+     * @param targetFile 上传时使用的本地文件（用于推算网盘上的远端路径与原文件名）
+     * @param newSuffix 新后缀（不含点，例如 "zip"）
+     */
+    void renameFileSuffix(UploadPlatformEnum platform, File targetFile, String newSuffix);
 }

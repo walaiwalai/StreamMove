@@ -33,6 +33,12 @@ public class StreamerExtraDO {
     private boolean recordDamaku;
     private int recordQuality;
 
+    /**
+     * 上传到网盘后对文件后缀进行重命名（不含点）
+     * 默认为空表示不重命名，例如配置 "zip" 后，xxx.mp4 上传后会被重命名为 xxx.zip
+     */
+    private String netDiskFileRenameSuffix;
+
 
     @Data
     @AllArgsConstructor
