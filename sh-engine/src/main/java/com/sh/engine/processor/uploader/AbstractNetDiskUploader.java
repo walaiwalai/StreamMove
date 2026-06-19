@@ -23,8 +23,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public abstract class AbstractNetDiskUploader extends Uploader {
     @Resource
-    private MsgSendService msgSendService;
-    @Resource
     private NetDiskCopyService netDiskCopyService;
 
     @Override
@@ -39,7 +37,6 @@ public abstract class AbstractNetDiskUploader extends Uploader {
 
     @Override
     public boolean upload(String recordPath) throws Exception {
-        UploadPlatformEnum uploadPlatformEnum = UploadPlatformEnum.of(getType());
         List<File> files = VideoFileUtil.listRecordedFiles(recordPath)
                 .stream()
                 .sorted(Comparator.comparingLong(File::lastModified))
@@ -53,14 +50,7 @@ public abstract class AbstractNetDiskUploader extends Uploader {
                 log.info("video has been uploaded to {}, file: {}", getType(), targetFile.getAbsolutePath());
                 continue;
             }
-
             remoteSeverVideo = uploadFile(targetFile);
-            if (remoteSeverVideo == null) {
-                msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传" + uploadPlatformEnum.getType() + "云盘失败！");
-                return false;
-            }
-
-            msgSendService.sendText(targetFile.getAbsolutePath() + "路径下的视频上传" + uploadPlatformEnum.getType() + "云盘成功！");
             saveUploadedVideo(recordPath, remoteSeverVideo);
         }
 
