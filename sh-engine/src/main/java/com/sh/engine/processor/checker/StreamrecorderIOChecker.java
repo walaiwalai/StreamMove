@@ -170,7 +170,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
      * 获取录制列表，支持自动重试（cookie 失效时重新登录）
      */
     private String fetchRecordingsWithRetry(String targetId, StreamerConfig streamerConfig) {
-        int limit = CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls()) ? 100 : 2;
+        int limit = CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls()) ? 100 : 5;
         String url = String.format("https://streamrecorder.io/api/user/recordingsv2?targetid=%s&offset=0&limit=%d", targetId, limit);
 
         Request request = new Request.Builder()
@@ -252,24 +252,23 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         String name = streamerConfig.getName();
         JSONObject latestRecord = dataArr.getJSONObject(0);
         String status = latestRecord.getString("status");
-        String streamTitle = latestRecord.getString("streamtitle");
-        Date recordedAt = parseGMT8Date(latestRecord.getString("recorded_at"));
-        log.info("streamer io check, status: {}, lastRecordAt: {}", status, recordedAt);
+        Date latestRecordedAt = parseGMT8Date(latestRecord.getString("recorded_at"));
+        log.info("streamer io check, status: {}, lastRecordAt: {}", status, latestRecordedAt);
 
         if (StringUtils.equals(status, "running")) {
-            StreamRecordStartEvent event = new StreamRecordStartEvent(this, name, recordedAt);
+            StreamRecordStartEvent event = new StreamRecordStartEvent(this, name, latestRecordedAt);
             eventPublisher.publishEvent(event);
             return null;
         } else if (StringUtils.equals(status, "finished")) {
-            if (!checkVodIsNew(streamerConfig, recordedAt)) {
+            int recordIndex = findNextRecordIndex(streamerConfig, dataArr);
+            if (recordIndex < 0) {
                 return null;
             }
-            // 防止同一场直播被平台切分为多条记录而重复录制：若最新记录的 recorded_at 落在前一条记录
-            // [recorded_at, recorded_at + duration + buffer] 区间内，则视为同一场直播
-            if (isDuplicateOfPreviousRecord(dataArr)) {
-                log.info("Duplicate live session detected, skip recording. streamer: {}, recordedAt: {}", name, recordedAt);
-                return null;
-            }
+
+            JSONObject record = dataArr.getJSONObject(recordIndex);
+            Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
+            String streamTitle = record.getString("streamtitle");
+
             StreamRecordEndEvent event = new StreamRecordEndEvent(this, name);
             eventPublisher.publishEvent(event);
 
@@ -277,10 +276,30 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             Map<String, String> extra = new HashMap<>();
             extra.put("streamTitle", streamTitle);
 
-            String downloadLink = resolveDownloadLink(streamerConfig, latestRecord, recordedAt);
+            String downloadLink = resolveDownloadLink(streamerConfig, record, recordedAt);
             return downloadLink == null ? null : new StreamUrlStreamRecorder(recordedAt, streamerConfig.getRoomUrl(), getType().getType(), downloadLink, extra);
         }
         return null;
+    }
+
+    /**
+     * 从最旧的记录开始查找距离 lastRecordTime 最近的未处理记录。
+     * 与已处理记录重叠的分段直接跳过，继续查找更新的记录。
+     */
+    private int findNextRecordIndex(StreamerConfig streamerConfig, JSONArray dataArr) {
+        for (int i = dataArr.size() - 1; i >= 0; i--) {
+            JSONObject record = dataArr.getJSONObject(i);
+            Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
+            if (!checkVodIsNew(streamerConfig, recordedAt)) {
+                continue;
+            }
+            if (isDuplicateOfPreviousRecord(streamerConfig, dataArr, i)) {
+                log.info("Skip duplicate record at index: {}, recordedAt: {}", i, recordedAt);
+                continue;
+            }
+            return i;
+        }
+        return -1;
     }
 
     /**
@@ -289,34 +308,34 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
     private static final int DUPLICATE_BUFFER_SECONDS = 5 * 60;
 
     /**
-     * 判断最新一条记录是否和上一条为同一场直播（仅对比最近两段）
-     * 同场判定：最新片段开始时间 小于等于 上一条结束时间+5分钟缓冲
+     * 判断指定记录是否和更早的一条记录重叠。
+     * data 按 recorded_at 倒序排列，因此 index + 1 是更早的记录。
      */
-    private boolean isDuplicateOfPreviousRecord(JSONArray dataArr) {
-        // 不足两条直接不用对比
-        if (dataArr.size() < 2) {
-            return false;
-        }
-        // 最新片段 data[0]
-        JSONObject latestRecord = dataArr.getJSONObject(0);
-        Date latestStart = parseGMT8Date(latestRecord.getString("recorded_at"));
-        if (latestStart == null) {
-            return false;
-        }
-        long latestStartMs = latestStart.getTime();
-
-        // 上一条片段 data[1]
-        JSONObject prevRecord = dataArr.getJSONObject(1);
-        Date prevStart = parseGMT8Date(prevRecord.getString("recorded_at"));
-        int prevDuration = prevRecord.getIntValue("duration");
-        if (prevStart == null || prevDuration <= 0) {
+    private boolean isDuplicateOfPreviousRecord(StreamerConfig streamerConfig, JSONArray dataArr, int index) {
+        if (index < 0 || index + 1 >= dataArr.size()) {
             return false;
         }
 
-        // 上一条结束时间 + 缓冲
-        long prevEndWithBufferMs = prevStart.getTime() + (prevDuration + DUPLICATE_BUFFER_SECONDS) * 1000L;
-        // 核心判断：最新片段开播时间落在上一条结束缓冲区间内 = 同一场分段
-        return latestStartMs <= prevEndWithBufferMs;
+        JSONObject currentRecord = dataArr.getJSONObject(index);
+        Date currentStart = parseGMT8Date(currentRecord.getString("recorded_at"));
+        if (currentStart == null) {
+            return false;
+        }
+
+        JSONObject previousRecord = dataArr.getJSONObject(index + 1);
+        Date previousStart = parseGMT8Date(previousRecord.getString("recorded_at"));
+        int previousDuration = previousRecord.getIntValue("duration");
+        if (previousStart == null || previousDuration <= 0) {
+            return false;
+        }
+
+        // 更早的记录也是新记录时，不能据此判定当前记录重复。
+        if (checkVodIsNew(streamerConfig, previousStart)) {
+            return false;
+        }
+
+        long previousEndWithBufferMs = previousStart.getTime() + (previousDuration + DUPLICATE_BUFFER_SECONDS) * 1000L;
+        return currentStart.getTime() <= previousEndWithBufferMs;
     }
 
 
@@ -326,7 +345,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
      * 优先级：长视频直接720p > 1080p > 等待30分钟 > 720p
      */
     private String resolveDownloadLink(StreamerConfig streamerConfig, JSONObject latestRecord, Date recordedAt) {
-        long detectFinishedTime = System.currentTimeMillis();
+  long detectFinishedTime = System.currentTimeMillis();
 
         int duration = latestRecord.getIntValue("duration");
         boolean isLongVideo = duration > LONG_VIDEO_THRESHOLD_SECONDS;
