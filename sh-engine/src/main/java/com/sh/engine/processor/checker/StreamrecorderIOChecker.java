@@ -266,7 +266,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             }
             // 防止同一场直播被平台切分为多条记录而重复录制：若最新记录的 recorded_at 落在前一条记录
             // [recorded_at, recorded_at + duration + buffer] 区间内，则视为同一场直播
-            if (isDuplicateOfPreviousRecord(dataArr, recordedAt)) {
+            if (isDuplicateOfPreviousRecord(dataArr)) {
                 log.info("Duplicate live session detected, skip recording. streamer: {}, recordedAt: {}", name, recordedAt);
                 return null;
             }
@@ -289,21 +289,34 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
     private static final int DUPLICATE_BUFFER_SECONDS = 5 * 60;
 
     /**
-     * 判断最新一条记录是否与前一条记录属于同一场直播
-     * （streamrecorder.io 偶尔会把同一场直播切分为多条记录，recorded_at 不同但实际是同一场）
+     * 判断最新一条记录是否和上一条为同一场直播（仅对比最近两段）
+     * 同场判定：最新片段开始时间 小于等于 上一条结束时间+5分钟缓冲
      */
-    private boolean isDuplicateOfPreviousRecord(JSONArray dataArr, Date latestRecordedAt) {
-        if (dataArr.size() < 2 || latestRecordedAt == null) {
+    private boolean isDuplicateOfPreviousRecord(JSONArray dataArr) {
+        // 不足两条直接不用对比
+        if (dataArr.size() < 2) {
             return false;
         }
+        // 最新片段 data[0]
+        JSONObject latestRecord = dataArr.getJSONObject(0);
+        Date latestStart = parseGMT8Date(latestRecord.getString("recorded_at"));
+        if (latestStart == null) {
+            return false;
+        }
+        long latestStartMs = latestStart.getTime();
+
+        // 上一条片段 data[1]
         JSONObject prevRecord = dataArr.getJSONObject(1);
-        Date prevRecordedAt = parseGMT8Date(prevRecord.getString("recorded_at"));
-        if (prevRecordedAt == null) {
+        Date prevStart = parseGMT8Date(prevRecord.getString("recorded_at"));
+        int prevDuration = prevRecord.getIntValue("duration");
+        if (prevStart == null || prevDuration <= 0) {
             return false;
         }
-        int prevDuration = prevRecord.getIntValue("duration");
-        long prevEndTimeMs = prevRecordedAt.getTime() + (prevDuration + DUPLICATE_BUFFER_SECONDS) * 1000L;
-        return latestRecordedAt.getTime() < prevEndTimeMs;
+
+        // 上一条结束时间 + 缓冲
+        long prevEndWithBufferMs = prevStart.getTime() + (prevDuration + DUPLICATE_BUFFER_SECONDS) * 1000L;
+        // 核心判断：最新片段开播时间落在上一条结束缓冲区间内 = 同一场分段
+        return latestStartMs <= prevEndWithBufferMs;
     }
 
 
