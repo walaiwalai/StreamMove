@@ -16,6 +16,12 @@ import static com.sh.engine.constant.RecordConstant.KDA_SEQ_WINDOW_SIZE;
  **/
 @Slf4j
 public class LolSequenceScorer {
+    private static final float KILL_GAIN = 6.0f;
+    private static final float ASSIST_GAIN = 2.0f;
+    private static final float DEATH_PENALTY = 3.0f;
+    private static final float EXTRA_KILL_COMBO_GAIN = 2.0f;
+    private static final float MAX_DETAIL_GAIN = 10.0f;
+
     /**
      * 序列数据
      */
@@ -111,7 +117,7 @@ public class LolSequenceScorer {
     }
 
     private float calGain(LoLPicData pre, LoLPicData cur) {
-        if (pre.beBlank()) {
+        if (!pre.beValid() || !cur.beValid()) {
             return 0f;
         }
         if (cur.getA() <= pre.getA() && cur.getK() <= pre.getK()) {
@@ -121,8 +127,10 @@ public class LolSequenceScorer {
         // 1. 说明有击杀或者助攻
         // 1.kda数值增加分数
         int deltaK = cur.getK() - pre.getK();
+        int deltaD = cur.getD() - pre.getD();
         int deltaA = cur.getA() - pre.getA();
-        float kadGain = (float) (6 * deltaK + 2 * deltaA);
+        float kdaGain = KILL_GAIN * deltaK + ASSIST_GAIN * deltaA - DEATH_PENALTY * deltaD;
+        float comboGain = EXTRA_KILL_COMBO_GAIN * Math.max(deltaK - 1, 0);
 
         // 2.击杀细节分数，参与击杀人数越少越精彩（包括单杀）
         float killOrAssistGain = 0f;
@@ -146,15 +154,14 @@ public class LolSequenceScorer {
                 curGain += 4.0f / Math.max(sameLine.size() - 1, 1);
             }
 
-            if (sameLine.contains(LOLHeroPositionEnum.MYSELF_KILLED.getLabelId())) {
-                // 我被击杀，扣分
-                curGain -= 10.0f;
-            }
-
-
             killOrAssistGain += curGain;
         }
 
-        return kadGain + killOrAssistGain;
+        float detailGain = Math.min(killOrAssistGain, MAX_DETAIL_GAIN);
+        float totalGain = kdaGain + comboGain + detailGain;
+        log.info("KDA score, prev: {}/{}/{}, cur: {}/{}/{}, kdaGain: {}, comboGain: {}, detailGain: {}, total: {}",
+                pre.getK(), pre.getD(), pre.getA(), cur.getK(), cur.getD(), cur.getA(),
+                kdaGain, comboGain, detailGain, totalGain);
+        return totalGain;
     }
 }

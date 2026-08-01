@@ -15,17 +15,33 @@ public class SnapshotVideoInterval extends VideoInterval implements Comparable<S
      */
     private float score;
 
+    /**
+     * 区间内发生的击杀数，用于合并连续击杀时追加连杀奖励。
+     */
+    private int killCount;
+
     public SnapshotVideoInterval(File fromVideo, double secondFromVideoStart, double secondToVideoEnd, float score) {
+        this(fromVideo, secondFromVideoStart, secondToVideoEnd, score, 0);
+    }
+
+    public SnapshotVideoInterval(File fromVideo, double secondFromVideoStart, double secondToVideoEnd,
+                                 float score, int killCount) {
         super(fromVideo, secondFromVideoStart, secondToVideoEnd);
         this.score = score;
+        this.killCount = killCount;
     }
 
     public float getScore() {
         return score;
     }
 
+    public int getKillCount() {
+        return killCount;
+    }
+
     public SnapshotVideoInterval copy() {
-        return new SnapshotVideoInterval(this.getFromVideo(), this.getSecondFromVideoStart(), this.getSecondToVideoEnd(), this.score);
+        return new SnapshotVideoInterval(this.getFromVideo(), this.getSecondFromVideoStart(),
+                this.getSecondToVideoEnd(), this.score, this.killCount);
     }
 
     /**
@@ -33,7 +49,7 @@ public class SnapshotVideoInterval extends VideoInterval implements Comparable<S
      * 前提：两个区间属于同一个视频文件（fromVideo相同）
      *
      * @param other 要合并的另一个区间
-     * @return 合并后的新区间，分数为两个区间分数之和
+     * @return 合并后的新区间；两个区间都包含击杀时额外增加连杀分
      * @throws IllegalArgumentException 如果两个区间不属于同一个视频，抛出异常
      */
     public SnapshotVideoInterval merge(SnapshotVideoInterval other) {
@@ -42,12 +58,15 @@ public class SnapshotVideoInterval extends VideoInterval implements Comparable<S
             throw new IllegalArgumentException("只能合并同一视频文件的区间");
         }
 
-        // 创建合并后的区间，分数为两个区间分数之和
+        int mergedKillCount = this.killCount + other.killCount;
+        float comboGain = this.killCount > 0 && other.killCount > 0 ? 2.0f : 0.0f;
+        // 两个区间都包含击杀时，形成连续击杀，额外奖励2分。
         return new SnapshotVideoInterval(
                 this.getFromVideo(),
                 Math.min(this.getSecondFromVideoStart(), other.getSecondFromVideoStart()),
                 Math.max(this.getSecondToVideoEnd(), other.getSecondToVideoEnd()),
-                this.score + other.getScore()
+                this.score + other.getScore() + comboGain,
+                mergedKillCount
         );
     }
 

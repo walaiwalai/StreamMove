@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -84,19 +85,90 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
     @Override
     public boolean mergeWithCover(List<VideoInterval> intervals, File targetVideo, String title) {
-        File tmpSaveDir = new File(targetVideo.getParent(), "tmp-h");
-        tmpSaveDir.mkdirs();
-
-        List<String> mergedPaths = Lists.newArrayList();
-        for (int i = 0; i < intervals.size(); i++) {
-            if (i == 0) {
-                mergedPaths.add(genTitleVideo(intervals.get(i), tmpSaveDir, title).getAbsolutePath());
-            } else {
-                mergedPaths.add(genFadeVideo(intervals.get(i), tmpSaveDir).getAbsolutePath());
+        if (CollectionUtils.isEmpty(intervals)) {
+            log.info("empty video intervals, skip merge, target: {}", targetVideo.getAbsolutePath());
+            return false;
+        }
+        for (VideoInterval interval : intervals) {
+            if (interval.getSecondToVideoEnd() <= interval.getSecondFromVideoStart()) {
+                log.error("invalid video interval, start: {}, end: {}, video: {}",
+                        interval.getSecondFromVideoStart(), interval.getSecondToVideoEnd(),
+                        interval.getFromVideo().getAbsolutePath());
+                return false;
             }
         }
 
-        return concatWithSameVideo(mergedPaths, targetVideo);
+        File tmpSaveDir = new File(targetVideo.getParent(), "tmp-h");
+        tmpSaveDir.mkdirs();
+        File thumbnailFile = new File(tmpSaveDir, "h-thumbnail.png");
+
+        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(intervals.get(0).getFromVideo().getAbsolutePath());
+        detectCmd.execute(50);
+        int width = detectCmd.getWidth();
+        int height = detectCmd.getHeight();
+        int fontSize = Math.max(height / 13, 20);
+        PictureFileUtil.createTextWithVeil(title, width, height, fontSize, thumbnailFile);
+
+        StringBuilder command = new StringBuilder("ffmpeg -y -loglevel error");
+        for (VideoInterval interval : intervals) {
+            double duration = interval.getSecondToVideoEnd() - interval.getSecondFromVideoStart();
+            command.append(String.format(Locale.ROOT,
+                    " -ss %.3f -t %.3f -i \"%s\"",
+                    interval.getSecondFromVideoStart(), duration,
+                    interval.getFromVideo().getAbsolutePath()));
+        }
+        command.append(" -i \"").append(thumbnailFile.getAbsolutePath()).append("\"");
+
+        StringBuilder filter = new StringBuilder();
+        for (int i = 0; i < intervals.size(); i++) {
+            VideoInterval interval = intervals.get(i);
+            double duration = interval.getSecondToVideoEnd() - interval.getSecondFromVideoStart();
+            double fadeDuration = Math.min(0.5, duration / 2.0);
+            double fadeOutStart = Math.max(0.0, duration - fadeDuration);
+
+            filter.append('[').append(i).append(":v]")
+                    .append("setpts=PTS-STARTPTS,format=yuv420p");
+            if (i > 0) {
+                filter.append(String.format(Locale.ROOT, ",fade=t=in:st=0:d=%.3f", fadeDuration));
+            }
+            String videoOutputLabel = i == 0 ? "v0_base" : "v" + i;
+            filter.append(String.format(Locale.ROOT, ",fade=t=out:st=%.3f:d=%.3f[%s];",
+                    fadeOutStart, fadeDuration, videoOutputLabel));
+
+            filter.append('[').append(i).append(":a]")
+                    .append("asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo");
+            if (i > 0) {
+                filter.append(String.format(Locale.ROOT, ",afade=t=in:st=0:d=%.3f", fadeDuration));
+            }
+            filter.append(String.format(Locale.ROOT, ",afade=t=out:st=%.3f:d=%.3f[a%d];",
+                    fadeOutStart, fadeDuration, i));
+        }
+
+        int coverInputIndex = intervals.size();
+        filter.append("[v0_base][").append(coverInputIndex)
+                .append(":v]overlay=enable='between(t,0,1)':format=auto:eof_action=repeat,format=yuv420p[v0];");
+        for (int i = 0; i < intervals.size(); i++) {
+            filter.append("[v").append(i).append("][a").append(i).append(']');
+        }
+        filter.append("concat=n=").append(intervals.size()).append(":v=1:a=1[v_out][a_out]");
+
+        command.append(" -filter_complex \"").append(filter).append("\"")
+                .append(" -map \"[v_out]\" -map \"[a_out]\"")
+                .append(" -c:v libx264 -preset superfast -crf 23 -pix_fmt yuv420p")
+                .append(" -c:a aac -movflags +faststart \"")
+                .append(targetVideo.getAbsolutePath()).append("\"");
+
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(command.toString());
+        try {
+            processCmd.execute(3 * 3600L);
+            return processCmd.isEndNormal();
+        } finally {
+            FileUtils.deleteQuietly(thumbnailFile);
+            String[] remainingFiles = tmpSaveDir.list();
+            if (remainingFiles != null && remainingFiles.length == 0) {
+                FileUtils.deleteQuietly(tmpSaveDir);
+            }
+        }
     }
 
     @Override
@@ -174,90 +246,6 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         FFmpegProcessCmd processCmd = new FFmpegProcessCmd(command);
         processCmd.execute(3 * 3600L);
         return processCmd.isEndNormal() ? processedFile : null;
-    }
-
-    private File genTitleVideo(VideoInterval videoInterval, File tmpDir, String title) {
-        File fromVideo = videoInterval.getFromVideo();
-        File thumnailFile = new File(tmpDir, "h-thumnail.png");
-        String targetFileName = FileNameUtil.getPrefix(fromVideo) + "-" +
-                Math.round(videoInterval.getSecondFromVideoStart()) + "-" +
-                Math.round(videoInterval.getSecondToVideoEnd()) + "-titled.ts";
-        File titledSeg = new File(tmpDir, targetFileName);
-
-        // 创建封面
-        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(fromVideo.getAbsolutePath());
-        detectCmd.execute(50);
-        int width = detectCmd.getWidth();
-        int height = detectCmd.getHeight();
-        int fontSize = Math.max((int) height / 13, 20);
-        PictureFileUtil.createTextWithVeil(title, width, height, fontSize, thumnailFile);
-
-        // 裁剪并合成封面
-        double startTime = videoInterval.getSecondFromVideoStart();
-        double endTime = videoInterval.getSecondToVideoEnd();
-        double duration = endTime - startTime;
-        // 核心命令
-        String cmd = String.format(
-                "ffmpeg -y -loglevel error " +
-                        "-ss %.1f " +
-                        "-i \"%s\" " +
-                        "-i \"%s\" " +
-                        "-t %.1f " +
-                        "-filter_complex " +
-                        "\"[0:v]fade=out:st=%.1f:d=0.5[v_cut];[v_cut][1:v]overlay=enable='between(t,0,1)':format=auto[v_out];[0:a]afade=out:st=%.1f:d=0.5[a_out]\" " +
-                        "-map \"[v_out]\" -map \"[a_out]\" " +
-                        "-c:v libx264 -preset superfast -crf 23 -c:a aac " +
-                        "\"%s\"",
-                startTime,
-                fromVideo.getAbsolutePath(),
-                thumnailFile.getAbsolutePath(),
-                duration,
-                duration - 0.5,
-                duration - 0.5,
-                titledSeg.getAbsolutePath()
-        );
-        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
-        processCmd.execute(3 * 3600L);
-        return titledSeg;
-    }
-
-    /**
-     * 生成带淡出特效的视频
-     *
-     * @param videoInterval 视频片段
-     * @param tmpDir        临时目录
-     * @return 生成的视频文件
-     */
-    private File genFadeVideo(VideoInterval videoInterval, File tmpDir) {
-        File fromVideo = videoInterval.getFromVideo();
-        String targetFileName = FileNameUtil.getPrefix(fromVideo) + "-" +
-                Math.round(videoInterval.getSecondFromVideoStart()) + "-" +
-                Math.round(videoInterval.getSecondToVideoEnd()) + "-fade.ts";
-        File fadeSeg = new File(tmpDir, targetFileName);
-
-        // 裁剪并加上淡出效果
-        double startTime = videoInterval.getSecondFromVideoStart();
-        double endTime = videoInterval.getSecondToVideoEnd();
-        double duration = endTime - startTime;
-
-        // 构建FFmpeg命令：裁剪 + 视频淡出效果
-        String cmd = String.format(
-                "ffmpeg -y -loglevel error " +
-                        "-ss %.1f " +
-                        "-i \"%s\" " +
-                        "-t %.1f " +
-                        "-filter_complex " +
-                        "\"[0:v]fade=t=in:st=0:d=%.1f[v_out];[0:a]afade=t=in:st=0:d=%.1f[a_out]\" " +
-                        "-map \"[v_out]\" -map \"[a_out]\" " +
-                        "-c:v libx264 -preset superfast -crf 23 -c:a aac " +
-                        "\"%s\"",
-                startTime, fromVideo.getAbsolutePath(), duration,
-                1.0, 1.0, fadeSeg.getAbsolutePath()
-        );
-
-        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(cmd);
-        processCmd.execute(3 * 3600L);
-        return fadeSeg;
     }
 
     public static void main(String[] args) {
