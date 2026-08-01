@@ -283,62 +283,71 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
     }
 
     /**
-     * 从最旧的记录开始查找距离 lastRecordTime 最近的未处理记录。
-     * 与已处理记录重叠的分段直接跳过，继续查找更新的记录。
-     */
-    private int findNextRecordIndex(StreamerConfig streamerConfig, JSONArray dataArr) {
-        for (int i = dataArr.size() - 1; i >= 0; i--) {
-            JSONObject record = dataArr.getJSONObject(i);
-            Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
-            if (!checkVodIsNew(streamerConfig, recordedAt)) {
-                continue;
-            }
-            if (isDuplicateOfPreviousRecord(streamerConfig, dataArr, i)) {
-                log.info("Skip duplicate record at index: {}, recordedAt: {}", i, recordedAt);
-                continue;
-            }
-            return i;
-        }
-        return -1;
-    }
-
-    /**
      * 同一场直播判定的 buffer 时间（秒）：考虑到平台分段、断流重连等情况，留 5 分钟容差
      */
     private static final int DUPLICATE_BUFFER_SECONDS = 5 * 60;
 
     /**
-     * 判断指定记录是否和更早的一条记录重叠。
-     * data 按 recorded_at 倒序排列，因此 index + 1 是更早的记录。
+     * 从最旧的记录开始，将连续重叠的记录归为同一组。
+     * 未处理的组只返回时长最长的记录；若组内已有处理过的记录，则整组跳过。
      */
-    private boolean isDuplicateOfPreviousRecord(StreamerConfig streamerConfig, JSONArray dataArr, int index) {
-        if (index < 0 || index + 1 >= dataArr.size()) {
-            return false;
-        }
+    private int findNextRecordIndex(StreamerConfig streamerConfig, JSONArray dataArr) {
+        OverlappingRecordGroup group = new OverlappingRecordGroup();
+        for (int i = dataArr.size() - 1; i >= 0; i--) {
+            JSONObject record = dataArr.getJSONObject(i);
+            Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
+            if (recordedAt == null) {
+                continue;
+            }
 
-        JSONObject currentRecord = dataArr.getJSONObject(index);
-        Date currentStart = parseGMT8Date(currentRecord.getString("recorded_at"));
-        if (currentStart == null) {
-            return false;
-        }
+            if (!group.isEmpty() && !group.overlaps(recordedAt)) {
+                int nextRecordIndex = group.getNextRecordIndex();
+                if (nextRecordIndex >= 0) {
+                    return nextRecordIndex;
+                }
+                group = new OverlappingRecordGroup();
+            }
 
-        JSONObject previousRecord = dataArr.getJSONObject(index + 1);
-        Date previousStart = parseGMT8Date(previousRecord.getString("recorded_at"));
-        int previousDuration = previousRecord.getIntValue("duration");
-        if (previousStart == null || previousDuration <= 0) {
-            return false;
+            group.add(i, recordedAt, record.getIntValue("duration"),
+                    checkVodIsNew(streamerConfig, recordedAt));
         }
-
-        // 更早的记录也是新记录时，不能据此判定当前记录重复。
-        if (checkVodIsNew(streamerConfig, previousStart)) {
-            return false;
-        }
-
-        long previousEndWithBufferMs = previousStart.getTime() + (previousDuration + DUPLICATE_BUFFER_SECONDS) * 1000L;
-        return currentStart.getTime() <= previousEndWithBufferMs;
+        return group.getNextRecordIndex();
     }
 
+    private static final class OverlappingRecordGroup {
 
+        private long endWithBufferMs = Long.MIN_VALUE;
+        private boolean containsHandledRecord;
+        private int longestPendingIndex = -1;
+        private int longestPendingDuration = -1;
+
+        private boolean isEmpty() {
+            return endWithBufferMs == Long.MIN_VALUE;
+        }
+
+        private boolean overlaps(Date recordedAt) {
+            return recordedAt.getTime() <= endWithBufferMs;
+        }
+
+        private void add(int index, Date recordedAt, int duration, boolean pending) {
+            long recordEndWithBufferMs = recordedAt.getTime();
+            if (duration > 0) {
+                recordEndWithBufferMs += ((long) duration + DUPLICATE_BUFFER_SECONDS) * 1000L;
+            }
+            endWithBufferMs = Math.max(endWithBufferMs, recordEndWithBufferMs);
+
+            if (!pending) {
+                containsHandledRecord = true;
+            } else if (!containsHandledRecord && duration > longestPendingDuration) {
+                longestPendingIndex = index;
+                longestPendingDuration = duration;
+            }
+        }
+
+        private int getNextRecordIndex() {
+            return containsHandledRecord ? -1 : longestPendingIndex;
+        }
+    }
 
     /**
      * 解析下载链接，实现 1080p 等待策略
