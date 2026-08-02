@@ -51,7 +51,7 @@ public class UploaderFactory {
             uploaderSemaphoreMap.put(uploader.getType(), new Semaphore(uploader.getMaxUploadParallel(), true));
         }
 
-        accountKeymap.put(UploadPlatformEnum.DOU_YIN.getType(), "douyin-cookies.json");
+        accountKeymap.put(UploadPlatformEnum.DOU_YIN_WEB.getType(), "douyin-cookies.json");
     }
 
     public static Uploader getUploader(String type) {

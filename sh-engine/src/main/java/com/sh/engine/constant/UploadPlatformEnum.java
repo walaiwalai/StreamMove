@@ -16,7 +16,7 @@ public enum UploadPlatformEnum {
     UC_PAN("UC_PAN", "UC网盘-alist版本"),
     TIAN_YI_PAN("TIAN_YI_PAN", "天翼网盘-alist版本"),
     ALY_OSS("ALY_OSS", "阿里云oss-alist版本"),
-    DOU_YIN("DOU_YIN", "抖音"),
+    DOU_YIN_WEB("DOU_YIN", "抖音网页"),
     WECHAT_VIDEO("WECHAT_VIDEO", "腾讯视频号"),
     MEI_TUAN_VIDEO("MEI_TUAN_VIDEO", "美团视频号"),
     MEI_TUAN_API_VIDEO("MEI_TUAN_API_VIDEO", "美团api视频号"),

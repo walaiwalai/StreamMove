@@ -19,7 +19,7 @@
 
 - 各大网盘，采用alist + rclone将本地存储 -> 目标网盘（百度云盘、阿里云盘、夸克网盘等）
 - Bilibili
-- 抖音
+- 抖音（页面自动化与 Java HTTP 两种方式）
 
 **后续计划**：
 
@@ -159,7 +159,8 @@ system.storage.mounted=false
 - upload_platforms：上传的平台名称（多平台","分割）
     - BILI_CLIENT：B站客户端上传
     - BILI_WEB：B站网页端上传
-    - DOU_YIN: 抖音上传
+    - DOU_YIN：抖音页面自动化上传
+    - DOU_YIN_WEB：抖音创作者中心网页链路上传（仅上传 `highlight.mp4`）
     - ALI_PAN: 阿里云盘上传
     - BAIDU_PAN: 百度云盘上传
     - QUARK_PAN: 夸克云盘上传
@@ -169,6 +170,15 @@ system.storage.mounted=false
 - tags：视频标签，支持多个，用逗号隔开
 - env：环境标识，默认default
 - record_mode：按大小/时间录制视频，t表示时间，s表示大小，如t_3600表示单个录制视频时长1小时，s_4094表示单个录制视频大小4G
+
+抖音网页链路上传（`DOU_YIN_WEB`）：
+
+- 账号登录态文件为 `${sh.account-save.path}/douyin-cookies.json`，格式是 Playwright `storageState` JSON，不是单独复制出来的 Cookie 请求头。
+- 首次使用或登录过期时，需要在可见浏览器中打开抖音创作者中心并扫码登录，再保存该文件；`DOU_YIN` 与 `DOU_YIN_WEB` 共用这份登录态。
+- 上传器只处理录制目录下精彩剪辑生成的 `highlight.mp4`。封面依次使用主播配置的 `cover_file_path`、录制目录下的 `work-thumbnail.jpg`，否则自动从视频中截取一帧。
+- Java 负责 AWS4 签名、视频分片和封面文件字节传输；无界面浏览器承载创作者中心安全脚本，以及与浏览器会话绑定的 VOD/ImageX 小型控制面请求和最终 `create_v2` 提交。这里没有页面点击自动化，但并非完全脱离浏览器。
+- 作品按本次抓包确认的参数公开发布。标题来自 `template_title`（创作者中心限制 30 字），描述来自 `desc`，话题来自 `tags`；描述和话题合计按页面限制控制在 1000 字以内。
+- 相同视频再次提交时，抖音可能返回 `517 / 视频已发布`；上传器将其作为幂等成功处理，避免反复重试。该网页协议不是抖音开放平台的稳定公开 API，网页升级后可能需要重新抓包适配。
 
 ### 4. alist配置
 
