@@ -9,6 +9,7 @@ import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.processor.uploader.meta.BiliWorkMetaData;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
+import com.sh.engine.processor.uploader.meta.MeituanWorkMetaData;
 import com.sh.engine.processor.uploader.meta.WechatVideoMetaData;
 import com.sh.engine.processor.uploader.meta.WorkMetaData;
 import org.apache.commons.lang3.StringUtils;
@@ -53,6 +54,7 @@ public class UploaderFactory {
 
         accountKeymap.put(UploadPlatformEnum.DOU_YIN_WEB.getType(), "douyin-cookies.json");
         accountKeymap.put(UploadPlatformEnum.WECHAT_VIDEO_WEB.getType(), "wechat-video-cookies.json");
+        accountKeymap.put(UploadPlatformEnum.MEI_TUAN_VIDEO.getType(), "meituan-cookies.json");
     }
 
     public static Uploader getUploader(String type) {
@@ -102,6 +104,18 @@ public class UploaderFactory {
         @Override
         public WorkMetaData buildMetaData(StreamerConfig streamerConfig, String recordPath) {
             WechatVideoMetaData metaData = new WechatVideoMetaData();
+            metaData.setTitle(genTitle(streamerConfig, recordPath));
+            metaData.setDesc(streamerConfig.getDesc());
+            metaData.setTags(streamerConfig.getTags());
+            metaData.setPreViewFilePath(streamerConfig.getCoverFilePath());
+            return metaData;
+        }
+    }
+
+    public static class MeituanMetaDataBuilder implements MetaDataBuilder {
+        @Override
+        public WorkMetaData buildMetaData(StreamerConfig streamerConfig, String recordPath) {
+            MeituanWorkMetaData metaData = new MeituanWorkMetaData();
             metaData.setTitle(genTitle(streamerConfig, recordPath));
             metaData.setDesc(streamerConfig.getDesc());
             metaData.setTags(streamerConfig.getTags());
