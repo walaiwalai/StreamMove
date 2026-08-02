@@ -1,9 +1,9 @@
 package com.sh.engine.processor.plugin.lol;
 
 import cn.hutool.core.io.FileUtil;
-import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.model.ffmpeg.VideoDurationDetectCmd;
 import com.sh.engine.model.highlight.SnapshotVideoInterval;
+import com.sh.engine.model.highlight.lol.LolKdaTimelinePoint;
 import com.sh.engine.model.highlight.lol.LoLPicData;
 import org.springframework.stereotype.Component;
 
@@ -27,18 +27,16 @@ import static com.sh.engine.processor.plugin.lol.LolHighlightConstants.TOP_INTER
 @Component
 public class LolHighlightIntervalSelector {
 
-    public List<SnapshotVideoInterval> select(List<File> snapshots, List<LoLPicData> sequence) {
-        List<SnapshotVideoInterval> candidates = buildCandidates(snapshots, sequence);
+    public List<SnapshotVideoInterval> select(List<LolKdaTimelinePoint> timeline) {
+        List<SnapshotVideoInterval> candidates = buildCandidates(timeline);
         return mergeIntervals(candidates);
     }
 
-    private List<SnapshotVideoInterval> buildCandidates(List<File> snapshots, List<LoLPicData> sequence) {
-        List<File> sourceVideos = snapshots.stream()
-                .map(VideoFileUtil::getSourceVideoFile)
+    private List<SnapshotVideoInterval> buildCandidates(List<LolKdaTimelinePoint> timeline) {
+        List<File> sourceVideos = timeline.stream()
+                .map(LolKdaTimelinePoint::getSourceVideo)
                 .distinct()
                 .collect(Collectors.toList());
-        Map<String, File> videoByPrefix = sourceVideos.stream()
-                .collect(Collectors.toMap(FileUtil::getPrefix, video -> video));
         Map<String, Double> durationByPrefix = loadVideoDurations(sourceVideos);
 
         int candidateLimit = TOP_INTERVAL_LIMIT * sourceVideos.size();
@@ -46,13 +44,12 @@ public class LolHighlightIntervalSelector {
                 candidateLimit,
                 Comparator.comparingDouble(SnapshotVideoInterval::getScore));
 
-        for (int i = 0; i < snapshots.size(); i++) {
-            if (sequence.get(i).getScore() < MIN_HIGHLIGHT_SCORE) {
+        for (int i = 0; i < timeline.size(); i++) {
+            if (timeline.get(i).getPicData().getScore() < MIN_HIGHLIGHT_SCORE) {
                 continue;
             }
 
-            SnapshotVideoInterval candidate = createCandidate(
-                    snapshots.get(i), sequence, i, videoByPrefix, durationByPrefix);
+            SnapshotVideoInterval candidate = createCandidate(timeline, i, durationByPrefix);
             keepBestCandidate(bestCandidates, candidate, candidateLimit);
         }
 
@@ -69,31 +66,32 @@ public class LolHighlightIntervalSelector {
         }));
     }
 
-    private SnapshotVideoInterval createCandidate(File snapshot,
-                                                   List<LoLPicData> sequence,
-                                                   int sequenceIndex,
-                                                   Map<String, File> videoByPrefix,
+    private SnapshotVideoInterval createCandidate(List<LolKdaTimelinePoint> timeline,
+                                                   int timelineIndex,
                                                    Map<String, Double> durationByPrefix) {
-        int snapshotIndex = VideoFileUtil.getSnapshotIndex(snapshot);
-        String sourcePrefix = VideoFileUtil.getSnapshotSourceFileName(snapshot);
-        File sourceVideo = videoByPrefix.get(sourcePrefix);
+        LolKdaTimelinePoint point = timeline.get(timelineIndex);
+        File sourceVideo = point.getSourceVideo();
+        String sourcePrefix = FileUtil.getPrefix(sourceVideo);
         double videoDuration = durationByPrefix.getOrDefault(sourcePrefix, 0.0);
-        double startSecond = (snapshotIndex - 1) * SNAP_INTERVAL_SECONDS;
-        double endSecond = Math.min(snapshotIndex * SNAP_INTERVAL_SECONDS, videoDuration);
+        double startSecond = point.getSecondFromVideoStart();
+        double endSecond = Math.min(startSecond + SNAP_INTERVAL_SECONDS, videoDuration);
 
         return new SnapshotVideoInterval(
                 sourceVideo,
                 startSecond,
                 endSecond,
-                sequence.get(sequenceIndex).getScore(),
-                calculateKillCount(sequence, sequenceIndex));
+                point.getPicData().getScore(),
+                calculateKillCount(timeline, timelineIndex));
     }
 
-    private int calculateKillCount(List<LoLPicData> sequence, int index) {
-        if (index == 0 || !sequence.get(index - 1).beValid() || !sequence.get(index).beValid()) {
+    private int calculateKillCount(List<LolKdaTimelinePoint> timeline, int index) {
+        LoLPicData current = timeline.get(index).getPicData();
+        if (index == 0 || !timeline.get(index - 1).getPicData().beValid() || !current.beValid()) {
             return 0;
         }
-        return Math.max(0, sequence.get(index).getK() - sequence.get(index - 1).getK());
+        return Math.max(
+                0,
+                current.getK() - timeline.get(index - 1).getPicData().getK());
     }
 
     private void keepBestCandidate(PriorityQueue<SnapshotVideoInterval> candidates,

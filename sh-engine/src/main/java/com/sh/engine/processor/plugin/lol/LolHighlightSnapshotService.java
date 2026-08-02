@@ -41,7 +41,7 @@ public class LolHighlightSnapshotService {
     private LolOcrClient ocrClient;
 
     public List<File> createKdaSnapshots(String recordPath, List<File> videos) {
-        String cropExpression = findAccurateKdaCrop(recordPath, videos.get(0));
+        String cropExpression = findKdaCropExpression(recordPath, videos.get(0));
         File snapshotDirectory = new File(recordPath, KDA_SNAPSHOT_DIR);
         snapshotDirectory.mkdirs();
 
@@ -86,7 +86,7 @@ public class LolHighlightSnapshotService {
                 });
     }
 
-    private String findAccurateKdaCrop(String recordPath, File sampleVideo) {
+    public String findKdaCropExpression(String recordPath, File sampleVideo) {
         File testSnapshotDirectory = new File(recordPath, KDA_TEST_SNAPSHOT_DIR);
         testSnapshotDirectory.mkdirs();
 

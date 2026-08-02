@@ -10,12 +10,9 @@ import com.sh.engine.model.video.RemoteSeverVideo;
 import com.sh.engine.processor.uploader.douyin.DouyinWebUploadClient;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.util.List;
 
 /** Uploads highlight.mp4 with Java HTTP media transfer and the Creator page security context. */
 @Slf4j
@@ -63,7 +60,7 @@ public class DouyinWebUploader extends Uploader {
         }
         DouyinWorkMetaData metadata = (DouyinWorkMetaData) new UploaderFactory.DouyinMetaDataBuilder()
                 .buildMetaData(streamerConfig, recordPath);
-        File coverFile = resolveCoverFile(recordPath, videoFile, metadata);
+        File coverFile = extractFirstFrameCover(recordPath, videoFile);
 
         log.info("begin douyin web HTTP upload, video: {}, cover: {}",
                 videoFile.getAbsolutePath(), coverFile.getAbsolutePath());
@@ -77,34 +74,22 @@ public class DouyinWebUploader extends Uploader {
         return true;
     }
 
-    private File resolveCoverFile(String recordPath,
-                                  File videoFile,
-                                  DouyinWorkMetaData metadata) {
-        if (StringUtils.isNotBlank(metadata.getPreViewFilePath())) {
-            File configured = new File(metadata.getPreViewFilePath());
-            if (configured.isFile()) {
-                return configured;
-            }
-            log.warn("configured douyin cover does not exist, will extract a frame: {}",
-                    configured.getAbsolutePath());
-        }
-
-        File workThumbnail = new File(recordPath, RecordConstant.THUMBNAIL_FILE_NAME);
-        if (workThumbnail.isFile()) {
-            return workThumbnail;
-        }
-
+    private File extractFirstFrameCover(String recordPath, File videoFile) {
         File coverDir = new File(recordPath, getType() + "-cover");
         if (!coverDir.exists() && !coverDir.mkdirs()) {
             throw new IllegalStateException("无法创建抖音封面目录: " + coverDir.getAbsolutePath());
         }
-        ScreenshotCmd screenshot = new ScreenshotCmd(videoFile, coverDir, 1, 1,
-                "scale=trunc(iw/2)*2:trunc(ih/2)*2", 1, 1, false);
+        String videoName = videoFile.getName();
+        int extensionIndex = videoName.lastIndexOf('.');
+        String videoPrefix = extensionIndex > 0 ? videoName.substring(0, extensionIndex) : videoName;
+        File firstFrame = new File(coverDir, videoPrefix + "#1.jpg");
+
+        ScreenshotCmd screenshot = new ScreenshotCmd(videoFile, coverDir, 0, 1,
+                "scale=trunc(iw/2)*2:trunc(ih/2)*2", 1, 1, true);
         screenshot.execute(120);
-        List<File> snapshots = screenshot.getSnapshotFiles();
-        if (CollectionUtils.isEmpty(snapshots) || !snapshots.get(0).isFile()) {
-            throw new IllegalStateException("从精彩视频提取抖音封面失败: " + videoFile.getAbsolutePath());
+        if (!screenshot.isNormalExit() || !firstFrame.isFile()) {
+            throw new IllegalStateException("从精彩视频提取第一帧封面失败: " + videoFile.getAbsolutePath());
         }
-        return snapshots.get(0);
+        return firstFrame;
     }
 }

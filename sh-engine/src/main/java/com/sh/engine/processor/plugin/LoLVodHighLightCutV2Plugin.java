@@ -8,10 +8,9 @@ import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.highlight.SnapshotVideoInterval;
 import com.sh.engine.model.highlight.VideoInterval;
-import com.sh.engine.model.highlight.lol.LoLPicData;
+import com.sh.engine.model.highlight.lol.LolKdaTimelinePoint;
 import com.sh.engine.processor.plugin.lol.LolHighlightIntervalSelector;
-import com.sh.engine.processor.plugin.lol.LolHighlightSnapshotService;
-import com.sh.engine.processor.plugin.lol.LolKdaSequenceAnalyzer;
+import com.sh.engine.processor.plugin.lol.LolKdaTimelineService;
 import com.sh.engine.service.VideoMergeService;
 import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
@@ -38,9 +37,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
     private static final Pattern SOURCE_VIDEO_PATTERN = Pattern.compile("(?i)^P\\d+\\.mp4$");
 
     @Resource
-    private LolHighlightSnapshotService snapshotService;
-    @Resource
-    private LolKdaSequenceAnalyzer sequenceAnalyzer;
+    private LolKdaTimelineService timelineService;
     @Resource
     private LolHighlightIntervalSelector intervalSelector;
     @Resource
@@ -67,14 +64,13 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
             return true;
         }
 
-        List<File> kdaSnapshots = snapshotService.createKdaSnapshots(recordPath, sourceVideos);
-        if (CollectionUtils.isEmpty(kdaSnapshots)) {
+        List<LolKdaTimelinePoint> timeline = timelineService.buildScoredTimeline(
+                recordPath, sourceVideos);
+        if (CollectionUtils.isEmpty(timeline)) {
             return true;
         }
 
-        List<LoLPicData> scoredSequence = sequenceAnalyzer.analyze(kdaSnapshots, recordPath);
-        List<SnapshotVideoInterval> highlightIntervals = intervalSelector.select(
-                kdaSnapshots, scoredSequence);
+        List<SnapshotVideoInterval> highlightIntervals = intervalSelector.select(timeline);
         log.info("find topNIntervals: {}", JSON.toJSONString(highlightIntervals));
         if (CollectionUtils.isEmpty(highlightIntervals)) {
             log.info("no highlight interval found, skip video merge, path: {}", recordPath);

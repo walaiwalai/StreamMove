@@ -5,11 +5,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.model.StreamerInfoHolder;
-import com.sh.engine.model.ffmpeg.ScreenshotCmd;
+import com.sh.engine.model.highlight.lol.LolKdaTimelinePoint;
 import com.sh.engine.model.highlight.lol.LoLPicData;
 import com.sh.engine.model.highlight.lol.LolSequenceScorer;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -36,6 +35,8 @@ public class LolKdaSequenceAnalyzer {
 
     @Resource
     private LolOcrClient ocrClient;
+    @Resource
+    private LolTimestampFrameExtractor frameExtractor;
 
     public List<LoLPicData> analyze(List<File> snapshots, String recordPath) {
         File detailDirectory = new File(recordPath, DETAIL_SNAPSHOT_DIR);
@@ -51,6 +52,35 @@ public class LolKdaSequenceAnalyzer {
                     snapshots.size(), requestCount, Math.max(0, snapshots.size() - requestCount));
             OCR_REQUEST_COUNT.remove();
         }
+    }
+
+    public List<LolKdaTimelinePoint> scoreTimeline(List<LolKdaTimelinePoint> timeline,
+                                                    String recordPath) {
+        if (timeline.isEmpty()) {
+            return timeline;
+        }
+        File detailDirectory = new File(recordPath, DETAIL_SNAPSHOT_DIR);
+        detailDirectory.mkdirs();
+
+        for (int i = 1; i < timeline.size(); i++) {
+            LolKdaTimelinePoint previousPoint = timeline.get(i - 1);
+            LolKdaTimelinePoint currentPoint = timeline.get(i);
+            recognizeHighlightDetail(
+                    recordPath,
+                    currentPoint.getSourceVideo(),
+                    currentPoint.getSecondFromVideoStart(),
+                    previousPoint.getPicData(),
+                    currentPoint.getPicData());
+        }
+
+        List<LoLPicData> rawSequence = timeline.stream()
+                .map(LolKdaTimelinePoint::getPicData)
+                .collect(java.util.stream.Collectors.toList());
+        List<LoLPicData> scoredSequence = new LolSequenceScorer(rawSequence).getSequences();
+        for (int i = 0; i < timeline.size(); i++) {
+            timeline.get(i).setPicData(scoredSequence.get(i));
+        }
+        return timeline;
     }
 
     private List<LoLPicData> recognizeKdaSequence(List<File> snapshots, String recordPath) {
@@ -188,22 +218,25 @@ public class LolKdaSequenceAnalyzer {
                                           File kdaSnapshot,
                                           LoLPicData previous,
                                           LoLPicData current) {
+        File sourceVideo = VideoFileUtil.getSourceVideoFile(kdaSnapshot);
+        int snapshotIndex = VideoFileUtil.getSnapshotIndex(kdaSnapshot);
+        int startSecond = (snapshotIndex - 1) * SNAP_INTERVAL_SECONDS;
+        recognizeHighlightDetail(recordPath, sourceVideo, startSecond, previous, current);
+    }
+
+    private void recognizeHighlightDetail(String recordPath,
+                                          File sourceVideo,
+                                          int startSecond,
+                                          LoLPicData previous,
+                                          LoLPicData current) {
         if (!hasKillOrAssistIncrease(previous, current)) {
             return;
         }
 
         File detailDirectory = new File(recordPath, DETAIL_SNAPSHOT_DIR);
-        File sourceVideo = VideoFileUtil.getSourceVideoFile(kdaSnapshot);
-        int snapshotIndex = VideoFileUtil.getSnapshotIndex(kdaSnapshot);
-        double startSecond = (snapshotIndex - 1) * SNAP_INTERVAL_SECONDS;
-
-        ScreenshotCmd command = new ScreenshotCmd(
-                sourceVideo, detailDirectory, (int) Math.round(startSecond), 1,
-                KILL_DETAIL_CROP_EXPRESSION, SNAP_INTERVAL_SECONDS, 1, false);
-        command.execute(600);
-        if (CollectionUtils.isNotEmpty(command.getSnapshotFiles())) {
-            current.setHeroKADetail(ocrClient.recognizeKillDetail(command.getSnapshotFiles().get(0)));
-        }
+        File detailSnapshot = frameExtractor.extract(
+                sourceVideo, startSecond, KILL_DETAIL_CROP_EXPRESSION, detailDirectory);
+        current.setHeroKADetail(ocrClient.recognizeKillDetail(detailSnapshot));
     }
 
     private boolean hasKillOrAssistIncrease(LoLPicData previous, LoLPicData current) {

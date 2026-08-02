@@ -175,7 +175,7 @@ system.storage.mounted=false
 
 - 账号登录态文件为 `${sh.account-save.path}/douyin-cookies.json`，格式是 Playwright `storageState` JSON，不是单独复制出来的 Cookie 请求头。
 - 首次使用或登录过期时，需要在可见浏览器中打开抖音创作者中心并扫码登录，再保存该文件；`DOU_YIN` 与 `DOU_YIN_WEB` 共用这份登录态。
-- 上传器只处理录制目录下精彩剪辑生成的 `highlight.mp4`。封面依次使用主播配置的 `cover_file_path`、录制目录下的 `work-thumbnail.jpg`，否则自动从视频中截取一帧。
+- 上传器只处理录制目录下精彩剪辑生成的 `highlight.mp4`，封面固定使用该视频的第一帧截图，不读取 `cover_file_path` 或 `work-thumbnail.jpg`。
 - Java 负责 AWS4 签名、视频分片和封面文件字节传输；无界面浏览器承载创作者中心安全脚本，以及与浏览器会话绑定的 VOD/ImageX 小型控制面请求和最终 `create_v2` 提交。这里没有页面点击自动化，但并非完全脱离浏览器。
 - 作品按本次抓包确认的参数公开发布。标题来自 `template_title`（创作者中心限制 30 字），描述来自 `desc`，话题来自 `tags`；描述和话题合计按页面限制控制在 1000 字以内。
 - 相同视频再次提交时，抖音可能返回 `517 / 视频已发布`；上传器将其作为幂等成功处理，避免反复重试。该网页协议不是抖音开放平台的稳定公开 API，网页升级后可能需要重新抓包适配。
