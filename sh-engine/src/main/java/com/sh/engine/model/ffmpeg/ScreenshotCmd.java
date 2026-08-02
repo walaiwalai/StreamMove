@@ -46,6 +46,11 @@ public class ScreenshotCmd extends AbstractCmd {
     private static String buildCommand(File sourceFile, File snapShotDir, int ss, int snapShotCnt, String corpExp, int intervalSeconds, int startIndex, boolean isAccurateLocation) {
         // 构建截图目标文件路径
         String targetFilePath = new File(snapShotDir, FileUtil.getPrefix(sourceFile) + "#%d.jpg").getAbsolutePath();
+        // AbstractCmd uses /bin/sh -c on Linux. FFmpeg filter expressions commonly contain
+        // parentheses and asterisks, so leaving -vf unquoted makes the shell parse them as syntax.
+        String videoFilter = "\"" + corpExp.replace("\"", "\\\"")
+                + ",fps=1/" + intervalSeconds
+                + (isAccurateLocation ? ",format=yuv420p" : "") + "\"";
         List<String> params;
         if (isAccurateLocation) {
             // --ss 放在-i之后用于精准定位，会完整解码从视频开头到目标时间点的所有帧，确保准确定位到 480 秒的精确画面，误差可控制在毫秒级。
@@ -53,7 +58,7 @@ public class ScreenshotCmd extends AbstractCmd {
                     "ffmpeg", "-y",
                     "-i", "\"" + sourceFile.getAbsolutePath() + "\"",
                     "-ss", String.valueOf(ss),
-                    "-vf", corpExp + ",fps=1/" + intervalSeconds + ",format=yuv420p",
+                    "-vf", videoFilter,
                     "-start_number", String.valueOf(startIndex),
                     "-vframes", String.valueOf(snapShotCnt),
                     "-q:v", "5",
@@ -66,7 +71,7 @@ public class ScreenshotCmd extends AbstractCmd {
                     "-ss", String.valueOf(ss),
 //                    "-threads", String.valueOf(CORE_COUNT),
                     "-i", "\"" + sourceFile.getAbsolutePath() + "\"",
-                    "-vf", corpExp + ",fps=1/" + intervalSeconds,
+                    "-vf", videoFilter,
                     "-start_number", String.valueOf(startIndex),
                     "-vframes", String.valueOf(snapShotCnt),
                     "-q:v", "5",
