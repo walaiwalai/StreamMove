@@ -52,6 +52,7 @@ public class UploaderFactory {
         }
 
         accountKeymap.put(UploadPlatformEnum.DOU_YIN_WEB.getType(), "douyin-cookies.json");
+        accountKeymap.put(UploadPlatformEnum.WECHAT_VIDEO_WEB.getType(), "wechat-video-cookies.json");
     }
 
     public static Uploader getUploader(String type) {

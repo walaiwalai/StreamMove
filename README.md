@@ -161,6 +161,7 @@ system.storage.mounted=false
     - BILI_WEB：B站网页端上传
     - DOU_YIN：抖音页面自动化上传
     - DOU_YIN_WEB：抖音创作者中心网页链路上传（仅上传 `highlight.mp4`）
+    - WECHAT_VIDEO_WEB：微信视频号助手网页链路上传（仅上传 `highlight.mp4`）
     - ALI_PAN: 阿里云盘上传
     - BAIDU_PAN: 百度云盘上传
     - QUARK_PAN: 夸克云盘上传
@@ -179,6 +180,14 @@ system.storage.mounted=false
 - Java 负责 AWS4 签名、视频分片和封面文件字节传输；无界面浏览器承载创作者中心安全脚本，以及与浏览器会话绑定的 VOD/ImageX 小型控制面请求和最终 `create_v2` 提交。这里没有页面点击自动化，但并非完全脱离浏览器。
 - 作品按本次抓包确认的参数公开发布。标题来自 `template_title`（创作者中心限制 30 字），描述来自 `desc`，话题来自 `tags`；描述和话题合计按页面限制控制在 1000 字以内。
 - 相同视频再次提交时，抖音可能返回 `517 / 视频已发布`；上传器将其作为幂等成功处理，避免反复重试。该网页协议不是抖音开放平台的稳定公开 API，网页升级后可能需要重新抓包适配。
+
+微信视频号网页链路上传（`WECHAT_VIDEO_WEB`）：
+
+- 账号登录态文件为 `${sh.account-save.path}/wechat-video-cookies.json`，格式是 Playwright `storageState` JSON。首次使用或登录过期时，需要打开[微信视频号助手](https://channels.weixin.qq.com/platform/post/create)扫码登录并重新保存。
+- 上传器只处理录制目录下的 `highlight.mp4`；封面固定从该视频第一帧生成 JPEG，不读取 `cover_file_path` 或默认缩略图。
+- Java/OkHttp 按创作者中心当前协议执行 8 MiB 分片、视频和首帧封面上传；无界面浏览器只维持登录与创作者中心安全上下文，并提交定位、裁剪、预检查和发布等小型控制请求。
+- 作品按抓包确认的默认新建作品链路公开发布。`template_title` 映射到 `objectDesc.mpTitle`，`desc` 映射到描述，`tags` 同时映射到描述中的 `#话题`、顶层 `topics` 和 `finderTopicInfo`。默认位置使用创作者中心定位接口返回值。
+- 本地上传完成标识使用本次请求的 `clientid`，因为创作者中心前端只根据 `errCode == 0` 判断发表成功，并不依赖返回作品 ID。该网页协议不是微信开放平台的稳定公开 API，页面升级后可能需要重新抓包适配。
 
 ### 4. alist配置
 
