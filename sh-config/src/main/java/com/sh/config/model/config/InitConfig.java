@@ -27,6 +27,14 @@ public class InitConfig {
      */
     private String fileCleanCron;
     /**
+     * 上传未完成超过此小时数后，仅保留 highlight.mp4 和状态文件
+     */
+    private Integer failedUploadKeepHighlightHours = 6;
+    /**
+     * 上传未完成超过此小时数后，告警并删除整个录像目录
+     */
+    private Integer failedUploadDeleteHours = 24;
+    /**
      * 刷新配置cron
      */
     private String configRefreshCron;

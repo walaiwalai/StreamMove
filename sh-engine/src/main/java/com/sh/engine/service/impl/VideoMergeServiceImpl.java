@@ -38,6 +38,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class VideoMergeServiceImpl implements VideoMergeService {
     private static final int COPY_RETRY = 5;
+    private static final int VERTICAL_OUTPUT_WIDTH = 1080;
+    private static final int VERTICAL_OUTPUT_HEIGHT = 1920;
+    private static final int VERTICAL_GAME_WIDTH_RATIO = 8;
+    private static final int VERTICAL_GAME_HEIGHT_RATIO = 9;
+    private static final String VERTICAL_BACKGROUND_COLOR = "0x101218";
 
     @Override
     public boolean concatWithSameVideo(List<String> mergedFps, File targetVideo) {
@@ -85,6 +90,18 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
     @Override
     public boolean mergeWithCover(List<VideoInterval> intervals, File targetVideo, String title) {
+        return mergeWithCover(intervals, targetVideo, title, false);
+    }
+
+    @Override
+    public boolean mergeVerticalWithCover(List<VideoInterval> intervals, File targetVideo, String title) {
+        return mergeWithCover(intervals, targetVideo, title, true);
+    }
+
+    private boolean mergeWithCover(List<VideoInterval> intervals,
+                                   File targetVideo,
+                                   String title,
+                                   boolean verticalLayout) {
         if (CollectionUtils.isEmpty(intervals)) {
             log.info("empty video intervals, skip merge, target: {}", targetVideo.getAbsolutePath());
             return false;
@@ -106,8 +123,12 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         detectCmd.execute(50);
         int width = detectCmd.getWidth();
         int height = detectCmd.getHeight();
-        int fontSize = Math.max(height / 13, 20);
-        PictureFileUtil.createTextWithVeil(title, width, height, fontSize, thumbnailFile);
+        int outputWidth = verticalLayout ? VERTICAL_OUTPUT_WIDTH : width;
+        int outputHeight = verticalLayout ? VERTICAL_OUTPUT_HEIGHT : height;
+        int fontSize = Math.max(outputHeight / 13, 20);
+        PictureFileUtil.createTextWithVeil(title, outputWidth, outputHeight, fontSize, thumbnailFile);
+
+        String verticalVideoFilter = verticalLayout ? buildVerticalVideoFilter(width, height) : null;
 
         StringBuilder command = new StringBuilder("ffmpeg -y -loglevel error");
         for (VideoInterval interval : intervals) {
@@ -126,8 +147,11 @@ public class VideoMergeServiceImpl implements VideoMergeService {
             double fadeDuration = Math.min(0.5, duration / 2.0);
             double fadeOutStart = Math.max(0.0, duration - fadeDuration);
 
-            filter.append('[').append(i).append(":v]")
-                    .append("setpts=PTS-STARTPTS,format=yuv420p");
+            filter.append('[').append(i).append(":v]");
+            if (verticalLayout) {
+                filter.append(verticalVideoFilter).append(',');
+            }
+            filter.append("setpts=PTS-STARTPTS,format=yuv420p");
             if (i > 0) {
                 filter.append(String.format(Locale.ROOT, ",fade=t=in:st=0:d=%.3f", fadeDuration));
             }
@@ -169,6 +193,33 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                 FileUtils.deleteQuietly(tmpSaveDir);
             }
         }
+    }
+
+    static String buildVerticalVideoFilter(int sourceWidth, int sourceHeight) {
+        if (sourceWidth <= 0 || sourceHeight <= 0) {
+            throw new IllegalArgumentException("invalid source video size: " + sourceWidth + "x" + sourceHeight);
+        }
+
+        int cropWidth = sourceHeight * VERTICAL_GAME_WIDTH_RATIO / VERTICAL_GAME_HEIGHT_RATIO;
+        cropWidth = Math.min(sourceWidth, cropWidth);
+        cropWidth -= cropWidth % 2;
+        if (cropWidth <= 0) {
+            throw new IllegalArgumentException("invalid vertical crop width: " + cropWidth);
+        }
+
+        int cropX = Math.max(0, (sourceWidth - cropWidth) / 2);
+        cropX -= cropX % 2;
+        if ((long) sourceHeight * VERTICAL_OUTPUT_WIDTH > (long) cropWidth * VERTICAL_OUTPUT_HEIGHT) {
+            throw new IllegalArgumentException(
+                    "source video is too narrow for vertical layout: " + sourceWidth + "x" + sourceHeight);
+        }
+
+        return String.format(Locale.ROOT,
+                "crop=%d:%d:%d:0,scale=%d:-2:flags=fast_bilinear," +
+                        "pad=%d:%d:0:(oh-ih)/2:color=%s",
+                cropWidth, sourceHeight, cropX,
+                VERTICAL_OUTPUT_WIDTH, VERTICAL_OUTPUT_WIDTH, VERTICAL_OUTPUT_HEIGHT,
+                VERTICAL_BACKGROUND_COLOR);
     }
 
     @Override

@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -38,6 +39,11 @@ public class FileStatusModel {
      * 各平台上传完成情况
      */
     private List<String> finishedPlatforms = Lists.newArrayList();
+
+    /**
+     * 各平台首次投稿失败时间。用于失败文件保留和清理，不因后续重试而刷新。
+     */
+    private Map<String, Long> firstPostFailureTimeMap = Maps.newHashMap();
     
     /**
      * 视频元信息映射，键为视频文件名，值为视频相关信息
@@ -90,6 +96,35 @@ public class FileStatusModel {
 
     public void finishPost(String platform) {
         finishedPlatforms.add(platform);
+        if (firstPostFailureTimeMap != null) {
+            firstPostFailureTimeMap.remove(platform);
+        }
+    }
+
+    public void failPost(String platform) {
+        failPost(platform, System.currentTimeMillis());
+    }
+
+    public void failPost(String platform, long failedAt) {
+        if (firstPostFailureTimeMap == null) {
+            firstPostFailureTimeMap = Maps.newHashMap();
+        }
+        firstPostFailureTimeMap.putIfAbsent(platform, failedAt);
+    }
+
+    public long getEarliestPostFailureTime(Collection<String> platforms) {
+        if (firstPostFailureTimeMap == null || firstPostFailureTimeMap.isEmpty()
+                || platforms == null || platforms.isEmpty()) {
+            return 0L;
+        }
+        long earliest = Long.MAX_VALUE;
+        for (String platform : platforms) {
+            Long failedAt = firstPostFailureTimeMap.get(platform);
+            if (failedAt != null && failedAt > 0) {
+                earliest = Math.min(earliest, failedAt);
+            }
+        }
+        return earliest == Long.MAX_VALUE ? 0L : earliest;
     }
 
     public boolean isFinishedPlugin(String pluginName) {

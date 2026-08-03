@@ -1,6 +1,8 @@
 {
     "roomCheckCron": "20 2/5 * * * ?",
     "fileCleanCron": "0 5/15 * * * ?",
+    "failedUploadKeepHighlightHours": 6,
+    "failedUploadDeleteHours": 24,
     "configRefreshCron": "0 0/30 * * * ?",
     "maxRecordingCount": 5,
     "videoPartLimitSize": 100,

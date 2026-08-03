@@ -90,14 +90,23 @@ public class WorkUploadStageProcessor extends AbstractStageProcessor {
                 if (success) {
                     log.info("{}'s {} platform upload success, path: {}. ", streamerName, platform, curRecordPath);
                     msgSendService.sendText(curRecordPath + "路径下的视频上传成功, 类型:" + platform);
-
-                    // 上传平台成功状态记录
-                    fileStatusModel.finishPost(platform);
-                    fileStatusModel.writeSelfToFile(curRecordPath);
                 } else {
                     log.info("{}'s {} platform upload fail, path: {}. ", streamerName, platform, curRecordPath);
                     msgSendService.sendText(curRecordPath + "路径下的视频上传失败, 类型:" + platform);
                 }
+
+                // 上传器可能已经写入 uploadInfo，重新加载以避免用旧对象覆盖最新状态。
+                FileStatusModel latestStatus = FileStatusModel.loadFromFile(curRecordPath);
+                if (latestStatus == null) {
+                    latestStatus = fileStatusModel;
+                }
+                if (success) {
+                    latestStatus.finishPost(platform);
+                } else {
+                    latestStatus.failPost(platform);
+                }
+                latestStatus.writeSelfToFile(curRecordPath);
+                fileStatusModel = latestStatus;
 
             }
         }

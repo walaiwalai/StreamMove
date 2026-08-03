@@ -101,7 +101,7 @@ public class LoLVodHighLightCutV2Plugin implements VideoProcessPlugin {
         String title = DateUtil.describeTime(recordTime, DateUtil.YYYY_MM_DD_HH_MM_SS_V2)
                 + "\n" + StreamerInfoHolder.getCurStreamerName() + "直播精彩片段";
         List<VideoInterval> videoIntervals = new ArrayList<>(highlightIntervals);
-        return videoMergeService.mergeWithCover(videoIntervals, highlightFile, title);
+        return videoMergeService.mergeVerticalWithCover(videoIntervals, highlightFile, title);
     }
 
     private void notifyMergeResult(File highlightFile, boolean success) {
