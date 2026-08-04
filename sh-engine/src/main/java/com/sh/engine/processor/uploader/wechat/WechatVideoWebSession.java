@@ -295,8 +295,11 @@ public final class WechatVideoWebSession implements Closeable {
         long deadline = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(1);
         RuntimeException lastError = null;
         while (System.currentTimeMillis() < deadline) {
-            if (page.url().contains("/login")) {
-                throw new IllegalStateException("微信视频号登录态已失效，线上扫码登录未完成");
+            if (isLoginPage(page.url())) {
+                waitForQrLoginIfRequired();
+                deadline = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(1);
+                lastError = null;
+                continue;
             }
             if (findCreateFrame() != null) {
                 return;
@@ -323,6 +326,8 @@ public final class WechatVideoWebSession implements Closeable {
             throw new IllegalStateException("微信视频号登录态已失效，请重新扫码生成 wechat-video-cookies.json");
         }
 
+        // 延迟跳转到登录页时，URL 会先变化，二维码随后才完成渲染。
+        page.waitForTimeout(1_000);
         sendLoginQr(false);
 
         long deadline = System.currentTimeMillis()
@@ -344,6 +349,7 @@ public final class WechatVideoWebSession implements Closeable {
                 continue;
             }
             page.waitForTimeout(1_000);
+            resetBootstrapState();
             page.navigate(PLATFORM_HOME, new Page.NavigateOptions().setTimeout(60_000));
             if (isLoginPage(page.url())) {
                 throw new IllegalStateException("微信视频号扫码确认后仍未登录，请重新扫码");
@@ -385,6 +391,12 @@ public final class WechatVideoWebSession implements Closeable {
                 .setPath(Paths.get(storageStateFile.getAbsolutePath())));
     }
 
+    private void resetBootstrapState() {
+        uploadParams.set(null);
+        environmentInfo.set(null);
+        controlTemplate.set(null);
+    }
+
     private void markProfileReady() {
         if (profileReadyFile.isFile()) {
             return;
@@ -422,8 +434,11 @@ public final class WechatVideoWebSession implements Closeable {
     private void waitForBootstrap() {
         long deadline = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(1);
         while (System.currentTimeMillis() < deadline) {
-            if (page.url().contains("/login")) {
-                throw new IllegalStateException("微信视频号登录态已失效，请重新扫码生成 wechat-video-cookies.json");
+            if (isLoginPage(page.url())) {
+                waitForQrLoginIfRequired();
+                enterCreatePage();
+                deadline = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(1);
+                continue;
             }
             if (uploadParams.get() != null && environmentInfo.get() != null
                     && controlTemplate.get() != null) {
