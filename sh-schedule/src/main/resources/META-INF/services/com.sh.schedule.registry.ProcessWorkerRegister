@@ -2,4 +2,4 @@ com.sh.schedule.registry.MainWorkerRegister
 com.sh.schedule.registry.FileCleanWorkerRegister
 com.sh.schedule.registry.ConfigRefreshWorkerRegister
 com.sh.schedule.registry.RecordWorkingCheckWorkerRegister
-com.sh.schedule.registry.WechatVideoLoginCheckWorkerRegister
+com.sh.schedule.registry.WebUploaderLoginCheckWorkerRegister

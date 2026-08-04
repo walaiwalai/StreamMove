@@ -33,6 +33,10 @@ public enum UploadPlatformEnum {
         return type;
     }
 
+    public String getDesc() {
+        return desc;
+    }
+
     public static UploadPlatformEnum of(String type) {
         for (UploadPlatformEnum value : UploadPlatformEnum.values()) {
             if (value.type.equals(type)) {

@@ -27,9 +27,13 @@ public class InitConfig {
      */
     private String fileCleanCron;
     /**
-     * 微信视频号登录态主动检查和保活 cron，默认每 6 小时执行一次
+     * 网页上传平台登录态主动检查和保活 cron，默认每 6 小时执行一次
      */
-    private String wechatVideoLoginCheckCron = "0 0 0/6 * * ?";
+    private String webUploaderLoginCheckCron;
+    /**
+     * 旧配置名，保留用于兼容已经部署的 init.json
+     */
+    private String wechatVideoLoginCheckCron;
     /**
      * 上传未完成超过此小时数后，仅保留 highlight.mp4 和状态文件
      */

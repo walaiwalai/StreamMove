@@ -2,7 +2,6 @@ package com.sh.engine.processor.uploader.meituan;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Locator;
@@ -11,7 +10,10 @@ import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Request;
 import com.microsoft.playwright.Response;
 import com.microsoft.playwright.Route;
+import com.sh.engine.processor.uploader.browser.PersistentBrowserProfile;
+import com.sh.message.service.MsgSendService;
 import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import org.apache.commons.lang3.StringUtils;
@@ -19,7 +21,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.Closeable;
 import java.io.File;
 import java.net.URI;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -33,35 +34,39 @@ import java.util.function.Consumer;
  * Keeps the Meituan creator page security runtime alive. Browser-fingerprint-bound control APIs
  * run through the site's official Axios instance; Java OkHttp transfers cover and video bytes.
  */
+@Slf4j
 public final class MeituanWebSession implements Closeable {
     private static final String CONTENTS_ORIGIN = "https://contents.meituan.com";
     private static final String PUBLISH_PAGE = "https://czz.meituan.com/new/publishVideo";
     private static final String LOGIN_AUTH_PATH = "/api/author/creator/loginAuth";
     private static final String VIDEO_INPUT = "input[type='file'][accept*='video']";
+    private static final String PROFILE_DIR_NAME = "meituan-browser-profile";
 
-    private final File storageStateFile;
+    private final PersistentBrowserProfile browserProfile;
+    private final MsgSendService msgSendService;
     private final Playwright playwright;
-    private final Browser browser;
     private final BrowserContext context;
     private final Page page;
     private final AtomicReference<RequestTemplate> requestTemplate = new AtomicReference<>();
     private final AtomicReference<CreatorProfile> creatorProfile = new AtomicReference<>();
 
     public MeituanWebSession(File storageStateFile) {
-        if (storageStateFile == null || !storageStateFile.isFile()) {
-            throw new IllegalStateException("美团登录态文件不存在: "
-                    + (storageStateFile == null ? "null" : storageStateFile.getAbsolutePath()));
-        }
-        this.storageStateFile = storageStateFile;
+        this(storageStateFile, null);
+    }
+
+    public MeituanWebSession(File storageStateFile, MsgSendService msgSendService) {
+        this.browserProfile = new PersistentBrowserProfile(storageStateFile, PROFILE_DIR_NAME,
+                "美团");
+        this.msgSendService = msgSendService;
         this.playwright = Playwright.create();
-        this.browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
+        this.context = playwright.chromium().launchPersistentContext(browserProfile.getProfilePath(),
+                new BrowserType.LaunchPersistentContextOptions()
                 .setHeadless(true)
                 .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox",
-                        "--disable-blink-features=AutomationControlled")));
-        this.context = browser.newContext(new Browser.NewContextOptions()
-                .setStorageStatePath(Paths.get(storageStateFile.getAbsolutePath()))
+                        "--disable-blink-features=AutomationControlled"))
                 .setViewportSize(1440, 900));
-        this.page = context.newPage();
+        browserProfile.importLegacyStorageStateIfRequired(context);
+        this.page = context.pages().isEmpty() ? context.newPage() : context.pages().get(0);
         page.setDefaultTimeout(20_000);
         page.onRequest(this::captureRequestTemplate);
         page.onResponse(this::captureCreatorProfile);
@@ -70,6 +75,8 @@ public final class MeituanWebSession implements Closeable {
             page.navigate(PUBLISH_PAGE, new Page.NavigateOptions().setTimeout(60_000));
             waitForBootstrap();
             initializeOfficialHttpClient();
+            persistStorageState();
+            browserProfile.markReady();
         } catch (RuntimeException e) {
             close();
             throw e;
@@ -249,19 +256,12 @@ public final class MeituanWebSession implements Closeable {
     public void close() {
         try {
             if (context != null) {
-                context.storageState(new BrowserContext.StorageStateOptions()
-                        .setPath(Paths.get(storageStateFile.getAbsolutePath())));
+                persistStorageState();
                 context.close();
             }
         } finally {
-            try {
-                if (browser != null) {
-                    browser.close();
-                }
-            } finally {
-                if (playwright != null) {
-                    playwright.close();
-                }
+            if (playwright != null) {
+                playwright.close();
             }
         }
     }
@@ -271,7 +271,9 @@ public final class MeituanWebSession implements Closeable {
         Locator videoInput = page.locator(VIDEO_INPUT).first();
         while (System.currentTimeMillis() < deadline) {
             if (page.url().contains("/login")) {
-                throw new IllegalStateException("美团登录态已失效，请重新扫码生成 meituan-cookies.json");
+                notifyLoginExpired();
+                throw new IllegalStateException("美团登录态已失效；当前官网只提供手机号短信验证码登录，"
+                        + "请使用桌面 Cookies 维护工具重新登录并更新 meituan-cookies.json");
             }
             if (requestTemplate.get() != null && creatorProfile.get() != null
                     && videoInput.count() > 0) {
@@ -280,6 +282,24 @@ public final class MeituanWebSession implements Closeable {
             page.waitForTimeout(500);
         }
         throw new IllegalStateException("等待美团创作者页面初始化超时，登录态可能已失效");
+    }
+
+    private void persistStorageState() {
+        browserProfile.persistStorageState(context);
+    }
+
+    private void notifyLoginExpired() {
+        if (msgSendService == null) {
+            return;
+        }
+        String message = "美团创作者登录态已失效。服务器实际打开的美团官方登录页当前只提供"
+                + "手机号 + 短信验证码，没有可发送的二维码。请使用桌面的“视频平台 Cookies 维护工具”"
+                + "重新登录美团，并将 meituan-cookies.json 更新到服务器账号目录。";
+        try {
+            msgSendService.sendText(message);
+        } catch (RuntimeException e) {
+            log.error("Failed to send Meituan login-state notification: {}", message, e);
+        }
     }
 
     private void initializeOfficialHttpClient() {

@@ -99,7 +99,7 @@ system.storage.mounted=false
 {
   "roomCheckCron": "20 2/5 * * * ?",
   "fileCleanCron": "0 5/15 * * * ?",
-  "wechatVideoLoginCheckCron": "0 0 0/6 * * ?",
+  "webUploaderLoginCheckCron": "0 0 0/6 * * ?",
   "configRefreshCron": "0 0/30 * * * ?",
   "maxRecordingCount": 2,
   "videoPartLimitSize": 100,
@@ -119,7 +119,7 @@ system.storage.mounted=false
 
 - **roomCheckCron**     必填，主播是否在线的检测corn表达式，最好不要太频繁
 - **fileCleanCron**     必填，针对上传完的视频进行定时清理的cron表达式
-- **wechatVideoLoginCheckCron** 非必填，微信视频号登录态主动检查和保活cron表达式，默认每6小时
+- **webUploaderLoginCheckCron** 非必填，抖音、微信视频号和美团网页上传登录态主动检查与保活cron表达式，默认每6小时；旧配置名 `wechatVideoLoginCheckCron` 仍兼容
 - **configRefreshCron** 必填，刷新从数据库刷新主播配置的cron表达式
 - **videoPartLimitSize** 非必填，上传单个视频的最小大小（M）,默认是0
 - **maxRecordingCount**  非必填，同时最大的录播主播个数，默认2
@@ -177,7 +177,8 @@ system.storage.mounted=false
 抖音网页链路上传（`DOU_YIN_WEB`）：
 
 - 账号登录态文件为 `${sh.account-save.path}/douyin-cookies.json`，格式是 Playwright `storageState` JSON，不是单独复制出来的 Cookie 请求头。
-- 首次使用或登录过期时，需要在可见浏览器中打开抖音创作者中心并扫码登录，再保存该文件；`DOU_YIN` 与 `DOU_YIN_WEB` 共用这份登录态。
+- 首次部署会把旧 JSON 一次性迁移到服务器固定浏览器目录 `${sh.account-save.path}/douyin-browser-profile`。之后登录态以该目录为主，并持续回写 `douyin-cookies.json` 作为备份。
+- 登录失效时，服务器会把抖音创作者中心实际生成的二维码单独发送到企业微信，并等待最多 10 分钟；扫码成功后自动更新服务器登录态并继续上传。登录态有效时不会重复要求扫码。
 - 上传器只处理录制目录下精彩剪辑生成的 `highlight.mp4`，封面固定使用该视频的第一帧截图，不读取 `cover_file_path` 或 `work-thumbnail.jpg`。
 - Java 负责 AWS4 签名、视频分片和封面文件字节传输；无界面浏览器承载创作者中心安全脚本，以及与浏览器会话绑定的 VOD/ImageX 小型控制面请求和最终 `create_v2` 提交。这里没有页面点击自动化，但并非完全脱离浏览器。
 - 作品按本次抓包确认的参数公开发布。标题来自 `template_title`（创作者中心限制 30 字），描述来自 `desc`，话题来自 `tags`；描述和话题合计按页面限制控制在 1000 字以内。
@@ -185,11 +186,18 @@ system.storage.mounted=false
 
 微信视频号网页链路上传（`WECHAT_VIDEO_WEB`）：
 
-- 账号登录态文件为 `${sh.account-save.path}/wechat-video-cookies.json`，格式是 Playwright `storageState` JSON。首次使用或登录过期时，需要打开[微信视频号助手](https://channels.weixin.qq.com/platform/post/create)扫码登录并重新保存。
+- 账号登录态文件为 `${sh.account-save.path}/wechat-video-cookies.json`，格式是 Playwright `storageState` JSON。旧 JSON 首次迁移到 `${sh.account-save.path}/wechat-video-browser-profile` 后，登录态由服务器固定浏览器目录持续保存。
+- 登录失效时，服务器会单独发送官网二维码并等待扫码，成功后自动更新登录态；有效时不会重复扫码。
 - 上传器只处理录制目录下的 `highlight.mp4`；封面固定从该视频第一帧生成 JPEG，不读取 `cover_file_path` 或默认缩略图。
 - Java/OkHttp 按创作者中心当前协议执行 8 MiB 分片、视频和首帧封面上传；无界面浏览器只维持登录与创作者中心安全上下文，并提交定位、裁剪、预检查和发布等小型控制请求。
 - 作品按抓包确认的默认新建作品链路公开发布。`template_title` 映射到 `objectDesc.mpTitle`，`desc` 映射到描述，`tags` 同时映射到描述中的 `#话题`、顶层 `topics` 和 `finderTopicInfo`。默认位置使用创作者中心定位接口返回值。
 - 本地上传完成标识使用本次请求的 `clientid`，因为创作者中心前端只根据 `errCode == 0` 判断发表成功，并不依赖返回作品 ID。该网页协议不是微信开放平台的稳定公开 API，页面升级后可能需要重新抓包适配。
+
+美团网页链路上传（`MEI_TUAN_VIDEO`）：
+
+- 旧 `${sh.account-save.path}/meituan-cookies.json` 会一次性迁移到服务器固定浏览器目录 `${sh.account-save.path}/meituan-browser-profile`，后续访问和登录态刷新都使用该目录。
+- 当前实际抓取到的美团创作者官方登录页只有手机号和短信验证码，没有二维码。登录失效时系统会发送明确告警；需要用桌面的 Cookies 维护工具完成短信登录，再把 `meituan-cookies.json` 更新到服务器。系统不会把整个登录页截图冒充二维码。
+- 抖音、微信视频号和美团是否启用，会由 `webUploaderLoginCheckCron` 定时检查；未配置到任何主播的平台会自动跳过，并与实际上传共用平台信号量，避免同时打开同一浏览器目录。
 
 ### 4. alist配置
 

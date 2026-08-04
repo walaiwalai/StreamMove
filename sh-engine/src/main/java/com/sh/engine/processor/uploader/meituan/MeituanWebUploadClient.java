@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import com.sh.engine.processor.uploader.meta.MeituanWorkMetaData;
+import com.sh.message.service.MsgSendService;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
@@ -55,7 +56,11 @@ public final class MeituanWebUploadClient implements AutoCloseable {
     private final MeituanWebSession webSession;
 
     public MeituanWebUploadClient(File storageStateFile) {
-        this.webSession = new MeituanWebSession(storageStateFile);
+        this(storageStateFile, null);
+    }
+
+    public MeituanWebUploadClient(File storageStateFile, MsgSendService msgSendService) {
+        this.webSession = new MeituanWebSession(storageStateFile, msgSendService);
     }
 
     public UploadResult upload(File videoFile,

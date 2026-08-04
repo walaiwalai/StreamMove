@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
+import com.sh.message.service.MsgSendService;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
@@ -53,7 +54,11 @@ public final class DouyinWebUploadClient implements AutoCloseable {
     private Map<String, String> browserIdentityHeaders = Collections.emptyMap();
 
     public DouyinWebUploadClient(File storageStateFile) {
-        this.webSigner = new DouyinWebRequestSigner(storageStateFile);
+        this(storageStateFile, null);
+    }
+
+    public DouyinWebUploadClient(File storageStateFile, MsgSendService msgSendService) {
+        this.webSigner = new DouyinWebRequestSigner(storageStateFile, msgSendService);
     }
 
     public UploadResult upload(File videoFile, File coverFile, DouyinWorkMetaData metadata) throws Exception {

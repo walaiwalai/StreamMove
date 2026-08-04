@@ -1,7 +1,7 @@
 {
     "roomCheckCron": "20 2/5 * * * ?",
     "fileCleanCron": "0 5/15 * * * ?",
-    "wechatVideoLoginCheckCron": "0 0 0/6 * * ?",
+    "webUploaderLoginCheckCron": "0 0 0/6 * * ?",
     "failedUploadKeepHighlightHours": 6,
     "failedUploadDeleteHours": 24,
     "configRefreshCron": "0 0/30 * * * ?",

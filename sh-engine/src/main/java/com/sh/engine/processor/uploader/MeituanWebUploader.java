@@ -9,15 +9,20 @@ import com.sh.engine.model.ffmpeg.ScreenshotCmd;
 import com.sh.engine.model.video.RemoteSeverVideo;
 import com.sh.engine.processor.uploader.meituan.MeituanWebUploadClient;
 import com.sh.engine.processor.uploader.meta.MeituanWorkMetaData;
+import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.io.File;
 
 /** Uploads highlight.mp4 to Meituan Creator using Java HTTP and saved web login state. */
 @Slf4j
 @Component
 public class MeituanWebUploader extends Uploader {
+    @Resource
+    private MsgSendService msgSendService;
+
     @Override
     public String getType() {
         return UploadPlatformEnum.MEI_TUAN_VIDEO.getType();
@@ -31,9 +36,10 @@ public class MeituanWebUploader extends Uploader {
     @Override
     public void initUploader() {
         File accountFile = getAccoutFile();
-        if (!accountFile.isFile()) {
-            throw new IllegalStateException("美团登录态文件不存在，请扫码登录后保存到: "
-                    + accountFile.getAbsolutePath());
+        File accountDir = accountFile.getAbsoluteFile().getParentFile();
+        if (accountDir == null || (!accountDir.isDirectory() && !accountDir.mkdirs())) {
+            throw new IllegalStateException("无法创建美团账号目录: "
+                    + (accountDir == null ? "null" : accountDir.getAbsolutePath()));
         }
     }
 
@@ -64,7 +70,8 @@ public class MeituanWebUploader extends Uploader {
 
         log.info("begin meituan Java HTTP upload, video: {}, cover: {}",
                 videoFile.getAbsolutePath(), coverFile.getAbsolutePath());
-        try (MeituanWebUploadClient client = new MeituanWebUploadClient(getAccoutFile())) {
+        try (MeituanWebUploadClient client = new MeituanWebUploadClient(
+                getAccoutFile(), msgSendService)) {
             MeituanWebUploadClient.UploadResult result = client.upload(videoFile, coverFile,
                     metadata);
             saveUploadedVideo(recordPath, new RemoteSeverVideo(result.getContentId(),

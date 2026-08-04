@@ -9,15 +9,20 @@ import com.sh.engine.model.ffmpeg.ScreenshotCmd;
 import com.sh.engine.model.video.RemoteSeverVideo;
 import com.sh.engine.processor.uploader.douyin.DouyinWebUploadClient;
 import com.sh.engine.processor.uploader.meta.DouyinWorkMetaData;
+import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.io.File;
 
 /** Uploads highlight.mp4 with Java HTTP media transfer and the Creator page security context. */
 @Slf4j
 @Component
 public class DouyinWebUploader extends Uploader {
+    @Resource
+    private MsgSendService msgSendService;
+
     @Override
     public String getType() {
         return UploadPlatformEnum.DOU_YIN_WEB.getType();
@@ -31,9 +36,10 @@ public class DouyinWebUploader extends Uploader {
     @Override
     public void initUploader() {
         File accountFile = getAccoutFile();
-        if (!accountFile.isFile()) {
-            throw new IllegalStateException("抖音登录态文件不存在，请扫码登录后保存到: "
-                    + accountFile.getAbsolutePath());
+        File accountDir = accountFile.getAbsoluteFile().getParentFile();
+        if (accountDir == null || (!accountDir.isDirectory() && !accountDir.mkdirs())) {
+            throw new IllegalStateException("无法创建抖音账号目录: "
+                    + (accountDir == null ? "null" : accountDir.getAbsolutePath()));
         }
     }
 
@@ -64,7 +70,8 @@ public class DouyinWebUploader extends Uploader {
 
         log.info("begin douyin web HTTP upload, video: {}, cover: {}",
                 videoFile.getAbsolutePath(), coverFile.getAbsolutePath());
-        try (DouyinWebUploadClient client = new DouyinWebUploadClient(getAccoutFile())) {
+        try (DouyinWebUploadClient client = new DouyinWebUploadClient(
+                getAccoutFile(), msgSendService)) {
             DouyinWebUploadClient.UploadResult result = client.upload(videoFile, coverFile, metadata);
             saveUploadedVideo(recordPath, new RemoteSeverVideo(result.getItemId(),
                     videoFile.getAbsolutePath()));
