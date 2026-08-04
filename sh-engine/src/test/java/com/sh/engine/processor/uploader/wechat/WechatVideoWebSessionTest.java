@@ -16,4 +16,13 @@ public class WechatVideoWebSessionTest {
                 "https://channels.weixin.qq.com/platform"));
         assertFalse(WechatVideoWebSession.isLoginPage(null));
     }
+
+    @Test
+    public void identifiesWechatQrFrames() {
+        assertTrue(WechatVideoWebSession.isLoginQrFrame(
+                "https://open.weixin.qq.com/connect/qrconnect?appid=test"));
+        assertFalse(WechatVideoWebSession.isLoginQrFrame(
+                "https://channels.weixin.qq.com/login.html"));
+        assertFalse(WechatVideoWebSession.isLoginQrFrame(null));
+    }
 }

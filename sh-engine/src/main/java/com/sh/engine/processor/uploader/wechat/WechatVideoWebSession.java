@@ -29,6 +29,7 @@ import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -48,7 +49,11 @@ public final class WechatVideoWebSession implements Closeable {
     private static final String UPLOAD_PARAMS_PATH = "/helper/helper_upload_params";
     private static final String AUTH_DATA_PATH = "/auth/auth_data";
     private static final String CONTROL_TEMPLATE_PATH = "/post/get_finder_post_comm_info";
-    private static final String LOGIN_QR_FILE_NAME = "wechat-video-login-qr.png";
+    private static final String LOGIN_QR_FILE_NAME = "wechat-video-login-qr.jpg";
+    private static final String LOGIN_QR_FRAME_HOST = "open.weixin.qq.com";
+    private static final String LOGIN_QR_FRAME_PATH = "/connect/qrconnect";
+    private static final String LOGIN_QR_IMAGE_SELECTOR =
+            "img.js_qrcode_img.web_qrcode_img";
     private static final String PROFILE_DIR_NAME = "wechat-video-browser-profile";
     private static final String PROFILE_READY_FILE_NAME = ".streamer-record-profile-ready";
     private static final int LOGIN_WAIT_MINUTES = 10;
@@ -364,26 +369,89 @@ public final class WechatVideoWebSession implements Closeable {
     }
 
     private void sendLoginQr(boolean refreshed) {
-        File qrScreenshot = new File(storageStateFile.getAbsoluteFile().getParentFile(),
+        File qrImageFile = new File(storageStateFile.getAbsoluteFile().getParentFile(),
                 LOGIN_QR_FILE_NAME);
+        Locator qrImage = waitForLoginQrImage();
         try {
-            page.screenshot(new Page.ScreenshotOptions()
-                    .setPath(Paths.get(qrScreenshot.getAbsolutePath())));
+            saveOriginalQrImage(qrImage, qrImageFile);
         } catch (RuntimeException e) {
-            throw new IllegalStateException("截取微信视频号登录二维码失败", e);
+            log.warn("Failed to read original WeChat Channels QR image; "
+                    + "fall back to element screenshot", e);
+            qrImage.screenshot(new Locator.ScreenshotOptions()
+                    .setPath(Paths.get(qrImageFile.getAbsolutePath())));
         }
-        if (!qrScreenshot.isFile()) {
-            throw new IllegalStateException("微信视频号登录二维码截图未生成: "
-                    + qrScreenshot.getAbsolutePath());
+        if (!qrImageFile.isFile() || qrImageFile.length() == 0L) {
+            throw new IllegalStateException("微信视频号登录二维码图片未生成: "
+                    + qrImageFile.getAbsolutePath());
         }
 
-        log.warn("WeChat Channels login requires QR confirmation, refreshed: {}, screenshot: {}",
-                refreshed, qrScreenshot.getAbsolutePath());
+        log.warn("WeChat Channels login requires QR confirmation, refreshed: {}, QR image: {}",
+                refreshed, qrImageFile.getAbsolutePath());
         String prefix = refreshed ? "微信视频号登录二维码已刷新" : "微信视频号登录态已失效";
         notifyText(prefix + "，请在" + LOGIN_WAIT_MINUTES
                 + "分钟等待期内使用手机微信扫描随后发送的二维码。\n二维码所在机器路径: "
-                + qrScreenshot.getAbsolutePath());
-        notifyImage(qrScreenshot);
+                + qrImageFile.getAbsolutePath());
+        notifyImage(qrImageFile);
+    }
+
+    private Locator waitForLoginQrImage() {
+        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30);
+        while (System.currentTimeMillis() < deadline) {
+            for (Frame frame : page.frames()) {
+                if (!isLoginQrFrame(frame.url())) {
+                    continue;
+                }
+                try {
+                    Locator candidates = frame.locator(LOGIN_QR_IMAGE_SELECTOR);
+                    int count = candidates.count();
+                    for (int index = 0; index < count; index++) {
+                        Locator candidate = candidates.nth(index);
+                        if (candidate.isVisible() && Boolean.TRUE.equals(candidate.evaluate(
+                                "img => img.complete && img.naturalWidth > 0 "
+                                        + "&& img.naturalHeight > 0"))) {
+                            return candidate;
+                        }
+                    }
+                } catch (RuntimeException e) {
+                    // iframe 刷新时 Frame/Locator 可能短暂失效，下一轮重新查找。
+                    log.debug("WeChat Channels QR frame changed while waiting", e);
+                }
+            }
+            page.waitForTimeout(500);
+        }
+        throw new IllegalStateException("等待微信视频号登录二维码加载超时");
+    }
+
+    private static void saveOriginalQrImage(Locator qrImage, File targetFile) {
+        Object raw = qrImage.evaluate("async img => {"
+                + "const response = await fetch(img.currentSrc || img.src, "
+                + "{credentials: 'include'});"
+                + "if (!response.ok) throw new Error('HTTP ' + response.status);"
+                + "const bytes = new Uint8Array(await response.arrayBuffer());"
+                + "let binary = '';"
+                + "for (let offset = 0; offset < bytes.length; offset += 8192) {"
+                + "binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));"
+                + "}"
+                + "return btoa(binary);"
+                + "}");
+        String base64 = raw == null ? null : String.valueOf(raw);
+        if (StringUtils.isBlank(base64)) {
+            throw new IllegalStateException("微信视频号登录二维码返回了空图片");
+        }
+        try {
+            Files.write(targetFile.toPath(), Base64.getDecoder().decode(base64));
+        } catch (IOException | IllegalArgumentException e) {
+            throw new IllegalStateException("保存微信视频号登录二维码原图失败", e);
+        }
+    }
+
+    static boolean isLoginQrFrame(String url) {
+        if (url == null) {
+            return false;
+        }
+        HttpUrl parsed = HttpUrl.parse(url);
+        return parsed != null && LOGIN_QR_FRAME_HOST.equals(parsed.host())
+                && LOGIN_QR_FRAME_PATH.equals(parsed.encodedPath());
     }
 
     private void persistStorageState() {
