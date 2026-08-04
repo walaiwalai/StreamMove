@@ -9,15 +9,20 @@ import com.sh.engine.model.ffmpeg.ScreenshotCmd;
 import com.sh.engine.model.video.RemoteSeverVideo;
 import com.sh.engine.processor.uploader.meta.WechatVideoMetaData;
 import com.sh.engine.processor.uploader.wechat.WechatVideoWebUploadClient;
+import com.sh.message.service.MsgSendService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.io.File;
 
 /** Uploads highlight.mp4 to WeChat Channels using Java HTTP and the saved web login state. */
 @Slf4j
 @Component
 public class WechatVideoWebUploader extends Uploader {
+    @Resource
+    private MsgSendService msgSendService;
+
     @Override
     public String getType() {
         return UploadPlatformEnum.WECHAT_VIDEO_WEB.getType();
@@ -31,9 +36,10 @@ public class WechatVideoWebUploader extends Uploader {
     @Override
     public void initUploader() {
         File accountFile = getAccoutFile();
-        if (!accountFile.isFile()) {
-            throw new IllegalStateException("微信视频号登录态文件不存在，请扫码登录后保存到: "
-                    + accountFile.getAbsolutePath());
+        File accountDir = accountFile.getAbsoluteFile().getParentFile();
+        if (accountDir == null || (!accountDir.isDirectory() && !accountDir.mkdirs())) {
+            throw new IllegalStateException("无法创建微信视频号账号目录: "
+                    + (accountDir == null ? "null" : accountDir.getAbsolutePath()));
         }
     }
 
@@ -64,7 +70,8 @@ public class WechatVideoWebUploader extends Uploader {
 
         log.info("begin wechat channels Java HTTP upload, video: {}, cover: {}",
                 videoFile.getAbsolutePath(), coverFile.getAbsolutePath());
-        try (WechatVideoWebUploadClient client = new WechatVideoWebUploadClient(getAccoutFile())) {
+        try (WechatVideoWebUploadClient client = new WechatVideoWebUploadClient(
+                getAccoutFile(), msgSendService)) {
             WechatVideoWebUploadClient.UploadResult result = client.upload(videoFile, coverFile,
                     metadata);
             saveUploadedVideo(recordPath, new RemoteSeverVideo(result.getClientId(),

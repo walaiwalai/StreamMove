@@ -1,8 +1,8 @@
 package com.sh.engine.processor.uploader.wechat;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Frame;
@@ -11,19 +11,27 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Request;
 import com.microsoft.playwright.Response;
+import com.microsoft.playwright.options.Cookie;
+import com.microsoft.playwright.options.SameSiteAttribute;
+import com.sh.message.service.MsgSendService;
 import lombok.Value;
 import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -32,6 +40,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Keeps the WeChat Channels creator page security context alive for small control-plane calls.
  * Video and cover bytes are uploaded by {@link WechatVideoStorageClient}, not by Playwright.
  */
+@Slf4j
 public final class WechatVideoWebSession implements Closeable {
     private static final String ORIGIN = "https://channels.weixin.qq.com";
     private static final String PLATFORM_HOME = ORIGIN + "/platform";
@@ -39,11 +48,17 @@ public final class WechatVideoWebSession implements Closeable {
     private static final String UPLOAD_PARAMS_PATH = "/helper/helper_upload_params";
     private static final String AUTH_DATA_PATH = "/auth/auth_data";
     private static final String CONTROL_TEMPLATE_PATH = "/post/get_finder_post_comm_info";
+    private static final String LOGIN_QR_FILE_NAME = "wechat-video-login-qr.png";
+    private static final String PROFILE_DIR_NAME = "wechat-video-browser-profile";
+    private static final String PROFILE_READY_FILE_NAME = ".streamer-record-profile-ready";
+    private static final int LOGIN_WAIT_MINUTES = 10;
+    private static final int LOGIN_QR_REFRESH_MINUTES = 4;
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final File storageStateFile;
+    private final File profileReadyFile;
+    private final MsgSendService msgSendService;
     private final Playwright playwright;
-    private final Browser browser;
     private final BrowserContext context;
     private final Page page;
     private final AtomicReference<UploadParams> uploadParams = new AtomicReference<>();
@@ -51,28 +66,47 @@ public final class WechatVideoWebSession implements Closeable {
     private final AtomicReference<ControlTemplate> controlTemplate = new AtomicReference<>();
 
     public WechatVideoWebSession(File storageStateFile) {
-        if (storageStateFile == null || !storageStateFile.isFile()) {
-            throw new IllegalStateException("微信视频号登录态文件不存在: "
-                    + (storageStateFile == null ? "null" : storageStateFile.getAbsolutePath()));
+        this(storageStateFile, null);
+    }
+
+    public WechatVideoWebSession(File storageStateFile, MsgSendService msgSendService) {
+        if (storageStateFile == null) {
+            throw new IllegalStateException("微信视频号登录态文件路径不能为空");
+        }
+        File accountDir = storageStateFile.getAbsoluteFile().getParentFile();
+        if (accountDir == null || (!accountDir.isDirectory() && !accountDir.mkdirs())) {
+            throw new IllegalStateException("无法创建微信视频号账号目录: "
+                    + (accountDir == null ? "null" : accountDir.getAbsolutePath()));
+        }
+        File profileDir = new File(accountDir, PROFILE_DIR_NAME);
+        if (!profileDir.isDirectory() && !profileDir.mkdirs()) {
+            throw new IllegalStateException("无法创建微信视频号浏览器目录: "
+                    + profileDir.getAbsolutePath());
         }
         this.storageStateFile = storageStateFile;
+        this.profileReadyFile = new File(profileDir, PROFILE_READY_FILE_NAME);
+        this.msgSendService = msgSendService;
         this.playwright = Playwright.create();
-        this.browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
+        this.context = playwright.chromium().launchPersistentContext(
+                Paths.get(profileDir.getAbsolutePath()),
+                new BrowserType.LaunchPersistentContextOptions()
                 .setHeadless(true)
                 .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox",
-                        "--disable-blink-features=AutomationControlled")));
-        this.context = browser.newContext(new Browser.NewContextOptions()
-                .setStorageStatePath(Paths.get(storageStateFile.getAbsolutePath()))
+                        "--disable-blink-features=AutomationControlled"))
                 .setViewportSize(1440, 900));
-        this.page = context.newPage();
+        importLegacyStorageStateIfRequired();
+        this.page = context.pages().isEmpty() ? context.newPage() : context.pages().get(0);
         page.setDefaultTimeout(20_000);
         page.onResponse(this::captureBootstrapResponse);
         page.onRequest(this::captureControlTemplate);
 
         try {
             page.navigate(PLATFORM_HOME, new Page.NavigateOptions().setTimeout(60_000));
+            waitForQrLoginIfRequired();
             enterCreatePage();
             waitForBootstrap();
+            persistStorageState();
+            markProfileReady();
         } catch (RuntimeException e) {
             close();
             throw e;
@@ -90,6 +124,99 @@ public final class WechatVideoWebSession implements Closeable {
                 environment.cdnHost, environment.cdnHostList,
                 environment.asyncClipPostSwitch, environment.enableAllowAstraThumbCover,
                 environment.enablePostShareCoverUrl);
+    }
+
+    private void importLegacyStorageStateIfRequired() {
+        if (profileReadyFile.isFile() || !storageStateFile.isFile()) {
+            return;
+        }
+        JSONObject storageState;
+        try {
+            byte[] content = Files.readAllBytes(storageStateFile.toPath());
+            storageState = JSON.parseObject(new String(content, StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            log.warn("Existing WeChat Channels storage state cannot be imported; "
+                    + "continue with the server browser profile: {}",
+                    storageStateFile.getAbsolutePath(), e);
+            return;
+        }
+        if (storageState == null) {
+            return;
+        }
+
+        List<Cookie> cookies = new ArrayList<>();
+        JSONArray cookieArray = storageState.getJSONArray("cookies");
+        if (cookieArray != null) {
+            for (int index = 0; index < cookieArray.size(); index++) {
+                JSONObject source = cookieArray.getJSONObject(index);
+                String name = source == null ? null : source.getString("name");
+                String value = source == null ? null : source.getString("value");
+                if (StringUtils.isAnyBlank(name, value)) {
+                    continue;
+                }
+                Cookie cookie = new Cookie(name, value);
+                String domain = source.getString("domain");
+                String path = source.getString("path");
+                if (StringUtils.isNotBlank(domain)) {
+                    cookie.setDomain(domain);
+                    cookie.setPath(StringUtils.defaultIfBlank(path, "/"));
+                } else if (StringUtils.isNotBlank(source.getString("url"))) {
+                    cookie.setUrl(source.getString("url"));
+                } else {
+                    continue;
+                }
+                Double expires = source.getDouble("expires");
+                if (expires != null && expires >= 0D) {
+                    cookie.setExpires(expires);
+                }
+                Boolean httpOnly = source.getBoolean("httpOnly");
+                if (httpOnly != null) {
+                    cookie.setHttpOnly(httpOnly);
+                }
+                Boolean secure = source.getBoolean("secure");
+                if (secure != null) {
+                    cookie.setSecure(secure);
+                }
+                String sameSite = source.getString("sameSite");
+                if (StringUtils.isNotBlank(sameSite)) {
+                    try {
+                        cookie.setSameSite(SameSiteAttribute.valueOf(
+                                sameSite.toUpperCase(Locale.ROOT)));
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Ignore unsupported SameSite value while importing WeChat "
+                                + "Channels cookie: {}", sameSite);
+                    }
+                }
+                cookies.add(cookie);
+            }
+        }
+        if (!cookies.isEmpty()) {
+            context.addCookies(cookies);
+        }
+
+        JSONObject localStorageByOrigin = new JSONObject(true);
+        JSONArray origins = storageState.getJSONArray("origins");
+        if (origins != null) {
+            for (int index = 0; index < origins.size(); index++) {
+                JSONObject origin = origins.getJSONObject(index);
+                if (origin == null || StringUtils.isBlank(origin.getString("origin"))) {
+                    continue;
+                }
+                JSONArray items = origin.getJSONArray("localStorage");
+                if (items != null && !items.isEmpty()) {
+                    localStorageByOrigin.put(origin.getString("origin"), items);
+                }
+            }
+        }
+        if (!localStorageByOrigin.isEmpty()) {
+            context.addInitScript("(() => { const states = "
+                    + localStorageByOrigin.toJSONString()
+                    + "; const items = states[location.origin]; if (!items) return; "
+                    + "for (const item of items) { if (localStorage.getItem(item.name) === null) "
+                    + "localStorage.setItem(item.name, item.value); } })();");
+        }
+        log.info("Imported existing WeChat Channels storage state into server browser profile: {}",
+                storageStateFile.getAbsolutePath());
     }
 
     /** Executes one captured creator-center POST request in the authenticated browser frame. */
@@ -154,19 +281,12 @@ public final class WechatVideoWebSession implements Closeable {
     public void close() {
         try {
             if (context != null) {
-                context.storageState(new BrowserContext.StorageStateOptions()
-                        .setPath(Paths.get(storageStateFile.getAbsolutePath())));
+                persistStorageState();
                 context.close();
             }
         } finally {
-            try {
-                if (browser != null) {
-                    browser.close();
-                }
-            } finally {
-                if (playwright != null) {
-                    playwright.close();
-                }
+            if (playwright != null) {
+                playwright.close();
             }
         }
     }
@@ -176,7 +296,7 @@ public final class WechatVideoWebSession implements Closeable {
         RuntimeException lastError = null;
         while (System.currentTimeMillis() < deadline) {
             if (page.url().contains("/login")) {
-                throw new IllegalStateException("微信视频号登录态已失效，请重新扫码生成 wechat-video-cookies.json");
+                throw new IllegalStateException("微信视频号登录态已失效，线上扫码登录未完成");
             }
             if (findCreateFrame() != null) {
                 return;
@@ -193,6 +313,110 @@ public final class WechatVideoWebSession implements Closeable {
             page.waitForTimeout(1_000);
         }
         throw new IllegalStateException("无法进入微信视频号发表视频页面", lastError);
+    }
+
+    private void waitForQrLoginIfRequired() {
+        if (!isLoginPage(page.url())) {
+            return;
+        }
+        if (msgSendService == null) {
+            throw new IllegalStateException("微信视频号登录态已失效，请重新扫码生成 wechat-video-cookies.json");
+        }
+
+        sendLoginQr(false);
+
+        long deadline = System.currentTimeMillis()
+                + TimeUnit.MINUTES.toMillis(LOGIN_WAIT_MINUTES);
+        long nextRefresh = System.currentTimeMillis()
+                + TimeUnit.MINUTES.toMillis(LOGIN_QR_REFRESH_MINUTES);
+        while (System.currentTimeMillis() < deadline) {
+            page.waitForTimeout(1_000);
+            if (isLoginPage(page.url())) {
+                if (System.currentTimeMillis() >= nextRefresh) {
+                    page.reload(new Page.ReloadOptions().setTimeout(60_000));
+                    page.waitForTimeout(1_000);
+                    if (isLoginPage(page.url())) {
+                        sendLoginQr(true);
+                    }
+                    nextRefresh = System.currentTimeMillis()
+                            + TimeUnit.MINUTES.toMillis(LOGIN_QR_REFRESH_MINUTES);
+                }
+                continue;
+            }
+            page.waitForTimeout(1_000);
+            page.navigate(PLATFORM_HOME, new Page.NavigateOptions().setTimeout(60_000));
+            if (isLoginPage(page.url())) {
+                throw new IllegalStateException("微信视频号扫码确认后仍未登录，请重新扫码");
+            }
+            persistStorageState();
+            log.info("WeChat Channels QR login succeeded; storage state refreshed: {}",
+                    storageStateFile.getAbsolutePath());
+            notifyText("微信视频号扫码登录成功，线上登录态已更新，将继续上传视频。");
+            return;
+        }
+        throw new IllegalStateException("等待微信视频号扫码登录超时，请在下次二维码通知后重试");
+    }
+
+    private void sendLoginQr(boolean refreshed) {
+        File qrScreenshot = new File(storageStateFile.getAbsoluteFile().getParentFile(),
+                LOGIN_QR_FILE_NAME);
+        try {
+            page.screenshot(new Page.ScreenshotOptions()
+                    .setPath(Paths.get(qrScreenshot.getAbsolutePath())));
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("截取微信视频号登录二维码失败", e);
+        }
+        if (!qrScreenshot.isFile()) {
+            throw new IllegalStateException("微信视频号登录二维码截图未生成: "
+                    + qrScreenshot.getAbsolutePath());
+        }
+
+        log.warn("WeChat Channels login requires QR confirmation, refreshed: {}, screenshot: {}",
+                refreshed, qrScreenshot.getAbsolutePath());
+        String prefix = refreshed ? "微信视频号登录二维码已刷新" : "微信视频号登录态已失效";
+        notifyText(prefix + "，请在" + LOGIN_WAIT_MINUTES
+                + "分钟等待期内使用手机微信扫描随后发送的二维码。\n二维码所在机器路径: "
+                + qrScreenshot.getAbsolutePath());
+        notifyImage(qrScreenshot);
+    }
+
+    private void persistStorageState() {
+        context.storageState(new BrowserContext.StorageStateOptions()
+                .setPath(Paths.get(storageStateFile.getAbsolutePath())));
+    }
+
+    private void markProfileReady() {
+        if (profileReadyFile.isFile()) {
+            return;
+        }
+        try {
+            Files.write(profileReadyFile.toPath(),
+                    "server-profile-ready".getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new IllegalStateException("无法标记微信视频号服务器浏览器目录已初始化: "
+                    + profileReadyFile.getAbsolutePath(), e);
+        }
+    }
+
+    private void notifyText(String message) {
+        try {
+            msgSendService.sendText(message);
+        } catch (RuntimeException e) {
+            log.error("Failed to send WeChat Channels login notification: {}", message, e);
+        }
+    }
+
+    private void notifyImage(File imageFile) {
+        try {
+            msgSendService.sendImage(imageFile);
+        } catch (RuntimeException e) {
+            log.error("Failed to send WeChat Channels login QR image: {}",
+                    imageFile.getAbsolutePath(), e);
+        }
+    }
+
+    static boolean isLoginPage(String url) {
+        return url != null && url.contains("/login");
     }
 
     private void waitForBootstrap() {

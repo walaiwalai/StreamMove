@@ -99,6 +99,7 @@ system.storage.mounted=false
 {
   "roomCheckCron": "20 2/5 * * * ?",
   "fileCleanCron": "0 5/15 * * * ?",
+  "wechatVideoLoginCheckCron": "0 0 0/6 * * ?",
   "configRefreshCron": "0 0/30 * * * ?",
   "maxRecordingCount": 2,
   "videoPartLimitSize": 100,
@@ -118,6 +119,7 @@ system.storage.mounted=false
 
 - **roomCheckCron**     必填，主播是否在线的检测corn表达式，最好不要太频繁
 - **fileCleanCron**     必填，针对上传完的视频进行定时清理的cron表达式
+- **wechatVideoLoginCheckCron** 非必填，微信视频号登录态主动检查和保活cron表达式，默认每6小时
 - **configRefreshCron** 必填，刷新从数据库刷新主播配置的cron表达式
 - **videoPartLimitSize** 非必填，上传单个视频的最小大小（M）,默认是0
 - **maxRecordingCount**  非必填，同时最大的录播主播个数，默认2

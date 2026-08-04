@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.sh.engine.model.ffmpeg.VideoDurationDetectCmd;
 import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import com.sh.engine.processor.uploader.meta.WechatVideoMetaData;
+import com.sh.message.service.MsgSendService;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 
@@ -28,7 +29,11 @@ public final class WechatVideoWebUploadClient implements AutoCloseable {
     private final WechatVideoStorageClient storageClient;
 
     public WechatVideoWebUploadClient(File storageStateFile) {
-        this.session = new WechatVideoWebSession(storageStateFile);
+        this(storageStateFile, null);
+    }
+
+    public WechatVideoWebUploadClient(File storageStateFile, MsgSendService msgSendService) {
+        this.session = new WechatVideoWebSession(storageStateFile, msgSendService);
         this.uploadContext = session.getUploadContext();
         this.storageClient = new WechatVideoStorageClient(uploadContext);
     }
