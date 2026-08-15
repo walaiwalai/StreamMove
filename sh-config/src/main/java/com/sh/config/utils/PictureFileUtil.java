@@ -8,6 +8,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigInteger;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
@@ -17,6 +18,10 @@ import java.util.List;
  **/
 @Slf4j
 public class PictureFileUtil {
+    private static final String TITLE_FONT_NAME = "SimSun";
+    private static final int MIN_TITLE_FONT_SIZE = 20;
+    private static final int TITLE_HORIZONTAL_PADDING_PERCENT = 6;
+    private static final int TITLE_VERTICAL_PADDING_PERCENT = 6;
 
     public static void saveBase64Image(String base64Image, File targetQrFile) {
         try {
@@ -81,6 +86,9 @@ public class PictureFileUtil {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
 
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
         // 设置背景透明度 80% (alpha = 0.2 表示 80% 透明)
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
         g2d.setColor(Color.GRAY);
@@ -89,30 +97,26 @@ public class PictureFileUtil {
         // 重置透明度为完全不透明，用于绘制文本
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
 
-        // 设置字体和大小
-        Font font = new Font("SimSun", Font.PLAIN, fontSize);
-        g2d.setFont(font);
+        TextLayout layout = createTextLayout(g2d, text, width, height, fontSize);
+        g2d.setFont(layout.font);
 
-        // 计算多行文本位置
-        FontMetrics fontMetrics = g2d.getFontMetrics();
+        FontMetrics fontMetrics = layout.fontMetrics;
         int lineHeight = fontMetrics.getHeight();
-        String[] lines = text.split("\n");
-
-        int totalTextHeight = lines.length * lineHeight;
-        int yStart = (height - totalTextHeight) / 2;
+        int totalTextHeight = layout.lines.size() * lineHeight;
+        int yStart = Math.max(layout.verticalPadding, (height - totalTextHeight) / 2);
 
         // 绘制多行文本，横向居中
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i];
-            int textWidth = fontMetrics.stringWidth(line);
-            int x = (width - textWidth) / 2;
+        for (int i = 0; i < layout.lines.size(); i++) {
+            TextLine line = layout.lines.get(i);
+            int textWidth = fontMetrics.stringWidth(line.text);
+            int x = Math.max(layout.horizontalPadding, (width - textWidth) / 2);
             int y = yStart + i * lineHeight + fontMetrics.getAscent();
-            if (i % 2 == 0) {
+            if (line.sourceLineIndex % 2 == 0) {
                 g2d.setColor(Color.BLUE);
             } else {
                 g2d.setColor(Color.WHITE);
             }
-            g2d.drawString(line, x, y);
+            g2d.drawString(line.text, x, y);
         }
 
         // 释放 Graphics2D 对象
@@ -123,6 +127,126 @@ public class PictureFileUtil {
             ImageIO.write(image, "png", toFile);
         } catch (IOException e) {
             log.error("Error saving textOverlayImage: {}", toFile.getAbsolutePath());
+        }
+    }
+
+    /**
+     * 标题布局优先缩小字号以保留调用方传入的换行；达到可读字号下限后仍过宽时，
+     * 再按字符换行。布局同时受横向和纵向安全区约束。
+     */
+    static TextLayout createTextLayout(Graphics2D g2d, String text, int width, int height, int maxFontSize) {
+        int horizontalPadding = Math.max(1, width * TITLE_HORIZONTAL_PADDING_PERCENT / 100);
+        int verticalPadding = Math.max(1, height * TITLE_VERTICAL_PADDING_PERCENT / 100);
+        int maxTextWidth = Math.max(1, width - 2 * horizontalPadding);
+        int maxTextHeight = Math.max(1, height - 2 * verticalPadding);
+        int requestedFontSize = Math.max(1, maxFontSize);
+        int preferredMinFontSize = Math.min(requestedFontSize, MIN_TITLE_FONT_SIZE);
+        List<TextLine> sourceLines = splitSourceLines(text);
+
+        for (int candidate = requestedFontSize; candidate >= preferredMinFontSize; candidate--) {
+            TextLayout layout = newTextLayout(g2d, sourceLines, candidate,
+                    horizontalPadding, verticalPadding);
+            if (fits(layout, maxTextWidth, maxTextHeight)) {
+                return layout;
+            }
+        }
+
+        for (int candidate = preferredMinFontSize; candidate >= 1; candidate--) {
+            Font font = new Font(TITLE_FONT_NAME, Font.PLAIN, candidate);
+            g2d.setFont(font);
+            FontMetrics fontMetrics = g2d.getFontMetrics(font);
+            List<TextLine> wrappedLines = wrapLines(sourceLines, fontMetrics, maxTextWidth);
+            TextLayout layout = new TextLayout(font, fontMetrics, wrappedLines,
+                    horizontalPadding, verticalPadding);
+            if (fits(layout, maxTextWidth, maxTextHeight) || candidate == 1) {
+                return layout;
+            }
+        }
+
+        throw new IllegalStateException("unable to create title text layout");
+    }
+
+    private static TextLayout newTextLayout(Graphics2D g2d, List<TextLine> lines, int fontSize,
+                                            int horizontalPadding, int verticalPadding) {
+        Font font = new Font(TITLE_FONT_NAME, Font.PLAIN, fontSize);
+        g2d.setFont(font);
+        return new TextLayout(font, g2d.getFontMetrics(font), lines, horizontalPadding, verticalPadding);
+    }
+
+    private static boolean fits(TextLayout layout, int maxTextWidth, int maxTextHeight) {
+        if ((long) layout.lines.size() * layout.fontMetrics.getHeight() > maxTextHeight) {
+            return false;
+        }
+        for (TextLine line : layout.lines) {
+            if (layout.fontMetrics.stringWidth(line.text) > maxTextWidth) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static List<TextLine> splitSourceLines(String text) {
+        String normalizedText = text == null ? "" : text;
+        String[] rawLines = normalizedText.split("\\r?\\n", -1);
+        List<TextLine> lines = new ArrayList<>(rawLines.length);
+        for (int i = 0; i < rawLines.length; i++) {
+            lines.add(new TextLine(rawLines[i], i));
+        }
+        return lines;
+    }
+
+    private static List<TextLine> wrapLines(List<TextLine> sourceLines, FontMetrics fontMetrics,
+                                            int maxTextWidth) {
+        List<TextLine> wrappedLines = new ArrayList<>();
+        for (TextLine sourceLine : sourceLines) {
+            if (sourceLine.text.isEmpty()) {
+                wrappedLines.add(sourceLine);
+                continue;
+            }
+
+            StringBuilder currentLine = new StringBuilder();
+            for (int offset = 0; offset < sourceLine.text.length(); ) {
+                int codePoint = sourceLine.text.codePointAt(offset);
+                String character = new String(Character.toChars(codePoint));
+                if (currentLine.length() > 0
+                        && fontMetrics.stringWidth(currentLine.toString() + character) > maxTextWidth) {
+                    wrappedLines.add(new TextLine(currentLine.toString(), sourceLine.sourceLineIndex));
+                    currentLine.setLength(0);
+                }
+                currentLine.append(character);
+                offset += Character.charCount(codePoint);
+            }
+            if (currentLine.length() > 0) {
+                wrappedLines.add(new TextLine(currentLine.toString(), sourceLine.sourceLineIndex));
+            }
+        }
+        return wrappedLines;
+    }
+
+    static final class TextLayout {
+        final Font font;
+        final FontMetrics fontMetrics;
+        final List<TextLine> lines;
+        final int horizontalPadding;
+        final int verticalPadding;
+
+        private TextLayout(Font font, FontMetrics fontMetrics, List<TextLine> lines,
+                           int horizontalPadding, int verticalPadding) {
+            this.font = font;
+            this.fontMetrics = fontMetrics;
+            this.lines = lines;
+            this.horizontalPadding = horizontalPadding;
+            this.verticalPadding = verticalPadding;
+        }
+    }
+
+    static final class TextLine {
+        final String text;
+        final int sourceLineIndex;
+
+        private TextLine(String text, int sourceLineIndex) {
+            this.text = text;
+            this.sourceLineIndex = sourceLineIndex;
         }
     }
 

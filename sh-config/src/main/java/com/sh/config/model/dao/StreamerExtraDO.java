@@ -31,7 +31,6 @@ public class StreamerExtraDO {
      * 是否录制弹幕
      */
     private boolean recordDamaku;
-    private int recordQuality;
 
     /**
      * 上传到网盘后对文件后缀进行重命名（不含点）

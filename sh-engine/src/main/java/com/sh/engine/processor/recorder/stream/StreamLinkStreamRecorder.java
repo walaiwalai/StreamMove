@@ -47,11 +47,9 @@ public class StreamLinkStreamRecorder extends StreamRecorder {
 
     @Override
     public void initParam(String savePath) {
-        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
-
         StreamLinkCheckCmd checkCmd = new StreamLinkCheckCmd(this.roomUrl);
         checkCmd.execute(40);
-        this.qualityParam = checkCmd.selectQuality(Optional.ofNullable(streamerConfig.getRecordQuality()).orElse(0));
+        this.qualityParam = checkCmd.selectQuality(0);
 
         StreamLinkUrlFetchCmd streamLinkUrlFetchCmd = new StreamLinkUrlFetchCmd(this.roomUrl, this.qualityParam);
         streamLinkUrlFetchCmd.execute(20);

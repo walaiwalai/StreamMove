@@ -134,7 +134,6 @@ public class StreamerRepoServiceImpl implements StreamerRepoService {
             config.setCertainVodUrls(streamerExtraDO.getCertainVodUrls());
             config.setOnlyAudio(streamerExtraDO.isOnlyAudio());
             config.setRecordDamaku(streamerExtraDO.isRecordDamaku());
-            config.setRecordQuality(streamerExtraDO.getRecordQuality());
             config.setNetDiskFileRenameSuffix(streamerExtraDO.getNetDiskFileRenameSuffix());
         }
 
