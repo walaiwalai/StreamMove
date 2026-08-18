@@ -6,29 +6,23 @@ import com.alibaba.fastjson.JSONObject;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
-import com.sh.config.utils.FileStoreUtil;
 import com.sh.engine.event.StreamRecordEndEvent;
 import com.sh.engine.event.StreamRecordStartEvent;
 import com.sh.engine.manager.CacheBizManager;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
 import com.sh.engine.processor.recorder.stream.StreamUrlStreamRecorder;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
+import okhttp3.Request;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.io.File;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Streamrecorder.io 平台检查器
@@ -38,33 +32,18 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class StreamrecorderIOChecker extends AbstractRoomChecker {
-    private static final String STREAMER_RECORDER_DOMAIN = "streamrecorder.io";
-    private static final String COOKIES_FILE_NAME = "streamrecorder-io-cookies.txt";
 
     /**
      * 长视频阈值：14小时（秒），超过此时长使用720p下载
      */
     private static final int LONG_VIDEO_THRESHOLD_SECONDS = 20 * 60 * 60;
 
-    @Value("${streamerrecord.io.name}")
-    private String name;
-    @Value("${streamerrecord.io.password}")
-    private String password;
-    @Value("${sh.account-save.path}")
-    private String accountSavePath;
-
     @Resource
     private CacheBizManager cacheBizManager;
+    @Resource
+    private StreamrecorderIOLoginManager loginManager;
     @Autowired
     private ApplicationEventPublisher eventPublisher;
-
-    private static final OkHttpClient client = new OkHttpClient.Builder()
-            .cookieJar(new CustomCookieJar())
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .build();
 
     @Override
     public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
@@ -72,11 +51,8 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         String[] split = roomUrl.split("/");
         String targetId = split[split.length - 1];
 
-        // 确保 cookies 有效（加载或登录）
-        ensureCookiesValid();
-
         // 发送请求获取录制信息
-        String resp = fetchRecordingsWithRetry(targetId, streamerConfig);
+        String resp = fetchRecordings(targetId, streamerConfig);
 
         JSONObject respObj = JSON.parseObject(resp);
         boolean isCertainVod = CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls());
@@ -87,117 +63,19 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         }
     }
 
-    /**
-     * 确保 cookies 有效：优先从文件加载，否则登录
-     */
-    private void ensureCookiesValid() {
-        CustomCookieJar cookieJar = (CustomCookieJar) client.cookieJar();
-
-        // 1. 尝试从内存获取
-        if (!cookieJar.getCookiesByDomain(STREAMER_RECORDER_DOMAIN).isEmpty()) {
-            return;
-        }
-
-        // 2. 尝试从文件加载
-        if (loadCookiesFromFile()) {
-            return;
-        }
-
-        // 3. 执行登录
-        log.info("No valid cookies found, performing login...");
-        doLogin();
-    }
-
-    /**
-     * 从文件加载 cookies
-     * @return 是否成功加载
-     */
-    private boolean loadCookiesFromFile() {
-        try {
-            File cookiesFile = new File(accountSavePath, COOKIES_FILE_NAME);
-            if (!cookiesFile.exists()) {
-                return false;
-            }
-
-            String cookieString = FileStoreUtil.loadStringFromFile(cookiesFile);
-            if (StringUtils.isBlank(cookieString)) {
-                return false;
-            }
-
-            CustomCookieJar cookieJar = (CustomCookieJar) client.cookieJar();
-            cookieJar.loadCookiesFromString(cookieString, STREAMER_RECORDER_DOMAIN);
-            log.info("Loaded cookies from file");
-            return true;
-        } catch (Exception e) {
-            log.error("Failed to load cookies from file", e);
-            return false;
-        }
-    }
-
-    /**
-     * 保存 cookies 到文件
-     */
-    private void saveCookiesToFile() {
-        try {
-            CustomCookieJar cookieJar = (CustomCookieJar) client.cookieJar();
-            String cookieString = cookieJar.getCookieString(STREAMER_RECORDER_DOMAIN);
-
-            if (StringUtils.isNotBlank(cookieString)) {
-                File cookiesFile = new File(accountSavePath, COOKIES_FILE_NAME);
-                FileStoreUtil.saveStringToFile(cookiesFile, cookieString);
-                log.info("Saved cookies to file");
-            }
-        } catch (Exception e) {
-            log.error("Failed to save cookies to file", e);
-        }
-    }
-
-    /**
-     * 清除所有 cookies（内存+文件）
-     */
-    private void clearAllCookies() {
-        CustomCookieJar cookieJar = (CustomCookieJar) client.cookieJar();
-        cookieJar.clearAllCookies();
-
-        File cookiesFile = new File(accountSavePath, COOKIES_FILE_NAME);
-        if (cookiesFile.exists()) {
-            cookiesFile.delete();
-            log.info("Deleted cookies file");
-        }
-    }
-
-    /**
-     * 获取录制列表，支持自动重试（cookie 失效时重新登录）
-     */
-    private String fetchRecordingsWithRetry(String targetId, StreamerConfig streamerConfig) {
+    private String fetchRecordings(String targetId, StreamerConfig streamerConfig) {
         int limit = CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls()) ? 100 : 5;
         String url = String.format("https://streamrecorder.io/api/user/recordingsv2?targetid=%s&offset=0&limit=%d", targetId, limit);
 
-        Request request = new Request.Builder()
-                .url(url)
-                .get()
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Cookie", ((CustomCookieJar) client.cookieJar()).getCookieString(STREAMER_RECORDER_DOMAIN))
-                .build();
-
-        try {
-            return OkHttpClientUtil.execute(request);
-        } catch (Exception e) {
-            log.error("Cookie expired, clearing and retrying...", e);
-            clearAllCookies();
-
-            // 重新登录并重试
-            doLogin();
-
-            // 重试请求
-            Request retryRequest = new Request.Builder()
+        return loginManager.executeWithCookies(cookieString -> {
+            Request request = new Request.Builder()
                     .url(url)
                     .get()
                     .addHeader("Content-Type", "application/json")
-                    .addHeader("Cookie", ((CustomCookieJar) client.cookieJar()).getCookieString(STREAMER_RECORDER_DOMAIN))
+                    .addHeader("Cookie", cookieString)
                     .build();
-            return OkHttpClientUtil.execute(retryRequest);
-        }
+            return OkHttpClientUtil.execute(request);
+        });
     }
 
     private StreamRecorder fetchCertainRecords(StreamerConfig streamerConfig, JSONObject respObj) {
@@ -438,136 +316,4 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         return recordedAt;
     }
 
-    /**
-     * 执行登录流程
-     */
-    private void doLogin() {
-        try {
-            getLoginPage();
-            postLoginRequest();
-        } catch (IOException e) {
-            log.error("Login failed", e);
-            throw new RuntimeException("Failed to login to streamrecorder.io", e);
-        }
-    }
-
-    private void getLoginPage() throws IOException {
-        Request getRequest = new Request.Builder()
-                .url("https://streamrecorder.io/login")
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
-                .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                .addHeader("Referer", "https://streamrecorder.io/login")
-                .addHeader("Priority", "u=0, i")
-                .build();
-
-        try (Response response = client.newCall(getRequest).execute()) {
-            if (!response.isSuccessful() && response.code() != 304) {
-                throw new IOException("Failed to get login page: " + response);
-            }
-        }
-    }
-
-    private void postLoginRequest() throws IOException {
-        RequestBody formBody = new FormBody.Builder()
-                .add("username", name)
-                .add("password", password)
-                .add("remember", "on")
-                .add("target", "/login")
-                .build();
-
-        Request loginRequest = new Request.Builder()
-                .url("https://streamrecorder.io/login")
-                .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
-                .addHeader("Accept-Language", "zh-CN,zh;q=0.9")
-                .addHeader("Cache-Control", "max-age=0")
-                .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                .addHeader("Origin", "https://streamrecorder.io")
-                .addHeader("Priority", "u=0, i")
-                .addHeader("Referer", "https://streamrecorder.io/login")
-                .addHeader("Sec-Ch-Ua", "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"")
-                .addHeader("Sec-Ch-Ua-Mobile", "?0")
-                .addHeader("Sec-Ch-Ua-Platform", "\"Windows\"")
-                .addHeader("Sec-Fetch-Dest", "document")
-                .addHeader("Sec-Fetch-Mode", "navigate")
-                .addHeader("Sec-Fetch-Site", "same-origin")
-                .addHeader("Sec-Fetch-User", "?1")
-                .addHeader("Upgrade-Insecure-Requests", "1")
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
-                .post(formBody)
-                .build();
-
-        try (Response response = client.newCall(loginRequest).execute()) {
-            if (response.code() == 302) {
-                String redirectUrl = response.header("Location");
-                if (redirectUrl != null && redirectUrl.contains("/userdashboard")) {
-                    saveCookiesToFile();
-                    return;
-                }
-            }
-
-            String responseBody = response.body().string();
-            if (responseBody.contains("userdashboard") && !responseBody.contains("Sign in to Streamrecorder")) {
-                saveCookiesToFile();
-            } else {
-                throw new IOException("Login failed: unexpected response");
-            }
-        }
-    }
-
-    /**
-     * 自定义 CookieJar，管理内存中的 cookies
-     */
-    static class CustomCookieJar implements CookieJar {
-        private final Map<String, List<Cookie>> cookieStore = new HashMap<>();
-
-        @Override
-        public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
-            String host = url.host();
-            List<Cookie> existed = getCookiesByDomain(host);
-            existed.addAll(cookies);
-            cookieStore.put(host, existed);
-        }
-
-        @Override
-        public List<Cookie> loadForRequest(HttpUrl url) {
-            return cookieStore.getOrDefault(url.host(), new ArrayList<>());
-        }
-
-        public List<Cookie> getCookiesByDomain(String domain) {
-            return cookieStore.getOrDefault(domain, new ArrayList<>());
-        }
-
-        public void loadCookiesFromString(String cookieString, String domain) {
-            List<Cookie> cookies = new ArrayList<>();
-            String[] pairs = cookieString.split("; ");
-            for (String pair : pairs) {
-                int idx = pair.indexOf('=');
-                if (idx > 0) {
-                    String name = pair.substring(0, idx);
-                    String value = pair.substring(idx + 1);
-                    Calendar cal = Calendar.getInstance();
-                    cal.add(Calendar.YEAR, 1);
-                    Cookie cookie = new Cookie.Builder()
-                            .name(name)
-                            .value(value)
-                            .domain(domain)
-                            .path("/")
-                            .expiresAt(cal.getTimeInMillis())
-                            .build();
-                    cookies.add(cookie);
-                }
-            }
-            cookieStore.put(domain, cookies);
-        }
-
-        public void clearAllCookies() {
-            cookieStore.clear();
-        }
-
-        public String getCookieString(String domain) {
-            return getCookiesByDomain(domain).stream()
-                    .map(cookie -> cookie.name() + "=" + cookie.value())
-                    .collect(Collectors.joining("; "));
-        }
-    }
 }

@@ -29,11 +29,14 @@
 ## 2. 启动
 
 采用docker部署，目前在Ubuntu上测试过，其他平台没有测试过。
-容器分为三个：
+服务分为三个：
 
 - stream-move：整体的调度框架，包括下载、合并、视频上传
-- stream-ocr：视频剪辑使用，提供一些ocr + 专门的图像识别功能
+- stream-detect：独立部署的轻量 HTTP 识别服务，提供 RapidOCR ONNX 与游戏 YOLO ONNX 推理；代码位于同级独立项目 `stream-detect`
 - alist：提供各种的网盘的传输服务
+
+`StreamerRecord` 不再包含 Paddle/FastDeploy/PicoDet 模型和识别容器。先单独启动
+`stream-detect`，再把下面的 `ocr.server.*` 指向该服务；现有 Java 调用接口保持兼容。
 
 ### 1. 创建路径
 
@@ -66,7 +69,7 @@ spring.datasource.url=jdbc:mysql://localhost/stream_move?useUnicode=true&charact
 spring.datasource.username=root
 spring.datasource.password=123456
 
-# ocr相关服务
+# 独立 stream-detect HTTP 服务
 ocr.server.host=127.0.0.1
 ocr.server.port=5000
 ocr.server.token=xxx
