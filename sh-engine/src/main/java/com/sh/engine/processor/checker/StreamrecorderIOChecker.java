@@ -228,56 +228,65 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
     }
 
     /**
-     * 解析下载链接，实现 1080p 等待策略
-     * 优先级：长视频直接720p > 1080p > 等待30分钟 > 720p
+     * 当前最高可用分辨率达到 1080 时立即下载；否则等待 30 分钟后下载最高可用分辨率。
      */
-    private String resolveDownloadLink(StreamerConfig streamerConfig, JSONObject latestRecord, Date recordedAt) {
-  long detectFinishedTime = System.currentTimeMillis();
-
-        int duration = latestRecord.getIntValue("duration");
-        boolean isLongVideo = duration > LONG_VIDEO_THRESHOLD_SECONDS;
-
-        String link1080 = getSourceLink(latestRecord, 1080);
-        String link720 = getSourceLink(latestRecord, 720);
-
-        // 长视频直接使用720p，跳过1080p等待
-        if (isLongVideo) {
-            cacheBizManager.clearWaitingFor1080(streamerConfig.getName(), String.valueOf(recordedAt.getTime()));
-            log.info("Long video detected ({}s > {}s), using 720p: {}", duration, LONG_VIDEO_THRESHOLD_SECONDS, streamerConfig.getName());
-            return link720;
-        }
+    private String resolveDownloadLink(StreamerConfig streamerConfig, JSONObject record, Date recordedAt) {
         String videoId = String.valueOf(recordedAt.getTime());
         String streamerName = streamerConfig.getName();
+        JSONObject highestSource = getHighestResolutionSource(record);
+        int highestResolution = highestSource == null ? 0 : highestSource.getIntValue("resolution");
 
-        // 1. 有 1080p，直接下载
-        if (StringUtils.isNotBlank(link1080)) {
+        if (highestResolution >= 1080) {
             cacheBizManager.clearWaitingFor1080(streamerName, videoId);
-            log.info("Found 1080p source, downloading: {}", streamerName);
-            return link1080;
+            log.info("Found {}p source, downloading: {}", highestResolution, streamerName);
+            return highestSource.getString("downloadlink");
         }
 
-        // 2. 检查是否在等待 1080p 中
         Long waitStartTime = cacheBizManager.getWaitingFor1080StartTime(streamerName, videoId);
-
         if (waitStartTime == null) {
-            // 首次发现无 1080p，开始等待
-            cacheBizManager.setWaitingFor1080(streamerName, videoId, detectFinishedTime);
-            log.info("No 1080p source yet, starting 30min wait: {}", streamerName);
+            cacheBizManager.setWaitingFor1080(streamerName, videoId, System.currentTimeMillis());
+            log.info("Highest source is {}p, starting 30min wait for 1080p: {}", highestResolution, streamerName);
             return null;
         }
 
-        // 3. 等待中，检查是否超时
         long elapsed = System.currentTimeMillis() - waitStartTime;
         if (elapsed < WAIT_FOR_1080_TIMEOUT_MS) {
             long remaining = (WAIT_FOR_1080_TIMEOUT_MS - elapsed) / 1000 / 60;
-            log.info("Still waiting for 1080p, {} min remaining: {}", remaining, streamerName);
+            log.info("Highest source is {}p, still waiting for 1080p, {} min remaining: {}",
+                    highestResolution, remaining, streamerName);
             return null;
         }
 
-        // 4. 等待超时，使用 720p
+        if (highestSource == null) {
+            log.warn("Wait timeout but no downloadable source is available, continuing to wait: {}", streamerName);
+            return null;
+        }
+
         cacheBizManager.clearWaitingFor1080(streamerName, videoId);
-        log.info("Wait timeout, using 720p source: {}", streamerName);
-        return link720;
+        log.info("Wait timeout, downloading highest available {}p source: {}", highestResolution, streamerName);
+        return highestSource.getString("downloadlink");
+    }
+
+    /**
+     * 只在 downloadlink 非空的 source 中选择最高分辨率。
+     */
+    private JSONObject getHighestResolutionSource(JSONObject record) {
+        JSONArray sources = record.getJSONArray("sources");
+        if (CollectionUtils.isEmpty(sources)) {
+            return null;
+        }
+        JSONObject highestSource = null;
+        for (int i = 0; i < sources.size(); i++) {
+            JSONObject source = sources.getJSONObject(i);
+            if (StringUtils.isBlank(source.getString("downloadlink"))) {
+                continue;
+            }
+            if (highestSource == null
+                    || source.getIntValue("resolution") > highestSource.getIntValue("resolution")) {
+                highestSource = source;
+            }
+        }
+        return highestSource;
     }
 
     /**
