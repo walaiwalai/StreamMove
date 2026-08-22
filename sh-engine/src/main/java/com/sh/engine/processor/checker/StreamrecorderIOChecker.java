@@ -64,7 +64,7 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
     }
 
     private String fetchRecordings(String targetId, StreamerConfig streamerConfig) {
-        int limit = CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls()) ? 100 : 5;
+        int limit = CollectionUtils.isNotEmpty(streamerConfig.getCertainVodUrls()) ? 100 : 10;
         String url = String.format("https://streamrecorder.io/api/user/recordingsv2?targetid=%s&offset=0&limit=%d", targetId, limit);
 
         return loginManager.executeWithCookies(cookieString -> {
