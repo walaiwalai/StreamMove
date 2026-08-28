@@ -131,9 +131,10 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
 
         String name = streamerConfig.getName();
         Map<String, JSONObject> recordsById = new HashMap<>();
-        Map<String, List<String>> videoIdsByStatus = new LinkedHashMap<>();
         List<JSONObject> runningRecords = new ArrayList<>();
         List<JSONObject> finishedRecords = new ArrayList<>();
+        Set<String> runningVideoIds = new LinkedHashSet<>();
+        Set<String> finishedVideoIds = new LinkedHashSet<>();
         for (int i = 0; i < dataArr.size(); i++) {
             JSONObject record = dataArr.getJSONObject(i);
             String videoId = record.getString("id");
@@ -144,21 +145,16 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
 
             recordsById.put(videoId, record);
             String status = record.getString("status");
-            videoIdsByStatus.computeIfAbsent(status, key -> new ArrayList<>()).add(videoId);
             if (StringUtils.equals("running", status)) {
                 runningRecords.add(record);
+                runningVideoIds.add(videoId);
             } else if (StringUtils.equals("finished", status)) {
                 finishedRecords.add(record);
+                finishedVideoIds.add(videoId);
             }
         }
 
         Set<String> cachedVideoIds = new HashSet<>(cacheBizManager.getStreamrecorderRunningIds(name));
-        log.info("\nStreamrecorder check status, streamer: {}"
-                        + "\nlastRecordTime: {}"
-                        + "\nAPI videoIds by status: {}"
-                        + "\ncached videoIds: {}",
-                name, streamerConfig.getLastRecordTime(), videoIdsByStatus, cachedVideoIds);
-
         List<JSONObject> cachedRecords = new ArrayList<>();
         for (String videoId : cachedVideoIds) {
             JSONObject record = recordsById.get(videoId);
@@ -188,12 +184,9 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
 
         // 直播进行中：把当前所有新 videoId 合并到同一个缓存集合。
         if (CollectionUtils.isNotEmpty(runningRecords)) {
-            Set<String> cacheBefore = new HashSet<>(cachedVideoIds);
-            Set<String> apiRunningIds = new LinkedHashSet<>();
             Date latestRunningAt = null;
             for (JSONObject record : runningRecords) {
                 Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
-                apiRunningIds.add(record.getString("id"));
                 if (checkVodIsNew(streamerConfig, recordedAt)) {
                     cachedVideoIds.add(record.getString("id"));
                 }
@@ -203,15 +196,14 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             }
             cacheBizManager.saveStreamrecorderRunningIds(name, cachedVideoIds);
             Set<String> persistedVideoIds = cacheBizManager.getStreamrecorderRunningIds(name);
-            log.info("\nStreamrecorder running cache update, streamer: {}"
-                            + "\nAPI running videoIds: {}"
-                            + "\ncache before: {}"
-                            + "\ncache after lastRecordTime filter: {}"
-                            + "\nRedis read back: {}",
-                    name, apiRunningIds, cacheBefore, cachedVideoIds, persistedVideoIds);
+            log.info("Streamrecorder check, streamer: {}, lastRecordTime: {}, runningIds: {}, finishedIds: {}, cachedIds: {}",
+                    name, streamerConfig.getLastRecordTime(), runningVideoIds, finishedVideoIds, persistedVideoIds);
             eventPublisher.publishEvent(new StreamRecordStartEvent(this, name, latestRunningAt));
             return null;
         }
+
+        log.info("Streamrecorder check, streamer: {}, lastRecordTime: {}, runningIds: {}, finishedIds: {}, cachedIds: {}",
+                name, streamerConfig.getLastRecordTime(), runningVideoIds, finishedVideoIds, cachedVideoIds);
 
         // 缓存中的录像全部结束后，最长录像提供下载链接，最大 recorded_at 作为 regDate。
         if (CollectionUtils.isNotEmpty(cachedRecords)) {
