@@ -114,7 +114,8 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         Map<String, String> extra = new HashMap<>();
         extra.put("finishField", videoId);
 
-        return new StreamUrlStreamRecorder(recordedAt, streamerConfig.getRoomUrl(), getType().getType(), downloadLink, extra);
+        return new StreamUrlStreamRecorder(recordedAt, streamerConfig.getRoomUrl(),
+                getType().getType(), downloadLink, extra, true);
     }
 
     /**
@@ -127,111 +128,131 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         if (CollectionUtils.isEmpty(dataArr)) {
             return null;
         }
+
         String name = streamerConfig.getName();
-        JSONObject latestRecord = dataArr.getJSONObject(0);
-        String status = latestRecord.getString("status");
-        Date latestRecordedAt = parseGMT8Date(latestRecord.getString("recorded_at"));
-        log.info("streamer io check, status: {}, lastRecordAt: {}", status, latestRecordedAt);
-
-        if (StringUtils.equals(status, "running")) {
-            StreamRecordStartEvent event = new StreamRecordStartEvent(this, name, latestRecordedAt);
-            eventPublisher.publishEvent(event);
-            return null;
-        } else if (StringUtils.equals(status, "finished")) {
-            int recordIndex = findNextRecordIndex(streamerConfig, dataArr);
-            if (recordIndex < 0) {
-                return null;
-            }
-
-            JSONObject record = dataArr.getJSONObject(recordIndex);
-            Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
-            String streamTitle = record.getString("streamtitle");
-
-            StreamRecordEndEvent event = new StreamRecordEndEvent(this, name);
-            eventPublisher.publishEvent(event);
-
-            // 解析 sources，获取最佳下载链接（优先 1080p）
-            Map<String, String> extra = new HashMap<>();
-            extra.put("streamTitle", streamTitle);
-
-            String downloadLink = resolveDownloadLink(streamerConfig, record, recordedAt);
-            return downloadLink == null ? null : new StreamUrlStreamRecorder(recordedAt, streamerConfig.getRoomUrl(), getType().getType(), downloadLink, extra);
-        }
-        return null;
-    }
-
-    /**
-     * 同一场直播判定的 buffer 时间（秒）：考虑到平台分段、断流重连等情况，留 5 分钟容差
-     */
-    private static final int DUPLICATE_BUFFER_SECONDS = 5 * 60;
-
-    /**
-     * 从最旧的记录开始，将连续重叠的记录归为同一组。
-     * 未处理的组只返回时长最长的记录；若组内已有处理过的记录，则整组跳过。
-     */
-    private int findNextRecordIndex(StreamerConfig streamerConfig, JSONArray dataArr) {
-        OverlappingRecordGroup group = new OverlappingRecordGroup();
-        for (int i = dataArr.size() - 1; i >= 0; i--) {
+        Map<String, JSONObject> recordsById = new HashMap<>();
+        List<JSONObject> runningRecords = new ArrayList<>();
+        List<JSONObject> finishedRecords = new ArrayList<>();
+        for (int i = 0; i < dataArr.size(); i++) {
             JSONObject record = dataArr.getJSONObject(i);
+            String videoId = record.getString("id");
             Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
-            if (recordedAt == null) {
+            if (StringUtils.isBlank(videoId) || recordedAt == null) {
                 continue;
             }
 
-            if (!group.isEmpty() && !group.overlaps(recordedAt)) {
-                int nextRecordIndex = group.getNextRecordIndex();
-                if (nextRecordIndex >= 0) {
-                    return nextRecordIndex;
+            recordsById.put(videoId, record);
+            if (StringUtils.equals("running", record.getString("status"))) {
+                runningRecords.add(record);
+            } else if (StringUtils.equals("finished", record.getString("status"))) {
+                finishedRecords.add(record);
+            }
+        }
+
+        Set<String> cachedVideoIds = new HashSet<>(cacheBizManager.getStreamrecorderRunningIds(name));
+        List<JSONObject> cachedRecords = new ArrayList<>();
+        for (String videoId : cachedVideoIds) {
+            JSONObject record = recordsById.get(videoId);
+            if (record == null) {
+                log.warn("Streamrecorder cached video is missing, clearing cache: {}, id: {}", name, videoId);
+                cachedVideoIds.clear();
+                cachedRecords.clear();
+                cacheBizManager.clearStreamrecorderRunningIds(name);
+                break;
+            }
+            cachedRecords.add(record);
+        }
+
+        // 下载成功后 lastRecordTime 会等于组内最大 recorded_at，下一轮在这里清理缓存。
+        Date cachedLatestAt = null;
+        for (JSONObject record : cachedRecords) {
+            Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
+            if (cachedLatestAt == null || recordedAt.after(cachedLatestAt)) {
+                cachedLatestAt = recordedAt;
+            }
+        }
+        if (cachedLatestAt != null && !checkVodIsNew(streamerConfig, cachedLatestAt)) {
+            cachedVideoIds.clear();
+            cachedRecords.clear();
+            cacheBizManager.clearStreamrecorderRunningIds(name);
+        }
+
+        // 直播进行中：把当前所有新 videoId 合并到同一个缓存集合。
+        if (CollectionUtils.isNotEmpty(runningRecords)) {
+            Date latestRunningAt = null;
+            for (JSONObject record : runningRecords) {
+                Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
+                if (checkVodIsNew(streamerConfig, recordedAt)) {
+                    cachedVideoIds.add(record.getString("id"));
                 }
-                group = new OverlappingRecordGroup();
+                if (latestRunningAt == null || recordedAt.after(latestRunningAt)) {
+                    latestRunningAt = recordedAt;
+                }
+            }
+            cacheBizManager.saveStreamrecorderRunningIds(name, cachedVideoIds);
+            eventPublisher.publishEvent(new StreamRecordStartEvent(this, name, latestRunningAt));
+            return null;
+        }
+
+        // 缓存中的录像全部结束后，最长录像提供下载链接，最大 recorded_at 作为 regDate。
+        if (CollectionUtils.isNotEmpty(cachedRecords)) {
+            boolean allFinished = cachedRecords.stream()
+                    .allMatch(record -> StringUtils.equals("finished", record.getString("status")));
+            if (!allFinished) {
+                return null;
             }
 
-            group.add(i, recordedAt, record.getIntValue("duration"),
-                    checkVodIsNew(streamerConfig, recordedAt));
+            JSONObject longestRecord = cachedRecords.get(0);
+            Date latestRecordedAt = parseGMT8Date(longestRecord.getString("recorded_at"));
+            for (JSONObject record : cachedRecords) {
+                Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
+                if (record.getIntValue("duration") > longestRecord.getIntValue("duration")) {
+                    longestRecord = record;
+                }
+                if (recordedAt.after(latestRecordedAt)) {
+                    latestRecordedAt = recordedAt;
+                }
+            }
+            return buildStreamRecorder(streamerConfig, longestRecord, latestRecordedAt);
         }
-        return group.getNextRecordIndex();
+
+        // 没有 running 缓存时，只下载最新的 finished 录像，不补录更早记录。
+        JSONObject latestFinishedRecord = null;
+        Date latestRecordedAt = null;
+        for (JSONObject record : finishedRecords) {
+            Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
+            if (checkVodIsNew(streamerConfig, recordedAt)
+                    && (latestRecordedAt == null || recordedAt.after(latestRecordedAt))) {
+                latestFinishedRecord = record;
+                latestRecordedAt = recordedAt;
+            }
+        }
+        if (latestFinishedRecord == null) {
+            return null;
+        }
+        return buildStreamRecorder(streamerConfig, latestFinishedRecord, latestRecordedAt);
     }
 
-    private static final class OverlappingRecordGroup {
-
-        private long endWithBufferMs = Long.MIN_VALUE;
-        private boolean containsHandledRecord;
-        private int longestPendingIndex = -1;
-        private int longestPendingDuration = -1;
-
-        private boolean isEmpty() {
-            return endWithBufferMs == Long.MIN_VALUE;
+    private StreamRecorder buildStreamRecorder(StreamerConfig streamerConfig,
+                                               JSONObject downloadRecord,
+                                               Date recordDate) {
+        String downloadLink = resolveDownloadLink(
+                streamerConfig, downloadRecord, downloadRecord.getString("id"));
+        if (downloadLink == null) {
+            return null;
         }
 
-        private boolean overlaps(Date recordedAt) {
-            return recordedAt.getTime() <= endWithBufferMs;
-        }
-
-        private void add(int index, Date recordedAt, int duration, boolean pending) {
-            long recordEndWithBufferMs = recordedAt.getTime();
-            if (duration > 0) {
-                recordEndWithBufferMs += ((long) duration + DUPLICATE_BUFFER_SECONDS) * 1000L;
-            }
-            endWithBufferMs = Math.max(endWithBufferMs, recordEndWithBufferMs);
-
-            if (!pending) {
-                containsHandledRecord = true;
-            } else if (!containsHandledRecord && duration > longestPendingDuration) {
-                longestPendingIndex = index;
-                longestPendingDuration = duration;
-            }
-        }
-
-        private int getNextRecordIndex() {
-            return containsHandledRecord ? -1 : longestPendingIndex;
-        }
+        eventPublisher.publishEvent(new StreamRecordEndEvent(this, streamerConfig.getName()));
+        Map<String, String> extra = new HashMap<>();
+        extra.put("streamTitle", downloadRecord.getString("streamtitle"));
+        return new StreamUrlStreamRecorder(recordDate, streamerConfig.getRoomUrl(),
+                getType().getType(), downloadLink, extra, true);
     }
 
     /**
      * 当前最高可用分辨率达到 1080 时立即下载；否则等待 30 分钟后下载最高可用分辨率。
      */
-    private String resolveDownloadLink(StreamerConfig streamerConfig, JSONObject record, Date recordedAt) {
-        String videoId = String.valueOf(recordedAt.getTime());
+    private String resolveDownloadLink(StreamerConfig streamerConfig, JSONObject record, String videoId) {
         String streamerName = streamerConfig.getName();
         JSONObject highestSource = getHighestResolutionSource(record);
         int highestResolution = highestSource == null ? 0 : highestSource.getIntValue("resolution");

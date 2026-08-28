@@ -6,7 +6,6 @@ import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.model.RecordCmdBuilder;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.ffmpeg.FfmpegRecordCmd;
-import com.sh.engine.model.ffmpeg.StreamMetaDetectCmd;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
@@ -19,15 +18,22 @@ import java.util.Map;
 @Slf4j
 public class StreamUrlStreamRecorder extends StreamRecorder {
     private final String streamUrl;
+    private final boolean failOnRecordError;
 
     public StreamUrlStreamRecorder(Date regDate, String roomUrl, Integer streamChannelType, String streamUrl) {
-        super(regDate, roomUrl, streamChannelType, Maps.newHashMap());
-        this.streamUrl = streamUrl;
+        this(regDate, roomUrl, streamChannelType, streamUrl, Maps.newHashMap(), false);
     }
 
     public StreamUrlStreamRecorder(Date regDate, String roomUrl, Integer streamChannelType, String streamUrl, Map<String, String> extraInfo) {
+        this(regDate, roomUrl, streamChannelType, streamUrl, extraInfo, false);
+    }
+
+    public StreamUrlStreamRecorder(Date regDate, String roomUrl, Integer streamChannelType,
+                                   String streamUrl, Map<String, String> extraInfo,
+                                   boolean failOnRecordError) {
         super(regDate, roomUrl, streamChannelType, extraInfo);
         this.streamUrl = streamUrl;
+        this.failOnRecordError = failOnRecordError;
     }
 
     @Override
@@ -43,6 +49,7 @@ public class StreamUrlStreamRecorder extends StreamRecorder {
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(StreamerInfoHolder.getCurStreamerName());
         RecordCmdBuilder builder = new RecordCmdBuilder(streamerConfig, this.streamChannelType, savePath);
 
+        boolean success = false;
         for (int i = 0; i < 3; i++) {
             log.info("living stream record begin, savePath: {}, retry: {}/{}", savePath, i + 1, 3);
 
@@ -52,10 +59,14 @@ public class StreamUrlStreamRecorder extends StreamRecorder {
             rfCmd.execute(24 * 3600L);
             if (rfCmd.isNormalExit()) {
                 log.info("living stream record end, savePath: {}", savePath);
+                success = true;
                 break;
             } else {
                 log.error("living stream record fail, savePath: {}", savePath);
             }
+        }
+        if (!success && failOnRecordError) {
+            throw new IllegalStateException("stream record failed after 3 attempts, savePath: " + savePath);
         }
     }
 }

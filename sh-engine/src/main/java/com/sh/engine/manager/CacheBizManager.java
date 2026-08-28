@@ -9,12 +9,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
 public class CacheBizManager {
+    private static final String STREAMRECORDER_RUNNING_KEY_PREFIX = "streamrecorder_running_ids_";
+
     @Resource
     private CacheManager cacheManager;
 
@@ -69,6 +74,32 @@ public class CacheBizManager {
     public void clearWaitingFor1080(String streamerName, String videoId) {
         String key = "wait_1080_" + streamerName;
         cacheManager.deleteHashTag(key, videoId);
+    }
+
+    /**
+     * 获取 Streamrecorder.io 当前直播产生的录像 ID。
+     */
+    public Set<String> getStreamrecorderRunningIds(String streamerName) {
+        Set<String> videoIds = cacheManager.get(
+                STREAMRECORDER_RUNNING_KEY_PREFIX + streamerName,
+                new TypeReference<Set<String>>() {});
+        return videoIds == null ? Collections.emptySet() : new HashSet<>(videoIds);
+    }
+
+    /**
+     * 保存 Streamrecorder.io 当前直播产生的录像 ID，缓存会跨应用重启保留。
+     */
+    public void saveStreamrecorderRunningIds(String streamerName, Set<String> videoIds) {
+        String key = STREAMRECORDER_RUNNING_KEY_PREFIX + streamerName;
+        if (videoIds == null || videoIds.isEmpty()) {
+            cacheManager.delete(key);
+            return;
+        }
+        cacheManager.set(key, videoIds, 2, TimeUnit.DAYS);
+    }
+
+    public void clearStreamrecorderRunningIds(String streamerName) {
+        cacheManager.delete(STREAMRECORDER_RUNNING_KEY_PREFIX + streamerName);
     }
 
     /**
