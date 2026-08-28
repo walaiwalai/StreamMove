@@ -196,14 +196,12 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             }
             cacheBizManager.saveStreamrecorderRunningIds(name, cachedVideoIds);
             Set<String> persistedVideoIds = cacheBizManager.getStreamrecorderRunningIds(name);
-            log.info("Streamrecorder check, streamer: {}, lastRecordTime: {}, runningIds: {}, finishedIds: {}, cachedIds: {}",
-                    name, streamerConfig.getLastRecordTime(), runningVideoIds, finishedVideoIds, persistedVideoIds);
+            log.info("Streamrecorder check, lastRecordTime: {}, runningIds: {}, cachedIds: {}", streamerConfig.getLastRecordTime(), runningVideoIds, persistedVideoIds);
             eventPublisher.publishEvent(new StreamRecordStartEvent(this, name, latestRunningAt));
             return null;
         }
 
-        log.info("Streamrecorder check, streamer: {}, lastRecordTime: {}, runningIds: {}, finishedIds: {}, cachedIds: {}",
-                name, streamerConfig.getLastRecordTime(), runningVideoIds, finishedVideoIds, cachedVideoIds);
+        log.info("Streamrecorder check, lastRecordTime: {}, runningIds: {}, cachedIds: {}", streamerConfig.getLastRecordTime(), runningVideoIds, cachedVideoIds);
 
         // 缓存中的录像全部结束后，最长录像提供下载链接，最大 recorded_at 作为 regDate。
         if (CollectionUtils.isNotEmpty(cachedRecords)) {
