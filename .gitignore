@@ -100,3 +100,12 @@ sh-config/src/main/resources/config/init.json
 sh-config/src/main/resources/config/streamer.json
 
 sh-config/src/main/resources/application-dev.properties
+AGENTS.md
+mydocs/
+
+# Web console build artifacts
+web-console/node_modules/
+web-console/dist/
+web-console/*.tsbuildinfo
+web-console/vite.config.js
+web-console/vite.config.d.ts
