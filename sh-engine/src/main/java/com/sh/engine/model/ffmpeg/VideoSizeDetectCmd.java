@@ -17,7 +17,8 @@ public class VideoSizeDetectCmd extends AbstractCmd {
     private int height;
 
     public VideoSizeDetectCmd(String filePath) {
-        super("ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + filePath);
+        super("ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 \""
+                + filePath + "\"");
     }
 
     @Override

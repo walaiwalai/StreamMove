@@ -92,6 +92,15 @@ public enum ErrorEnum {
      */
     PROCESS_LATER(18, "PROCESS_LATER"),
 
+    /**
+     * 视频处理插件返回失败。
+     */
+    PROCESS_PLUGIN_FAILED(19, "process plugin failed"),
+
+    /**
+     * 高光时间线分析失败。
+     */
+    HIGHLIGHT_ANALYSIS_ERROR(20, "highlight analysis error"),
 
     ;
     private int errorCode;

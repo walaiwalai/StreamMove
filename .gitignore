@@ -101,7 +101,7 @@ sh-config/src/main/resources/config/streamer.json
 
 sh-config/src/main/resources/application-dev.properties
 AGENTS.md
-mydocs/
+mydocs/*
 
 # Web console build artifacts
 web-console/node_modules/

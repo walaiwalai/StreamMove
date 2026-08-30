@@ -16,6 +16,8 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -25,6 +27,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class VideoFileUtil {
     public static final String SEG_FILE_PREFIX = "P%02d";
+    private static final Pattern VIDEO_SEGMENT_PATTERN = Pattern.compile(
+            "(?:^|[^a-zA-Z0-9])P(\\d{1,9})(?=$|[^0-9])",
+            Pattern.CASE_INSENSITIVE);
 
     /**
      * 支持的媒体格式
@@ -56,10 +61,15 @@ public class VideoFileUtil {
         return new File(new File(snapshotFile.getParent()).getParent(), sourcePrefix + ".mp4");
     }
 
+    /**
+     * 提取文件名中的 P 分片编号；非分片视频排在分片视频之后，由调用方继续按路径排序。
+     *
+     * <p>编号不要求占满整个主文件名，因此同时支持 {@code P02.mp4} 和
+     * {@code 2-P02-1080P.mp4}。</p>
+     */
     public static Integer getVideoIndex(File videoFile) {
-        String name = videoFile.getName();
-        int end = name.lastIndexOf(".");
-        return Integer.parseInt(name.substring(1, end));
+        Matcher matcher = VIDEO_SEGMENT_PATTERN.matcher(videoFile.getName());
+        return matcher.find() ? Integer.parseInt(matcher.group(1)) : Integer.MAX_VALUE;
     }
 
     public static String getSnapshotSourceFileName(File snapshotFile) {

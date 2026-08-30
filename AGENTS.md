@@ -1,154 +1,19 @@
-# AGENTS.md
+# Codex 文档导航
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+本文件只作为项目文档入口。处理任务时按需读取对应文档，不要一次加载与当前任务无关的内容。
 
-## Project Overview
+## 文档索引
 
-StreamerRecord is a Java-based live stream recording and upload system. It records live streams from platforms like Bilibili, Douyin, Huya, Twitch, YouTube, etc., processes the videos (optional plugins like LOL highlight cutting), and uploads to various platforms (Bilibili, Douyin, cloud storage via Alist).
+- [项目架构](mydocs/codex/项目架构.md)：项目定位、技术版本、模块职责、核心流程和构建命令。分析跨模块影响、设计功能或修改核心流程前阅读。
+- [编码规范](mydocs/codex/编码规范.md)：Java 与 Spring 编码要求。新增、修改或审查代码前必须阅读并遵守。
+- [CR规范](mydocs/codex/CR规范.md)：代码审查与提交前自检要求。执行代码审查、重构或冗余清理时必须阅读并遵守。
+- [外部服务接入规范](mydocs/codex/外部服务接入规范.md)：外部接口、SDK 和平台接入约束。涉及外部服务时必须先阅读。
 
-## Build Commands
+## 使用规则
 
-```bash
-# Compile and package all modules
-mvn package
-
-# Skip tests during build
-mvn package -DskipTests
-
-# Clean build
-mvn clean package
-```
-
-## Running Locally
-
-The application is a Spring Boot multi-module project with entry point in `sh-start`:
-
-```bash
-# Run from the sh-start module
-java -jar sh-start/target/sh-start-1.0-SNAPSHOT.jar
-
-# Or with Maven from root
-mvn -pl sh-start spring-boot:run
-```
-
-Default profile is `dev` (configured in `sh-config/src/main/resources/application.properties`).
-
-## Architecture Overview
-
-### Module Structure
-
-- **sh-start**: Entry point, Spring Boot application launcher
-- **sh-engine**: Core business logic (state machine, processors, uploaders, room checkers)
-- **sh-schedule**: Quartz-based scheduled workers for cron jobs
-- **sh-config**: Configuration, database models, MyBatis mappers, utilities
-- **sh-message**: WeCom (WeChat Work) integration for notifications
-
-### State Machine Flow
-
-The recording workflow is implemented as a state machine (`RecordStateMachine`) with these stages:
-
-1. **INIT** → StatusCheckStageProcessor: Initialize recording context
-2. **STATUS_CHECK_FINISH** → RoomCheckStageProcessor: Check if streamer is online
-3. **ROOM_CHECK_FINISH** → StreamRecordStageProcessor: Record stream using streamlink/ffmpeg
-4. **STREAM_RECORD_FINISH** → WorkProcessStageProcessor: Apply video processing plugins
-5. **VIDEO_PROCESS_FINISH** → WorkUploadStageProcessor: Upload to configured platforms
-6. **VIDEO_UPLOAD_FINISH** → EndStageProcessor: Clean up and mark complete
-
-Each processor extends `AbstractStageProcessor` and implements:
-- `acceptState()`: The state it handles
-- `targetState()`: The state it transitions to
-- `processInternal()`: The actual processing logic
-
-### Key Components
-
-**Room Checkers** (`sh-engine/processor/checker/`): Platform-specific implementations to detect if a streamer is live. Each platform (Bilibili, Douyin, Twitch, etc.) has its own checker extending `AbstractRoomChecker`.
-
-**Uploaders** (`sh-engine/processor/uploader/`): Platform-specific upload implementations including:
-- `BiliClientUploader` / `BiliWebUploader`: Bilibili uploads
-- `DouyinUploader`: Douyin uploads
-- `AliPanUploader`, `BaidunPanUploader`, `QuarkPanUploader`: Cloud storage via Alist
-
-**Danmaku Recording**: Uses `ordinaryroad-live-chat-client` library to record live chat/danmaku from Bilibili, Douyin, Huya, and Douyu.
-
-## Configuration
-
-### Database
-
-MySQL schema defined in `init/init-sql.sql`. Main table `streamer` stores streamer configurations including:
-- `room_url`: Live stream URL
-- `record_type`: "vod" (record VOD) or "living" (live recording)
-- `upload_platforms`: Comma-separated list of upload targets
-- `process_plugins`: Video processing plugins (e.g., "LOL_HL_VOD_CUT")
-- `record_mode`: "t_3600" (time-based, 1 hour segments) or "s_2048" (size-based, 2GB segments)
-
-### Local Dev Config
-
-Dev configuration in `sh-config/src/main/resources/application.properties`:
-- Redis: localhost:6379
-- MySQL: localhost:3306/stream_move
-- Server: 0.0.0.0:8080 with context path `/api`
-
-### External Dependencies
-
-The application requires external tools:
-- **streamlink**: For stream recording
-- **ffmpeg**: For video processing
-- **playwright**: For browser automation (some uploaders)
-- **Alist**: For cloud storage uploads (runs as separate Docker container)
-- **Redis**: For caching and distributed state
-- **MySQL**: For persistent storage
-
-## Docker Deployment
-
-The application is designed for Docker deployment:
-
-```bash
-# Build base image (includes ffmpeg, streamlink, Java 8)
-docker build -t stream-base:latest -f Dockerfile-base .
-
-# Build application image
-docker build -t stream-move:latest -f Dockerfile .
-
-# Start all services (includes alist)
-docker-compose up -d
-```
-
-Volumes expected at `/home/admin/stream/`:
-- `download/`: Recorded videos
-- `config/`: Configuration files (config.properties, init.json)
-- `logs/`: Application logs
-- `dump/`: Heap dumps on OOM
-- `account/`: Account data
-- `thumbnail/`: Thumbnail images
-
-## Testing
-
-No test suite is currently configured in this project.
-
-## Important Implementation Details
-
-- **Recording Segments**: Videos are split based on `record_mode` (time or size) to manage large files
-- **Streamlink Integration**: Recording uses Python streamlink CLI via `commons-exec` library
-- **Danmaku Files**: Recorded as CSV files alongside video files using `opencsv`
-- **Proxy Support**: Configurable proxy settings for international platforms like Twitch/YouTube
-- **Traffic Control**: Each streamer has `cur_traffic_gb` and `max_traffic_gb` for bandwidth management
-
-## Development Rules
-
-### External Service Integration
-
-**接入外部服务必须严格按照官方文档，严禁瞎猜代码。** 具体规则：
-
-1. **文档优先**：在没有看到官方接入文档、API文档或SDK示例代码之前，不得编写任何接入代码
-2. **参数确认**：所有请求参数、Header、鉴权方式必须文档中有明确说明，不能自行推断
-3. **URL确认**：API端点URL必须从文档中获取，不能假设或拼接
-4. **返回格式**：响应数据的解析必须基于文档定义的返回格式，不能猜测字段含义
-5. **异常处理**：错误码和异常场景的处理必须参考文档说明
-
-违反规则的情况包括但不限于：
-- 假设某个云服务的API格式与竞品相同
-- 根据URL路径猜测参数传递方式
-- 根据SDK名称推断方法签名
-- 没有文档依据时假设返回JSON结构
-
-如果你无法访问文档，请明确告知用户：**"无法获取文档，请提供以下信息：1. ... 2. ..."**，列出需要的具体参数，等待用户提供后再编写代码。
+- 只读取与当前任务相关的文档；不确定影响范围时先阅读项目架构。
+- 新增或修改代码时，项目编码规范和 CR 规范优先于通用编码习惯；完成修改前按照 CR 规范自检本次变更。
+- 用户的明确要求与项目文档冲突时，先指出冲突和影响，再按照用户确认后的要求执行。
+- 后续交互中，用户提出具有长期性、可复用性和项目级适用范围的编码或 CR 偏好时，应在完成当前任务的同时主动归纳并补充到对应规范；新增主题文档时同步更新本索引。
+- 一次性处理方式、仅适用于当前上下文的取舍或尚未确认的建议，不写入长期规范。新规则与既有规则重复或冲突时，优先合并和修订原规则；无法判断是否应长期采用时先向用户确认。
+- 动态补充规范后，应在交付说明中指出新增或调整了哪些规则。

@@ -10,24 +10,14 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * @Author caiwen
- * @Date 2024 01 13 23 26
- **/
+ * 单个时间点的 LoL K/D/A，以及仅在 K/A 增加时识别的击杀栏详情。
+ */
 @Data
 public class LoLPicData {
     private int K;
     private int D;
     private int A;
-
-    /**
-     * 击杀细节
-     */
     private HeroKillOrAssistDetail heroKADetail;
-
-    /**
-     * 当前序列的得分
-     */
-    private float score;
 
     public LoLPicData() {
     }
@@ -38,22 +28,10 @@ public class LoLPicData {
         A = a;
     }
 
-    public LoLPicData copy() {
-        return new LoLPicData(this.K, this.D, this.A);
-    }
-
-    public float getScore() {
-        return score;
-    }
-
-    public void setScore(float score) {
-        this.score = score;
-    }
-
     /**
-     * 合并识别的击杀细节框，每一行表示一次击杀详情
+     * 按检测框的 Y 坐标把英雄头像合并成多行，每一行代表一次击杀记录。
      *
-     * @return
+     * @return 每次击杀记录中的英雄位置标签
      */
     public List<List<Integer>> merge2PositionEnum() {
         if (heroKADetail == null) {
@@ -69,25 +47,24 @@ public class LoLPicData {
         }
 
         List<HeroProfile> sortedProfiles = profiles.stream()
-                .sorted(Comparator.comparing(p -> p.getPosition().get(3)))
+                .sorted(Comparator.comparing(profile -> profile.getPosition().get(3)))
                 .collect(Collectors.toList());
-        List<List<Integer>> labelIdPerKills = Lists.newArrayList();
-        Float lastMaxYPosition = null;
-        for (int i = 0; i < sortedProfiles.size(); i++) {
-            HeroProfile heroProfile = sortedProfiles.get(i);
-            if (lastMaxYPosition != null && Math.abs(lastMaxYPosition - heroProfile.getPosition().get(3)) < 5f) {
-                // 小于5属于同一行，说明是同一次击杀
-                labelIdPerKills.get(labelIdPerKills.size() - 1).add(heroProfile.getLabelId());
+        List<List<Integer>> labelsByKill = Lists.newArrayList();
+        Float previousMaxY = null;
+        for (HeroProfile profile : sortedProfiles) {
+            float currentMaxY = profile.getPosition().get(3);
+            if (previousMaxY != null && Math.abs(previousMaxY - currentMaxY) < 5f) {
+                labelsByKill.get(labelsByKill.size() - 1).add(profile.getLabelId());
             } else {
-                labelIdPerKills.add(Lists.newArrayList(heroProfile.getLabelId()));
+                labelsByKill.add(Lists.newArrayList(profile.getLabelId()));
             }
-
-            lastMaxYPosition = heroProfile.getPosition().get(3);
+            previousMaxY = currentMaxY;
         }
 
-        return labelIdPerKills.stream().map(LOLHeroPositionEnum::filter).filter(CollectionUtils::isNotEmpty)
+        return labelsByKill.stream()
+                .map(LOLHeroPositionEnum::filter)
+                .filter(CollectionUtils::isNotEmpty)
                 .collect(Collectors.toList());
-
     }
 
     public static LoLPicData genBlank() {
@@ -98,40 +75,33 @@ public class LoLPicData {
         return new LoLPicData(-2, -2, -2);
     }
 
-    public boolean beInvalid() {
-        return this.K == -2;
-    }
-
     public boolean beBlank() {
-        return this.K == -1;
+        return K == -1;
     }
 
     public boolean beValid() {
-        return this.K >= 0;
+        return K >= 0;
     }
 
     public boolean compareKda(LoLPicData other) {
-        if (other == null) {
-            return false;
-        }
-        return Objects.equals(this.K, other.K) && Objects.equals(this.D, other.D) && Objects.equals(this.A, other.A);
+        return other != null
+                && Objects.equals(K, other.K)
+                && Objects.equals(D, other.D)
+                && Objects.equals(A, other.A);
     }
 
     public static class HeroKillOrAssistDetail {
         private List<List<Float>> boxes;
-
-        /**
-         * @see LOLHeroPositionEnum
-         */
+        /** @see LOLHeroPositionEnum */
         private List<Integer> labelIds;
-
-        public List<List<Float>> getBoxes() {
-            return boxes;
-        }
 
         public HeroKillOrAssistDetail(List<List<Float>> boxes, List<Integer> labelIds) {
             this.boxes = boxes;
             this.labelIds = labelIds;
+        }
+
+        public List<List<Float>> getBoxes() {
+            return boxes;
         }
 
         public void setBoxes(List<List<Float>> boxes) {
@@ -147,23 +117,23 @@ public class LoLPicData {
         }
     }
 
-    static class HeroProfile {
+    private static class HeroProfile {
         private List<Float> position;
         private int labelId;
 
-        public List<Float> getPosition() {
+        private List<Float> getPosition() {
             return position;
         }
 
-        public void setPosition(List<Float> position) {
+        private void setPosition(List<Float> position) {
             this.position = position;
         }
 
-        public int getLabelId() {
+        private int getLabelId() {
             return labelId;
         }
 
-        public void setLabelId(int labelId) {
+        private void setLabelId(int labelId) {
             this.labelId = labelId;
         }
     }

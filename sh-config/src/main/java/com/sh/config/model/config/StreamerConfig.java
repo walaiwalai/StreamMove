@@ -183,26 +183,4 @@ public class StreamerConfig {
      * 默认为空表示不重命名，例如配置 "zip" 后，xxx.mp4 上传后会被重命名为 xxx.zip
      */
     private String netDiskFileRenameSuffix;
-
-    // -------------------------------AI高光剪辑相关--------------------------------
-    /**
-     * DeepSeek API Key for AI highlight analysis
-     */
-    private String deepSeekApiKey;
-
-    /**
-     * ASR service provider (aliyun/xunfei/whisper/none)
-     */
-    private String asrProvider = "none";
-
-    /**
-     * ASR service API Key
-     */
-    private String asrApiKey;
-
-    /**
-     * AI highlight minimum score threshold (1-10)
-     */
-    private int aiHighlightMinScore = 7;
-    // -------------------------------AI高光剪辑结尾--------------------------------
 }

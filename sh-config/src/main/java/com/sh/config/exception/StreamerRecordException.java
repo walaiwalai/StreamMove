@@ -5,10 +5,20 @@ package com.sh.config.exception;
  * @date 2023/1/30 21:36
  */
 public class StreamerRecordException extends RuntimeException {
-    private ErrorEnum errorEnum;
+    private final ErrorEnum errorEnum;
 
     public StreamerRecordException(ErrorEnum errorEnum) {
         super(errorEnum.getMessage());
+        this.errorEnum = errorEnum;
+    }
+
+    public StreamerRecordException(ErrorEnum errorEnum, String message) {
+        super(message);
+        this.errorEnum = errorEnum;
+    }
+
+    public StreamerRecordException(ErrorEnum errorEnum, String message, Throwable cause) {
+        super(message, cause);
         this.errorEnum = errorEnum;
     }
 

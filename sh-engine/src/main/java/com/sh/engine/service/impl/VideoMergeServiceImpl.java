@@ -3,6 +3,8 @@ package com.sh.engine.service.impl;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import com.google.common.collect.Lists;
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.utils.EnvUtil;
 import com.sh.config.utils.PictureFileUtil;
 import com.sh.config.utils.VideoFileUtil;
@@ -10,6 +12,8 @@ import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
 import com.sh.engine.model.ffmpeg.Ts2Mp4ProcessCmd;
 import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
 import com.sh.engine.model.highlight.VideoInterval;
+import com.sh.engine.model.highlight.core.HighlightMask;
+import com.sh.engine.model.highlight.core.HighlightMaskPlan;
 import com.sh.engine.service.VideoMergeService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -43,6 +47,8 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     private static final int VERTICAL_GAME_WIDTH_RATIO = 8;
     private static final int VERTICAL_GAME_HEIGHT_RATIO = 9;
     private static final String VERTICAL_BACKGROUND_COLOR = "0x101218";
+    private static final int MAX_BLUR_RADIUS = 20;
+    private static final double MASK_DARKEN_OPACITY = 0.18;
 
     @Override
     public boolean concatWithSameVideo(List<String> mergedFps, File targetVideo) {
@@ -90,18 +96,75 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
     @Override
     public boolean mergeWithCover(List<VideoInterval> intervals, File targetVideo, String title) {
-        return mergeWithCover(intervals, targetVideo, title, false);
+        return mergeWithCover(
+                intervals, targetVideo, title, false, HighlightMaskPlan.empty());
+    }
+
+    @Override
+    public boolean mergeWithCover(List<VideoInterval> intervals,
+                                  File targetVideo,
+                                  String title,
+                                  HighlightMaskPlan maskPlan) {
+        return mergeWithCover(intervals, targetVideo, title, false, maskPlan);
     }
 
     @Override
     public boolean mergeVerticalWithCover(List<VideoInterval> intervals, File targetVideo, String title) {
-        return mergeWithCover(intervals, targetVideo, title, true);
+        return mergeWithCover(
+                intervals, targetVideo, title, true, HighlightMaskPlan.empty());
     }
 
+    @Override
+    public boolean mergeVerticalWithCover(List<VideoInterval> intervals,
+                                          File targetVideo,
+                                          String title,
+                                          HighlightMaskPlan maskPlan) {
+        return mergeWithCover(intervals, targetVideo, title, true, maskPlan);
+    }
+
+    /**
+     * 统一执行横版或竖版高光合成，蒙层始终在版式变换之前作用于源画面。
+     */
     private boolean mergeWithCover(List<VideoInterval> intervals,
                                    File targetVideo,
                                    String title,
-                                   boolean verticalLayout) {
+                                   boolean verticalLayout,
+                                   HighlightMaskPlan maskPlan) {
+        if (!validateHighlightIntervals(intervals, targetVideo)) {
+            return false;
+        }
+        File tmpSaveDir = new File(targetVideo.getParent(), "tmp-h");
+        if (!tmpSaveDir.isDirectory() && !tmpSaveDir.mkdirs()) {
+            throw new StreamerRecordException(
+                    ErrorEnum.HIGHLIGHT_ANALYSIS_ERROR,
+                    "cannot create highlight merge directory: " + tmpSaveDir.getAbsolutePath());
+        }
+        File thumbnailFile = new File(tmpSaveDir, "h-thumbnail.png");
+        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(intervals.get(0).getFromVideo().getAbsolutePath());
+        detectCmd.execute(50);
+        int width = detectCmd.getWidth();
+        int height = detectCmd.getHeight();
+        int outputWidth = verticalLayout ? VERTICAL_OUTPUT_WIDTH : width;
+        int outputHeight = verticalLayout ? VERTICAL_OUTPUT_HEIGHT : height;
+        int fontSize = Math.max(outputHeight / 13, 20);
+        PictureFileUtil.createTextWithVeil(title, outputWidth, outputHeight, fontSize, thumbnailFile);
+
+        String verticalVideoFilter = verticalLayout ? buildVerticalVideoFilter(width, height) : null;
+        StringBuilder command = buildHighlightInputCommand(intervals, thumbnailFile);
+        String filter = buildHighlightFilter(
+                intervals, maskPlan, width, height, verticalVideoFilter);
+        command.append(" -filter_complex \"").append(filter).append("\"")
+                .append(" -map \"[v_out]\" -map \"[a_out]\"")
+                .append(" -c:v libx264 -preset superfast -crf 23 -pix_fmt yuv420p")
+                .append(" -c:a aac -movflags +faststart \"")
+                .append(targetVideo.getAbsolutePath()).append("\"");
+        return executeHighlightMerge(command.toString(), thumbnailFile, tmpSaveDir);
+    }
+
+    /**
+     * 校验待合并区间，非法区间不执行耗时转码。
+     */
+    private boolean validateHighlightIntervals(List<VideoInterval> intervals, File targetVideo) {
         if (CollectionUtils.isEmpty(intervals)) {
             log.info("empty video intervals, skip merge, target: {}", targetVideo.getAbsolutePath());
             return false;
@@ -114,22 +177,14 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                 return false;
             }
         }
+        return true;
+    }
 
-        File tmpSaveDir = new File(targetVideo.getParent(), "tmp-h");
-        tmpSaveDir.mkdirs();
-        File thumbnailFile = new File(tmpSaveDir, "h-thumbnail.png");
-
-        VideoSizeDetectCmd detectCmd = new VideoSizeDetectCmd(intervals.get(0).getFromVideo().getAbsolutePath());
-        detectCmd.execute(50);
-        int width = detectCmd.getWidth();
-        int height = detectCmd.getHeight();
-        int outputWidth = verticalLayout ? VERTICAL_OUTPUT_WIDTH : width;
-        int outputHeight = verticalLayout ? VERTICAL_OUTPUT_HEIGHT : height;
-        int fontSize = Math.max(outputHeight / 13, 20);
-        PictureFileUtil.createTextWithVeil(title, outputWidth, outputHeight, fontSize, thumbnailFile);
-
-        String verticalVideoFilter = verticalLayout ? buildVerticalVideoFilter(width, height) : null;
-
+    /**
+     * 为每个区间生成独立输入，并把封面图片追加为最后一个输入。
+     */
+    private StringBuilder buildHighlightInputCommand(List<VideoInterval> intervals,
+                                                      File thumbnailFile) {
         StringBuilder command = new StringBuilder("ffmpeg -y -loglevel error");
         for (VideoInterval interval : intervals) {
             double duration = interval.getSecondToVideoEnd() - interval.getSecondFromVideoStart();
@@ -138,51 +193,92 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                     interval.getSecondFromVideoStart(), duration,
                     interval.getFromVideo().getAbsolutePath()));
         }
-        command.append(" -i \"").append(thumbnailFile.getAbsolutePath()).append("\"");
+        return command.append(" -i \"").append(thumbnailFile.getAbsolutePath()).append("\"");
+    }
 
+    /**
+     * 构建蒙层、版式、淡入淡出、封面和最终拼接组成的完整滤镜图。
+     */
+    private String buildHighlightFilter(List<VideoInterval> intervals,
+                                        HighlightMaskPlan maskPlan,
+                                        int width,
+                                        int height,
+                                        String verticalVideoFilter) {
         StringBuilder filter = new StringBuilder();
-        for (int i = 0; i < intervals.size(); i++) {
-            VideoInterval interval = intervals.get(i);
+        HighlightVideoFilterSpec filterSpec = new HighlightVideoFilterSpec(
+                maskPlan, width, height, verticalVideoFilter);
+        for (int index = 0; index < intervals.size(); index++) {
+            VideoInterval interval = intervals.get(index);
             double duration = interval.getSecondToVideoEnd() - interval.getSecondFromVideoStart();
             double fadeDuration = Math.min(0.5, duration / 2.0);
             double fadeOutStart = Math.max(0.0, duration - fadeDuration);
-
-            filter.append('[').append(i).append(":v]");
-            if (verticalLayout) {
-                filter.append(verticalVideoFilter).append(',');
-            }
-            filter.append("setpts=PTS-STARTPTS,format=yuv420p");
-            if (i > 0) {
-                filter.append(String.format(Locale.ROOT, ",fade=t=in:st=0:d=%.3f", fadeDuration));
-            }
-            String videoOutputLabel = i == 0 ? "v0_base" : "v" + i;
-            filter.append(String.format(Locale.ROOT, ",fade=t=out:st=%.3f:d=%.3f[%s];",
-                    fadeOutStart, fadeDuration, videoOutputLabel));
-
-            filter.append('[').append(i).append(":a]")
-                    .append("asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo");
-            if (i > 0) {
-                filter.append(String.format(Locale.ROOT, ",afade=t=in:st=0:d=%.3f", fadeDuration));
-            }
-            filter.append(String.format(Locale.ROOT, ",afade=t=out:st=%.3f:d=%.3f[a%d];",
-                    fadeOutStart, fadeDuration, i));
+            appendHighlightVideoFilter(
+                    filter, index, filterSpec, fadeDuration, fadeOutStart);
+            appendHighlightAudioFilter(filter, index, fadeDuration, fadeOutStart);
         }
+        appendHighlightConcatFilter(filter, intervals.size());
+        return filter.toString();
+    }
 
-        int coverInputIndex = intervals.size();
-        filter.append("[v0_base][").append(coverInputIndex)
+    /**
+     * 为单个区间添加广告蒙层、可选竖版变换和视频淡入淡出。
+     */
+    private void appendHighlightVideoFilter(StringBuilder filter,
+                                            int inputIndex,
+                                            HighlightVideoFilterSpec filterSpec,
+                                            double fadeDuration,
+                                            double fadeOutStart) {
+        String videoInputLabel = appendMaskFilters(
+                filter, inputIndex, filterSpec.maskPlan,
+                filterSpec.frameWidth, filterSpec.frameHeight);
+        filter.append('[').append(videoInputLabel).append(']');
+        if (filterSpec.verticalVideoFilter != null) {
+            filter.append(filterSpec.verticalVideoFilter).append(',');
+        }
+        filter.append("setpts=PTS-STARTPTS,format=yuv420p");
+        if (inputIndex > 0) {
+            filter.append(String.format(Locale.ROOT, ",fade=t=in:st=0:d=%.3f", fadeDuration));
+        }
+        String outputLabel = inputIndex == 0 ? "v0_base" : "v" + inputIndex;
+        filter.append(String.format(Locale.ROOT, ",fade=t=out:st=%.3f:d=%.3f[%s];",
+                fadeOutStart, fadeDuration, outputLabel));
+    }
+
+    /**
+     * 将单个区间音频统一为 48kHz 双声道并添加淡入淡出。
+     */
+    private void appendHighlightAudioFilter(StringBuilder filter,
+                                            int inputIndex,
+                                            double fadeDuration,
+                                            double fadeOutStart) {
+        filter.append('[').append(inputIndex).append(":a]")
+                .append("asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo");
+        if (inputIndex > 0) {
+            filter.append(String.format(Locale.ROOT, ",afade=t=in:st=0:d=%.3f", fadeDuration));
+        }
+        filter.append(String.format(Locale.ROOT, ",afade=t=out:st=%.3f:d=%.3f[a%d];",
+                fadeOutStart, fadeDuration, inputIndex));
+    }
+
+    /**
+     * 在首段叠加一秒封面，并按时间顺序拼接全部音视频区间。
+     */
+    private void appendHighlightConcatFilter(StringBuilder filter, int intervalCount) {
+        filter.append("[v0_base][").append(intervalCount)
                 .append(":v]overlay=enable='between(t,0,1)':format=auto:eof_action=repeat,format=yuv420p[v0];");
-        for (int i = 0; i < intervals.size(); i++) {
-            filter.append("[v").append(i).append("][a").append(i).append(']');
+        for (int index = 0; index < intervalCount; index++) {
+            filter.append("[v").append(index).append("][a").append(index).append(']');
         }
-        filter.append("concat=n=").append(intervals.size()).append(":v=1:a=1[v_out][a_out]");
+        filter.append("concat=n=").append(intervalCount).append(":v=1:a=1[v_out][a_out]");
+    }
 
-        command.append(" -filter_complex \"").append(filter).append("\"")
-                .append(" -map \"[v_out]\" -map \"[a_out]\"")
-                .append(" -c:v libx264 -preset superfast -crf 23 -pix_fmt yuv420p")
-                .append(" -c:a aac -movflags +faststart \"")
-                .append(targetVideo.getAbsolutePath()).append("\"");
-
-        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(command.toString());
+    /**
+     * 执行最终转码，并确保临时封面及空工作目录得到清理。
+     */
+    private boolean executeHighlightMerge(String command,
+                                          File thumbnailFile,
+                                          File tmpSaveDir) {
+        FFmpegProcessCmd processCmd = new FFmpegProcessCmd(command);
         try {
             processCmd.execute(3 * 3600L);
             return processCmd.isEndNormal();
@@ -193,6 +289,65 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                 FileUtils.deleteQuietly(tmpSaveDir);
             }
         }
+    }
+
+    private static final class HighlightVideoFilterSpec {
+        private final HighlightMaskPlan maskPlan;
+        private final int frameWidth;
+        private final int frameHeight;
+        private final String verticalVideoFilter;
+
+        private HighlightVideoFilterSpec(HighlightMaskPlan maskPlan,
+                                         int frameWidth,
+                                         int frameHeight,
+                                         String verticalVideoFilter) {
+            this.maskPlan = maskPlan;
+            this.frameWidth = frameWidth;
+            this.frameHeight = frameHeight;
+            this.verticalVideoFilter = verticalVideoFilter;
+        }
+    }
+
+    /**
+     * 为单个 FFmpeg 视频输入依次叠加局部模糊区域，返回后续滤镜应消费的标签。
+     */
+    private String appendMaskFilters(StringBuilder filter,
+                                     int inputIndex,
+                                     HighlightMaskPlan maskPlan,
+                                     int frameWidth,
+                                     int frameHeight) {
+        String sourceLabel = inputIndex + ":v";
+        if (maskPlan == null || maskPlan.isEmpty()) {
+            return sourceLabel;
+        }
+        for (int maskIndex = 0; maskIndex < maskPlan.getMasks().size(); maskIndex++) {
+            HighlightMask mask = maskPlan.getMasks().get(maskIndex);
+            int x = mask.pixelX(frameWidth);
+            int y = mask.pixelY(frameHeight);
+            int width = mask.pixelWidth(frameWidth);
+            int height = mask.pixelHeight(frameHeight);
+            int blurRadius = Math.max(2,
+                    Math.min(MAX_BLUR_RADIUS, Math.min(width, height) / 4));
+            String labelPrefix = "mask" + inputIndex + '_' + maskIndex;
+            filter.append('[').append(sourceLabel).append("]split=2[")
+                    .append(labelPrefix).append("base][")
+                    .append(labelPrefix).append("blur];[")
+                    .append(labelPrefix).append("blur]crop=")
+                    .append(width).append(':').append(height).append(':')
+                    .append(x).append(':').append(y)
+                    .append(",boxblur=luma_radius=").append(blurRadius)
+                    .append(":luma_power=3:chroma_radius=").append(blurRadius)
+                    .append(":chroma_power=3[").append(labelPrefix).append("patch];[")
+                    .append(labelPrefix).append("base][")
+                    .append(labelPrefix).append("patch]overlay=")
+                    .append(x).append(':').append(y).append(":format=auto,")
+                    .append("drawbox=x=").append(x).append(":y=").append(y)
+                    .append(":w=").append(width).append(":h=").append(height)
+                    .append(":color=black@").append(MASK_DARKEN_OPACITY)
+                    .append(":t=fill[").append(labelPrefix).append("out];");
+            sourceLabel = labelPrefix + "out";
+        }
+        return sourceLabel;
     }
 
     static String buildVerticalVideoFilter(int sourceWidth, int sourceHeight) {

@@ -10,6 +10,8 @@ import com.sh.engine.model.asr.AsrSegment;
 import com.sh.engine.model.danmaku.HighlightAnalysisResult;
 import com.sh.engine.model.danmaku.DanmakuTimeBucket;
 import com.sh.engine.model.highlight.VideoInterval;
+import com.sh.engine.model.highlight.core.HighlightMaskPlan;
+import com.sh.engine.processor.plugin.highlight.HighlightAdvertisementMaskDetector;
 import com.sh.engine.processor.recorder.danmu.SimpleDanmaku;
 import com.sh.engine.service.AsrService;
 import com.sh.engine.service.DanmakuAnalysisService;
@@ -53,6 +55,9 @@ public class DanmakuAIHighlightPlugin implements VideoProcessPlugin {
 
     @Resource
     private VideoMergeService videoMergeService;
+
+    @Resource
+    private HighlightAdvertisementMaskDetector advertisementMaskDetector;
 
     @Resource
     private MsgSendService msgSendService;
@@ -125,8 +130,13 @@ public class DanmakuAIHighlightPlugin implements VideoProcessPlugin {
         String timeStr = highlightFile.getParentFile().getName();
         String title = DateUtil.describeTime(timeStr, DateUtil.YYYY_MM_DD_HH_MM_SS_V2) + "\n" + StreamerInfoHolder.getCurStreamerName() + "直播精彩片段";
 
+        File workDirectory = new File(recordPath,
+                ".highlight-work/" + getPluginName().toLowerCase(Locale.ROOT));
+        HighlightMaskPlan maskPlan = advertisementMaskDetector.detect(intervals, workDirectory);
+
         // Merge video
-        boolean success = videoMergeService.mergeWithCover(intervals, highlightFile, title);
+        boolean success = videoMergeService.mergeWithCover(
+                intervals, highlightFile, title, maskPlan);
 
         // Send notification
         String msgPrefix = success ? "AI highlight generation completed! Path: " : "AI highlight generation failed! Path: ";

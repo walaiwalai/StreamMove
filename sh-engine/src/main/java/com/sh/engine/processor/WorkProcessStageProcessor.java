@@ -1,14 +1,12 @@
 package com.sh.engine.processor;
 
 import cn.hutool.core.io.FileUtil;
-import com.google.common.collect.Maps;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.storage.FileStatusModel;
-import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.ProcessPluginEnum;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
@@ -16,13 +14,13 @@ import com.sh.engine.model.RecordContext;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.processor.plugin.VideoProcessPlugin;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.util.List;
 import java.util.Map;
+import java.util.List;
+import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -35,19 +33,22 @@ import java.util.concurrent.Semaphore;
 @Slf4j
 public class WorkProcessStageProcessor extends AbstractStageProcessor {
     @Resource
-    ApplicationContext applicationContext;
-    @Resource
-    StatusManager statusManager;
+    private List<VideoProcessPlugin> videoProcessPlugins;
 
-    Map<String, VideoProcessPlugin> plugins = Maps.newHashMap();
-    Map<String, Semaphore> pluginSemaphoreMap = Maps.newHashMap();
+    @Resource
+    private StatusManager statusManager;
+
+    private final Map<String, VideoProcessPlugin> plugins = new HashMap<>();
+    private final Map<String, Semaphore> pluginSemaphoreMap = new HashMap<>();
 
     @PostConstruct
     private void init() {
-        Map<String, VideoProcessPlugin> beansOfType = applicationContext.getBeansOfType(VideoProcessPlugin.class);
-        beansOfType.forEach((key, value) -> plugins.put(value.getPluginName(), value));
+        for (VideoProcessPlugin plugin : videoProcessPlugins) {
+            plugins.put(plugin.getPluginName(), plugin);
+        }
 
-        beansOfType.forEach(( key, value ) -> pluginSemaphoreMap.put(value.getPluginName(), new Semaphore(value.getMaxProcessParallel(), true)));
+        videoProcessPlugins.forEach(plugin ->
+                pluginSemaphoreMap.put(plugin.getPluginName(), new Semaphore(plugin.getMaxProcessParallel(), true)));
     }
 
     @Override

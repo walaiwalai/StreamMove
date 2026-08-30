@@ -96,6 +96,15 @@ system.env.flag=default
 system.storage.mounted=false
 ```
 
+英雄联盟、无畏契约和广告蒙层识别统一使用 FFmpeg 内存 JPEG，不为 OCR
+生成中间截图文件。英雄联盟保留 8 分钟粗锚点和 4 秒最小粒度的递归区间细化，
+利用单局 K/D/A 单调不减特征减少随机取帧与 OCR 请求；无畏契约仍使用固定容量
+内存队列和两个 OCR 消费线程。
+
+无畏契约高光只截取右上角击杀栏，每 4 秒生成一张内存 JPEG；单次 OCR
+返回的文字框按纵向位置分组为多行，不再逐行截图或落盘。固定容量队列用于
+FFmpeg 与两个 OCR 消费线程之间的背压，避免长录像占用无限内存。
+
 填写init.json配置：
 
 ```json
@@ -172,7 +181,9 @@ system.storage.mounted=false
     - QUARK_PAN: 夸克云盘上传
     - UC_PAN: UC云盘上传
 - process_plugins：视频处理插件
-    - LOL_HL_VOD_CUT: 英雄联盟直播精彩自动剪辑（效果还行吧...）
+    - LOL_HL_VOD_CUT_V2: 英雄联盟直播精彩自动剪辑（保留旧配置值）
+    - VALORANT_HL_VOD_CUT: 无畏契约直播精彩自动剪辑
+    - DAN_MU_HL_VOD_CUT: 基于弹幕、ASR 和大模型的通用精彩剪辑
 - tags：视频标签，支持多个，用逗号隔开
 - env：环境标识，默认default
 - record_mode：按大小/时间录制视频，t表示时间，s表示大小，如t_3600表示单个录制视频时长1小时，s_4094表示单个录制视频大小4G

@@ -3,15 +3,14 @@ package com.sh.engine.model.highlight.lol;
 import java.io.File;
 
 /**
- * KDA 在源视频中的一个逻辑时间点。
+ * 某个源视频、某个时间点识别到的 KDA。
  *
- * 时间线可以包含没有实体截图的点，从而让评分逻辑保持每 4 秒一个点，
- * 同时避免为 KDA 没有变化的时间段生成图片。
+ * <p>时间线固定为每 4 秒一个逻辑点，但只有自适应扫描命中的时间点会真正截帧 OCR。</p>
  */
 public class LolKdaTimelinePoint {
     private final File sourceVideo;
     private final int secondFromVideoStart;
-    private LoLPicData picData;
+    private final LoLPicData picData;
 
     public LolKdaTimelinePoint(File sourceVideo, int secondFromVideoStart, LoLPicData picData) {
         this.sourceVideo = sourceVideo;
@@ -29,9 +28,5 @@ public class LolKdaTimelinePoint {
 
     public LoLPicData getPicData() {
         return picData;
-    }
-
-    public void setPicData(LoLPicData picData) {
-        this.picData = picData;
     }
 }
