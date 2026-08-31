@@ -3,6 +3,7 @@ package com.sh.engine.processor.plugin.highlight;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.engine.model.highlight.core.InMemoryVideoFrame;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -26,9 +27,12 @@ import java.util.concurrent.TimeoutException;
  * 通用 FFmpeg 内存取帧器，支持指定时间单帧和固定间隔连续帧。
  */
 @Component
+@Slf4j
 public class FfmpegFrameExtractor {
     private static final int FRAME_EXTRACTION_TIMEOUT_SECONDS = 60;
     private static final int READER_FINISH_TIMEOUT_SECONDS = 30;
+    private static final int ACCURATE_SEEK_PRE_ROLL_SECONDS = 5;
+    private static final int NEAREST_FRAME_FALLBACK_SECONDS = 1;
     private static final int JPEG_START_MARKER = 0xD8;
     private static final int JPEG_END_MARKER = 0xD9;
     private static final int MARKER_PREFIX = 0xFF;
@@ -103,18 +107,45 @@ public class FfmpegFrameExtractor {
         }
         acquirePermit();
         try {
-            byte[] jpegData = tryExtract(sourceVideo, timestampSeconds, cropExpression, 0);
-            if (jpegData == null) {
-                jpegData = tryExtract(sourceVideo, timestampSeconds, cropExpression, 5);
+            for (Integer extractionSecond : extractionTimestamps(timestampSeconds)) {
+                byte[] jpegData = extractAtTimestamp(
+                        sourceVideo, extractionSecond, cropExpression);
+                if (jpegData == null) {
+                    continue;
+                }
+                if (extractionSecond != timestampSeconds) {
+                    log.warn("frame extraction used previous decodable timestamp, "
+                                    + "video: {}, requested: {}s, actual: {}s",
+                            sourceVideo.getAbsolutePath(), timestampSeconds, extractionSecond);
+                }
+                return new InMemoryVideoFrame(extractionSecond, jpegData);
             }
-            if (jpegData == null) {
-                throw analysisError("cannot extract frame at " + timestampSeconds
-                        + "s from " + sourceVideo.getAbsolutePath(), null);
-            }
-            return new InMemoryVideoFrame(timestampSeconds, jpegData);
+            throw analysisError("cannot extract frame at or before " + timestampSeconds
+                    + "s from " + sourceVideo.getAbsolutePath(), null);
         } finally {
             FFMPEG_PERMITS.release();
         }
+    }
+
+    private byte[] extractAtTimestamp(File sourceVideo,
+                                      int timestampSeconds,
+                                      String cropExpression) {
+        byte[] jpegData = tryExtract(sourceVideo, timestampSeconds, cropExpression, 0);
+        return jpegData != null ? jpegData : tryExtract(
+                sourceVideo, timestampSeconds, cropExpression, ACCURATE_SEEK_PRE_ROLL_SECONDS);
+    }
+
+    /**
+     * 视频容器时长可能略大于最后可解码帧，目标秒无帧时统一回退到相邻前一秒。
+     */
+    private List<Integer> extractionTimestamps(int timestampSeconds) {
+        List<Integer> timestamps = new ArrayList<>(2);
+        timestamps.add(timestampSeconds);
+        int fallbackSecond = Math.max(0, timestampSeconds - NEAREST_FRAME_FALLBACK_SECONDS);
+        if (fallbackSecond != timestampSeconds) {
+            timestamps.add(fallbackSecond);
+        }
+        return timestamps;
     }
 
     private byte[] tryExtract(File sourceVideo,

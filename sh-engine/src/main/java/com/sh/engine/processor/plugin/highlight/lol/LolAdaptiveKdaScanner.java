@@ -46,7 +46,7 @@ public class LolAdaptiveKdaScanner {
     private static final int KDA_SAMPLE_INTERVAL_SECONDS = 4;
     private static final int COARSE_INTERVAL_SECONDS = 8 * 60;
     private static final int SEEK_RETRY_OFFSET_SECONDS = 1;
-    private static final int MAX_FRAMES_PER_VIDEO = 200;
+    private static final int MIN_FRAME_BUDGET_PER_VIDEO = 200;
 
     @Resource
     private FfmpegFrameExtractor frameExtractor;
@@ -276,6 +276,14 @@ public class LolAdaptiveKdaScanner {
         return (pointCount - 1) * KDA_SAMPLE_INTERVAL_SECONDS;
     }
 
+    /**
+     * 每个逻辑时间点至少允许一次抽帧，短视频保留固定余量供 OCR 前后秒重试。
+     */
+    private int calculateFrameBudget(int lastTimelineSecond) {
+        int logicalPointCount = lastTimelineSecond / KDA_SAMPLE_INTERVAL_SECONDS + 1;
+        return Math.max(MIN_FRAME_BUDGET_PER_VIDEO, logicalPointCount);
+    }
+
     private KdaCache loadKdaCache(File cacheFile) {
         if (!cacheFile.exists()) {
             return new KdaCache();
@@ -325,7 +333,9 @@ public class LolAdaptiveKdaScanner {
         private final VideoCache videoCache;
         private final ScanStatistics statistics;
         private final Map<Integer, LoLPicData> runtimeSamples = new TreeMap<>();
+        private final int frameBudget;
         private int framesForVideo;
+        private boolean frameBudgetReached;
 
         private ScanSession(File video,
                             int lastTimelineSecond,
@@ -341,6 +351,7 @@ public class LolAdaptiveKdaScanner {
             this.cache = cache;
             this.videoCache = videoCache;
             this.statistics = statistics;
+            this.frameBudget = calculateFrameBudget(lastTimelineSecond);
         }
 
         private LoLPicData sample(int timestampSeconds) {
@@ -380,9 +391,10 @@ public class LolAdaptiveKdaScanner {
             retrySeconds.add(Math.max(0, timestampSeconds - SEEK_RETRY_OFFSET_SECONDS));
             retrySeconds.add(Math.min(lastTimelineSecond, timestampSeconds + SEEK_RETRY_OFFSET_SECONDS));
             for (Integer retrySecond : retrySeconds) {
-                ensureWithinFrameLimit();
+                if (!reserveFrame()) {
+                    return LoLPicData.genInvalid();
+                }
                 InMemoryVideoFrame frame = frameExtractor.extract(video, retrySecond, cropExpression);
-                framesForVideo++;
                 statistics.memoryFrames++;
                 statistics.ocrRequests++;
                 List<Integer> kda = kdaRecognizer.recognizeKda(
@@ -394,13 +406,22 @@ public class LolAdaptiveKdaScanner {
             return LoLPicData.genInvalid();
         }
 
-        private void ensureWithinFrameLimit() {
-            if (framesForVideo >= MAX_FRAMES_PER_VIDEO) {
-                throw new StreamerRecordException(
-                        ErrorEnum.HIGHLIGHT_ANALYSIS_ERROR,
-                        "adaptive memory frame count reached " + MAX_FRAMES_PER_VIDEO
-                                + " for " + video.getName());
+        /**
+         * 预算耗尽后停止新增 OCR，将剩余无法确认的区间按空白处理，保留已识别高光。
+         */
+        private boolean reserveFrame() {
+            if (framesForVideo < frameBudget) {
+                framesForVideo++;
+                return true;
             }
+            if (!frameBudgetReached) {
+                log.warn("adaptive frame budget reached, continue with partial timeline, "
+                                + "video: {}, budget: {}, logical points: {}",
+                        video.getAbsolutePath(), frameBudget,
+                        lastTimelineSecond / KDA_SAMPLE_INTERVAL_SECONDS + 1);
+                frameBudgetReached = true;
+            }
+            return false;
         }
 
         private boolean isValidKda(List<Integer> kda) {

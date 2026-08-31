@@ -10,6 +10,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
 
 public class FfmpegFrameExtractorTest {
 
@@ -30,10 +32,28 @@ public class FfmpegFrameExtractorTest {
         Assert.assertNull(readNextJpeg(extractor, input));
     }
 
+    @Test
+    public void shouldRetryPreviousSecondWhenRequestedFrameIsUnavailable() throws Exception {
+        FfmpegFrameExtractor extractor = new FfmpegFrameExtractor();
+
+        Assert.assertEquals(Arrays.asList(3600, 3599), extractionTimestamps(extractor, 3600));
+        Assert.assertEquals(Arrays.asList(0), extractionTimestamps(extractor, 0));
+    }
+
     private byte[] readNextJpeg(FfmpegFrameExtractor extractor, InputStream input) throws Exception {
         Method method = FfmpegFrameExtractor.class.getDeclaredMethod("readNextJpeg", InputStream.class);
         method.setAccessible(true);
         return (byte[]) method.invoke(extractor, input);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Integer> extractionTimestamps(
+            FfmpegFrameExtractor extractor,
+            int timestampSeconds) throws Exception {
+        Method method = FfmpegFrameExtractor.class.getDeclaredMethod(
+                "extractionTimestamps", int.class);
+        method.setAccessible(true);
+        return (List<Integer>) method.invoke(extractor, timestampSeconds);
     }
 
     private byte[] jpeg(Color color) throws Exception {

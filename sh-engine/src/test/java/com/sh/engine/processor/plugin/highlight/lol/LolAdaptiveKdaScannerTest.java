@@ -92,6 +92,12 @@ public class LolAdaptiveKdaScannerTest {
         Assert.assertNull(createCropExpression(Arrays.asList(Arrays.asList(100, 20))));
     }
 
+    @Test
+    public void shouldScaleFrameBudgetWithVideoTimeline() throws Exception {
+        Assert.assertEquals(200, calculateFrameBudget(480));
+        Assert.assertEquals(901, calculateFrameBudget(3600));
+    }
+
     @SuppressWarnings("unchecked")
     private TreeMap<Integer, LoLPicData> buildTimeline(
             int lastSecond,
@@ -107,6 +113,13 @@ public class LolAdaptiveKdaScannerTest {
                 "createCropExpression", List.class);
         method.setAccessible(true);
         return (String) method.invoke(null, boxes);
+    }
+
+    private int calculateFrameBudget(int lastTimelineSecond) throws Exception {
+        Method method = LolAdaptiveKdaScanner.class.getDeclaredMethod(
+                "calculateFrameBudget", int.class);
+        method.setAccessible(true);
+        return (Integer) method.invoke(scanner, lastTimelineSecond);
     }
 
     private void assertKda(LoLPicData data, int kill, int death, int assist) {
