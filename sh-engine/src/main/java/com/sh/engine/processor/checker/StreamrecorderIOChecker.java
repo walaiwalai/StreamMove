@@ -10,7 +10,7 @@ import com.sh.engine.event.StreamRecordEndEvent;
 import com.sh.engine.event.StreamRecordStartEvent;
 import com.sh.engine.manager.CacheBizManager;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
-import com.sh.engine.processor.recorder.stream.StreamUrlStreamRecorder;
+import com.sh.engine.processor.recorder.stream.RangeVodStreamRecorder;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import org.apache.commons.collections4.CollectionUtils;
@@ -114,8 +114,8 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         Map<String, String> extra = new HashMap<>();
         extra.put("finishField", videoId);
 
-        return new StreamUrlStreamRecorder(recordedAt, streamerConfig.getRoomUrl(),
-                getType().getType(), downloadLink, extra, true);
+        return new RangeVodStreamRecorder(recordedAt, streamerConfig.getRoomUrl(),
+                getType().getType(), downloadLink, extra);
     }
 
     /**
@@ -254,8 +254,8 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         eventPublisher.publishEvent(new StreamRecordEndEvent(this, streamerConfig.getName()));
         Map<String, String> extra = new HashMap<>();
         extra.put("streamTitle", downloadRecord.getString("streamtitle"));
-        return new StreamUrlStreamRecorder(recordDate, streamerConfig.getRoomUrl(),
-                getType().getType(), downloadLink, extra, true);
+        return new RangeVodStreamRecorder(recordDate, streamerConfig.getRoomUrl(),
+                getType().getType(), downloadLink, extra);
     }
 
     /**

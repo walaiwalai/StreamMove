@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.manager.CacheBizManager;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
-import com.sh.engine.processor.recorder.stream.StreamUrlStreamRecorder;
+import com.sh.engine.processor.recorder.stream.RangeVodStreamRecorder;
 import org.apache.commons.lang3.time.DateUtils;
 import org.junit.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -221,7 +221,7 @@ public class StreamrecorderIOCheckerTest {
     }
 
     private String getStreamUrl(StreamRecorder recorder) throws Exception {
-        Field field = StreamUrlStreamRecorder.class.getDeclaredField("streamUrl");
+        Field field = RangeVodStreamRecorder.class.getDeclaredField("streamUrl");
         field.setAccessible(true);
         return (String) field.get(recorder);
     }
