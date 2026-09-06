@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Streamrecorder.io 平台检查器
@@ -37,6 +38,11 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
      * 长视频阈值：14小时（秒），超过此时长使用720p下载
      */
     private static final int LONG_VIDEO_THRESHOLD_SECONDS = 20 * 60 * 60;
+
+    /**
+     * 同一场直播允许录像片段之间存在的最大间隔。
+     */
+    private static final long RECORD_GROUP_MAX_GAP_MILLIS = TimeUnit.MINUTES.toMillis(30);
 
     @Resource
     private CacheBizManager cacheBizManager;
@@ -130,116 +136,206 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
         }
 
         String name = streamerConfig.getName();
-        Map<String, JSONObject> recordsById = new HashMap<>();
-        List<JSONObject> runningRecords = new ArrayList<>();
-        List<JSONObject> finishedRecords = new ArrayList<>();
-        Set<String> runningVideoIds = new LinkedHashSet<>();
-        Set<String> finishedVideoIds = new LinkedHashSet<>();
-        for (int i = 0; i < dataArr.size(); i++) {
-            JSONObject record = dataArr.getJSONObject(i);
+        RecordSnapshot snapshot = parseRecordSnapshot(dataArr);
+        Set<String> originalCachedVideoIds = new HashSet<>(cacheBizManager.getStreamrecorderRunningIds(name));
+        List<JSONObject> cachedRecords = loadCachedRecords(name, originalCachedVideoIds, snapshot.recordsById);
+        cachedRecords = selectLatestPendingRecordGroup(streamerConfig, cachedRecords);
+        Set<String> cachedVideoIds = getRecordIds(cachedRecords);
+
+        if (CollectionUtils.isNotEmpty(snapshot.runningRecords)) {
+            cacheRunningRecordGroup(streamerConfig, snapshot, cachedVideoIds);
+            return null;
+        }
+
+        syncCachedRecordGroup(name, originalCachedVideoIds, cachedVideoIds);
+        log.info("Streamrecorder check, lastRecordTime: {}, runningIds: {}, cachedIds: {}",
+                streamerConfig.getLastRecordTime(), snapshot.runningVideoIds, cachedVideoIds);
+        if (CollectionUtils.isNotEmpty(cachedRecords)) {
+            return buildCachedRecordGroup(streamerConfig, cachedRecords);
+        }
+        return buildLatestFinishedRecord(streamerConfig, snapshot.finishedRecords);
+    }
+
+    /**
+     * 解析 Streamrecorder.io 返回的有效录像，并按状态建立索引。
+     */
+    private RecordSnapshot parseRecordSnapshot(JSONArray records) {
+        RecordSnapshot snapshot = new RecordSnapshot();
+        for (int i = 0; i < records.size(); i++) {
+            JSONObject record = records.getJSONObject(i);
             String videoId = record.getString("id");
             Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
             if (StringUtils.isBlank(videoId) || recordedAt == null) {
                 continue;
             }
 
-            recordsById.put(videoId, record);
+            snapshot.recordsById.put(videoId, record);
             String status = record.getString("status");
             if (StringUtils.equals("running", status)) {
-                runningRecords.add(record);
-                runningVideoIds.add(videoId);
+                snapshot.runningRecords.add(record);
+                snapshot.runningVideoIds.add(videoId);
             } else if (StringUtils.equals("finished", status)) {
-                finishedRecords.add(record);
-                finishedVideoIds.add(videoId);
+                snapshot.finishedRecords.add(record);
             }
         }
+        return snapshot;
+    }
 
-        Set<String> cachedVideoIds = new HashSet<>(cacheBizManager.getStreamrecorderRunningIds(name));
+    /**
+     * 读取缓存对应的录像；缓存中任一录像已不在接口窗口时放弃整个旧分组。
+     */
+    private List<JSONObject> loadCachedRecords(String streamerName,
+                                               Set<String> cachedVideoIds,
+                                               Map<String, JSONObject> recordsById) {
         List<JSONObject> cachedRecords = new ArrayList<>();
         for (String videoId : cachedVideoIds) {
             JSONObject record = recordsById.get(videoId);
             if (record == null) {
-                log.warn("Streamrecorder cached video is missing, clearing cache: {}, id: {}", name, videoId);
-                cachedVideoIds.clear();
-                cachedRecords.clear();
-                cacheBizManager.clearStreamrecorderRunningIds(name);
-                break;
+                log.warn("Streamrecorder cached video is missing, clearing cache: {}, id: {}",
+                        streamerName, videoId);
+                cacheBizManager.clearStreamrecorderRunningIds(streamerName);
+                return Collections.emptyList();
             }
             cachedRecords.add(record);
         }
+        return cachedRecords;
+    }
 
-        // 下载成功后 lastRecordTime 会等于组内最大 recorded_at，下一轮在这里清理缓存。
-        Date cachedLatestAt = null;
-        for (JSONObject record : cachedRecords) {
+    /**
+     * 合并当前运行中的录像，并只缓存时间上连续的最新一场直播。
+     */
+    private void cacheRunningRecordGroup(StreamerConfig streamerConfig,
+                                         RecordSnapshot snapshot,
+                                         Set<String> cachedVideoIds) {
+        Date latestRunningAt = null;
+        for (JSONObject record : snapshot.runningRecords) {
             Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
-            if (cachedLatestAt == null || recordedAt.after(cachedLatestAt)) {
-                cachedLatestAt = recordedAt;
+            if (checkVodIsNew(streamerConfig, recordedAt)) {
+                cachedVideoIds.add(record.getString("id"));
             }
-        }
-        if (cachedLatestAt != null && !checkVodIsNew(streamerConfig, cachedLatestAt)) {
-            cachedVideoIds.clear();
-            cachedRecords.clear();
-            cacheBizManager.clearStreamrecorderRunningIds(name);
+            if (latestRunningAt == null || recordedAt.after(latestRunningAt)) {
+                latestRunningAt = recordedAt;
+            }
         }
 
-        // 直播进行中：把当前所有新 videoId 合并到同一个缓存集合。
-        if (CollectionUtils.isNotEmpty(runningRecords)) {
-            Date latestRunningAt = null;
-            for (JSONObject record : runningRecords) {
-                Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
-                if (checkVodIsNew(streamerConfig, recordedAt)) {
-                    cachedVideoIds.add(record.getString("id"));
-                }
-                if (latestRunningAt == null || recordedAt.after(latestRunningAt)) {
-                    latestRunningAt = recordedAt;
-                }
+        List<JSONObject> activeRecords = new ArrayList<>();
+        for (String videoId : cachedVideoIds) {
+            JSONObject record = snapshot.recordsById.get(videoId);
+            if (record != null) {
+                activeRecords.add(record);
             }
-            cacheBizManager.saveStreamrecorderRunningIds(name, cachedVideoIds);
-            Set<String> persistedVideoIds = cacheBizManager.getStreamrecorderRunningIds(name);
-            log.info("Streamrecorder check, lastRecordTime: {}, runningIds: {}, cachedIds: {}", streamerConfig.getLastRecordTime(), runningVideoIds, persistedVideoIds);
-            eventPublisher.publishEvent(new StreamRecordStartEvent(this, name, latestRunningAt));
+        }
+        Set<String> activeVideoIds = getRecordIds(
+                selectLatestPendingRecordGroup(streamerConfig, activeRecords));
+        String streamerName = streamerConfig.getName();
+        cacheBizManager.saveStreamrecorderRunningIds(streamerName, activeVideoIds);
+        log.info("Streamrecorder check, lastRecordTime: {}, runningIds: {}, cachedIds: {}",
+                streamerConfig.getLastRecordTime(), snapshot.runningVideoIds, activeVideoIds);
+        eventPublisher.publishEvent(new StreamRecordStartEvent(this, streamerName, latestRunningAt));
+    }
+
+    /**
+     * 将持久化缓存同步为归一化后的最新录像分组。
+     */
+    private void syncCachedRecordGroup(String streamerName,
+                                       Set<String> originalVideoIds,
+                                       Set<String> retainedVideoIds) {
+        if (originalVideoIds.equals(retainedVideoIds)) {
+            return;
+        }
+        Set<String> discardedVideoIds = new HashSet<>(originalVideoIds);
+        discardedVideoIds.removeAll(retainedVideoIds);
+        log.warn("Streamrecorder discarded stale cached records: {}, discardedIds: {}, retainedIds: {}",
+                streamerName, discardedVideoIds, retainedVideoIds);
+        cacheBizManager.saveStreamrecorderRunningIds(streamerName, retainedVideoIds);
+    }
+
+    /**
+     * 缓存分组全部结束后下载其中时长最长的录像，并用最新开始时间推进游标。
+     */
+    private StreamRecorder buildCachedRecordGroup(StreamerConfig streamerConfig,
+                                                   List<JSONObject> cachedRecords) {
+        boolean allFinished = cachedRecords.stream()
+                .allMatch(record -> StringUtils.equals("finished", record.getString("status")));
+        if (!allFinished) {
             return null;
         }
 
-        log.info("Streamrecorder check, lastRecordTime: {}, runningIds: {}, cachedIds: {}", streamerConfig.getLastRecordTime(), runningVideoIds, cachedVideoIds);
-
-        // 缓存中的录像全部结束后，最长录像提供下载链接，最大 recorded_at 作为 regDate。
-        if (CollectionUtils.isNotEmpty(cachedRecords)) {
-            boolean allFinished = cachedRecords.stream()
-                    .allMatch(record -> StringUtils.equals("finished", record.getString("status")));
-            if (!allFinished) {
-                return null;
+        JSONObject longestRecord = cachedRecords.get(0);
+        Date latestRecordedAt = parseGMT8Date(longestRecord.getString("recorded_at"));
+        for (JSONObject record : cachedRecords) {
+            Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
+            if (record.getIntValue("duration") > longestRecord.getIntValue("duration")) {
+                longestRecord = record;
             }
-
-            JSONObject longestRecord = cachedRecords.get(0);
-            Date latestRecordedAt = parseGMT8Date(longestRecord.getString("recorded_at"));
-            for (JSONObject record : cachedRecords) {
-                Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
-                if (record.getIntValue("duration") > longestRecord.getIntValue("duration")) {
-                    longestRecord = record;
-                }
-                if (recordedAt.after(latestRecordedAt)) {
-                    latestRecordedAt = recordedAt;
-                }
+            if (recordedAt.after(latestRecordedAt)) {
+                latestRecordedAt = recordedAt;
             }
-            return buildStreamRecorder(streamerConfig, longestRecord, latestRecordedAt);
         }
+        return buildStreamRecorder(streamerConfig, longestRecord, latestRecordedAt);
+    }
 
-        // 没有 running 缓存时，只下载最新的 finished 录像，不补录更早记录。
-        JSONObject latestFinishedRecord = null;
+    /**
+     * 无运行缓存时只下载最新的已结束录像，不补录更早记录。
+     */
+    private StreamRecorder buildLatestFinishedRecord(StreamerConfig streamerConfig,
+                                                     List<JSONObject> finishedRecords) {
+        JSONObject latestRecord = null;
         Date latestRecordedAt = null;
         for (JSONObject record : finishedRecords) {
             Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
             if (checkVodIsNew(streamerConfig, recordedAt)
                     && (latestRecordedAt == null || recordedAt.after(latestRecordedAt))) {
-                latestFinishedRecord = record;
+                latestRecord = record;
                 latestRecordedAt = recordedAt;
             }
         }
-        if (latestFinishedRecord == null) {
-            return null;
+        return latestRecord == null
+                ? null
+                : buildStreamRecorder(streamerConfig, latestRecord, latestRecordedAt);
+    }
+
+    /**
+     * 只保留尚未处理且时间上连续的最新一场直播录像，避免失败缓存跨场次累积。
+     */
+    private List<JSONObject> selectLatestPendingRecordGroup(StreamerConfig streamerConfig,
+                                                            List<JSONObject> records) {
+        List<JSONObject> sortedRecords = new ArrayList<>();
+        for (JSONObject record : records) {
+            Date recordedAt = parseGMT8Date(record.getString("recorded_at"));
+            if (recordedAt != null && checkVodIsNew(streamerConfig, recordedAt)) {
+                sortedRecords.add(record);
+            }
         }
-        return buildStreamRecorder(streamerConfig, latestFinishedRecord, latestRecordedAt);
+        sortedRecords.sort(Comparator.comparing(
+                record -> parseGMT8Date(record.getString("recorded_at"))));
+
+        List<JSONObject> latestGroup = new ArrayList<>();
+        long latestGroupEnd = Long.MIN_VALUE;
+        for (JSONObject record : sortedRecords) {
+            long recordStart = parseGMT8Date(record.getString("recorded_at")).getTime();
+            long durationSeconds = Math.max(0L, record.getLongValue("duration"));
+            long recordEnd = recordStart + TimeUnit.SECONDS.toMillis(durationSeconds);
+            if (!latestGroup.isEmpty()
+                    && recordStart - latestGroupEnd > RECORD_GROUP_MAX_GAP_MILLIS) {
+                latestGroup.clear();
+                latestGroupEnd = Long.MIN_VALUE;
+            }
+            latestGroup.add(record);
+            latestGroupEnd = Math.max(latestGroupEnd, recordEnd);
+        }
+        return latestGroup;
+    }
+
+    /**
+     * 提取录像列表中的视频 ID，供缓存与当前有效分组保持一致。
+     */
+    private Set<String> getRecordIds(List<JSONObject> records) {
+        Set<String> videoIds = new LinkedHashSet<>();
+        for (JSONObject record : records) {
+            videoIds.add(record.getString("id"));
+        }
+        return videoIds;
     }
 
     private StreamRecorder buildStreamRecorder(StreamerConfig streamerConfig,
@@ -334,6 +430,16 @@ public class StreamrecorderIOChecker extends AbstractRoomChecker {
             }
         }
         return null;
+    }
+
+    /**
+     * 单次接口响应中已校验的录像索引和状态集合。
+     */
+    private static final class RecordSnapshot {
+        private final Map<String, JSONObject> recordsById = new HashMap<>();
+        private final List<JSONObject> runningRecords = new ArrayList<>();
+        private final List<JSONObject> finishedRecords = new ArrayList<>();
+        private final Set<String> runningVideoIds = new LinkedHashSet<>();
     }
 
     @Override

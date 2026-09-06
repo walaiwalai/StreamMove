@@ -82,6 +82,36 @@ public class StreamrecorderIOCheckerTest {
     }
 
     @Test
+    public void ignoresOlderCompletedSessionWhenCachedIdsSpanMultipleBroadcasts() throws Exception {
+        TestCacheBizManager cache = new TestCacheBizManager();
+        cache.runningIds = ids("old", "latest");
+        StreamrecorderIOChecker checker = checkerWithCache(cache);
+
+        StreamRecorder recorder = fetchLatestRecord(checker, config(lastRecordAt("2026-09-01T17:59:09")),
+                record("old", "finished", "2026-09-04T16:53:07", 18 * 3600, "old-long-link"),
+                record("latest", "finished", "2026-09-05T18:01:52", 3600, "latest-link"));
+
+        assertNotNull(recorder);
+        assertEquals(lastRecordAt("2026-09-05T18:01:52"), recorder.getRegDate());
+        assertEquals("latest-link", getStreamUrl(recorder));
+        assertEquals(ids("latest"), cache.runningIds);
+    }
+
+    @Test
+    public void startsNewCachedGroupWhenNextBroadcastBeginsAfterLongGap() throws Exception {
+        TestCacheBizManager cache = new TestCacheBizManager();
+        cache.runningIds = ids("old");
+        StreamrecorderIOChecker checker = checkerWithCache(cache);
+
+        StreamRecorder recorder = fetchLatestRecord(checker, config(lastRecordAt("2026-09-01T17:59:09")),
+                record("old", "finished", "2026-09-04T16:53:07", 18 * 3600, "old-long-link"),
+                record("current", "running", "2026-09-05T18:01:52", 600, null));
+
+        assertNull(recorder);
+        assertEquals(ids("current"), cache.runningIds);
+    }
+
+    @Test
     public void downloadsOnlyLatestFinishedRecordWithoutRunningCache() throws Exception {
         TestCacheBizManager cache = new TestCacheBizManager();
         StreamrecorderIOChecker checker = checkerWithCache(cache);
