@@ -25,11 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Component
 public class RecordEventListener {
-    private static final String OSS_PROVIDER_NONE = "none";
     private static final String DANMAKU_OSS_PREFIX = "danmaku";
-
-    @Value("${oss.provider:none}")
-    private String ossProvider;
 
     @Resource
     private OssUploadService ossUploadService;
@@ -77,11 +73,6 @@ public class RecordEventListener {
         log.info("{} record end, stop recording danmaku", streamerName);
         recorder.close();
 
-        if (OSS_PROVIDER_NONE.equalsIgnoreCase(ossProvider)) {
-            log.info("{} danmaku OSS upload skipped because OSS is disabled", streamerName);
-            return;
-        }
-
         File danmakuFile = recorder.getSaveFile();
         if (danmakuFile == null || !danmakuFile.isFile()) {
             log.warn("{} danmaku file does not exist, skip OSS upload, path: {}",
@@ -92,8 +83,11 @@ public class RecordEventListener {
         String recordTime = danmakuFile.getParentFile().getName();
         String objectKey = String.format("%s/%s/%s/%s", DANMAKU_OSS_PREFIX,
                 streamerName, recordTime, danmakuFile.getName());
-        ossUploadService.uploadAndGetUrl(danmakuFile, objectKey);
-        log.info("{} danmaku file uploaded to OSS, file: {}, key: {}",
-                streamerName, danmakuFile.getAbsolutePath(), objectKey);
+        try {
+            ossUploadService.uploadAndGetUrl(danmakuFile, objectKey);
+            log.info("{} danmaku file uploaded to OSS success, file: {}, key: {}", streamerName, danmakuFile.getAbsolutePath(), objectKey);
+        } catch (Exception e) {
+            log.error("{} danmaku file uploaded to OSS failed, file: {}, key: {}", streamerName, danmakuFile.getAbsolutePath(), objectKey);
+        }
     }
 }
