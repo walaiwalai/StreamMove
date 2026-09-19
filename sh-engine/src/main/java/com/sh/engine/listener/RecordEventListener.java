@@ -1,12 +1,12 @@
 package com.sh.engine.listener;
 
-import com.google.common.collect.Maps;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.event.StreamRecordEndEvent;
 import com.sh.engine.event.StreamRecordStartEvent;
 import com.sh.engine.processor.recorder.danmu.DanmakuRecorder;
 import com.sh.engine.processor.recorder.danmu.OrdinaryroadDamakuRecorder;
+import com.sh.engine.service.OssUploadService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,12 +14,10 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Map;
-
-import static com.sh.engine.constant.RecordConstant.DAMAKU_TXT_ALL_FILE;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 直播事件监听器
@@ -27,10 +25,19 @@ import static com.sh.engine.constant.RecordConstant.DAMAKU_TXT_ALL_FILE;
 @Slf4j
 @Component
 public class RecordEventListener {
-    private Map<String, DanmakuRecorder> danmakuRecorderMap = Maps.newHashMap();
+    private static final String OSS_PROVIDER_NONE = "none";
+    private static final String DANMAKU_OSS_PREFIX = "danmaku";
+
+    @Value("${oss.provider:none}")
+    private String ossProvider;
+
+    @Resource
+    private OssUploadService ossUploadService;
+
+    private final Map<String, DanmakuRecorder> danmakuRecorderMap = new ConcurrentHashMap<>();
 
     /**
-     * 开始事件并启动弹幕录制
+     * 开始事件并启动弹幕录制。
      */
     @Async
     @EventListener
@@ -56,19 +63,37 @@ public class RecordEventListener {
     }
 
     /**
-     * 开始事件并启动弹幕录制
+     * 结束事件中关闭弹幕录制，并将完整文件上传到 OSS。
      */
     @Async
     @EventListener
     public void handleDanmakuEnd(StreamRecordEndEvent event) {
-        if (!danmakuRecorderMap.containsKey(event.getStreamName())) {
+        String streamerName = event.getStreamName();
+        DanmakuRecorder recorder = danmakuRecorderMap.remove(streamerName);
+        if (recorder == null) {
             return;
         }
 
-        log.info("{} record end, stop recording danmaku", event.getStreamName());
-        DanmakuRecorder recorder = danmakuRecorderMap.get(event.getStreamName());
+        log.info("{} record end, stop recording danmaku", streamerName);
         recorder.close();
 
-        danmakuRecorderMap.remove(event.getStreamName());
+        if (OSS_PROVIDER_NONE.equalsIgnoreCase(ossProvider)) {
+            log.info("{} danmaku OSS upload skipped because OSS is disabled", streamerName);
+            return;
+        }
+
+        File danmakuFile = recorder.getSaveFile();
+        if (danmakuFile == null || !danmakuFile.isFile()) {
+            log.warn("{} danmaku file does not exist, skip OSS upload, path: {}",
+                    streamerName, danmakuFile == null ? null : danmakuFile.getAbsolutePath());
+            return;
+        }
+
+        String recordTime = danmakuFile.getParentFile().getName();
+        String objectKey = String.format("%s/%s/%s/%s", DANMAKU_OSS_PREFIX,
+                streamerName, recordTime, danmakuFile.getName());
+        ossUploadService.uploadAndGetUrl(danmakuFile, objectKey);
+        log.info("{} danmaku file uploaded to OSS, file: {}, key: {}",
+                streamerName, danmakuFile.getAbsolutePath(), objectKey);
     }
 }

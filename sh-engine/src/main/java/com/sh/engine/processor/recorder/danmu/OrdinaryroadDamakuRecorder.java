@@ -179,6 +179,11 @@ public class OrdinaryroadDamakuRecorder implements DanmakuRecorder {
         }
     }
 
+    @Override
+    public File getSaveFile() {
+        return saveFile;
+    }
+
     private void showRecordDetail() {
         if (this.client == null) {
             log.warn("no client for danmu");

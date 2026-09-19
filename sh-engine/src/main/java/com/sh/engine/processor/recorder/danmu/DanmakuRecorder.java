@@ -23,4 +23,11 @@ public interface DanmakuRecorder {
      * 关闭弹幕录制
      */
     void close();
+
+    /**
+     * 获取本次弹幕录制的输出文件。
+     *
+     * @return 弹幕文件，初始化完成前可能为 {@code null}
+     */
+    File getSaveFile();
 }
