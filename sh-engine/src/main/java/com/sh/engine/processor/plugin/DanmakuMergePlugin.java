@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -48,11 +47,7 @@ public class DanmakuMergePlugin implements VideoProcessPlugin {
         }
 
         // 查找对应的mp4视频文件
-        List<File> videoFiles = new ArrayList<>(FileUtils.listFiles(new File(recordPath), new String[]{"mp4"}, false))
-                .stream()
-                .filter(file -> file.getName().startsWith("P"))
-                .sorted(Comparator.comparingInt(VideoFileUtil::getVideoIndex))
-                .collect(Collectors.toList());
+        List<File> videoFiles = VideoFileUtil.listIndexedMp4Files(recordPath);
         if (CollectionUtils.isEmpty(videoFiles)) {
             log.info("Video files do not exist: {}", recordPath);
             return true;

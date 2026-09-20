@@ -228,8 +228,10 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                                             HighlightVideoFilterSpec filterSpec,
                                             double fadeDuration,
                                             double fadeOutStart) {
+        String normalizedInputLabel = appendHighlightNormalizeFilter(
+                filter, inputIndex, filterSpec.frameWidth, filterSpec.frameHeight);
         String videoInputLabel = appendMaskFilters(
-                filter, inputIndex, filterSpec.maskPlan,
+                filter, normalizedInputLabel, inputIndex, filterSpec.maskPlan,
                 filterSpec.frameWidth, filterSpec.frameHeight);
         filter.append('[').append(videoInputLabel).append(']');
         if (filterSpec.verticalVideoFilter != null) {
@@ -242,6 +244,23 @@ public class VideoMergeServiceImpl implements VideoMergeService {
         String outputLabel = inputIndex == 0 ? "v0_base" : "v" + inputIndex;
         filter.append(String.format(Locale.ROOT, ",fade=t=out:st=%.3f:d=%.3f[%s];",
                 fadeOutStart, fadeDuration, outputLabel));
+    }
+
+    /**
+     * 将不同录制分段统一到首段画布，避免 concat 因分辨率、宽高比或 SAR 不一致失败。
+     */
+    private String appendHighlightNormalizeFilter(StringBuilder filter,
+                                                  int inputIndex,
+                                                  int frameWidth,
+                                                  int frameHeight) {
+        String outputLabel = "normalized" + inputIndex;
+        filter.append('[').append(inputIndex).append(":v]")
+                .append("scale=").append(frameWidth).append(':').append(frameHeight)
+                .append(":force_original_aspect_ratio=decrease,")
+                .append("pad=").append(frameWidth).append(':').append(frameHeight)
+                .append(":(ow-iw)/2:(oh-ih)/2,setsar=1[")
+                .append(outputLabel).append("];");
+        return outputLabel;
     }
 
     /**
@@ -316,7 +335,16 @@ public class VideoMergeServiceImpl implements VideoMergeService {
                                      HighlightMaskPlan maskPlan,
                                      int frameWidth,
                                      int frameHeight) {
-        String sourceLabel = inputIndex + ":v";
+        return appendMaskFilters(
+                filter, inputIndex + ":v", inputIndex, maskPlan, frameWidth, frameHeight);
+    }
+
+    private String appendMaskFilters(StringBuilder filter,
+                                     String sourceLabel,
+                                     int inputIndex,
+                                     HighlightMaskPlan maskPlan,
+                                     int frameWidth,
+                                     int frameHeight) {
         if (maskPlan == null || maskPlan.isEmpty()) {
             return sourceLabel;
         }

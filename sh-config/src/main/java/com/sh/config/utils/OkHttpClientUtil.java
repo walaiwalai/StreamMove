@@ -6,6 +6,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -21,14 +22,14 @@ public class OkHttpClientUtil {
         try (Response response = CLIENT.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 return response.body().string();
-            } else {
-                String message = response.message();
-                String bodyStr = response.body() != null ? response.body().string() : null;
-                log.error("http execute fail, message: {}, body: {}", message, bodyStr);
-                throw new RuntimeException(message);
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            String body = response.body() != null ? response.body().string() : null;
+            log.error("http execute failed, status: {}, message: {}, body: {}",
+                    response.code(), response.message(), body);
+            throw new IllegalStateException(
+                    "HTTP request failed with status " + response.code());
+        } catch (IOException e) {
+            throw new IllegalStateException("HTTP request execution failed", e);
         }
     }
 
@@ -38,14 +39,14 @@ public class OkHttpClientUtil {
                 String body = response.body().string();
                 String newCookie = request.header("Set-Cookie");
                 return Pair.of(body, newCookie);
-            } else {
-                String message = response.message();
-                String bodyStr = response.body() != null ? response.body().string() : null;
-                log.error("http execute fail, message: {}, body: {}", message, bodyStr);
-                throw new RuntimeException(message);
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            String body = response.body() != null ? response.body().string() : null;
+            log.error("http execute failed, status: {}, message: {}, body: {}",
+                    response.code(), response.message(), body);
+            throw new IllegalStateException(
+                    "HTTP request failed with status " + response.code());
+        } catch (IOException e) {
+            throw new IllegalStateException("HTTP request execution failed", e);
         }
     }
 }

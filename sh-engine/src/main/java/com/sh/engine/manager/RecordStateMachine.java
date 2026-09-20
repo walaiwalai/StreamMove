@@ -64,17 +64,20 @@ public class RecordStateMachine {
         context.setState(RecordTaskStateEnum.INIT);
 
         POOL.submit(() -> {
+            String originalThreadName = Thread.currentThread().getName();
             MDC.setContextMap(contextMap);
             MDC.put("tranceId", UUID.randomUUID().toString());
             Thread.currentThread().setName("record-state-machine-" + config.getName());
 
-            init(config);
             try {
+                init(config);
                 process(context);
             } catch (Exception e) {
-                log.error("stateMachine error");
+                log.error("stateMachine error, streamer: {}", config.getName(), e);
             } finally {
                 StreamerInfoHolder.clear();
+                MDC.clear();
+                Thread.currentThread().setName(originalThreadName);
             }
         });
     }

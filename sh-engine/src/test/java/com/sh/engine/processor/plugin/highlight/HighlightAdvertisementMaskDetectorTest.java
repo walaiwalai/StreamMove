@@ -18,11 +18,14 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class HighlightAdvertisementMaskDetectorTest {
 
@@ -32,9 +35,34 @@ public class HighlightAdvertisementMaskDetectorTest {
         try {
             ImageIO.write(createFrame(), "png", snapshot);
             HighlightAdvertisementMaskDetector detector = new HighlightAdvertisementMaskDetector();
-            inject(detector, "frameExtractor", new FixedFrameExtractor(Files.readAllBytes(snapshot.toPath())));
-            inject(detector, "ocrClient", new FixedOcrClient());
-            inject(detector, "llmService", new AdvertisingLlmService());
+            FfmpegFrameExtractor frameExtractor = mock(FfmpegFrameExtractor.class);
+            when(frameExtractor.extract(any(File.class), anyInt(), anyString()))
+                    .thenReturn(new InMemoryVideoFrame(
+                            10, Files.readAllBytes(snapshot.toPath())));
+            HighlightOcrClient ocrClient = mock(HighlightOcrClient.class);
+            when(ocrClient.recognize(any(byte[].class), anyString())).thenReturn(Arrays.asList(
+                    new OcrTextDetection("ROG 键盘", 0.98f,
+                            Arrays.asList(28, 155, 100, 155, 100, 170, 28, 170)),
+                    new OcrTextDetection("EV63", 0.96f,
+                            Arrays.asList(30, 183, 95, 183, 95, 198, 30, 198))));
+            LlmService llmService = mock(LlmService.class);
+            when(llmService.chat(anyString(), any())).thenAnswer(invocation -> {
+                String prompt = invocation.getArgument(0);
+                assertTrue(prompt.contains("ROG 键盘"));
+                AdvertisementClassificationResult result =
+                        new AdvertisementClassificationResult();
+                AdvertisementDecision first = new AdvertisementDecision();
+                first.setCandidateId("F01-C001");
+                first.setConfidence(0.98);
+                AdvertisementDecision second = new AdvertisementDecision();
+                second.setCandidateId("F01-C002");
+                second.setConfidence(0.97);
+                result.setAdvertisements(Arrays.asList(first, second));
+                return result;
+            });
+            inject(detector, "frameExtractor", frameExtractor);
+            inject(detector, "ocrClient", ocrClient);
+            inject(detector, "llmService", llmService);
             inject(detector, "regionResolver", new AdvertisementRegionResolver());
 
             ScoredVideoInterval interval = new ScoredVideoInterval(
@@ -67,50 +95,4 @@ public class HighlightAdvertisementMaskDetectorTest {
         field.set(target, value);
     }
 
-    private static final class FixedFrameExtractor extends FfmpegFrameExtractor {
-        private final byte[] jpegData;
-
-        private FixedFrameExtractor(byte[] jpegData) {
-            this.jpegData = jpegData;
-        }
-
-        @Override
-        public InMemoryVideoFrame extract(File sourceVideo,
-                                          int timestampSeconds,
-                                          String cropExpression) {
-            return new InMemoryVideoFrame(timestampSeconds, jpegData);
-        }
-    }
-
-    private static final class FixedOcrClient extends HighlightOcrClient {
-        @Override
-        public List<OcrTextDetection> recognize(byte[] jpegData, String fileName) {
-            return Arrays.asList(
-                    new OcrTextDetection("ROG 键盘", 0.98f,
-                            Arrays.asList(28, 155, 100, 155, 100, 170, 28, 170)),
-                    new OcrTextDetection("EV63", 0.96f,
-                            Arrays.asList(30, 183, 95, 183, 95, 198, 30, 198)));
-        }
-    }
-
-    private static final class AdvertisingLlmService implements LlmService {
-        @Override
-        public <T> T chat(String prompt, Class<T> resultType) {
-            assertTrue(prompt.contains("ROG 键盘"));
-            AdvertisementClassificationResult result = new AdvertisementClassificationResult();
-            AdvertisementDecision first = new AdvertisementDecision();
-            first.setCandidateId("F01-C001");
-            first.setConfidence(0.98);
-            AdvertisementDecision second = new AdvertisementDecision();
-            second.setCandidateId("F01-C002");
-            second.setConfidence(0.97);
-            result.setAdvertisements(Arrays.asList(first, second));
-            return resultType.cast(result);
-        }
-
-        @Override
-        public <T> CompletableFuture<T> chatAsync(String prompt, Class<T> resultType) {
-            return CompletableFuture.completedFuture(chat(prompt, resultType));
-        }
-    }
 }

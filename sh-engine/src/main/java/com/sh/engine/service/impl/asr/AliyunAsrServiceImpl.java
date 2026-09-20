@@ -22,9 +22,12 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Alibaba Cloud DashScope ASR (Fun-ASR) implementation.
@@ -56,6 +59,9 @@ public class AliyunAsrServiceImpl implements AsrService {
     @Resource
     private OssUploadService ossUploadService;
 
+    @Resource
+    private LocalAsrResultCache localAsrResultCache;
+
     private final Gson gson = new Gson();
 
     @Override
@@ -65,14 +71,34 @@ public class AliyunAsrServiceImpl implements AsrService {
         if (tempAudioFile == null) {
             return Collections.emptyList();
         }
+        try {
+            Optional<String> cacheKey = localAsrResultCache.createKey(
+                    tempAudioFile, model, startSeconds, endSeconds);
+            Optional<List<AsrSegment>> cached = cacheKey.isPresent()
+                    ? localAsrResultCache.load(videoFile.getParentFile(), cacheKey.get())
+                    : Optional.empty();
+            if (cached.isPresent()) {
+                log.info("Using local ASR cache, video: {}, segment: {}-{}s",
+                        videoFile.getName(), startSeconds, endSeconds);
+                return cached.get();
+            }
 
-        // 2. Upload to OSS to get public URL
-        // Note: Alibaba Cloud ASR requires public HTTP URL, does not support local file path
-        String ossKey = "asr/" + StreamerInfoHolder.getCurStreamerName() + "/" + tempAudioFile.getName();
-        String audioUrl = ossUploadService.uploadAndGetUrl(tempAudioFile, ossKey);
+            // 2. Upload to OSS to get public URL
+            // Note: Alibaba Cloud ASR requires public HTTP URL, does not support local file path
+            String ossKey = "asr/" + StreamerInfoHolder.getCurStreamerName()
+                    + "/" + tempAudioFile.getName();
+            String audioUrl = ossUploadService.uploadAndGetUrl(tempAudioFile, ossKey);
 
-        // 3. Submit ASR task
-        return submitAsrTask(audioUrl, startSeconds);
+            // 3. Submit ASR task
+            List<AsrSegment> segments = submitAsrTask(audioUrl, startSeconds);
+            if (cacheKey.isPresent()) {
+                localAsrResultCache.save(
+                        videoFile.getParentFile(), cacheKey.get(), segments);
+            }
+            return segments;
+        } finally {
+            deleteTemporaryAudio(tempAudioFile);
+        }
     }
 
     /**
@@ -88,7 +114,8 @@ public class AliyunAsrServiceImpl implements AsrService {
         cmd.execute(300);
 
         if (cmd.isSuccess()) {
-            log.error("Audio extraction successfully, video: {}, segment: {}-{}s", videoFile.getName(), startSeconds, endSeconds);
+            log.info("Audio extraction succeeded, video: {}, segment: {}-{}s",
+                    videoFile.getName(), startSeconds, endSeconds);
             return audioFile;
         } else {
             log.error("Audio extraction failed, video: {}, segment: {}-{}s", videoFile.getName(), startSeconds, endSeconds);
@@ -105,7 +132,7 @@ public class AliyunAsrServiceImpl implements AsrService {
                 .apiKey(apiKey)
                 .model(model)
                 .fileUrls(Collections.singletonList(audioUrl))
-                .parameter("language_hints", new String[]{"zh", "en"})
+                .parameter("language_hints", new String[]{"zh"})
                 .build();
 
         Transcription transcription = new Transcription();
@@ -188,5 +215,14 @@ public class AliyunAsrServiceImpl implements AsrService {
             }
         }
         return segments;
+    }
+
+    /** 删除本地候选音频；OSS 对象由存储桶生命周期统一清理。 */
+    private void deleteTemporaryAudio(File audioFile) {
+        try {
+            Files.deleteIfExists(audioFile.toPath());
+        } catch (IOException e) {
+            log.warn("Cannot delete temporary ASR audio: {}", audioFile.getAbsolutePath(), e);
+        }
     }
 }

@@ -21,4 +21,13 @@ public class DanmakuTimeBucket {
     private int endTime;
     private int count;
     private List<SimpleDanmaku> danmakus;
+
+    /** 触发当前上下文召回的原始统计窗口开始秒。 */
+    private int signalStartTime;
+
+    /** 触发当前上下文召回的原始统计窗口结束秒。 */
+    private int signalEndTime;
+
+    /** 仅用于候选排序的通用弹幕统计分，不代表高光质量。 */
+    private double recallScore;
 }

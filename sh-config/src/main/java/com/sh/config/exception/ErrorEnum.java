@@ -102,6 +102,16 @@ public enum ErrorEnum {
      */
     HIGHLIGHT_ANALYSIS_ERROR(20, "highlight analysis error"),
 
+    /**
+     * ASR 音频抽取、请求或响应解析失败。
+     */
+    ASR_REQUEST_ERROR(21, "asr request error"),
+
+    /**
+     * 高光封面生成或 LLM 图片编辑失败。
+     */
+    COVER_GENERATION_ERROR(22, "cover generation error"),
+
     ;
     private int errorCode;
     private String message;

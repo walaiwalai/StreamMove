@@ -15,7 +15,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -70,6 +72,18 @@ public class VideoFileUtil {
     public static Integer getVideoIndex(File videoFile) {
         Matcher matcher = VIDEO_SEGMENT_PATTERN.matcher(videoFile.getName());
         return matcher.find() ? Integer.parseInt(matcher.group(1)) : Integer.MAX_VALUE;
+    }
+
+    /**
+     * 列出文件名中带 Pxx 分片标识的 MP4，并按分片编号和文件名稳定排序。
+     */
+    public static List<File> listIndexedMp4Files(String directory) {
+        return listRecordedFiles(directory).stream()
+                .filter(file -> file.getName().toLowerCase(Locale.ROOT).endsWith(".mp4"))
+                .filter(file -> getVideoIndex(file) != Integer.MAX_VALUE)
+                .sorted(Comparator.comparingInt(VideoFileUtil::getVideoIndex)
+                        .thenComparing(File::getName, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
     }
 
     public static String getSnapshotSourceFileName(File snapshotFile) {

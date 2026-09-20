@@ -30,6 +30,7 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class FfmpegFrameExtractor {
     private static final int FRAME_EXTRACTION_TIMEOUT_SECONDS = 60;
+    private static final int RANGE_STREAM_TIMEOUT_SECONDS = 120;
     private static final int READER_FINISH_TIMEOUT_SECONDS = 30;
     private static final int ACCURATE_SEEK_PRE_ROLL_SECONDS = 5;
     private static final int NEAREST_FRAME_FALLBACK_SECONDS = 1;
@@ -72,7 +73,8 @@ public class FfmpegFrameExtractor {
         Process process = startProcess(sourceVideo, intervalSeconds, cropExpression);
         ThreadPoolExecutor readerExecutor = createReaderExecutor();
         Future<Integer> readerFuture = readerExecutor.submit(
-                () -> readFrames(process.getInputStream(), intervalSeconds, frameConsumer));
+                () -> readFrames(process.getInputStream(),
+                        0, intervalSeconds, frameConsumer));
         try {
             awaitProcess(process, timeoutSeconds, sourceVideo);
             return readerFuture.get(READER_FINISH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -124,6 +126,58 @@ public class FfmpegFrameExtractor {
                     + "s from " + sourceVideo.getAbsolutePath(), null);
         } finally {
             FFMPEG_PERMITS.release();
+        }
+    }
+
+    /**
+     * 以一秒间隔顺序读取指定视频区间，帧时间戳使用源视频绝对秒数。
+     * 该入口用于候选内的轻量变化扫描，不负责最终高清证据抽取。
+     */
+    public int streamRange(File sourceVideo,
+                           int startSecond,
+                           int endSecond,
+                           String scaleExpression,
+                           FrameConsumer frameConsumer) {
+        if (sourceVideo == null || !sourceVideo.isFile()
+                || startSecond < 0 || endSecond <= startSecond
+                || StringUtils.isBlank(scaleExpression) || frameConsumer == null) {
+            throw new IllegalArgumentException("invalid FFmpeg frame range arguments");
+        }
+        acquirePermit();
+        try {
+            return streamRangeWithPermit(
+                    sourceVideo, startSecond, endSecond,
+                    scaleExpression, frameConsumer);
+        } finally {
+            FFMPEG_PERMITS.release();
+        }
+    }
+
+    private int streamRangeWithPermit(File sourceVideo,
+                                      int startSecond,
+                                      int endSecond,
+                                      String scaleExpression,
+                                      FrameConsumer frameConsumer) {
+        Process process = startRangeProcess(
+                sourceVideo, startSecond, endSecond, scaleExpression);
+        ThreadPoolExecutor readerExecutor = createReaderExecutor();
+        Future<Integer> readerFuture = readerExecutor.submit(
+                () -> readFrames(process.getInputStream(),
+                        startSecond, 1, frameConsumer));
+        try {
+            awaitProcess(process, RANGE_STREAM_TIMEOUT_SECONDS, sourceVideo);
+            return readerFuture.get(READER_FINISH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw analysisError("interrupted while streaming frame range: " + sourceVideo, e);
+        } catch (ExecutionException e) {
+            throw analysisError("cannot read FFmpeg frame range: " + sourceVideo, e.getCause());
+        } catch (TimeoutException e) {
+            throw analysisError("timeout while reading FFmpeg frame range: " + sourceVideo, e);
+        } finally {
+            readerFuture.cancel(true);
+            readerExecutor.shutdownNow();
+            process.destroyForcibly();
         }
     }
 
@@ -193,6 +247,25 @@ public class FfmpegFrameExtractor {
         }
     }
 
+    private Process startRangeProcess(File sourceVideo,
+                                      int startSecond,
+                                      int endSecond,
+                                      String scaleExpression) {
+        List<String> command = Arrays.asList(
+                "ffmpeg", "-hide_banner", "-loglevel", "error",
+                "-ss", String.valueOf(startSecond), "-i", sourceVideo.getAbsolutePath(),
+                "-t", String.valueOf(endSecond - startSecond), "-an",
+                "-vf", "fps=1," + scaleExpression,
+                "-q:v", "7", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1");
+        try {
+            return new ProcessBuilder(command)
+                    .redirectError(ProcessBuilder.Redirect.INHERIT)
+                    .start();
+        } catch (IOException e) {
+            throw analysisError("cannot start FFmpeg frame range: " + sourceVideo, e);
+        }
+    }
+
     private Process startSingleFrameProcess(File sourceVideo,
                                             int timestampSeconds,
                                             String cropExpression,
@@ -234,6 +307,7 @@ public class FfmpegFrameExtractor {
     }
 
     private int readFrames(InputStream inputStream,
+                           int startSecond,
                            int intervalSeconds,
                            FrameConsumer frameConsumer) throws IOException {
         int frameIndex = 0;
@@ -241,7 +315,7 @@ public class FfmpegFrameExtractor {
             byte[] jpegData;
             while ((jpegData = readNextJpeg(stream)) != null) {
                 frameConsumer.accept(new InMemoryVideoFrame(
-                        frameIndex * intervalSeconds, jpegData));
+                        startSecond + frameIndex * intervalSeconds, jpegData));
                 frameIndex++;
             }
         }

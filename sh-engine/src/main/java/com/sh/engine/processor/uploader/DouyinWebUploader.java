@@ -66,7 +66,11 @@ public class DouyinWebUploader extends Uploader {
         }
         DouyinWorkMetaData metadata = (DouyinWorkMetaData) new UploaderFactory.DouyinMetaDataBuilder()
                 .buildMetaData(streamerConfig, recordPath);
-        File coverFile = extractFirstFrameCover(recordPath, videoFile);
+        metadata.setTitle(resolveHighlightTitle(recordPath, metadata.getTitle()));
+        File coverFile = findHighlightCover(recordPath);
+        if (coverFile == null) {
+            coverFile = extractFirstFrameCover(recordPath, videoFile);
+        }
 
         log.info("begin douyin web HTTP upload, video: {}, cover: {}",
                 videoFile.getAbsolutePath(), coverFile.getAbsolutePath());

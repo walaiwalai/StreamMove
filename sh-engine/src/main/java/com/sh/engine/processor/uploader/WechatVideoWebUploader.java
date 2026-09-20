@@ -66,7 +66,11 @@ public class WechatVideoWebUploader extends Uploader {
         }
         WechatVideoMetaData metadata = (WechatVideoMetaData) new UploaderFactory.WechatMetaDataBuilder()
                 .buildMetaData(streamerConfig, recordPath);
-        File coverFile = extractFirstFrameCover(recordPath, videoFile);
+        metadata.setTitle(resolveHighlightTitle(recordPath, metadata.getTitle()));
+        File coverFile = findHighlightCover(recordPath);
+        if (coverFile == null) {
+            coverFile = extractFirstFrameCover(recordPath, videoFile);
+        }
 
         log.info("begin wechat channels Java HTTP upload, video: {}, cover: {}",
                 videoFile.getAbsolutePath(), coverFile.getAbsolutePath());

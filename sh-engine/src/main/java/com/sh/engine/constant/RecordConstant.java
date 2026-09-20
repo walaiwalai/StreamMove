@@ -46,6 +46,16 @@ public class RecordConstant {
      */
     public static final String THUMBNAIL_FILE_NAME = "work-thumbnail.jpg";
 
+    /**
+     * AI 高光封面文件。上传短视频时优先于首帧截图使用。
+     */
+    public static final String HIGHLIGHT_THUMBNAIL_FILE_NAME = "highlight-cover.jpg";
+
+    /**
+     * AI 高光发布标题文件。
+     */
+    public static final String HIGHLIGHT_TITLE_FILE_NAME = "highlight-title.txt";
+
     public static final String DEFAULT_THUMBNAIL_URL = "/home/admin/stream/thumbnail/default.jpg";
 
     /**

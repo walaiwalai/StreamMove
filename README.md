@@ -74,6 +74,12 @@ ocr.server.host=127.0.0.1
 ocr.server.port=5000
 ocr.server.token=xxx
 
+# Whisper ASR 服务；启用时把 provider 改为 whisper
+asr.provider=none
+asr.whisper.base-url=http://127.0.0.1:9001
+asr.whisper.token=xxx
+asr.whisper.language=zh
+
 # alist网盘服务
 alist.server.host=alist
 alist.server.username=admin

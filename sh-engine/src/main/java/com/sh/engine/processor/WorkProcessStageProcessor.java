@@ -95,7 +95,12 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
                     }
 
                     try {
-                        plugins.get(pluginName).process(curRecordPath);
+                        boolean processSuccess = plugins.get(pluginName).process(curRecordPath);
+                        if (!processSuccess) {
+                            throw new StreamerRecordException(
+                                    ErrorEnum.PROCESS_PLUGIN_FAILED,
+                                    pluginName + " returned an unsuccessful result");
+                        }
 
                         FileStatusModel cur = FileStatusModel.loadFromFile(curRecordPath);
                         cur.finishPlugin(pluginName);

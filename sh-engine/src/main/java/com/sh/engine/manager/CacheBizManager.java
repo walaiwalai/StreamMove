@@ -4,6 +4,11 @@ import com.alibaba.fastjson.TypeReference;
 import com.sh.config.manager.CacheManager;
 import com.sh.engine.model.asr.AsrSegment;
 import com.sh.engine.model.danmaku.HighlightAnalysisResult;
+import com.sh.engine.model.danmaku.HighlightFactVerification;
+import com.sh.engine.model.danmaku.HighlightPayoffAssessment;
+import com.sh.engine.model.danmaku.HighlightPublicationAssessment;
+import com.sh.engine.model.danmaku.OcrFrameEvidence;
+import com.sh.engine.model.danmaku.VisualTimelineResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -120,6 +125,57 @@ public class CacheBizManager {
         cacheManager.setHash(key, segmentKey, result, 7, TimeUnit.DAYS);
     }
 
+    /** 获取独立的高光事实验真缓存。 */
+    public HighlightFactVerification getHighlightFactVerification(
+            String streamerName, String segmentKey) {
+        String key = "hl_fact_" + streamerName;
+        return cacheManager.getHash(
+                key, segmentKey, new TypeReference<HighlightFactVerification>() {});
+    }
+
+    /** 缓存独立的高光事实验真结果。 */
+    public void saveHighlightFactVerification(
+            String streamerName,
+            String segmentKey,
+            HighlightFactVerification verification) {
+        String key = "hl_fact_" + streamerName;
+        cacheManager.setHash(key, segmentKey, verification, 7, TimeUnit.DAYS);
+    }
+
+    /** 获取事实通过后的独立看点评估缓存。 */
+    public HighlightPayoffAssessment getHighlightPayoffAssessment(
+            String streamerName, String segmentKey) {
+        String key = "hl_payoff_" + streamerName;
+        return cacheManager.getHash(
+                key, segmentKey, new TypeReference<HighlightPayoffAssessment>() {});
+    }
+
+    /** 缓存事实通过后的独立看点评估结果。 */
+    public void saveHighlightPayoffAssessment(
+            String streamerName,
+            String segmentKey,
+            HighlightPayoffAssessment assessment) {
+        String key = "hl_payoff_" + streamerName;
+        cacheManager.setHash(key, segmentKey, assessment, 7, TimeUnit.DAYS);
+    }
+
+    /** 获取事实通过后的发布价值评审缓存。 */
+    public HighlightPublicationAssessment getHighlightPublicationAssessment(
+            String streamerName, String segmentKey) {
+        String key = "hl_publication_" + streamerName;
+        return cacheManager.getHash(
+                key, segmentKey, new TypeReference<HighlightPublicationAssessment>() {});
+    }
+
+    /** 缓存事实通过后的发布价值评审结果。 */
+    public void saveHighlightPublicationAssessment(
+            String streamerName,
+            String segmentKey,
+            HighlightPublicationAssessment assessment) {
+        String key = "hl_publication_" + streamerName;
+        cacheManager.setHash(key, segmentKey, assessment, 7, TimeUnit.DAYS);
+    }
+
     /**
      * 获取 ASR 转写缓存结果
      */
@@ -135,5 +191,36 @@ public class CacheBizManager {
                               String segmentKey, List<AsrSegment> segments) {
         String key = "asr_" + streamerName;
         cacheManager.setHash(key, segmentKey, segments, 7, TimeUnit.DAYS);
+    }
+
+    /** 获取已经按置信度过滤的 OCR 文本证据。 */
+    public List<OcrFrameEvidence> getOcrEvidence(
+            String streamerName, String segmentKey) {
+        String key = "hl_ocr_" + streamerName;
+        return cacheManager.getHash(
+                key, segmentKey, new TypeReference<List<OcrFrameEvidence>>() {});
+    }
+
+    /** 缓存 OCR 文本证据 7 天，键中必须包含源文件指纹和采样窗口版本。 */
+    public void saveOcrEvidence(
+            String streamerName,
+            String segmentKey,
+            List<OcrFrameEvidence> evidence) {
+        String key = "hl_ocr_" + streamerName;
+        cacheManager.setHash(key, segmentKey, evidence, 7, TimeUnit.DAYS);
+    }
+
+    /** 获取候选多帧视觉时间线缓存。 */
+    public VisualTimelineResult getVisualTimeline(String streamerName, String segmentKey) {
+        String key = "hl_visual_" + streamerName;
+        return cacheManager.getHash(
+                key, segmentKey, new TypeReference<VisualTimelineResult>() {});
+    }
+
+    /** 缓存候选多帧视觉时间线 7 天。 */
+    public void saveVisualTimeline(
+            String streamerName, String segmentKey, VisualTimelineResult timeline) {
+        String key = "hl_visual_" + streamerName;
+        cacheManager.setHash(key, segmentKey, timeline, 7, TimeUnit.DAYS);
     }
 }

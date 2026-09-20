@@ -1,16 +1,44 @@
 package com.sh.engine.service.impl;
 
+import com.sh.engine.model.highlight.VideoInterval;
 import com.sh.engine.model.highlight.core.HighlightMask;
 import com.sh.engine.model.highlight.core.HighlightMaskPlan;
 import org.junit.Test;
 
+import java.io.File;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class VideoMergeServiceImplMaskTest {
+
+    @Test
+    public void shouldNormalizeEveryInputBeforeConcatenatingDifferentVideoSizes() throws Exception {
+        VideoMergeServiceImpl service = new VideoMergeServiceImpl();
+        VideoInterval first = new VideoInterval(new File("first.mp4"), 10.0, 30.0);
+        VideoInterval second = new VideoInterval(new File("second.mp4"), 40.0, 70.0);
+
+        Method method = VideoMergeServiceImpl.class.getDeclaredMethod(
+                "buildHighlightFilter", List.class,
+                HighlightMaskPlan.class, int.class, int.class, String.class);
+        method.setAccessible(true);
+        String filter = (String) method.invoke(
+                service, Arrays.asList(first, second), HighlightMaskPlan.empty(),
+                1920, 1080, null);
+
+        assertTrue(filter.contains(
+                "[0:v]scale=1920:1080:force_original_aspect_ratio=decrease," +
+                        "pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[normalized0]"));
+        assertTrue(filter.contains(
+                "[1:v]scale=1920:1080:force_original_aspect_ratio=decrease," +
+                        "pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[normalized1]"));
+        assertTrue(filter.contains("[normalized0]setpts=PTS-STARTPTS"));
+        assertTrue(filter.contains("[normalized1]setpts=PTS-STARTPTS"));
+    }
 
     @Test
     public void shouldBuildBlurAndDarkenFilterForEachVideoInput() throws Exception {
