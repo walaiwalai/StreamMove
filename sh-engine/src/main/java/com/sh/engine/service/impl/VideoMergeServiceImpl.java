@@ -101,10 +101,10 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     }
 
     @Override
-    public boolean mergeWithCover(List<VideoInterval> intervals,
-                                  File targetVideo,
-                                  String title,
-                                  HighlightMaskPlan maskPlan) {
+    public boolean mergeHighlightWithCover(List<VideoInterval> intervals,
+                                           File targetVideo,
+                                           String title,
+                                           HighlightMaskPlan maskPlan) {
         return mergeWithCover(intervals, targetVideo, title, false, maskPlan);
     }
 
@@ -115,10 +115,10 @@ public class VideoMergeServiceImpl implements VideoMergeService {
     }
 
     @Override
-    public boolean mergeVerticalWithCover(List<VideoInterval> intervals,
-                                          File targetVideo,
-                                          String title,
-                                          HighlightMaskPlan maskPlan) {
+    public boolean mergeVerticalHighlightWithCover(List<VideoInterval> intervals,
+                                                   File targetVideo,
+                                                   String title,
+                                                   HighlightMaskPlan maskPlan) {
         return mergeWithCover(intervals, targetVideo, title, true, maskPlan);
     }
 

@@ -135,7 +135,7 @@ public class DanmakuAIHighlightPlugin implements VideoProcessPlugin {
         HighlightMaskPlan maskPlan = advertisementMaskDetector.detect(intervals, workDirectory);
 
         // Merge video
-        boolean success = videoMergeService.mergeWithCover(
+        boolean success = videoMergeService.mergeHighlightWithCover(
                 intervals, highlightFile, title, maskPlan);
 
         // Send notification

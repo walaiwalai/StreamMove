@@ -109,10 +109,11 @@ public abstract class AbstractHighlightCutPlugin implements VideoProcessPlugin {
                                    HighlightMaskPlan maskPlan) {
         List<VideoInterval> videoIntervals = new ArrayList<>(intervals);
         if (outputMode() == HighlightOutputMode.MERGED_VERTICAL_WITH_COVER) {
-            return videoMergeService.mergeVerticalWithCover(
+            return videoMergeService.mergeVerticalHighlightWithCover(
                     videoIntervals, targetVideo, title, maskPlan);
         }
-        return videoMergeService.mergeWithCover(videoIntervals, targetVideo, title, maskPlan);
+        return videoMergeService.mergeHighlightWithCover(
+                videoIntervals, targetVideo, title, maskPlan);
     }
 
     private List<File> findSourceVideos(String recordPath) {
