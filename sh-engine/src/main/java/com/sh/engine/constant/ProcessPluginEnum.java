@@ -25,6 +25,7 @@ public enum ProcessPluginEnum {
      */
     LOL_HL_VOD_CUT("LOL_HL_VOD_CUT_V2", "英雄联盟高光剪辑", false, 9),
     VALORANT_HL_VOD_CUT("VALORANT_HL_VOD_CUT", "无畏契约高光剪辑", false, 10),
+    VALORANT_FULL_GAME_CUT("VALORANT_FULL_GAME_CUT", "无畏契约整局剪辑", false, 11),
 
     THUMBNAIL_GEN("THUMBNAIL_GEN", "视频封面生成", false, 15),
     ;

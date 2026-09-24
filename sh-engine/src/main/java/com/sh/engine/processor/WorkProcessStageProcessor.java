@@ -58,6 +58,7 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
 
         // 1. 解析处理对应插件，并处理, 加上系统的对应的插件
         List<String> videoPlugins = ProcessPluginEnum.getAllPlugins(streamerConfig);
+        log.info("{}'s effective video plugins: {}", streamerName, videoPlugins);
         List<String> curRecordPaths = StreamerInfoHolder.getCurRecordPaths();
         for (String curRecordPath : curRecordPaths) {
             if (!FileUtil.exist(curRecordPath)) {
