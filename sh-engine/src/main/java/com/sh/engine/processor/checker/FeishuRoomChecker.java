@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.sh.config.manager.CacheManager;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
+import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.engine.processor.recorder.stream.FeishuLiveStatusRecorder;
 import com.sh.engine.processor.recorder.stream.StreamRecorder;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /** Checks every streamer listed in the Bitable base linked by room_url. */
 @Component
@@ -55,9 +57,25 @@ public class FeishuRoomChecker extends AbstractRoomChecker {
         for (FeishuBitableClient.StreamerRoom room : rooms) {
             try {
                 boolean live = isLive(room.getRoomUrl());
+                Date checkedAt = new Date();
                 log.info("Feishu streamer status checked, name: {}, live: {}", room.getName(), live);
+                if (!live && FeishuLiveStatusRecorder.hasActiveSession(cacheManager, baseToken, room.getRoomUrl())) {
+                    for (int check = 2; check <= RecordConstant.RECORD_RETRY_CNT; check++) {
+                        waitBeforeRetry();
+                        live = isLive(room.getRoomUrl());
+                        log.info("Feishu streamer status checked, name: {}, live: {}, check: {}/{}",
+                                room.getName(), live, check, RecordConstant.RECORD_RETRY_CNT);
+                        if (live) {
+                            break;
+                        }
+                    }
+                }
                 observations.add(new FeishuLiveStatusRecorder.RoomObservation(
-                        room.getName(), room.getRoomUrl(), live, new Date()));
+                        room.getName(), room.getRoomUrl(), live, checkedAt));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Feishu streamer status check interrupted, name: {}", room.getName());
+                break;
             } catch (Exception e) {
                 log.error("Feishu streamer status check failed, name: {}, roomUrl: {}", room.getName(), room.getRoomUrl(), e);
             }
@@ -66,7 +84,11 @@ public class FeishuRoomChecker extends AbstractRoomChecker {
                 observations, cacheManager, bitableClient);
     }
 
-    private boolean isLive(String roomUrl) {
+    protected void waitBeforeRetry() throws InterruptedException {
+        TimeUnit.SECONDS.sleep(20);
+    }
+
+    protected boolean isLive(String roomUrl) {
         JSONObject body = new JSONObject();
         body.put("url", roomUrl);
         body.put("quality", "原画");

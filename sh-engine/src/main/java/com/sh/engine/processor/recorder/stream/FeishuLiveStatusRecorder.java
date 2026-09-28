@@ -2,7 +2,6 @@ package com.sh.engine.processor.recorder.stream;
 
 import com.alibaba.fastjson.TypeReference;
 import com.sh.config.manager.CacheManager;
-import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import com.sh.message.service.feishu.FeishuBitableClient;
 import lombok.Data;
@@ -18,7 +17,6 @@ import java.util.List;
 @Slf4j
 public class FeishuLiveStatusRecorder extends StreamRecorder {
     private static final String CACHE_KEY_PREFIX = "feishu:live:session:";
-
     private final String baseToken;
     private final List<RoomObservation> observations;
     private final CacheManager cacheManager;
@@ -46,8 +44,17 @@ public class FeishuLiveStatusRecorder extends StreamRecorder {
         }
     }
 
+    public static boolean hasActiveSession(CacheManager cacheManager, String baseToken, String roomUrl) {
+        LiveSession session = cacheManager.get(cacheKey(baseToken, roomUrl), new TypeReference<LiveSession>() {});
+        return session != null && session.getEndTimeMillis() == null;
+    }
+
+    private static String cacheKey(String baseToken, String roomUrl) {
+        return CACHE_KEY_PREFIX + DigestUtils.sha256Hex(baseToken + "|" + roomUrl);
+    }
+
     private void updateSession(RoomObservation observation) {
-        String cacheKey = CACHE_KEY_PREFIX + DigestUtils.sha256Hex(baseToken + "|" + observation.getRoomUrl());
+        String cacheKey = cacheKey(baseToken, observation.getRoomUrl());
         LiveSession session = cacheManager.get(cacheKey, new TypeReference<LiveSession>() {});
 
         // A failed Bitable write is retried before a later broadcast can start a new session.
@@ -61,31 +68,13 @@ public class FeishuLiveStatusRecorder extends StreamRecorder {
             if (session == null) {
                 cacheManager.set(cacheKey, new LiveSession(observation.getStreamerName(), observation.getCheckedAt().getTime(), null));
                 log.info("Feishu streamer started live, name: {}, roomUrl: {}", observation.getStreamerName(), observation.getRoomUrl());
-            } else if (session.getOfflineCheckCount() > 0) {
-                session.setOfflineCheckCount(0);
-                session.setFirstOfflineAtMillis(null);
-                cacheManager.set(cacheKey, session);
-                log.info("Feishu streamer is live again, canceled offline confirmation, name: {}", observation.getStreamerName());
             }
             return;
         }
-
         if (session == null) {
             return;
         }
-        if (session.getOfflineCheckCount() == 0 || session.getFirstOfflineAtMillis() == null) {
-            session.setFirstOfflineAtMillis(observation.getCheckedAt().getTime());
-            session.setOfflineCheckCount(0);
-        }
-        session.setOfflineCheckCount(session.getOfflineCheckCount() + 1);
-        log.info("Feishu streamer offline confirmation, name: {}, check: {}/{}",
-                observation.getStreamerName(), session.getOfflineCheckCount(), RecordConstant.RECORD_RETRY_CNT);
-        if (session.getOfflineCheckCount() < RecordConstant.RECORD_RETRY_CNT) {
-            cacheManager.set(cacheKey, session);
-            return;
-        }
-
-        session.setEndTimeMillis(session.getFirstOfflineAtMillis());
+        session.setEndTimeMillis(observation.getCheckedAt().getTime());
         cacheManager.set(cacheKey, session);
         bitableClient.createLiveRecord(baseToken, session.getStreamerName(), session.getStartTimeMillis(), session.getEndTimeMillis());
         cacheManager.delete(cacheKey);
@@ -117,8 +106,6 @@ public class FeishuLiveStatusRecorder extends StreamRecorder {
         private String streamerName;
         private long startTimeMillis;
         private Long endTimeMillis;
-        private int offlineCheckCount;
-        private Long firstOfflineAtMillis;
 
         public LiveSession() {
         }
