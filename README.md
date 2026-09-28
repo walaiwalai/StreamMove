@@ -96,6 +96,22 @@ system.env.flag=default
 system.storage.mounted=false
 ```
 
+### 飞书多维表开播监控
+
+该监控使用飞书自建应用的 `app_id` 和 `app_secret` 获取 `tenant_access_token`。在权限管理中开通**应用身份**的 `bitable:app` 多维表读写权限，并在目标多维表的“添加文档应用”中添加该应用、授予可编辑权限；若启用高级权限，还需允许它在“直播记录表”新增记录。仅开通用户身份权限不会授权该令牌。创建两个数据表：
+
+- 主播表：文本字段 `主播名称`、文本或超链接字段 `直播地址`。
+- 直播记录表：文本字段 `主播名称`、日期时间字段 `开始时间` 和 `结束时间`。
+
+在 `/home/admin/stream/config/config.properties` 中添加：
+
+```properties
+feishu.app-id=cli_xxx
+feishu.app-secret=xxx
+```
+
+在现有主播配置中新增一条记录，把 `room_url` 填为多维表链接（例如 `https://xxx.feishu.cn/base/basxxx`，知识库中的多维表也可用 `https://xxx.feishu.cn/wiki/xxx`）。现有 `MainWorker` 和状态机按 `roomCheckCron` 调用飞书表格 RoomChecker；Checker 从链接解析 Base token，按表名 `主播表`、`直播记录表` 查找表 ID，再用 `live.api.server.host` 和 `live.api.server.port` 的 `/stream_info` 接口检查主播表中的每个直播地址。字段名固定为上文所列。第一次检测到开播的时间作为开始时间；此前已开播的主播首次检测到下播后，须连续 5 次检查都未开播才写入记录，结束时间仍采用首次检测到下播的时间。复检期间重新开播会取消下播判定。时间精度受检查间隔影响。待写记录保存在 Redis 中，飞书写入失败后下次检查重试，不生成录像文件。未填写应用凭证时，监控自动跳过，不影响服务启动。
+
 英雄联盟、无畏契约和广告蒙层识别统一使用 FFmpeg 内存 JPEG，不为 OCR
 生成中间截图文件。英雄联盟保留 8 分钟粗锚点和 4 秒最小粒度的递归区间细化，
 利用单局 K/D/A 单调不减特征减少随机取帧与 OCR 请求；无畏契约仍使用固定容量

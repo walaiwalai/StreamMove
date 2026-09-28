@@ -51,9 +51,22 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
     @Resource
     private CacheBizManager cacheBizManager;
 
+    @Override
+    public void process(RecordContext context) {
+        super.process(context);
+        if (context.getChannelEnum() == StreamChannelTypeEnum.FEISHU_BITABLE_MONITOR) {
+            context.setState(RecordTaskStateEnum.END);
+        }
+    }
 
     @Override
     public void processInternal(RecordContext context) {
+        if (context.getChannelEnum() == StreamChannelTypeEnum.FEISHU_BITABLE_MONITOR) {
+            if (context.getStreamRecorder() != null) {
+                context.getStreamRecorder().start(null);
+            }
+            return;
+        }
         String name = StreamerInfoHolder.getCurStreamerName();
         StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(name);
         // 是否已经结束录制

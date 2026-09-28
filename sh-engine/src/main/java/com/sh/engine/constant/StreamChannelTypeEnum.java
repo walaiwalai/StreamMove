@@ -87,6 +87,7 @@ public enum StreamChannelTypeEnum {
      */
     LIVE_RECORD_API(999, "外部api", "outer"),
     STREAM_RECORDER_IO(998, "streamrecord平台", "streamrecorder.io"),
+    FEISHU_BITABLE_MONITOR(997, "飞书表格监控", "feishu.cn/base/"),
 
     ;
 
@@ -133,6 +134,9 @@ public enum StreamChannelTypeEnum {
     public static StreamChannelTypeEnum findChannelByUrl(String url) {
         if (StringUtils.isBlank(url)) {
             return null;
+        }
+        if (url.contains("feishu.cn/wiki/")) {
+            return FEISHU_BITABLE_MONITOR;
         }
         for (StreamChannelTypeEnum channelEnum : StreamChannelTypeEnum.values()) {
             if (url.contains(channelEnum.getUrl())) {
