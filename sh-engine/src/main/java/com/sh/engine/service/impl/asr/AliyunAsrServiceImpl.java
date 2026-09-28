@@ -66,13 +66,16 @@ public class AliyunAsrServiceImpl implements AsrService {
             return Collections.emptyList();
         }
 
-        // 2. Upload to OSS to get public URL
-        // Note: Alibaba Cloud ASR requires public HTTP URL, does not support local file path
         String ossKey = "asr/" + StreamerInfoHolder.getCurStreamerName() + "/" + tempAudioFile.getName();
-        String audioUrl = ossUploadService.uploadAndGetUrl(tempAudioFile, ossKey);
-
-        // 3. Submit ASR task
-        return submitAsrTask(audioUrl, startSeconds);
+        boolean uploaded = false;
+        try {
+            // Alibaba Cloud ASR requires a public HTTP URL and does not support local paths.
+            String audioUrl = ossUploadService.uploadAndGetUrl(tempAudioFile, ossKey);
+            uploaded = true;
+            return submitAsrTask(audioUrl, startSeconds);
+        } finally {
+            cleanupTemporaryAudio(tempAudioFile, ossKey, uploaded);
+        }
     }
 
     /**
@@ -88,11 +91,27 @@ public class AliyunAsrServiceImpl implements AsrService {
         cmd.execute(300);
 
         if (cmd.isSuccess()) {
-            log.error("Audio extraction successfully, video: {}, segment: {}-{}s", videoFile.getName(), startSeconds, endSeconds);
+            log.info("Audio extraction succeeded, video: {}, segment: {}-{}s", videoFile.getName(), startSeconds, endSeconds);
             return audioFile;
         } else {
             log.error("Audio extraction failed, video: {}, segment: {}-{}s", videoFile.getName(), startSeconds, endSeconds);
             return null;
+        }
+    }
+
+    /**
+     * 清理 ASR 调用产生的临时音频和 OSS 对象，避免长视频处理持续占用本地及云端空间。
+     */
+    private void cleanupTemporaryAudio(File audioFile, String ossKey, boolean uploaded) {
+        if (uploaded) {
+            try {
+                ossUploadService.delete(ossKey);
+            } catch (RuntimeException e) {
+                log.warn("Failed to delete ASR OSS object: {}", ossKey, e);
+            }
+        }
+        if (audioFile.exists() && !FileUtil.del(audioFile)) {
+            log.warn("Failed to delete temporary ASR audio: {}", audioFile.getAbsolutePath());
         }
     }
 
