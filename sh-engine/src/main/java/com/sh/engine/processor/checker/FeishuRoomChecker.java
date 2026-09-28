@@ -43,16 +43,19 @@ public class FeishuRoomChecker extends AbstractRoomChecker {
     @Override
     public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
         if (!bitableClient.isConfigured()) {
+            log.warn("Feishu Bitable monitor check skipped, config: {}, credentials not configured",
+                    streamerConfig.getName());
             return null;
         }
         String baseToken = extractBaseToken(streamerConfig.getRoomUrl());
         List<FeishuLiveStatusRecorder.RoomObservation> observations = new ArrayList<>();
         List<FeishuBitableClient.StreamerRoom> rooms = bitableClient.listStreamerRooms(baseToken);
-        log.debug("Feishu streamer table loaded, count: {}", rooms.size());
+        log.info("Feishu Bitable monitor check, config: {}, streamers: {}",
+                streamerConfig.getName(), rooms.size());
         for (FeishuBitableClient.StreamerRoom room : rooms) {
             try {
                 boolean live = isLive(room.getRoomUrl());
-                log.debug("Feishu streamer status checked, name: {}, live: {}", room.getName(), live);
+                log.info("Feishu streamer status checked, name: {}, live: {}", room.getName(), live);
                 observations.add(new FeishuLiveStatusRecorder.RoomObservation(
                         room.getName(), room.getRoomUrl(), live, new Date()));
             } catch (Exception e) {
