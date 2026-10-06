@@ -43,6 +43,8 @@ public class OuterApiRoomChecker extends AbstractRoomChecker {
     private String liveHost;
     @Value("${live.api.server.port}")
     private String livePort;
+    @Value("${live.api.server.token}")
+    private String liveApiToken;
 
     @Override
     public StreamRecorder getStreamRecorder(StreamerConfig streamerConfig) {
@@ -55,6 +57,7 @@ public class OuterApiRoomChecker extends AbstractRoomChecker {
                 .url("http://" + liveHost + ":" + livePort + "/stream_info")
                 .post(body)
                 .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer " + liveApiToken)
                 .build();
         String resp = OkHttpClientUtil.execute(request);
         if (StringUtils.isBlank(resp)) {

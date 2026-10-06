@@ -36,6 +36,8 @@ public class FeishuRoomChecker extends AbstractRoomChecker {
     private String liveHost;
     @Value("${live.api.server.port}")
     private String livePort;
+    @Value("${live.api.server.token}")
+    private String liveApiToken;
 
     public FeishuRoomChecker(FeishuBitableClient bitableClient, CacheManager cacheManager) {
         this.bitableClient = bitableClient;
@@ -95,6 +97,7 @@ public class FeishuRoomChecker extends AbstractRoomChecker {
         Request request = new Request.Builder()
                 .url("http://" + liveHost + ":" + livePort + "/stream_info")
                 .post(RequestBody.create(JSON_MEDIA_TYPE, body.toJSONString()))
+                .addHeader("Authorization", "Bearer " + liveApiToken)
                 .build();
         String response = OkHttpClientUtil.execute(request);
         if (StringUtils.isBlank(response)) {

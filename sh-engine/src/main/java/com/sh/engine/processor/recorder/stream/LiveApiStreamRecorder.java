@@ -30,6 +30,7 @@ import java.util.Map;
 public class LiveApiStreamRecorder extends StreamRecorder {
     private static final String liveHost = EnvUtil.getEnvValue("live.api.server.host");
     private static final String livePort = EnvUtil.getEnvValue("live.api.server.port");
+    private static final String liveApiToken = EnvUtil.getEnvValue("live.api.server.token");
 
     private String streamUrl;
     private final String quality;
@@ -91,6 +92,7 @@ public class LiveApiStreamRecorder extends StreamRecorder {
                 .url("http://" + liveHost + ":" + livePort + "/stream_info")
                 .post(body)
                 .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer " + liveApiToken)
                 .build();
         String resp = OkHttpClientUtil.execute(request);
         if (StringUtils.isBlank(resp)) {
