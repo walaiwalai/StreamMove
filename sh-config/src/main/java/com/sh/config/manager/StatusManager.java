@@ -93,6 +93,13 @@ public class StatusManager {
         recordStatusMap.put(streamerName, pathWithTimeV);
     }
 
+    public synchronized boolean tryAddRoomPathStatus(String pathWithTimeV, String streamerName, int maxRecordingCount) {
+        if (count() >= maxRecordingCount) {
+            return false;
+        }
+        return recordStatusMap.putIfAbsent(streamerName, pathWithTimeV) == null;
+    }
+
     public void deleteRoomPathStatus(String streamerName) {
         recordStatusMap.remove(streamerName);
     }

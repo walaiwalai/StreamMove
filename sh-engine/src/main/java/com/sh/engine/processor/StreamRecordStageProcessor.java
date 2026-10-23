@@ -77,22 +77,21 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
 
         // 录播达到最大个数限制（直播不拦截）
         Integer maxRecordingCount = ConfigFetcher.getInitConfig().getMaxRecordingCount();
-        if (statusManager.count() >= maxRecordingCount) {
-            if (!streamerConfig.isRecordWhenOnline()) {
-                log.info("hit max recoding count, will return, name: {}.", name);
-                return;
-            }
+        if (streamerConfig.isRecordWhenOnline()) {
+            statusManager.addRoomPathStatus(savePath, name);
+        } else if (!statusManager.tryAddRoomPathStatus(savePath, name, maxRecordingCount)) {
+            log.info("hit max recording count or already recording, will return, name: {}.", name);
+            return;
         }
-
-        // 1. 前期准备
-        recordPreProcess(context.getStreamRecorder(), streamerConfig, savePath);
 
         // streamrecorder.io 是下载VOD，不需要启动弹幕录制
         boolean recordLocal = context.getChannelEnum() != StreamChannelTypeEnum.STREAM_RECORDER_IO;
 
-        // 2. 录制
-        statusManager.addRoomPathStatus(savePath, name);
         try {
+            // 1. 前期准备
+            recordPreProcess(context.getStreamRecorder(), streamerConfig, savePath);
+
+            // 2. 录制
             // 初始化
             context.getStreamRecorder().init(savePath);
             // 发布录制开始事件，让监听器处理弹幕录制
@@ -107,13 +106,15 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
             log.error("record error, savePath: {}", savePath, e);
             throw e;
         } finally {
-            // 发布录制结束事件，让监听器处理弹幕录制停止
-            if (recordLocal) {
-                StreamRecordEndEvent finishEvent = new StreamRecordEndEvent(this, name);
-                eventPublisher.publishEvent(finishEvent);
+            try {
+                // 发布录制结束事件，让监听器处理弹幕录制停止
+                if (recordLocal) {
+                    StreamRecordEndEvent finishEvent = new StreamRecordEndEvent(this, name);
+                    eventPublisher.publishEvent(finishEvent);
+                }
+            } finally {
+                statusManager.deleteRoomPathStatus(name);
             }
-
-            statusManager.deleteRoomPathStatus(name);
         }
         // 3. 后置操作
         recordPostProcess(context.getStreamRecorder(), streamerConfig);
