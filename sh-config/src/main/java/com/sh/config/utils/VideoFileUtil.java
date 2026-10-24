@@ -36,11 +36,6 @@ public class VideoFileUtil {
      */
     private static final String[] SUPPORTED_MEDIA_FORMATS = {"mp4", "m4a", "ts", "mkv", "avi", "mov", "flv", "webm"};
 
-    /**
-     * 临时处理文件的路径
-     */
-    public static final String PROCESS_TMP_DIR = "/home/admin/stream/dump";
-
     public static Integer getSnapshotIndex(File snapshotFile) {
         String name = snapshotFile.getName();
         int start = name.lastIndexOf("#");
@@ -135,38 +130,6 @@ public class VideoFileUtil {
             hashString.append(String.format("%02X", b));
         }
         return hashString.toString();
-    }
-
-    /**
-     * 获取临时处理目录
-     *
-     * @return 临时处理目录
-     */
-    public static File getAmountedTmpDir() {
-        File file = new File(PROCESS_TMP_DIR, DateUtil.covertTimeStampToStr(System.currentTimeMillis()));
-        file.mkdirs();
-        return file;
-    }
-
-
-    /**
-     * 拷贝挂载的临时文件到本地
-     *
-     * @param amountedFile 挂载的文件
-     * @return 本地文件
-     */
-    public static File copyMountedFileToLocal(File amountedFile) {
-        File tmpDir = getAmountedTmpDir();
-        File localFile = new File(tmpDir, amountedFile.getName());
-
-        try {
-            FileUtils.copyFile(amountedFile, localFile);
-        } catch (IOException e) {
-            log.error("copy file fail, from: {}, to: {}", amountedFile.getAbsolutePath(), localFile.getAbsolutePath(), e);
-            FileUtils.deleteQuietly(tmpDir);
-            return null;
-        }
-        return localFile;
     }
 
     /**

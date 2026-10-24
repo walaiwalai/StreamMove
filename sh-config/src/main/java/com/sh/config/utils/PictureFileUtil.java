@@ -1,5 +1,7 @@
 package com.sh.config.utils;
 
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.imageio.ImageIO;
@@ -84,6 +86,61 @@ public class PictureFileUtil {
     public static void createTextWithVeil(String text, int width, int height, int fontSize, File toFile) {
         // 创建空白图片，并开启透明度 (TYPE_INT_ARGB 支持透明度)
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        drawTextWithVeil(image, text, fontSize);
+
+        // 保存图片
+        try {
+            ImageIO.write(image, "png", toFile);
+        } catch (IOException e) {
+            log.error("Error saving textOverlayImage: {}", toFile.getAbsolutePath());
+        }
+    }
+
+    /**
+     * 在图片 data URL 上叠加居中的文字与半透明遮罩，并返回 PNG data URL。
+     *
+     * @param imageDataUrl 原始图片的 Base64 data URL
+     * @param text 要绘制的文字
+     * @return 渲染后的 PNG data URL
+     */
+    public static String createTextWithVeilOnImage(String imageDataUrl, String text) {
+        int base64Marker = imageDataUrl == null ? -1 : imageDataUrl.indexOf(";base64,");
+        if (base64Marker < 0 || !imageDataUrl.startsWith("data:image/")) {
+            throw new StreamerRecordException(ErrorEnum.INVALID_PARAM, "Invalid image data URL");
+        }
+        byte[] imageBytes;
+        try {
+            imageBytes = Base64.getDecoder().decode(imageDataUrl.substring(base64Marker + 8));
+        } catch (IllegalArgumentException e) {
+            throw new StreamerRecordException(ErrorEnum.INVALID_PARAM, "Invalid image Base64 content", e);
+        }
+        try (ByteArrayInputStream input = new ByteArrayInputStream(imageBytes);
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            BufferedImage source = ImageIO.read(input);
+            if (source == null) {
+                throw new StreamerRecordException(ErrorEnum.INVALID_PARAM, "Cannot decode image data URL");
+            }
+            BufferedImage image = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D background = image.createGraphics();
+            try {
+                background.drawImage(source, 0, 0, null);
+            } finally {
+                background.dispose();
+            }
+            drawTextWithVeil(image, text, Math.max(image.getHeight() / 13, MIN_TITLE_FONT_SIZE));
+            if (!ImageIO.write(image, "png", output)) {
+                throw new StreamerRecordException(ErrorEnum.INVALID_PARAM, "PNG image encoder is unavailable");
+            }
+            return "data:image/png;base64," + Base64.getEncoder().encodeToString(output.toByteArray());
+        } catch (IOException e) {
+            throw new StreamerRecordException(ErrorEnum.INVALID_PARAM, "Failed to render image data URL", e);
+        }
+    }
+
+    /** 绘制与透明标题图一致的遮罩和居中文字。 */
+    private static void drawTextWithVeil(BufferedImage image, String text, int fontSize) {
+        int width = image.getWidth();
+        int height = image.getHeight();
         Graphics2D g2d = image.createGraphics();
 
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -122,12 +179,6 @@ public class PictureFileUtil {
         // 释放 Graphics2D 对象
         g2d.dispose();
 
-        // 保存图片
-        try {
-            ImageIO.write(image, "png", toFile);
-        } catch (IOException e) {
-            log.error("Error saving textOverlayImage: {}", toFile.getAbsolutePath());
-        }
     }
 
     /**

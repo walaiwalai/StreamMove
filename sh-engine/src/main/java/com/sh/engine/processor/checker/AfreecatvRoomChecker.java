@@ -3,7 +3,8 @@ package com.sh.engine.processor.checker;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
-import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.manager.CommonParamCache;
+import com.sh.config.model.config.CommonParamKey;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.DateUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
@@ -41,6 +42,8 @@ import java.util.Map;
 public class AfreecatvRoomChecker extends AbstractRoomChecker {
     @Resource
     private CacheBizManager cacheBizManager;
+    @Resource
+    private CommonParamCache commonParamCache;
 
     private static final String BID_REGEX = "(?<=com/)([^/]+)$";
     private static final String RECORD_HISTORY_URL = "https://chapi.sooplive.co.kr/api/%s/vods/all?page=1&per_page=50&orderby=reg_date&created=false";
@@ -120,8 +123,9 @@ public class AfreecatvRoomChecker extends AbstractRoomChecker {
                 .post(body)
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
                 .addHeader("Accept-Language", "zh-CN,zh;q=0.9");
-        if (StringUtils.isNotBlank(ConfigFetcher.getInitConfig().getSoopCookies())) {
-            requestBuilder.addHeader("Cookie", ConfigFetcher.getInitConfig().getSoopCookies());
+        String cookies = commonParamCache.get(CommonParamKey.SOOP_COOKIES);
+        if (StringUtils.isNotBlank(cookies)) {
+            requestBuilder.addHeader("Cookie", cookies);
         }
 
         Response response = null;

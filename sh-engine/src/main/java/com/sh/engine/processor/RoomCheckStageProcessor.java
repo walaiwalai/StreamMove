@@ -1,8 +1,9 @@
 package com.sh.engine.processor;
 
 import com.google.common.collect.Maps;
+import com.sh.config.manager.CommonParamCache;
 import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.InitConfig;
+import com.sh.config.model.config.CommonParamKey;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.engine.constant.RecordStageEnum;
 import com.sh.engine.constant.RecordTaskStateEnum;
@@ -27,6 +28,8 @@ import java.util.Map;
 public class RoomCheckStageProcessor extends AbstractStageProcessor {
     @Resource
     ApplicationContext applicationContext;
+    @Resource
+    private CommonParamCache commonParamCache;
 
     Map<StreamChannelTypeEnum, AbstractRoomChecker> streamerServiceMap = Maps.newHashMap();
 
@@ -49,7 +52,7 @@ public class RoomCheckStageProcessor extends AbstractStageProcessor {
 
         // 检测服务
         AbstractRoomChecker streamerService;
-        if (ConfigFetcher.getInitConfig().getOutApiRoomCheckPlatforms().contains(channelEnum.name())) {
+        if (commonParamCache.getStringList(CommonParamKey.OUT_API_ROOM_CHECK_PLATFORMS).contains(channelEnum.name())) {
             streamerService = streamerServiceMap.get(StreamChannelTypeEnum.LIVE_RECORD_API);
         } else {
             streamerService = streamerServiceMap.get(channelEnum);

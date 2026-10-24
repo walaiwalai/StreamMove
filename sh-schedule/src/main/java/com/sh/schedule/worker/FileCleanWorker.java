@@ -2,9 +2,10 @@ package com.sh.schedule.worker;
 
 import cn.hutool.extra.spring.SpringUtil;
 import com.google.common.collect.Lists;
+import com.sh.config.manager.CommonParamCache;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
-import com.sh.config.model.config.InitConfig;
+import com.sh.config.model.config.CommonParamKey;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.storage.FileStatusModel;
 import com.sh.engine.constant.RecordConstant;
@@ -42,7 +43,7 @@ public class FileCleanWorker extends ProcessWorker {
     private void clear() {
         StatusManager statusManager = SpringUtil.getBean(StatusManager.class);
         MsgSendService msgSendService = SpringUtil.getBean(MsgSendService.class);
-        CleanupThreshold threshold = resolveThreshold(ConfigFetcher.getInitConfig());
+        CleanupThreshold threshold = resolveThreshold(SpringUtil.getBean(CommonParamCache.class));
         long now = System.currentTimeMillis();
 
         List<File> streamerFiles = listRecordDir();
@@ -182,12 +183,12 @@ public class FileCleanWorker extends ProcessWorker {
         }
     }
 
-    private static CleanupThreshold resolveThreshold(InitConfig initConfig) {
-        int keepHours = positiveOrDefault(initConfig == null
-                        ? null : initConfig.getFailedUploadKeepHighlightHours(),
+    private static CleanupThreshold resolveThreshold(CommonParamCache commonParamCache) {
+        int keepHours = positiveOrDefault(commonParamCache.getInt(
+                CommonParamKey.FAILED_UPLOAD_KEEP_HIGHLIGHT_HOURS, DEFAULT_KEEP_HIGHLIGHT_HOURS),
                 DEFAULT_KEEP_HIGHLIGHT_HOURS);
-        int deleteHours = positiveOrDefault(initConfig == null
-                        ? null : initConfig.getFailedUploadDeleteHours(),
+        int deleteHours = positiveOrDefault(commonParamCache.getInt(
+                CommonParamKey.FAILED_UPLOAD_DELETE_HOURS, DEFAULT_DELETE_FAILED_HOURS),
                 DEFAULT_DELETE_FAILED_HOURS);
         if (deleteHours <= keepHours) {
             log.warn("failedUploadDeleteHours ({}) must be greater than "
@@ -198,8 +199,8 @@ public class FileCleanWorker extends ProcessWorker {
         return new CleanupThreshold(keepHours, deleteHours);
     }
 
-    private static int positiveOrDefault(Integer value, int defaultValue) {
-        return value == null || value <= 0 ? defaultValue : value;
+    private static int positiveOrDefault(int value, int defaultValue) {
+        return value <= 0 ? defaultValue : value;
     }
 
     private static void warnBeforeDeletingFailedDirectory(MsgSendService msgSendService,

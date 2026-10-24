@@ -1,7 +1,9 @@
 package com.sh.engine.processor;
 
+import com.sh.config.manager.CommonParamCache;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.StatusManager;
+import com.sh.config.model.config.CommonParamKey;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.model.storage.FileStatusModel;
 import com.sh.config.repo.StreamerRepoService;
@@ -50,6 +52,8 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
     private ApplicationEventPublisher eventPublisher;
     @Resource
     private CacheBizManager cacheBizManager;
+    @Resource
+    private CommonParamCache commonParamCache;
 
     @Override
     public void process(RecordContext context) {
@@ -76,7 +80,7 @@ public class StreamRecordStageProcessor extends AbstractStageProcessor {
         String savePath = genRegPathByRegDate(context.getStreamRecorder().getRegDate(), name);
 
         // 录播达到最大个数限制（直播不拦截）
-        Integer maxRecordingCount = ConfigFetcher.getInitConfig().getMaxRecordingCount();
+        int maxRecordingCount = commonParamCache.getInt(CommonParamKey.MAX_RECORDING_COUNT, 2);
         if (streamerConfig.isRecordWhenOnline()) {
             statusManager.addRoomPathStatus(savePath, name);
         } else if (!statusManager.tryAddRoomPathStatus(savePath, name, maxRecordingCount)) {

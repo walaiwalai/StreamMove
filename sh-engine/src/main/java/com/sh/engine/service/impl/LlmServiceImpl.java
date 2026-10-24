@@ -5,26 +5,24 @@ import com.sh.engine.service.LlmService;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.util.concurrent.*;
 
 @Service
 @Slf4j
-@ConditionalOnProperty(name = "llm.provider", havingValue = "langchain4j")
 public class LlmServiceImpl implements LlmService {
 
-    @Value("${langchain4j.open-ai.api-key}")
+    @Value("${langchain4j.open-ai.api-key:}")
     private String apiKey;
 
-    @Value("${langchain4j.open-ai.base-url}")
+    @Value("${langchain4j.open-ai.base-url:}")
     private String baseUrl;
 
-    @Value("${langchain4j.open-ai.model-name}")
+    @Value("${langchain4j.open-ai.model-name:}")
     private String modelName;
 
     private ChatLanguageModel chatModel;
@@ -37,16 +35,27 @@ public class LlmServiceImpl implements LlmService {
 
     @PostConstruct
     public void init() {
-        this.chatModel = OpenAiChatModel.builder()
-                .apiKey(apiKey)
-                .baseUrl(baseUrl)
-                .modelName(modelName)
-                .build();
-        log.info("LlmService initialized, baseUrl: {}, model: {}", baseUrl, modelName);
+        if (StringUtils.isAnyBlank(apiKey, baseUrl, modelName)) {
+            log.info("LLM is not configured");
+            return;
+        }
+        try {
+            this.chatModel = OpenAiChatModel.builder()
+                    .apiKey(apiKey)
+                    .baseUrl(baseUrl)
+                    .modelName(modelName)
+                    .build();
+            log.info("LlmService initialized, baseUrl: {}, model: {}", baseUrl, modelName);
+        } catch (RuntimeException e) {
+            log.warn("LLM client initialization failed, errorType: {}", e.getClass().getName());
+        }
     }
 
     @Override
     public <T> T chat(String prompt, Class<T> resultType) {
+        if (chatModel == null) {
+            throw new UnsupportedOperationException("LLM is not available: check langchain4j.open-ai configuration");
+        }
         log.info("LLM request, prompt:\n{}", prompt);
 
         String response = chatModel.generate(prompt);

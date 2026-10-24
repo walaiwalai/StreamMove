@@ -1,6 +1,8 @@
 package com.sh.engine.model.ffmpeg;
 
-import com.sh.config.manager.ConfigFetcher;
+import cn.hutool.extra.spring.SpringUtil;
+import com.sh.config.manager.CommonParamCache;
+import com.sh.config.model.config.CommonParamKey;
 import com.sh.config.utils.EnvUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 
@@ -20,8 +22,9 @@ public abstract class AbstractYtDlpCmd extends AbstractCmd {
     protected String buildChannelOption(Integer channelType) {
         String options = " ";
         if (channelType == StreamChannelTypeEnum.AFREECA_TV.getType()) {
-            String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
-            String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
+            CommonParamCache commonParamCache = SpringUtil.getBean(CommonParamCache.class);
+            String soopUserName = commonParamCache.get(CommonParamKey.SOOP_USER_NAME);
+            String soopPassword = commonParamCache.get(CommonParamKey.SOOP_PASSWORD);
             if (soopUserName != null && soopPassword != null) {
                 options = " --username " + soopUserName + " --password " + soopPassword + " ";
             }

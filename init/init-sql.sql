@@ -1,4 +1,4 @@
-CREATE TABLE `streamer` (
+CREATE TABLE IF NOT EXISTS `streamer` (
                         `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键，自增ID',
                         `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
                         `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录修改时间',
@@ -21,4 +21,22 @@ CREATE TABLE `streamer` (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `uniq_name` (`name`) USING BTREE,
   KEY `idx_env` (`env`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='录播信息表'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='录播信息表';
+
+CREATE TABLE IF NOT EXISTS `stream_common_param` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  `key` varchar(128) NOT NULL COMMENT '参数键',
+  `value` text NOT NULL COMMENT '参数值',
+  `env` varchar(64) NOT NULL COMMENT '生效环境，与 system.env.flag 一致',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_env_key` (`env`, `key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通用参数表';
+
+INSERT IGNORE INTO `stream_common_param` (`key`, `value`, `env`) VALUES
+  ('videoPartLimitSize', '100', 'default'),
+  ('failedUploadKeepHighlightHours', '6', 'default'),
+  ('failedUploadDeleteHours', '24', 'default'),
+  ('outApiRoomCheckPlatforms', '[]', 'default'),
+  ('maxRecordingCount', '5', 'default');

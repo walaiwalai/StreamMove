@@ -2,6 +2,7 @@ package com.sh.config.controller;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Preconditions;
+import com.sh.config.manager.CommonParamCache;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.manager.LocalCacheManager;
 import com.sh.config.manager.StatusManager;
@@ -26,6 +27,7 @@ import java.lang.management.MemoryUsage;
 @Controller
 @RequestMapping("/sys")
 public class SysController {
+    private static final String REFRESH_TOKEN = "sys-refresh";
     public static final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
 
     @Resource
@@ -34,11 +36,13 @@ public class SysController {
     private LocalCacheManager localCacheManager;
     @Resource
     private StatusManager statusManager;
+    @Resource
+    private CommonParamCache commonParamCache;
 
     @RequestMapping(value = "/refresh", method = {RequestMethod.POST})
     @ResponseBody
     public String getCache(@RequestBody JSONObject requestBody) {
-        Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), "sys-refresh"), "token invalid");
+        Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), REFRESH_TOKEN), "token invalid");
         configFetcher.refresh();
         localCacheManager.clearAll();
 
@@ -58,7 +62,15 @@ public class SysController {
     @RequestMapping(value = "/statusInfo", method = {RequestMethod.POST})
     @ResponseBody
     public String getStatus(@RequestBody JSONObject requestBody) {
-        Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), "sys-refresh"), "token invalid");
+        Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), REFRESH_TOKEN), "token invalid");
         return statusManager.printInfo();
+    }
+
+    @RequestMapping(value = "/common-param/refresh", method = RequestMethod.POST)
+    @ResponseBody
+    public String refreshCommonParam(@RequestBody JSONObject requestBody) {
+        Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), REFRESH_TOKEN), "token invalid");
+        commonParamCache.refresh();
+        return "ok";
     }
 }

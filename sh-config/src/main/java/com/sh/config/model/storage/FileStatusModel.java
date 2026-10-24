@@ -57,6 +57,11 @@ public class FileStatusModel {
     private Map<String, Map<String, String>> uploadInfo = Maps.newHashMap();
 
     /**
+     * B站网页投稿成功的稿件 ID，供合集加入失败后的重试使用。
+     */
+    private Long biliWebPostedAid;
+
+    /**
      * 写到fileStatus.json
      */
     public void writeSelfToFile(String path) {

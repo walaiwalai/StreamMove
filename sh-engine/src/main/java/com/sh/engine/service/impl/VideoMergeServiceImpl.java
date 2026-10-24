@@ -5,9 +5,7 @@ import cn.hutool.core.io.file.FileNameUtil;
 import com.google.common.collect.Lists;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
-import com.sh.config.utils.EnvUtil;
 import com.sh.config.utils.PictureFileUtil;
-import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.model.ffmpeg.FFmpegProcessCmd;
 import com.sh.engine.model.ffmpeg.Ts2Mp4ProcessCmd;
 import com.sh.engine.model.ffmpeg.VideoSizeDetectCmd;
@@ -41,7 +39,6 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class VideoMergeServiceImpl implements VideoMergeService {
-    private static final int COPY_RETRY = 5;
     private static final int VERTICAL_OUTPUT_WIDTH = 1080;
     private static final int VERTICAL_OUTPUT_HEIGHT = 1920;
     private static final int VERTICAL_GAME_WIDTH_RATIO = 8;
@@ -379,44 +376,10 @@ public class VideoMergeServiceImpl implements VideoMergeService {
 
     @Override
     public boolean ts2Mp4(File fromVideo) {
-        if (EnvUtil.isStorageMounted()) {
-            // 如果挂载下载路径，直接处理会报错
-            File tmpDir = VideoFileUtil.getAmountedTmpDir();
-            File toMp4File = new File(tmpDir, FileNameUtil.getPrefix(fromVideo) + ".mp4");
-
-            Ts2Mp4ProcessCmd ts2Mp4ProcessCmd = new Ts2Mp4ProcessCmd(fromVideo, toMp4File);
-            ts2Mp4ProcessCmd.execute(2 * 3600L);
-
-            // copy文件
-            File targetFile = new File(fromVideo.getParent(), FileNameUtil.getPrefix(fromVideo) + ".mp4");
-            boolean copySuccess = false;
-            for (int i = 0; i < COPY_RETRY; i++) {
-                if (copySuccess) {
-                    break;
-                }
-                try {
-                    // 清空目标文件
-                    FileUtils.deleteQuietly(targetFile);
-                    // 执行拷贝
-                    FileUtils.copyFile(toMp4File, targetFile);
-                    copySuccess = true;
-                } catch (IOException e) {
-                    log.error("copy file fail, from: {}, to: {}, retry: {}/{}", toMp4File.getAbsolutePath(), targetFile.getAbsolutePath(), i + 1, COPY_RETRY, e);
-                }
-            }
-
-            // 删除临时文件
-            FileUtils.deleteQuietly(tmpDir);
-            if (!copySuccess) {
-                log.error("fuck! copy file fail, from: {}, to: {}", toMp4File.getAbsolutePath(), targetFile.getAbsolutePath());
-            }
-            return copySuccess;
-        } else {
-            File toMp4File = new File(fromVideo.getParent(), FileNameUtil.getPrefix(fromVideo) + ".mp4");
-            Ts2Mp4ProcessCmd ts2Mp4ProcessCmd = new Ts2Mp4ProcessCmd(fromVideo, toMp4File);
-            ts2Mp4ProcessCmd.execute(2 * 3600L);
-            return true;
-        }
+        File toMp4File = new File(fromVideo.getParent(), FileNameUtil.getPrefix(fromVideo) + ".mp4");
+        Ts2Mp4ProcessCmd ts2Mp4ProcessCmd = new Ts2Mp4ProcessCmd(fromVideo, toMp4File);
+        ts2Mp4ProcessCmd.execute(2 * 3600L);
+        return true;
     }
 
     private File saveMergeFileList(List<String> mergedFileNames, File targetVideo) {

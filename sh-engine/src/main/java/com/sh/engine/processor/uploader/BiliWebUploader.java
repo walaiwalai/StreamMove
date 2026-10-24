@@ -4,13 +4,17 @@ import cn.hutool.core.io.FileUtil;
 import com.google.common.collect.Lists;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
+import com.sh.config.manager.CommonParamCache;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.CommonParamKey;
 import com.sh.config.model.config.StreamerConfig;
+import com.sh.config.model.storage.FileStatusModel;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.RecordConstant;
 import com.sh.engine.constant.UploadPlatformEnum;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.bili.BiliWebWorkPostCommand;
+import com.sh.engine.model.bili.BiliWebSeasonCommand;
 import com.sh.engine.model.bili.BiliWebVideoUploadCommand;
 import com.sh.engine.model.video.RemoteSeverVideo;
 import com.sh.engine.service.VideoMergeService;
@@ -19,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -38,6 +43,10 @@ public class BiliWebUploader extends Uploader {
     private MsgSendService msgSendService;
     @Resource
     private VideoMergeService videoMergeService;
+    @Resource
+    private BiliWebSeasonCommand biliWebSeasonCommand;
+    @Resource
+    private CommonParamCache commonParamCache;
 
     @Override
     public String getType() {
@@ -61,6 +70,7 @@ public class BiliWebUploader extends Uploader {
         if (CollectionUtils.isEmpty(localVideos)) {
             return true;
         }
+        String cookies = resolveBiliCookies();
 
         // 1. 上传视频
         List<RemoteSeverVideo> remoteVideos = Lists.newArrayList();
@@ -74,7 +84,7 @@ public class BiliWebUploader extends Uploader {
             }
 
             // 1.1 上传单个视频
-            BiliWebVideoUploadCommand command = new BiliWebVideoUploadCommand(localVideo);
+            BiliWebVideoUploadCommand command = new BiliWebVideoUploadCommand(localVideo, cookies);
             uploadedVideo = command.upload();
 
             if (uploadedVideo == null) {
@@ -91,13 +101,36 @@ public class BiliWebUploader extends Uploader {
         }
 
         // 2. 提交作品
-        BiliWebWorkPostCommand finishCommand = new BiliWebWorkPostCommand(remoteVideos, recordPath);
-        boolean isPostSuccess = finishCommand.postWork();
-        if (!isPostSuccess) {
-            throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
-        }
+        FileStatusModel fileStatus = FileStatusModel.loadFromFile(recordPath);
+        Long aid = Optional.ofNullable(fileStatus.getBiliWebPostedAid()).orElseGet(() -> {
+            Long postedAid = new BiliWebWorkPostCommand(remoteVideos, recordPath, cookies).postWork();
+            if (postedAid == null) {
+                throw new StreamerRecordException(ErrorEnum.POST_WORK_ERROR);
+            }
+            fileStatus.setBiliWebPostedAid(postedAid);
+            fileStatus.writeSelfToFile(recordPath);
+            return postedAid;
+        });
+
+        // 3. 作品加入合集（没有合集就创建）
+        biliWebSeasonCommand.addWorkToStreamerSeason(aid, cookies);
 
         return true;
+    }
+
+    /**
+     * 主播专属 Cookie 优先；未配置时读取共享的 B 站 Cookie。
+     */
+    private String resolveBiliCookies() {
+        String streamerName = StreamerInfoHolder.getCurStreamerName();
+        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
+        String cookies = StringUtils.isNotBlank(streamerConfig.getCertainBiliCookies())
+                ? streamerConfig.getCertainBiliCookies() : commonParamCache.get(CommonParamKey.BILI_COOKIES);
+        if (StringUtils.isBlank(cookies)) {
+            throw new StreamerRecordException(ErrorEnum.PRE_UPLOAD_ERROR,
+                    "Missing Bilibili Cookie for streamer=" + streamerName);
+        }
+        return cookies;
     }
 
     @Override
@@ -147,7 +180,7 @@ public class BiliWebUploader extends Uploader {
      * @return 要上传的视频
      */
     private List<File> fetchUploadVideos(String recordPath) {
-        long videoPartLimitSize = ConfigFetcher.getInitConfig().getVideoPartLimitSize() * 1024L * 1024L;
+        long videoPartLimitSize = commonParamCache.getInt(CommonParamKey.VIDEO_PART_LIMIT_SIZE, 0) * 1024L * 1024L;
 
         // 遍历本地的录制文件（支持所有媒体格式）
         List<File> allVideos = VideoFileUtil.listRecordedFiles(recordPath)

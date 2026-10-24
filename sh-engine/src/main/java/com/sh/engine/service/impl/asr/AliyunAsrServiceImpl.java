@@ -16,8 +16,8 @@ import com.sh.engine.service.OssUploadService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -33,7 +33,6 @@ import java.util.List;
  * <p>
  * Configuration properties:
  * <ul>
- *   <li>asr.provider - Set to "aliyun" to enable this implementation</li>
  *   <li>asr.aliyun.api-key - DashScope API Key</li>
  *   <li>asr.aliyun.model - Model name (default: fun-asr)</li>
  * </ul>
@@ -44,13 +43,12 @@ import java.util.List;
  */
 @Service
 @Slf4j
-@ConditionalOnProperty(name = "asr.provider", havingValue = "aliyun")
 public class AliyunAsrServiceImpl implements AsrService {
 
-    @Value("${asr.aliyun.api-key}")
+    @Value("${asr.aliyun.api-key:}")
     private String apiKey;
 
-    @Value("${asr.aliyun.model}")
+    @Value("${asr.aliyun.model:}")
     private String model;
 
     @Resource
@@ -60,6 +58,10 @@ public class AliyunAsrServiceImpl implements AsrService {
 
     @Override
     public List<AsrSegment> transcribeSegment(File videoFile, int startSeconds, int endSeconds) {
+        if (StringUtils.isAnyBlank(apiKey, model)) {
+            throw new UnsupportedOperationException("ASR is not configured: asr.aliyun.api-key and asr.aliyun.model are required");
+        }
+
         // 1. Extract audio from video segment
         File tempAudioFile = extractAudio(videoFile, startSeconds, endSeconds);
         if (tempAudioFile == null) {

@@ -92,8 +92,6 @@ message.receive.secret=xxx
 # 系统表示
 system.env.flag=default
 
-# 是否是挂载存储
-system.storage.mounted=false
 ```
 
 ### 飞书多维表开播监控
@@ -130,18 +128,7 @@ FFmpeg 与两个 OCR 消费线程之间的背压，避免长录像占用无限�
   "roomCheckCron": "20 2/5 * * * ?",
   "fileCleanCron": "0 5/15 * * * ?",
   "webUploaderLoginCheckCron": "0 0 0/6 * * ?",
-  "configRefreshCron": "0 0/30 * * * ?",
-  "maxRecordingCount": 2,
-  "videoPartLimitSize": 100,
-
-  "biliCookies": "{b站网页端cookies}",
-  "soopUserName": "{soop账号登录用户名}",
-  "soopPassword": "{soop账号登录密码}",
-  "twitchAuthorization": "{twitch的授权信息, 在请求头中}",
-  "taobaoCookies": "{淘宝的ookies}",
-  "xhsCookies": "{小红书cookies}",
-  "douyuCookies": "{斗鱼cookies}",
-  "kuaishouCookies": "{快手cookies}"
+  "configRefreshCron": "0 0/30 * * * ?"
 }
 ```
 
@@ -151,8 +138,6 @@ FFmpeg 与两个 OCR 消费线程之间的背压，避免长录像占用无限�
 - **fileCleanCron**     必填，针对上传完的视频进行定时清理的cron表达式
 - **webUploaderLoginCheckCron** 非必填，抖音、微信视频号和美团网页上传登录态主动检查与保活cron表达式，默认每6小时；旧配置名 `wechatVideoLoginCheckCron` 仍兼容
 - **configRefreshCron** 必填，刷新从数据库刷新主播配置的cron表达式
-- **videoPartLimitSize** 非必填，上传单个视频的最小大小（M）,默认是0
-- **maxRecordingCount**  非必填，同时最大的录播主播个数，默认2
 
 录制twitch相关：
 

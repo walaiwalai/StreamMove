@@ -10,6 +10,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -71,6 +73,26 @@ public class CacheManager {
     public void setHash(String key, String tag, Object value, long timeout, TimeUnit timeUnit) {
         hashOps.put(key, tag, obj2String(value));
         redisTemplate.expire(key, timeout, timeUnit);
+    }
+
+    /**
+     * 用新的哈希内容替换旧内容，避免全量刷新时留下已删除的字段。
+     */
+    public void replaceHash(String key, Map<String, String> values) {
+        if (values.isEmpty()) {
+            redisTemplate.delete(key);
+            return;
+        }
+        String loadingKey = key + ":loading:" + UUID.randomUUID();
+        hashOps.putAll(loadingKey, values);
+        redisTemplate.rename(loadingKey, key);
+    }
+
+    /**
+     * 读取哈希中的原始字符串值。
+     */
+    public String getHashValue(String key, String field) {
+        return hashOps.get(key, field);
     }
 
     /**

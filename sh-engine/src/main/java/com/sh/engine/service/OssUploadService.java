@@ -22,6 +22,14 @@ public interface OssUploadService {
     String uploadAndGetUrl(File file, String key);
 
     /**
+     * 读取 OSS 中的图片，并转换为可上传的 data URL。
+     *
+     * @param key bucket 内的图片对象 key
+     * @return 包含图片 MIME 类型和 Base64 内容的 data URL
+     */
+    String getImageDataUrl(String key);
+
+    /**
      * Delete a file from OSS by its key.
      *
      * @param key the object key to delete

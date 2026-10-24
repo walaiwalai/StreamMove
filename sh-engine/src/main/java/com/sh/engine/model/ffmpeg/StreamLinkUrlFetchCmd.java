@@ -1,6 +1,8 @@
 package com.sh.engine.model.ffmpeg;
 
-import com.sh.config.manager.ConfigFetcher;
+import cn.hutool.extra.spring.SpringUtil;
+import com.sh.config.manager.CommonParamCache;
+import com.sh.config.model.config.CommonParamKey;
 import com.sh.engine.constant.StreamChannelTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -40,8 +42,9 @@ public class StreamLinkUrlFetchCmd extends AbstractCmd {
     }
 
     private String buildSoopCommand(String url, String qualityParam) {
-        String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
-        String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
+        CommonParamCache commonParamCache = SpringUtil.getBean(CommonParamCache.class);
+        String soopUserName = commonParamCache.get(CommonParamKey.SOOP_USER_NAME);
+        String soopPassword = commonParamCache.get(CommonParamKey.SOOP_PASSWORD);
         if (StringUtils.isNotBlank(soopUserName) && StringUtils.isNotBlank(soopPassword)) {
             return "streamlink --soop-username " + soopUserName + " --soop-password " + soopPassword + " --stream-url " + url + " " + qualityParam;
         } else {

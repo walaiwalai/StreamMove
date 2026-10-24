@@ -102,6 +102,11 @@ public enum ErrorEnum {
      */
     HIGHLIGHT_ANALYSIS_ERROR(20, "highlight analysis error"),
 
+    /**
+     * B站合集查询、创建或添加视频失败。
+     */
+    BILI_SEASON_ERROR(21, "bilibili season error"),
+
     ;
     private int errorCode;
     private String message;

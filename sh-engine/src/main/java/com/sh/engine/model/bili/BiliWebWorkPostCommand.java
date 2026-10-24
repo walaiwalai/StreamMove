@@ -4,6 +4,8 @@ import cn.hutool.core.io.FileUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.manager.ConfigFetcher;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
@@ -34,13 +36,20 @@ public class BiliWebWorkPostCommand {
 
     private List<RemoteSeverVideo> remoteSeverVideos;
     private String recordPath;
+    private final String cookies;
 
-    public BiliWebWorkPostCommand(List<RemoteSeverVideo> remoteSeverVideos, String recordPath) {
+    public BiliWebWorkPostCommand(List<RemoteSeverVideo> remoteSeverVideos, String recordPath, String cookies) {
         this.remoteSeverVideos = remoteSeverVideos;
         this.recordPath = recordPath;
+        this.cookies = cookies;
     }
 
-    public boolean postWork() {
+    /**
+     * 提交稿件并返回稿件 ID，供后续加入主播合集使用。
+     *
+     * @return 投稿成功的 aid；失败时返回 null
+     */
+    public Long postWork() {
         String postWorkUrl = RecordConstant.BILI_POST_WORK
                 .replace("{t}", String.valueOf(System.currentTimeMillis()))
                 .replace("{csrf}", fetchCsrf());
@@ -56,7 +65,7 @@ public class BiliWebWorkPostCommand {
                 .addHeader("referer", "https://member.bilibili.com/platform/upload/video/frame")
                 .addHeader("sec-fetch-mode", "cors")
                 .addHeader("sec-fetch-site", "cross-site")
-                .addHeader("cookie", fetchBiliCookies())
+                .addHeader("cookie", cookies)
                 .post(RequestBody.create(mediaType, JSON.toJSONString(buildPostWorkParamOnWeb())))
                 .build();
 
@@ -66,20 +75,26 @@ public class BiliWebWorkPostCommand {
                     Thread.sleep(CHUNK_RETRY_DELAY);
                 }
                 String resp = OkHttpClientUtil.execute(request);
-                String code = JSON.parseObject(resp).getString("code");
+                JSONObject response = JSON.parseObject(resp);
+                String code = response.getString("code");
                 if (Objects.equals(code, "0")) {
-                    log.info("postWork success, video is uploaded, recordPath: {}", this.recordPath);
-                    return true;
+                    JSONObject data = response.getJSONObject("data");
+                    Long aid = data == null ? null : data.getLong("aid");
+                    if (aid != null && aid > 0) {
+                        log.info("postWork success, aid: {}, recordPath: {}", aid, this.recordPath);
+                        return aid;
+                    }
+                    log.error("postWork succeeded without aid, recordPath: {}", this.recordPath);
                 } else {
-                    log.error("postWork failed, res: {}, title: {}, retry: {}/{}.", resp, JSON.toJSONString(this.remoteSeverVideos), i + 1, CHUNK_RETRY);
+                    log.error("Bilibili post failed, code: {}, recordPath: {}", code, this.recordPath);
                 }
-                return true;
+                return null;
             } catch (Exception e) {
                 log.error("postWork error, retry: {}/{}", i + 1, CHUNK_RETRY, e);
             }
         }
 
-        return false;
+        return null;
     }
 
     private JSONObject buildPostWorkParamOnWeb() {
@@ -129,39 +144,46 @@ public class BiliWebWorkPostCommand {
             return null;
         }
 
-        String csrf = fetchCsrf();
-        String sessData = fetchSessData();
+        return uploadCover("data:image/jpeg;base64," + base64Content, cookies, ErrorEnum.POST_WORK_ERROR);
+    }
+
+    /**
+     * 将图片 data URL 上传到 B 站，返回 B 站托管的封面地址。
+     */
+    static String uploadCover(String imageDataUrl, String cookies, ErrorEnum error) {
+        String csrf = StringUtils.substringBetween(cookies + ";", "bili_jct=", ";");
+        if (StringUtils.isBlank(csrf)) {
+            throw new StreamerRecordException(error, "Missing Bilibili CSRF token for cover upload");
+        }
         RequestBody requestBody = new FormBody.Builder()
                 .add("csrf", csrf)
-                .add("cover", "data:image/jpeg;base64," + base64Content)
+                .add("cover", imageDataUrl)
                 .build();
 
         Request request = new Request.Builder()
                 .url("https://member.bilibili.com/x/vu/web/cover/up")
                 .post(requestBody)
-                .addHeader("cookie", "SESSDATA=" + sessData + "; bili_jct=" + csrf)
+                .addHeader("cookie", cookies)
                 .build();
-        String resp = OkHttpClientUtil.execute(request);
-        JSONObject respObj = JSONObject.parseObject(resp);
-        return respObj.getJSONObject("data").getString("url");
+        JSONObject response;
+        try {
+            response = JSONObject.parseObject(OkHttpClientUtil.execute(request));
+        } catch (RuntimeException e) {
+            throw new StreamerRecordException(error, "Bilibili cover upload request failed", e);
+        }
+        JSONObject data = response == null ? null : response.getJSONObject("data");
+        String url = data == null ? null : data.getString("url");
+        if (response == null || response.getInteger("code") == null
+                || response.getIntValue("code") != 0 || StringUtils.isBlank(url)) {
+            throw new StreamerRecordException(error,
+                    "Bilibili cover upload returned no URL, code=" + (response == null ? "null" : response.getString("code")));
+        }
+        return url;
     }
 
-
-    /**
-     * 获取b站cookies
-     * @return b站cookies
-     */
-    private String fetchBiliCookies() {
-        String streamerName = StreamerInfoHolder.getCurStreamerName();
-        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
-        return StringUtils.isNotBlank(streamerConfig.getCertainBiliCookies()) ? streamerConfig.getCertainBiliCookies() : ConfigFetcher.getInitConfig().getBiliCookies();
-    }
 
     private String fetchCsrf() {
-        return StringUtils.substringBetween(fetchBiliCookies(), "bili_jct=", ";");
+        return StringUtils.substringBetween(cookies, "bili_jct=", ";");
     }
 
-    private String fetchSessData() {
-        return StringUtils.substringBetween(fetchBiliCookies(), "SESSDATA=", ";");
-    }
 }

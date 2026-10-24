@@ -29,8 +29,11 @@ def replace_placeholders(config, java_config_file_path):
     placeholders = re.findall(r'\$\{([^}]+)\}', content)
 
     for placeholder in placeholders:
-        if placeholder in config:
-            content = content.replace(f'${{{placeholder}}}', config[placeholder])
+        key, separator, default = placeholder.partition(':')
+        if key in config:
+            content = content.replace(f'${{{placeholder}}}', config[key])
+        elif separator:
+            content = content.replace(f'${{{placeholder}}}', default)
 
     with open(java_config_file_path, 'w') as file:
         file.write(content)

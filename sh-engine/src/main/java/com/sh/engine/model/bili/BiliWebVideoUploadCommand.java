@@ -7,22 +7,16 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
-import com.sh.config.manager.ConfigFetcher;
-import com.sh.config.model.config.StreamerConfig;
-import com.sh.config.utils.EnvUtil;
 import com.sh.config.utils.ExecutorPoolUtil;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.RecordConstant;
-import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.video.RemoteSeverVideo;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,11 +35,13 @@ public class BiliWebVideoUploadCommand {
     public static final int CHUNK_RETRY_DELAY = 500;
 
     private File videoFile;
+    private final String cookies;
 
     private BiliWebPreUploadParams biliWebPreUploadParams;
 
-    public BiliWebVideoUploadCommand(File videoFile) {
+    public BiliWebVideoUploadCommand(File videoFile, String cookies) {
         this.videoFile = videoFile;
+        this.cookies = cookies;
 
         biliWebPreUploadParams = fetchPreUploadInfo();
         if (biliWebPreUploadParams.getOk() == 1) {
@@ -71,9 +67,8 @@ public class BiliWebVideoUploadCommand {
         String videoName = videoFile.getName();
         int chunkSize = biliWebPreUploadParams.getChunkSize();
         int partCount = (int) Math.ceil(fileSize * 1.0 / biliWebPreUploadParams.getChunkSize());
-        log.info("video size is {}M, seg {} parts to upload, param: {}", fileSize / 1024 / 1024, partCount, JSON.toJSONString(biliWebPreUploadParams));
-        File targetFile = EnvUtil.isStorageMounted() ? VideoFileUtil.copyMountedFileToLocal(videoFile) : videoFile;
-        String cookies = fetchBiliCookies();
+        log.info("video size is {}M, seg {} parts to upload", fileSize / 1024 / 1024, partCount);
+        String cookies = this.cookies;
         List<CompletableFuture<Boolean>> futures = new ArrayList<>();
         for (int i = 0; i < partCount; i++) {
             long curChunkStart = (long) i * chunkSize;
@@ -91,7 +86,7 @@ public class BiliWebVideoUploadCommand {
                                 .replace("{start}", String.valueOf(curChunkStart))
                                 .replace("{end}", String.valueOf(curChunkEnd))
                                 .replace("{total}", String.valueOf(fileSize));
-                        return uploadChunk(chunkUploadUrl, targetFile, finalI, partCount, (int) curChunkSize, curChunkStart, cookies);
+                        return uploadChunk(chunkUploadUrl, videoFile, finalI, partCount, (int) curChunkSize, curChunkStart, cookies);
                     }, ExecutorPoolUtil.getUploadPool());
             futures.add(future);
         }
@@ -125,9 +120,6 @@ public class BiliWebVideoUploadCommand {
         }
         countDownLatch.await();
 
-        if (EnvUtil.isStorageMounted()) {
-            FileUtils.deleteQuietly(targetFile.getParentFile());
-        }
         if (hasFailed.get()) {
             log.error("video chunks upload fail, videoPath: {}", videoFile.getAbsolutePath());
             return null;
@@ -207,8 +199,7 @@ public class BiliWebVideoUploadCommand {
                 if (i > 0) {
                     Thread.sleep(CHUNK_RETRY_DELAY);
                 }
-                String resp = OkHttpClientUtil.execute(request);
-                System.out.println(resp);
+                OkHttpClientUtil.execute(request);
                 log.info("chunk upload success, file: {}, progress: {}/{}, time cost: {}s.", path, chunkShowNo, totalChunks,
                         (System.currentTimeMillis() - startTime) / 1000);
                 return true;
@@ -249,7 +240,7 @@ public class BiliWebVideoUploadCommand {
                 .addHeader("referer", "https://member.bilibili.com/platform/upload/video/frame")
                 .addHeader("sec-fetch-mode", "cors")
                 .addHeader("sec-fetch-site", "cross-site")
-                .addHeader("cookie", fetchBiliCookies())
+                .addHeader("cookie", cookies)
                 .addHeader("x-upos-auth", biliWebPreUploadParams.getAuth())
                 .post(requestBody)
                 .build();
@@ -266,7 +257,7 @@ public class BiliWebVideoUploadCommand {
                 .url(preUploadUrl)
                 .addHeader("Accept", "*/*")
                 .addHeader("Accept-Encoding", "deflate")
-                .addHeader("Cookie", fetchBiliCookies())
+                .addHeader("Cookie", cookies)
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) Chrome/63.0.3239.132 Safari/537.36")
                 .build();
         String resp = OkHttpClientUtil.execute(request);
@@ -297,13 +288,4 @@ public class BiliWebVideoUploadCommand {
         return JSON.parseObject(resp).getString("upload_id");
     }
 
-    /**
-     * 获取b站cookies
-     * @return b站cookies
-     */
-    private String fetchBiliCookies() {
-        String streamerName = StreamerInfoHolder.getCurStreamerName();
-        StreamerConfig streamerConfig = ConfigFetcher.getStreamerInfoByName(streamerName);
-        return StringUtils.isNotBlank(streamerConfig.getCertainBiliCookies()) ? streamerConfig.getCertainBiliCookies() : ConfigFetcher.getInitConfig().getBiliCookies();
-    }
 }

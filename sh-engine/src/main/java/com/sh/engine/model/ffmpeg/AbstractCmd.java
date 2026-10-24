@@ -53,7 +53,7 @@ public abstract class AbstractCmd {
 
         // 处理管道命令会报错，所以不解析
         cmdLine.addArgument(command, false);
-        log.info("final command is: {}", command);
+        log.info("Starting command, type: {}", getClass().getSimpleName());
 
         DefaultExecutor executor = new DefaultExecutor();
 
@@ -91,14 +91,16 @@ public abstract class AbstractCmd {
             }, CMD_EXECUTOR);
 
             exitCode = future.get(timeoutSeconds, TimeUnit.SECONDS);
-            log.info("Command executed successfully in {}s, command: {}", (System.currentTimeMillis() - startTime) / 1000, command);
+            log.info("Command completed, type: {}, durationSeconds: {}",
+                    getClass().getSimpleName(), (System.currentTimeMillis() - startTime) / 1000);
         } catch (Exception e) {
             long endTime = System.currentTimeMillis();
             // 1. 超时场景
             if (e instanceof TimeoutException || watchdog.killedProcess()) {
                 isTimeout.set(true);
                 killProcess();
-                log.info("Command timed out after {}s, command: {}", (endTime - startTime) / 1000, command);
+                log.info("Command timed out, type: {}, durationSeconds: {}",
+                        getClass().getSimpleName(), (endTime - startTime) / 1000);
             } else {
                 // 2. 非超时异常：区分类型（还原原逻辑）
                 Throwable rootCause = e.getCause();
@@ -106,16 +108,16 @@ public abstract class AbstractCmd {
                     IOException ioEx = (IOException) rootCause.getCause();
                     if (ioEx instanceof ExecuteException) {
                         // 命令执行返回非0退出码（原逻辑的ExecuteException场景）
-                        log.info("Command execution failed with exit code: {}, command: {}", exitCode, command);
+                        log.info("Command failed, type: {}, exitCode: {}", getClass().getSimpleName(), exitCode);
                         throw new StreamerRecordException(ErrorEnum.CMD_EXIT_CODE_UN_NORMAL);
                     } else {
                         // 普通IO异常（原逻辑的IOException场景）
-                        log.error("IO error occurred while executing command: {}", command, e);
+                        log.error("Command IO error, type: {}", getClass().getSimpleName(), e);
                         throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
                     }
                 } else {
                     // 其他未知异常（原逻辑的兜底Exception）
-                    log.error("Unexpected error occurred while executing command: {}", command, e);
+                    log.error("Unexpected command error, type: {}", getClass().getSimpleName(), e);
                     throw new StreamerRecordException(ErrorEnum.CMD_EXECUTE_ERROR);
                 }
             }

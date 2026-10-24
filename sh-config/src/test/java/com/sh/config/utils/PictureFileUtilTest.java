@@ -2,13 +2,52 @@ package com.sh.config.utils;
 
 import org.junit.Test;
 
+import javax.imageio.ImageIO;
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Base64;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class PictureFileUtilTest {
+
+    @Test
+    public void rendersStreamerNameAtCenterOfOssCover() throws IOException {
+        BufferedImage source = new BufferedImage(400, 240, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = source.createGraphics();
+        graphics.setColor(Color.WHITE);
+        graphics.fillRect(0, 0, source.getWidth(), source.getHeight());
+        graphics.dispose();
+
+        ByteArrayOutputStream sourceBytes = new ByteArrayOutputStream();
+        assertTrue(ImageIO.write(source, "png", sourceBytes));
+        String sourceDataUrl = "data:image/png;base64,"
+                + Base64.getEncoder().encodeToString(sourceBytes.toByteArray());
+
+        String renderedDataUrl = PictureFileUtil.createTextWithVeilOnImage(sourceDataUrl, "芒果鱼");
+        assertTrue(renderedDataUrl.startsWith("data:image/png;base64,"));
+        byte[] renderedBytes = Base64.getDecoder().decode(renderedDataUrl.substring("data:image/png;base64,".length()));
+        BufferedImage rendered = ImageIO.read(new ByteArrayInputStream(renderedBytes));
+        assertEquals(400, rendered.getWidth());
+        assertEquals(240, rendered.getHeight());
+        assertTrue(rendered.getRGB(0, 0) != Color.WHITE.getRGB());
+
+        boolean centeredBlueTextFound = false;
+        for (int y = 60; y < 180; y++) {
+            for (int x = 100; x < 300; x++) {
+                Color pixel = new Color(rendered.getRGB(x, y), true);
+                if (pixel.getBlue() > pixel.getRed() + 40 && pixel.getBlue() > pixel.getGreen() + 40) {
+                    centeredBlueTextFound = true;
+                }
+            }
+        }
+        assertTrue(centeredBlueTextFound);
+    }
 
     @Test
     public void shrinksVerticalTitleIntoSafeAreaWithoutChangingExplicitLines() {

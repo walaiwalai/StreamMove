@@ -2,18 +2,6 @@
     "roomCheckCron": "20 2/5 * * * ?",
     "fileCleanCron": "0 5/15 * * * ?",
     "webUploaderLoginCheckCron": "0 0 0/6 * * ?",
-    "failedUploadKeepHighlightHours": 6,
-    "failedUploadDeleteHours": 24,
-    "configRefreshCron": "0 0/30 * * * ?",
-    "maxRecordingCount": 5,
-    "videoPartLimitSize": 100,
+    "configRefreshCron": "0 0/30 * * * ?"
 
-    "biliCookies": "{b站网页端cookies}",
-    "soopUserName": "{soop账号登录用户名}",
-    "soopPassword": "{soop账号登录密码}",
-    "twitchAuthorization": "{twitch的授权信息, 在请求头中}",
-    "taobaoCookies": "{淘宝的ookies}",
-    "xhsCookies": "{小红书cookies}",
-    "douyuCookies": "{斗鱼cookies}",
-    "kuaishouCookies": "{快手cookies}"
 }

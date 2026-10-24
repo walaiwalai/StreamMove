@@ -3,7 +3,8 @@ package com.sh.engine.processor.checker;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.manager.CommonParamCache;
+import com.sh.config.model.config.CommonParamKey;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.constant.StreamChannelTypeEnum;
@@ -15,6 +16,7 @@ import okhttp3.Headers;
 import okhttp3.Request;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,6 +31,9 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class KuaishouRoomChecker extends AbstractRoomChecker {
+    @Resource
+    private CommonParamCache commonParamCache;
+
     // 定义正则表达式模式
     private static final Pattern INITIAL_STATE_PATTERN =
             Pattern.compile("<script>window.__INITIAL_STATE__=(.*?);\\(function\\(\\)\\{var s;");
@@ -44,7 +49,7 @@ public class KuaishouRoomChecker extends AbstractRoomChecker {
         headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0");
         headers.put("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
 
-        String cookies = ConfigFetcher.getInitConfig().getKuaishouCookies();
+        String cookies = commonParamCache.get(CommonParamKey.KUAISHOU_COOKIES);
         if (cookies != null && !cookies.isEmpty()) {
             headers.put("Cookie", cookies);
         }

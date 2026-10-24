@@ -1,7 +1,10 @@
 package com.sh.engine.model;
 
+import cn.hutool.extra.spring.SpringUtil;
 import com.google.common.collect.Lists;
+import com.sh.config.manager.CommonParamCache;
 import com.sh.config.manager.ConfigFetcher;
+import com.sh.config.model.config.CommonParamKey;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.RecordConstant;
@@ -57,7 +60,7 @@ public class RecordCmdBuilder {
         if (BooleanUtils.isTrue(config.isOnlyAudio())) {
             this.recordFormat = "m4a";
         } else {
-            this.recordFormat = StringUtils.isBlank(ConfigFetcher.getInitConfig().getRecordFormat()) ? "ts" : ConfigFetcher.getInitConfig().getRecordFormat();
+            this.recordFormat = "mp4";
         }
         if (this.recordByTime) {
             this.intervalPerVideo = Integer.parseInt(config.getRecordMode().substring(2));
@@ -223,13 +226,15 @@ public class RecordCmdBuilder {
         // twitch额外参数
         if (Objects.equals(StreamChannelTypeEnum.TWITCH.getType(), streamChannelType)) {
             extraArgs.add("--twitch-disable-ads");
-            String authorization = ConfigFetcher.getInitConfig().getTwitchAuthorization();
+            String authorization = SpringUtil.getBean(CommonParamCache.class)
+                    .get(CommonParamKey.TWITCH_AUTHORIZATION);
             if (StringUtils.isNotBlank(authorization)) {
                 extraArgs.add(String.format("\"--twitch-api-header=Authorization=%s\"", authorization));
             }
         } else if (Objects.equals(StreamChannelTypeEnum.AFREECA_TV.getType(), streamChannelType)) {
-            String soopUserName = ConfigFetcher.getInitConfig().getSoopUserName();
-            String soopPassword = ConfigFetcher.getInitConfig().getSoopPassword();
+            CommonParamCache commonParamCache = SpringUtil.getBean(CommonParamCache.class);
+            String soopUserName = commonParamCache.get(CommonParamKey.SOOP_USER_NAME);
+            String soopPassword = commonParamCache.get(CommonParamKey.SOOP_PASSWORD);
             if (StringUtils.isNotBlank(soopUserName) && StringUtils.isNotBlank(soopPassword)) {
                 extraArgs.add(String.format("--soop-username \"%s\"", soopUserName));
                 extraArgs.add(String.format("--soop-password \"%s\"", soopPassword));

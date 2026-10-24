@@ -81,7 +81,7 @@ public class ConfigFetcher {
 
     public void refresh() {
         initConfig = loadInitConfig();
-        log.info("refresh init config success, initConfig: {}", JSON.toJSONString(initConfig));
+        log.info("Init config refreshed, path: {}", initConfigPath);
 
         name2StreamerMap = loadStreamConfig(systemEnvFlag);
         log.info("refresh {} streamers success, they are: {}", name2StreamerMap.keySet().size(), JSON.toJSONString(name2StreamerMap.keySet()));
