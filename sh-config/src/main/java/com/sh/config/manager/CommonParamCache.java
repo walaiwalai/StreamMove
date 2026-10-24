@@ -1,7 +1,6 @@
 package com.sh.config.manager;
 
 import com.alibaba.fastjson.JSON;
-import com.google.common.collect.Lists;
 import com.sh.config.mapper.CommonParamMapper;
 import com.sh.config.model.config.CommonParamKey;
 import com.sh.config.model.dao.CommonParamDO;
@@ -43,8 +42,26 @@ public class CommonParamCache {
             values.put(param.getKey(), param.getValue());
         }
 
-        cacheManager.replaceHash(CACHE_KEY_PREFIX + currentEnv, values);
-        log.info("Common parameters refreshed, env: {}, count: {}", currentEnv, values.size());
+        replaceEnv(currentEnv, values);
+    }
+
+    /** 将数据库中各环境的参数分别刷新到对应的 Redis Hash。 */
+    public void refreshAll() {
+        Map<String, Map<String, String>> valuesByEnv = new HashMap<>();
+        for (CommonParamDO param : commonParamMapper.selectAll()) {
+            valuesByEnv.computeIfAbsent(param.getEnv(), env -> new HashMap<>())
+                    .put(param.getKey(), param.getValue());
+        }
+        valuesByEnv.putIfAbsent(currentEnv, new HashMap<>());
+        for (Map.Entry<String, Map<String, String>> entry : valuesByEnv.entrySet()) {
+            replaceEnv(entry.getKey(), entry.getValue());
+        }
+    }
+
+    /** 替换指定环境的缓存，并记录不含参数值的刷新结果。 */
+    private void replaceEnv(String env, Map<String, String> values) {
+        cacheManager.replaceHash(CACHE_KEY_PREFIX + env, values);
+        log.info("Common parameters refreshed, env: {}, count: {}", env, values.size());
     }
 
     /**

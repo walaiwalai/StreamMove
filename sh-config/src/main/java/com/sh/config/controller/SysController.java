@@ -73,4 +73,13 @@ public class SysController {
         commonParamCache.refresh();
         return "ok";
     }
+
+    /** 使用现有刷新令牌，强制刷新数据库中所有环境的通用参数缓存。 */
+    @RequestMapping(value = "/common-param/refresh-all", method = RequestMethod.POST)
+    @ResponseBody
+    public String refreshAllCommonParams(@RequestBody JSONObject requestBody) {
+        Preconditions.checkArgument(StringUtils.equals(requestBody.getString("token"), REFRESH_TOKEN), "token invalid");
+        commonParamCache.refreshAll();
+        return "ok";
+    }
 }

@@ -70,6 +70,35 @@ public class CommonParamCacheTest {
     }
 
     @Test
+    public void refreshAllSeparatesValuesByEnvironment() {
+        when(mapper.selectAll()).thenReturn(Arrays.asList(
+                param("prod", "maxRecordingCount", "2"),
+                param("o1-2", "maxRecordingCount", "4"),
+                param("o1-2", "biliSeasonCoverUrl", "pic/season_bg.png")));
+
+        cache.refreshAll();
+
+        Map<String, String> prod = Collections.singletonMap("maxRecordingCount", "2");
+        Map<String, String> o12 = new HashMap<>();
+        o12.put("maxRecordingCount", "4");
+        o12.put("biliSeasonCoverUrl", "pic/season_bg.png");
+        verify(cacheManager).replaceHash("streamCommonParam:prod", prod);
+        verify(cacheManager).replaceHash("streamCommonParam:o1-2", o12);
+    }
+
+    @Test
+    public void refreshAllClearsCurrentEnvironmentWhenItHasNoRows() {
+        when(mapper.selectAll()).thenReturn(Collections.singletonList(
+                param("o1-2", "maxRecordingCount", "4")));
+
+        cache.refreshAll();
+
+        verify(cacheManager).replaceHash("streamCommonParam:prod", Collections.emptyMap());
+        verify(cacheManager).replaceHash("streamCommonParam:o1-2",
+                Collections.singletonMap("maxRecordingCount", "4"));
+    }
+
+    @Test
     public void integerParameterUsesEnvironmentValueAndDefault() {
         when(cacheManager.getHashValue("streamCommonParam:prod", "videoPartLimitSize"))
                 .thenReturn("100")

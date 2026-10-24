@@ -12,4 +12,8 @@ public interface CommonParamMapper {
     @Select("SELECT id, gmt_create AS gmtCreate, gmt_modified AS gmtModified, "
             + "`key`, `value`, env FROM stream_common_param WHERE env = #{env}")
     List<CommonParamDO> selectByEnv(@Param("env") String env);
+
+    @Select("SELECT id, gmt_create AS gmtCreate, gmt_modified AS gmtModified, "
+            + "`key`, `value`, env FROM stream_common_param")
+    List<CommonParamDO> selectAll();
 }
