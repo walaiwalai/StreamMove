@@ -186,7 +186,8 @@ public class ComputeTasks {
         return new ArrayList<>(keys);
     }
 
-    private static void checkInterrupted() throws InterruptedException {
+    /** Redisson 可为远端字节码创建独立类加载器，任务调用的共享方法必须公开。 */
+    public static void checkInterrupted() throws InterruptedException {
         if (Thread.currentThread().isInterrupted()) {
             throw new InterruptedException("Compute task interrupted");
         }
