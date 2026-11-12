@@ -1,6 +1,8 @@
 package com.sh.engine.service;
 
 import java.io.File;
+import java.io.OutputStream;
+import java.io.IOException;
 
 /**
  * OSS (Object Storage Service) Upload Service interface.
@@ -12,6 +14,8 @@ import java.io.File;
  * @Date: 2026/2/19
  */
 public interface OssUploadService {
+    /** 下载对象到调用方管理的流；本方法不关闭输出流。 */
+    void download(String key, OutputStream output) throws IOException;
     /**
      * Upload a file with a specific key/name to OSS.
      *

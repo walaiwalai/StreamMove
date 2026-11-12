@@ -15,7 +15,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AsrSegment {
+public class AsrSegment implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     /**
      * Start time in seconds (relative to the video)
      */

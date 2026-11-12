@@ -2,6 +2,7 @@ package com.sh.config.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.sh.config.mapper.CommonParamMapper;
+import com.sh.config.utils.EnvUtil;
 import com.sh.config.model.config.CommonParamKey;
 import com.sh.config.model.dao.CommonParamDO;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,9 @@ public class CommonParamCache {
      */
     @PostConstruct
     public void refresh() {
+        if (EnvUtil.isTaskMode()) {
+            return;
+        }
         List<CommonParamDO> params = commonParamMapper.selectByEnv(currentEnv);
         Map<String, String> values = new HashMap<>();
         for (CommonParamDO param : params) {

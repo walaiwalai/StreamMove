@@ -16,6 +16,8 @@ import java.util.List;
  * @Date: 2026/2/19
  */
 public interface AsrService {
+    /** 识别已提取的音频，时间戳加上源视频中的偏移秒数。 */
+    List<AsrSegment> transcribeAudio(File audio, int offsetSeconds);
 
     /**
      * Transcribe a segment of the video file.

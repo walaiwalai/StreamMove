@@ -85,6 +85,17 @@ public class LlmServiceImplTest {
         assertEquals("ordinary text request", body.getJSONArray("messages").getJSONObject(0).getString("content"));
     }
 
+    @Test public void ossDataUrlIsForwardedAsAnImageWithoutDoubleEncoding() throws Exception {
+        server.enqueue(reply("stop", "{\"ok\":true}"));
+        String dataUrl = "data:image/png;base64,AQID";
+        List<Content> content = new ArrayList<>();
+        content.add(TextContent.from("review")); content.add(ImageContent.from(dataUrl));
+        service.chat(content);
+        JSONObject body = JSON.parseObject(server.takeRequest(2, TimeUnit.SECONDS).getBody().readUtf8());
+        assertEquals(dataUrl, body.getJSONArray("messages").getJSONObject(0).getJSONArray("content")
+                .getJSONObject(1).getJSONObject("image_url").getString("url"));
+    }
+
     @Test public void truncatedFilteredAndToolRepliesAreNotCompletedReviews() throws Exception {
         for (String reason : new String[]{"length", "content_filter", "tool_calls"}) {
             server.enqueue(reply(reason, "{\"keep\":true}"));

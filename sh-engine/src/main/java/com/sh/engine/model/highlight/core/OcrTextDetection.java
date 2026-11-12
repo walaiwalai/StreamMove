@@ -7,7 +7,8 @@ import java.util.Collections;
 import java.util.List;
 
 @Getter
-public final class OcrTextDetection {
+public final class OcrTextDetection implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     private final String text;
     private final float score;
     private final List<Integer> boxes;

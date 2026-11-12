@@ -40,6 +40,22 @@ public class WhisperAsrServiceImpl implements AsrService {
             if (!command.isSuccess()) {
                 throw new IllegalStateException("Candidate audio extraction failed");
             }
+            return transcribeAudio(audio, start);
+        } catch (Exception error) {
+            throw new IllegalStateException("Whisper candidate transcription failed", error);
+        } finally {
+            if (audio != null) {
+                audio.delete();
+            }
+        }
+    }
+
+    @Override
+    public List<AsrSegment> transcribeAudio(File audio, int offsetSeconds) {
+        if (audio == null || !audio.isFile() || offsetSeconds < 0 || url.trim().isEmpty()) {
+            throw new IllegalArgumentException("Invalid Whisper audio or service URL");
+        }
+        try {
             HttpUrl endpoint = HttpUrl.parse(url);
             if (endpoint == null) {
                 throw new IllegalArgumentException("Invalid Whisper URL");
@@ -54,14 +70,10 @@ public class WhisperAsrServiceImpl implements AsrService {
                 if (!response.isSuccessful() || response.body() == null) {
                     throw new IllegalStateException("Whisper HTTP " + response.code());
                 }
-                return parse(response.body().string(), start);
+                return parse(response.body().string(), offsetSeconds);
             }
         } catch (Exception error) {
             throw new IllegalStateException("Whisper candidate transcription failed", error);
-        } finally {
-            if (audio != null) {
-                audio.delete();
-            }
         }
     }
 

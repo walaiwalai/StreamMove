@@ -9,6 +9,23 @@ import java.util.*;
 import static org.junit.Assert.*;
 
 public class WhisperAsrServiceImplTest {
+    @Test public void transcribesDownloadedAudioWithoutRunningFfmpeg() throws Exception {
+        try (okhttp3.mockwebserver.MockWebServer server = new okhttp3.mockwebserver.MockWebServer()) {
+            server.start();
+            WhisperAsrServiceImpl service = new WhisperAsrServiceImpl();
+            java.lang.reflect.Field url = WhisperAsrServiceImpl.class.getDeclaredField("url");
+            url.setAccessible(true); url.set(service, server.url("/asr").toString());
+            java.nio.file.Path audio = java.nio.file.Files.createTempFile("asr-input-", ".wav");
+            try {
+                java.nio.file.Files.write(audio, new byte[]{1,2,3});
+                server.enqueue(new okhttp3.mockwebserver.MockResponse().setBody("{\"segments\":[{\"start\":1,\"end\":2,\"text\":\"speech\"}]}"));
+                assertEquals(41, service.transcribeAudio(audio.toFile(), 40).get(0).getStartTime());
+                okhttp3.mockwebserver.RecordedRequest request = server.takeRequest(2, java.util.concurrent.TimeUnit.SECONDS);
+                assertTrue(request.getPath().startsWith("/asr?"));
+                assertTrue(request.getBody().readUtf8().contains("name=\"audio_file\""));
+            } finally { java.nio.file.Files.deleteIfExists(audio); }
+        }
+    }
     @Test public void convertsCandidateTimesBackToSourceTime() {
         List<AsrSegment> rows = WhisperAsrServiceImpl.parse("{\"segments\":[{\"start\":1.3,\"end\":2.7,\"text\":\"看这里\"}]}", 500);
         assertEquals(501, rows.get(0).getStartTime());

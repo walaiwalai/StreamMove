@@ -59,6 +59,18 @@ public class AliyunAsrServiceImpl implements AsrService {
     private final Gson gson = new Gson();
 
     @Override
+    public List<AsrSegment> transcribeAudio(File audio, int offsetSeconds) {
+        if (StringUtils.isAnyBlank(apiKey, model)) {
+            throw new UnsupportedOperationException("ASR is not configured");
+        }
+        if (audio == null || !audio.isFile() || offsetSeconds < 0) {
+            throw new IllegalArgumentException("Invalid ASR audio or offset");
+        }
+        String url = ossUploadService.uploadAndGetUrl(audio, "asr/audio/" + audio.getName());
+        return submitAsrTask(url, offsetSeconds);
+    }
+
+    @Override
     public List<AsrSegment> transcribeSegment(File videoFile, int startSeconds, int endSeconds) {
         if (StringUtils.isAnyBlank(apiKey, model)) {
             throw new UnsupportedOperationException("ASR is not configured: asr.aliyun.api-key and asr.aliyun.model are required");

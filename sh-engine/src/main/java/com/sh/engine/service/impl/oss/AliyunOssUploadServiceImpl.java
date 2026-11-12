@@ -20,6 +20,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URLConnection;
 import java.util.Base64;
 import java.util.Date;
@@ -78,6 +79,16 @@ public class AliyunOssUploadServiceImpl implements OssUploadService {
         if (ossClient != null) {
             ossClient.shutdown();
             log.info("Aliyun OSS client shut down");
+        }
+    }
+
+    @Override
+    public void download(String key, OutputStream output) throws IOException {
+        if (StringUtils.isBlank(key)) {
+            throw new IllegalArgumentException("OSS object key is blank");
+        }
+        try (OSSObject object = getClient().getObject(bucketName, key)) {
+            IOUtils.copy(object.getObjectContent(), output);
         }
     }
 
