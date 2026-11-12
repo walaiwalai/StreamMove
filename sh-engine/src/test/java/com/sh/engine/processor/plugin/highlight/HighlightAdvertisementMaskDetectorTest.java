@@ -95,6 +95,14 @@ public class HighlightAdvertisementMaskDetectorTest {
 
     private static final class AdvertisingLlmService implements LlmService {
         @Override
+        public boolean isEnabled() { return true; }
+
+        @Override
+        public com.alibaba.fastjson.JSONObject chat(List<dev.langchain4j.data.message.Content> content) {
+            throw new UnsupportedOperationException("Text-only test fixture");
+        }
+
+        @Override
         public <T> T chat(String prompt, Class<T> resultType) {
             assertTrue(prompt.contains("ROG 键盘"));
             AdvertisementClassificationResult result = new AdvertisementClassificationResult();

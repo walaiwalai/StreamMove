@@ -1,6 +1,11 @@
 package com.sh.engine.processor.plugin;
 
 import com.sh.engine.constant.ProcessPluginEnum;
+import com.sh.engine.processor.plugin.highlight.valorant.analysis.ValorantHighlightAnalyzer;
+import com.sh.engine.model.highlight.core.HighlightProcessContext;
+import com.sh.engine.model.highlight.core.HighlightEvent;
+import com.sh.engine.model.highlight.core.ScoredVideoInterval;
+import java.util.List;
 import com.sh.engine.model.highlight.core.HighlightCutPolicy;
 import com.sh.engine.model.highlight.core.HighlightOutputMode;
 import com.sh.engine.processor.plugin.highlight.AbstractHighlightCutPlugin;
@@ -17,6 +22,14 @@ import javax.annotation.Resource;
 public class ValorantVodHighLightCutPlugin extends AbstractHighlightCutPlugin {
     @Resource
     private ValorantHighlightTimelineProvider timelineProvider;
+
+    @Resource
+    private ValorantHighlightAnalyzer analyzer;
+
+    @Override
+    protected List<ScoredVideoInterval> selectIntervals(HighlightProcessContext context, List<HighlightEvent> timeline) {
+        return analyzer.isEnabled() ? analyzer.analyze(context, timeline) : super.selectIntervals(context, timeline);
+    }
 
     @Override
     public String getPluginName() {

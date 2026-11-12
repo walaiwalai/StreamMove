@@ -39,16 +39,16 @@ public class AudioExtractCmd extends AbstractCmd {
 
     private static String buildCommand(File inputFile, File outputFile, int startSeconds, int durationSeconds) {
         // FFmpeg command format:
-        // ffmpeg -i input.mp4 -ss startSeconds -t duration -vn -ar 16000 -ac 1 -acodec pcm_s16le -y output.wav
+        // ffmpeg -ss startSeconds -i input.mp4 -t duration -vn -ar 16000 -ac 1 -acodec pcm_s16le -y output.wav
         // -vn: disable video
         // -ar 16000: sample rate 16kHz (recommended by Alibaba Cloud ASR)
         // -ac 1: mono channel
         // -acodec pcm_s16le: 16-bit PCM encoding
         // -y: overwrite output file
         return String.format(
-                "ffmpeg -i \"%s\" -ss %d -t %d -vn -ar 16000 -ac 1 -acodec pcm_s16le -y \"%s\"",
-                inputFile.getAbsolutePath(),
+                "ffmpeg -ss %d -i \"%s\" -t %d -vn -ar 16000 -ac 1 -acodec pcm_s16le -y \"%s\"",
                 startSeconds,
+                inputFile.getAbsolutePath(),
                 durationSeconds,
                 outputFile.getAbsolutePath()
         );

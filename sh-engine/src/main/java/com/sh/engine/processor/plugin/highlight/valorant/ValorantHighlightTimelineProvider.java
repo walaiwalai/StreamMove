@@ -1,5 +1,9 @@
 package com.sh.engine.processor.plugin.highlight.valorant;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.io.FileUtils;
+import java.nio.charset.StandardCharsets;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.engine.model.ffmpeg.VideoDurationDetectCmd;
@@ -70,7 +74,36 @@ public class ValorantHighlightTimelineProvider implements HighlightTimelineProvi
     public List<HighlightEvent> buildScoredTimeline(HighlightProcessContext context) {
         List<HighlightEvent> events = new ArrayList<>();
         for (File sourceVideo : context.getSourceVideos()) {
-            events.addAll(scanVideo(sourceVideo));
+            File cache = new File(context.getWorkDirectory(), sourceVideo.getName() + ".ocr.json");
+            try {
+                JSONObject saved = cache.isFile() ? JSON.parseObject(FileUtils.readFileToString(cache, StandardCharsets.UTF_8)) : null;
+                List<HighlightEvent> scanned = new ArrayList<>();
+                if (saved != null && saved.getIntValue("version") == 2
+                        && saved.getLongValue("size") == sourceVideo.length()
+                        && saved.getLongValue("modified") == sourceVideo.lastModified()) {
+                    for (Object row : saved.getJSONArray("events")) {
+                        JSONObject event = (JSONObject) row;
+                        scanned.add(HighlightEvent.builder().sourceVideo(sourceVideo)
+                                .secondFromVideoStart(event.getDoubleValue("secondFromVideoStart"))
+                                .eventType(event.getString("eventType")).score(event.getFloatValue("score"))
+                                .positiveCount(event.getIntValue("positiveCount")).negativeCount(event.getIntValue("negativeCount"))
+                                .confidence(event.getFloatValue("confidence")).evidence(event.getJSONObject("evidence")).build());
+                    }
+                    log.info("reuse OCR scan: {}, events: {}", sourceVideo.getName(), scanned.size());
+                } else {
+                    scanned = scanVideo(sourceVideo);
+                    JSONObject report = new JSONObject(true);
+                    report.put("version", 2);
+                    report.put("size", sourceVideo.length());
+                    report.put("modified", sourceVideo.lastModified());
+                    report.put("sampling", "keyframe coarse scan, 4-second buckets; not exhaustive kills");
+                    report.put("events", scanned);
+                    FileUtils.writeStringToFile(cache, JSON.toJSONString(report, true), StandardCharsets.UTF_8);
+                }
+                events.addAll(scanned);
+            } catch (IOException error) {
+                throw analysisError("Cannot save/read OCR scan", error);
+            }
         }
         return events;
     }
@@ -109,7 +142,7 @@ public class ValorantHighlightTimelineProvider implements HighlightTimelineProvi
                 long timeout = Math.max(
                         PROCESS_TIMEOUT_PADDING_SECONDS,
                         (long) Math.ceil(duration) + PROCESS_TIMEOUT_PADDING_SECONDS);
-                int count = frameStreamExtractor.stream(
+                int count = frameStreamExtractor.streamKeyFrames(
                         sourceVideo, SAMPLE_INTERVAL_SECONDS, KILL_FEED_CROP, timeout,
                         frame -> enqueueFrame(sourceVideo, frameQueue, workers, frame));
                 log.info("valorant frame stream completed, video: {}, frames: {}",

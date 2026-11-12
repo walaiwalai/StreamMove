@@ -50,7 +50,7 @@ public class ValorantKillFeedClassifier {
         List<List<OcrTextDetection>> rows = groupRows(usable, imageHeight);
         List<Classification> classifications = new ArrayList<>();
         for (List<OcrTextDetection> row : rows) {
-            Classification classification = classifyRow(row, imageWidth);
+            Classification classification = classifyRow(row);
             if (classification != null) {
                 classifications.add(classification);
             }
@@ -78,7 +78,7 @@ public class ValorantKillFeedClassifier {
         return rows;
     }
 
-    private Classification classifyRow(List<OcrTextDetection> row, int imageWidth) {
+    private Classification classifyRow(List<OcrTextDetection> row) {
         OcrTextDetection marker = row.stream()
                 .filter(detection -> containsSelfMarker(detection.getText()))
                 .max(Comparator.comparingDouble(OcrTextDetection::getScore))
@@ -88,24 +88,24 @@ public class ValorantKillFeedClassifier {
         }
 
         double markerCenterX = centerX(marker.getBoxes());
-        Side side = classifyMarkerSide(marker, markerCenterX, imageWidth);
         String text = row.stream()
                 .sorted(Comparator.comparingDouble(detection -> leftX(detection.getBoxes())))
                 .map(OcrTextDetection::getText)
                 .filter(StringUtils::isNotBlank)
                 .collect(Collectors.joining(" "));
+        Side side = classifyMarkerSide(text);
+        if (side == null) {
+            return null;
+        }
         return new Classification(
                 side, text, marker.getScore(), markerCenterX, rowCenterY(row));
     }
 
     /**
      * OCR 可能把“我/Me”和玩家名合并为横跨整行的文本框，此时文本中的相对位置
-     * 比文本框中心更可靠；独立标记或两侧均有文本时再使用坐标。
+     * 比文本框中心更可靠；方向不明时不生成具有错误主体的事件。
      */
-    private Side classifyMarkerSide(OcrTextDetection marker,
-                                    double markerCenterX,
-                                    int imageWidth) {
-        String text = marker.getText().trim();
+    private Side classifyMarkerSide(String text) {
         int markerStart = text.indexOf("我");
         int markerEnd = markerStart < 0 ? -1 : markerStart + 1;
         if (markerStart < 0) {
@@ -126,7 +126,9 @@ public class ValorantKillFeedClassifier {
         if (hasTextBefore && !hasTextAfter) {
             return Side.RIGHT;
         }
-        return markerCenterX < imageWidth * 0.5 ? Side.LEFT : Side.RIGHT;
+        // 击杀栏本身可能完全位于裁剪图右半侧。仅有“我”或两侧都有文字时
+        // 无法可靠区分击杀方/被击杀方，不用整图中线强行赋予死亡事件。
+        return null;
     }
 
     static boolean containsSelfMarker(String text) {

@@ -87,7 +87,9 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
 
                 log.info("{}'s {} plugin begin processing, path: {}.", streamerName, pluginName, curRecordPath);
                 // 加入当前处理的插件类型
-                statusManager.doPostProcess(curRecordPath, pluginName);
+                if (!statusManager.tryStartPostProcess(curRecordPath, pluginName)) {
+                    throw new StreamerRecordException(ErrorEnum.PROCESS_LATER);
+                }
                 try {
                     boolean acquired = pluginSemaphoreMap.get(pluginName).tryAcquire();
                     if (!acquired) {
@@ -95,7 +97,9 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
                     }
 
                     try {
-                        plugins.get(pluginName).process(curRecordPath);
+                        if (!plugins.get(pluginName).process(curRecordPath)) {
+                            throw new StreamerRecordException(ErrorEnum.PROCESS_LATER);
+                        }
 
                         FileStatusModel cur = FileStatusModel.loadFromFile(curRecordPath);
                         cur.finishPlugin(pluginName);
@@ -104,7 +108,8 @@ public class WorkProcessStageProcessor extends AbstractStageProcessor {
                         log.info("{}'s {} plugin process success, path: {}. ", streamerName, pluginName, curRecordPath);
                     } catch (Exception e) {
                         log.error("{}'s {} plugin process failed, path: {}.", streamerName, pluginName, curRecordPath, e);
-                        if (pluginEnum.isSystem()) {
+                        if (pluginEnum.isSystem() || (e instanceof StreamerRecordException
+                                && ((StreamerRecordException) e).getErrorEnum() == ErrorEnum.PROCESS_LATER)) {
                             throw e;
                         }
                     } finally {

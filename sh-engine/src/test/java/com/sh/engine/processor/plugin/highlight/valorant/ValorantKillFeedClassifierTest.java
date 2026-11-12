@@ -100,6 +100,21 @@ public class ValorantKillFeedClassifierTest {
         Assert.assertEquals(65.0, results.get(1).getRowCenterY(), 0.01);
     }
 
+    @Test
+    public void shouldUseRowOrderWhenBothNamesAreInRightHalfOfCrop() {
+        ValorantKillFeedClassifier.Classification result = first(classifier.classifyRows(
+                Arrays.asList(detection("我", .99f, 700, 730), detection("Sova", .95f, 850, 950)),
+                1000, 100, .55f));
+        Assert.assertNotNull(result);
+        Assert.assertEquals(ValorantKillFeedClassifier.Side.LEFT, result.getSide());
+    }
+
+    @Test
+    public void shouldNotInventDeathFromAnIsolatedMarker() {
+        Assert.assertTrue(classifier.classifyRows(Collections.singletonList(detection("我", .99f, 700, 730)),
+                1000, 100, .55f).isEmpty());
+    }
+
     private OcrTextDetection detection(String text, float score, int left, int right) {
         return detection(text, score, left, right, 0, 20);
     }

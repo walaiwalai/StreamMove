@@ -19,6 +19,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import javax.annotation.Resource;
 import java.io.File;
@@ -43,6 +44,7 @@ import java.util.List;
  */
 @Service
 @Slf4j
+@ConditionalOnProperty(name = "asr.provider", havingValue = "aliyun", matchIfMissing = true)
 public class AliyunAsrServiceImpl implements AsrService {
 
     @Value("${asr.aliyun.api-key:}")

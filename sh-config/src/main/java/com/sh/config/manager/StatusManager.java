@@ -109,8 +109,8 @@ public class StatusManager {
     }
 
 
-    public void doPostProcess(String recordPath, String type) {
-        postProcessMap.put(recordPath, type);
+    public boolean tryStartPostProcess(String recordPath, String type) {
+        return postProcessMap.putIfAbsent(recordPath, type) == null;
     }
 
     public String getCurPostProcessType(String recordPath) {

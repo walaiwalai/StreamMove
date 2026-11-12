@@ -17,7 +17,7 @@ public interface VideoProcessPlugin {
      * 执行业务处理主流程。
      *
      * @param recordPath 录像目录路径
-     * @return 处理成功返回 true；失败返回 false
+     * @return 已完成（含正常跳过）返回 true；未完成、需要稍后重试返回 false
      */
     boolean process(String recordPath);
 

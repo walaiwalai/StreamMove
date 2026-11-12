@@ -58,7 +58,19 @@ public class FfmpegFrameExtractor {
         acquirePermit();
         try {
             return streamWithPermit(
-                    sourceVideo, intervalSeconds, cropExpression, timeoutSeconds, frameConsumer);
+                    sourceVideo, intervalSeconds, cropExpression, timeoutSeconds, frameConsumer, false);
+        } finally {
+            FFMPEG_PERMITS.release();
+        }
+    }
+
+    /** 粗扫仅解码关键帧，输出秒数是采样桶位置；局部审片使用 extract 精确取帧。 */
+    public int streamKeyFrames(File video, int interval, String filter, long timeout,
+                               FrameConsumer consumer) {
+        validate(video, interval, filter, timeout, consumer);
+        acquirePermit();
+        try {
+            return streamWithPermit(video, interval, filter, timeout, consumer, true);
         } finally {
             FFMPEG_PERMITS.release();
         }
@@ -68,8 +80,8 @@ public class FfmpegFrameExtractor {
                                  int intervalSeconds,
                                  String cropExpression,
                                  long timeoutSeconds,
-                                 FrameConsumer frameConsumer) {
-        Process process = startProcess(sourceVideo, intervalSeconds, cropExpression);
+                                 FrameConsumer frameConsumer, boolean keyFramesOnly) {
+        Process process = startProcess(sourceVideo, intervalSeconds, cropExpression, keyFramesOnly);
         ThreadPoolExecutor readerExecutor = createReaderExecutor();
         Future<Integer> readerFuture = readerExecutor.submit(
                 () -> readFrames(process.getInputStream(), intervalSeconds, frameConsumer));
@@ -178,12 +190,16 @@ public class FfmpegFrameExtractor {
 
     private Process startProcess(File sourceVideo,
                                  int intervalSeconds,
-                                 String cropExpression) {
-        List<String> command = Arrays.asList(
-                "ffmpeg", "-hide_banner", "-loglevel", "error",
+                                 String cropExpression, boolean keyFramesOnly) {
+        List<String> command = new ArrayList<>(Arrays.asList(
+                "ffmpeg", "-hide_banner", "-loglevel", "error"));
+        if (keyFramesOnly) {
+            command.addAll(Arrays.asList("-skip_frame", "nokey"));
+        }
+        command.addAll(Arrays.asList(
                 "-i", sourceVideo.getAbsolutePath(), "-an",
                 "-vf", String.format(Locale.ROOT, "fps=1/%d,%s", intervalSeconds, cropExpression),
-                "-q:v", "5", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1");
+                "-q:v", "5", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1"));
         try {
             return new ProcessBuilder(command)
                     .redirectError(ProcessBuilder.Redirect.INHERIT)

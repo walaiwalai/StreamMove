@@ -1,6 +1,8 @@
 package com.sh.engine.processor.plugin.highlight;
 
 import com.alibaba.fastjson.JSON;
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.utils.DateUtil;
 import com.sh.config.utils.VideoFileUtil;
 import com.sh.engine.constant.RecordConstant;
@@ -21,6 +23,10 @@ import org.apache.commons.io.FileUtils;
 
 import javax.annotation.Resource;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -49,6 +55,15 @@ public abstract class AbstractHighlightCutPlugin implements VideoProcessPlugin {
      */
     @Override
     public final boolean process(String recordPath) {
+        try {
+            return processHighlight(recordPath);
+        } catch (Exception error) {
+            log.error("highlight plugin failed, plugin: {}, path: {}", getPluginName(), recordPath, error);
+            return false;
+        }
+    }
+
+    private boolean processHighlight(String recordPath) {
         List<File> sourceVideos = findSourceVideos(recordPath);
         if (CollectionUtils.isEmpty(sourceVideos)) {
             log.info("empty source mp4 video, skip highlight plugin: {}, path: {}",
@@ -68,12 +83,7 @@ public abstract class AbstractHighlightCutPlugin implements VideoProcessPlugin {
                 recordPath, sourceVideos, workDirectory);
 
         List<HighlightEvent> timeline = timelineProvider().buildScoredTimeline(context);
-        if (CollectionUtils.isEmpty(timeline)) {
-            log.info("empty highlight timeline, skip plugin: {}, path: {}",
-                    getPluginName(), recordPath);
-            return true;
-        }
-        List<ScoredVideoInterval> intervals = intervalPlanner.select(timeline, cutPolicy());
+        List<ScoredVideoInterval> intervals = selectIntervals(context, timeline);
         log.info("highlight intervals, plugin: {}, intervals: {}",
                 getPluginName(), JSON.toJSONString(intervals));
         if (CollectionUtils.isEmpty(intervals)) {
@@ -84,7 +94,19 @@ public abstract class AbstractHighlightCutPlugin implements VideoProcessPlugin {
         String recordTime = targetVideo.getParentFile().getName();
         String title = DateUtil.describeTime(recordTime, DateUtil.YYYY_MM_DD_HH_MM_SS_V2)
                 + "\n" + StreamerInfoHolder.getCurStreamerName() + "直播精彩片段";
-        boolean success = mergeIntervals(intervals, targetVideo, title, maskPlan);
+        File pendingVideo = new File(workDirectory, "highlight.pending.mp4");
+        boolean success = mergeIntervals(intervals, pendingVideo, title, maskPlan);
+        if (success) {
+            try {
+                try {
+                    Files.move(pendingVideo.toPath(), targetVideo.toPath(), StandardCopyOption.ATOMIC_MOVE);
+                } catch (AtomicMoveNotSupportedException unsupported) {
+                    Files.move(pendingVideo.toPath(), targetVideo.toPath());
+                }
+            } catch (IOException error) {
+                throw new StreamerRecordException(ErrorEnum.HIGHLIGHT_ANALYSIS_ERROR, "Cannot commit highlight output", error);
+            }
+        }
         notifyResult(success, targetVideo);
         return success;
     }
@@ -92,6 +114,11 @@ public abstract class AbstractHighlightCutPlugin implements VideoProcessPlugin {
     @Override
     public int getMaxProcessParallel() {
         return 2;
+    }
+
+    protected List<ScoredVideoInterval> selectIntervals(HighlightProcessContext context,
+                                                         List<HighlightEvent> timeline) {
+        return intervalPlanner.select(timeline, cutPolicy());
     }
 
     protected abstract HighlightTimelineProvider timelineProvider();
