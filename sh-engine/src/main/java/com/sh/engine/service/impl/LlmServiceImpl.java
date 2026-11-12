@@ -2,6 +2,9 @@ package com.sh.engine.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.sh.config.utils.EnvUtil;
+import com.sh.engine.task.ComputeTasks;
+import javax.annotation.Resource;
 import com.sh.engine.service.LlmService;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.Content;
@@ -26,6 +29,7 @@ import java.util.concurrent.*;
 @Service
 @Slf4j
 public class LlmServiceImpl implements LlmService {
+    @Resource private ComputeTasks computeTasks;
 
     @Value("${langchain4j.open-ai.api-key:}")
     private String apiKey;
@@ -47,6 +51,7 @@ public class LlmServiceImpl implements LlmService {
 
     @PostConstruct
     public void init() {
+        if (!EnvUtil.isTaskMode()) { return; }
         if (StringUtils.isAnyBlank(apiKey, baseUrl, modelName)) {
             log.info("LLM is not configured");
             return;
@@ -65,10 +70,14 @@ public class LlmServiceImpl implements LlmService {
     }
 
     @Override
-    public boolean isEnabled() { return multimodalModel != null; }
+    public boolean isEnabled() { return !EnvUtil.isTaskMode() || multimodalModel != null; }
 
     @Override
     public <T> T chat(String prompt, Class<T> resultType) {
+        if (!EnvUtil.isTaskMode()) {
+            JSONObject result = computeTasks.chatText(prompt);
+            return result == null ? null : result.toJavaObject(resultType);
+        }
         if (chatModel == null) {
             throw new UnsupportedOperationException("LLM is not available: check langchain4j.open-ai configuration");
         }
@@ -83,6 +92,10 @@ public class LlmServiceImpl implements LlmService {
 
     @Override
     public JSONObject chat(List<Content> content) throws IOException {
+        if (!EnvUtil.isTaskMode()) {
+            try { return computeTasks.chat(content); }
+            catch (RuntimeException error) { throw new IOException("Remote model task failed", error); }
+        }
         if (!isEnabled()) { throw new IOException("LLM is not available: check langchain4j.open-ai configuration"); }
         if (content == null || content.isEmpty()) { throw new IllegalArgumentException("Missing model input"); }
         long started = System.nanoTime();

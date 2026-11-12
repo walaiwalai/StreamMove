@@ -15,6 +15,7 @@ public class OptionalServicesStartupTest {
     @Test
     public void startsWithoutOptionalServiceConfiguration() {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            context.getBeanFactory().registerSingleton("computeTasks", org.mockito.Mockito.mock(com.sh.engine.task.ComputeTasks.class));
             context.register(AliyunAsrServiceImpl.class, AliyunOssUploadServiceImpl.class, LlmServiceImpl.class);
             context.refresh();
 

@@ -5,6 +5,8 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.sh.engine.model.asr.AsrSegment;
 import com.sh.engine.model.ffmpeg.AudioExtractCmd;
+import com.sh.config.utils.EnvUtil;
+import com.sh.engine.task.ComputeTasks;
 import com.sh.engine.service.AsrService;
 import okhttp3.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 @ConditionalOnProperty(name = "asr.provider", havingValue = "whisper")
 public class WhisperAsrServiceImpl implements AsrService {
+    @javax.annotation.Resource private ComputeTasks computeTasks;
     @Value("${asr.whisper.url:}")
     private String url;
 
@@ -29,6 +32,9 @@ public class WhisperAsrServiceImpl implements AsrService {
 
     @Override
     public List<AsrSegment> transcribeSegment(File video, int start, int end) {
+        if (!EnvUtil.isTaskMode()) {
+            return computeTasks.transcribeSegment(video, start, end);
+        }
         if (start < 0 || end <= start || url.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid Whisper interval or service URL");
         }
@@ -52,6 +58,9 @@ public class WhisperAsrServiceImpl implements AsrService {
 
     @Override
     public List<AsrSegment> transcribeAudio(File audio, int offsetSeconds) {
+        if (!EnvUtil.isTaskMode()) {
+            return computeTasks.transcribeAudio(audio, offsetSeconds);
+        }
         if (audio == null || !audio.isFile() || offsetSeconds < 0 || url.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid Whisper audio or service URL");
         }

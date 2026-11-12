@@ -1,5 +1,10 @@
 package com.sh.engine.service.impl;
 
+import cn.hutool.extra.spring.SpringUtil;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.StaticApplicationContext;
+import org.springframework.core.env.MapPropertySource;
+
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -22,10 +27,27 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.*;
 
 public class LlmServiceImplTest {
+    private ApplicationContext previousContext;
+    private StaticApplicationContext roleContext;
+    @org.junit.Before
+    public void taskRole() {
+        previousContext = SpringUtil.getApplicationContext();
+        roleContext = new StaticApplicationContext();
+        roleContext.getEnvironment().getPropertySources().addFirst(new MapPropertySource("role",
+                java.util.Collections.singletonMap("streammove.mode", "task")));
+        new SpringUtil().setApplicationContext(roleContext);
+        try { start(); } catch (Exception error) { throw new IllegalStateException(error); }
+    }
+    @org.junit.After
+    public void restoreRole() {
+        new SpringUtil().setApplicationContext(previousContext);
+        roleContext.close();
+    }
+
     private MockWebServer server;
     private LlmServiceImpl service;
 
-    @Before public void start() throws Exception {
+    private void start() throws Exception {
         server = new MockWebServer(); server.start();
         service = new LlmServiceImpl();
         set("apiKey", "test-model-key");

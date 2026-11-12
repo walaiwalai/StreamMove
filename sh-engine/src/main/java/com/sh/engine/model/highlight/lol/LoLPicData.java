@@ -90,7 +90,8 @@ public class LoLPicData {
                 && Objects.equals(A, other.A);
     }
 
-    public static class HeroKillOrAssistDetail {
+    public static class HeroKillOrAssistDetail implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
         private List<List<Float>> boxes;
         /** @see LOLHeroPositionEnum */
         private List<Integer> labelIds;

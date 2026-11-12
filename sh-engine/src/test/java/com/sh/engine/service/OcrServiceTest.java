@@ -1,5 +1,10 @@
 package com.sh.engine.service;
 
+import cn.hutool.extra.spring.SpringUtil;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.StaticApplicationContext;
+import org.springframework.core.env.MapPropertySource;
+
 import com.sh.engine.model.highlight.core.OcrTextDetection;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -13,6 +18,22 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.*;
 
 public class OcrServiceTest {
+    private ApplicationContext previousContext;
+    private StaticApplicationContext roleContext;
+    @org.junit.Before
+    public void taskRole() {
+        previousContext = SpringUtil.getApplicationContext();
+        roleContext = new StaticApplicationContext();
+        roleContext.getEnvironment().getPropertySources().addFirst(new MapPropertySource("role",
+                java.util.Collections.singletonMap("streammove.mode", "task")));
+        new SpringUtil().setApplicationContext(roleContext);
+    }
+    @org.junit.After
+    public void restoreRole() {
+        new SpringUtil().setApplicationContext(previousContext);
+        roleContext.close();
+    }
+
     @Test
     public void sharedOcrUsesExistingMultipartProtocolAndParsesBoxes() throws Exception {
         try (MockWebServer server = new MockWebServer()) {

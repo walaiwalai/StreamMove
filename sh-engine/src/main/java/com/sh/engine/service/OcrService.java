@@ -3,6 +3,9 @@ package com.sh.engine.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.sh.config.utils.EnvUtil;
+import com.sh.engine.task.ComputeTasks;
+import javax.annotation.Resource;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.utils.OkHttpClientUtil;
@@ -19,6 +22,7 @@ import java.util.List;
 /** 与游戏规则无关的现有 /ocrDet 协议入口。 */
 @Service
 public class OcrService {
+    @Resource private ComputeTasks computeTasks;
     @Value("${ocr.server.host}")
     private String host;
     @Value("${ocr.server.port}")
@@ -29,6 +33,9 @@ public class OcrService {
     public List<OcrTextDetection> recognize(byte[] image, String fileName) {
         if (image == null || image.length == 0 || StringUtils.isBlank(fileName)) {
             return Collections.emptyList();
+        }
+        if (!EnvUtil.isTaskMode()) {
+            return computeTasks.recognize(image, fileName);
         }
         Request request = new Request.Builder().url("http://" + host + ":" + port + "/ocrDet")
                 .addHeader("Authorization", "Bearer " + token)
