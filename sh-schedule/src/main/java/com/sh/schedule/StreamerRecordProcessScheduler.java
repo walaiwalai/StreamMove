@@ -1,5 +1,6 @@
 package com.sh.schedule;
 
+import com.sh.config.utils.EnvUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
@@ -23,6 +24,9 @@ public class StreamerRecordProcessScheduler implements ProcessScheduler {
 
     @PostConstruct
     public void init() {
+        if (EnvUtil.isTaskMode()) {
+            return;
+        }
         // 初始化调度器
         try {
             schedulerFactory = new StdSchedulerFactory();

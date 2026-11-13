@@ -10,6 +10,15 @@ import org.apache.commons.lang3.StringUtils;
  **/
 @Slf4j
 public class EnvUtil {
+    /** 与其他环境参数一样，从现有 Spring 上下文读取部署角色。 */
+    public static boolean isTaskMode() {
+        String mode = StringUtils.defaultString(getEnvValue("streammove.mode"), "driver").trim();
+        if (!StringUtils.equalsIgnoreCase(mode, "driver") && !StringUtils.equalsIgnoreCase(mode, "task")) {
+            throw new IllegalArgumentException("streammove.mode must be driver or task");
+        }
+        return StringUtils.equalsIgnoreCase(mode, "task");
+    }
+
     public static boolean isProd() {
         if (SpringUtil.getApplicationContext() == null) {
             log.info("applicationContext not inited !!!");

@@ -13,6 +13,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>${redisson.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.sh</groupId>
             <artifactId>sh-config</artifactId>
         </dependency>

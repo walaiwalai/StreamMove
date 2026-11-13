@@ -5,7 +5,8 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.sh.engine.model.asr.AsrSegment;
 import com.sh.engine.model.ffmpeg.AudioExtractCmd;
-import com.sh.engine.service.InferenceLimit;
+import com.sh.config.utils.EnvUtil;
+import com.sh.engine.task.ComputeTasks;
 import com.sh.engine.service.AsrService;
 import okhttp3.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,17 +23,18 @@ import java.util.concurrent.TimeUnit;
 @Service
 @ConditionalOnProperty(name = "asr.provider", havingValue = "whisper")
 public class WhisperAsrServiceImpl implements AsrService {
+    @javax.annotation.Resource private ComputeTasks computeTasks;
     @Value("${asr.whisper.url:}")
     private String url;
 
     private final OkHttpClient client = new OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(InferenceLimit.ASR.timeoutSeconds(), TimeUnit.SECONDS)
-            .writeTimeout(InferenceLimit.ASR.timeoutSeconds(), TimeUnit.SECONDS)
-            .callTimeout(InferenceLimit.ASR.timeoutSeconds(), TimeUnit.SECONDS).build();
+            .connectTimeout(10, TimeUnit.SECONDS).readTimeout(180, TimeUnit.SECONDS).build();
 
     @Override
     public List<AsrSegment> transcribeSegment(File video, int start, int end) {
+        if (!EnvUtil.isTaskMode()) {
+            return computeTasks.transcribeSegment(video, start, end);
+        }
         if (start < 0 || end <= start || url.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid Whisper interval or service URL");
         }
@@ -56,6 +58,9 @@ public class WhisperAsrServiceImpl implements AsrService {
 
     @Override
     public List<AsrSegment> transcribeAudio(File audio, int offsetSeconds) {
+        if (!EnvUtil.isTaskMode()) {
+            return computeTasks.transcribeAudio(audio, offsetSeconds);
+        }
         if (audio == null || !audio.isFile() || offsetSeconds < 0 || url.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid Whisper audio or service URL");
         }
@@ -70,14 +75,12 @@ public class WhisperAsrServiceImpl implements AsrService {
             Request request = new Request.Builder().url(endpoint.newBuilder()
                     .addQueryParameter("language", "zh").addQueryParameter("output", "json")
                     .addQueryParameter("vad_filter", "true").build()).post(body).build();
-            return InferenceLimit.ASR.call(() -> {
-                try (Response response = client.newCall(request).execute()) {
-                    if (!response.isSuccessful() || response.body() == null) {
-                        throw new IllegalStateException("Whisper HTTP " + response.code());
-                    }
-                    return parse(response.body().string(), offsetSeconds);
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    throw new IllegalStateException("Whisper HTTP " + response.code());
                 }
-            });
+                return parse(response.body().string(), offsetSeconds);
+            }
         } catch (Exception error) {
             throw new IllegalStateException("Whisper candidate transcription failed", error);
         }

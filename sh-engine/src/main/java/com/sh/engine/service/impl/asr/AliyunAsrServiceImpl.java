@@ -11,6 +11,8 @@ import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.asr.AsrSegment;
 import com.sh.engine.model.ffmpeg.AudioExtractCmd;
+import com.sh.config.utils.EnvUtil;
+import com.sh.engine.task.ComputeTasks;
 import com.sh.engine.service.AsrService;
 import com.sh.engine.service.OssUploadService;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +48,8 @@ import java.util.List;
 @Slf4j
 @ConditionalOnProperty(name = "asr.provider", havingValue = "aliyun", matchIfMissing = true)
 public class AliyunAsrServiceImpl implements AsrService {
+    @javax.annotation.Resource private ComputeTasks computeTasks;
+
     @Value("${asr.aliyun.api-key:}")
     private String apiKey;
 
@@ -59,6 +63,9 @@ public class AliyunAsrServiceImpl implements AsrService {
 
     @Override
     public List<AsrSegment> transcribeAudio(File audio, int offsetSeconds) {
+        if (!EnvUtil.isTaskMode()) {
+            return computeTasks.transcribeAudio(audio, offsetSeconds);
+        }
         if (StringUtils.isAnyBlank(apiKey, model)) {
             throw new UnsupportedOperationException("ASR is not configured");
         }
@@ -71,6 +78,9 @@ public class AliyunAsrServiceImpl implements AsrService {
 
     @Override
     public List<AsrSegment> transcribeSegment(File videoFile, int startSeconds, int endSeconds) {
+        if (!EnvUtil.isTaskMode()) {
+            return computeTasks.transcribeSegment(videoFile, startSeconds, endSeconds);
+        }
         if (StringUtils.isAnyBlank(apiKey, model)) {
             throw new UnsupportedOperationException("ASR is not configured: asr.aliyun.api-key and asr.aliyun.model are required");
         }

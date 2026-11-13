@@ -5,6 +5,7 @@ import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sh.config.model.config.InitConfig;
+import com.sh.config.utils.EnvUtil;
 import com.sh.config.model.config.StreamerConfig;
 import com.sh.config.repo.StreamerRepoService;
 import com.sh.config.utils.FileStoreUtil;
@@ -44,6 +45,9 @@ public class ConfigFetcher {
 
     @PostConstruct
     private void init() {
+        if (EnvUtil.isTaskMode()) {
+            return;
+        }
         initConfigPath = environment.getProperty("sh.init-config.path");
 
         initConfig = loadInitConfig();
