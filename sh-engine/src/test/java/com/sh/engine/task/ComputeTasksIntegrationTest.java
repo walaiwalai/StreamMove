@@ -126,6 +126,32 @@ public class ComputeTasksIntegrationTest {
     }
 
     @Test
+    public void inlineAndZipImageBatchesRoundTripThroughRedisInOrder() throws Exception {
+        OssUploadService oss = context.getBean(OssUploadService.class);
+        Map<String, byte[]> objects = new ConcurrentHashMap<>();
+        when(oss.uploadAndGetUrl(any(File.class), anyString())).thenAnswer(call -> {
+            objects.put(call.getArgument(1), Files.readAllBytes(((File) call.getArgument(0)).toPath())); return "unused-url";
+        });
+        doAnswer(call -> { ((OutputStream) call.getArgument(1)).write(objects.get(call.getArgument(0))); return null; })
+                .when(oss).download(anyString(), any(OutputStream.class));
+        when(context.getBean(OcrService.class).recognize(any(byte[].class), anyString())).thenAnswer(call ->
+                Collections.singletonList(new OcrTextDetection(String.valueOf(((byte[]) call.getArgument(0))[0]), 1f, Collections.emptyList())));
+        ComputeTasks tasks = new ComputeTasks(client);
+        java.lang.reflect.Field field = ComputeTasks.class.getDeclaredField("oss"); field.setAccessible(true); field.set(tasks, oss);
+        List<byte[]> images = new ArrayList<>(); List<String> names = new ArrayList<>();
+        for (int index = 0; index < 9; index++) { byte[] image = new byte[4096]; image[0] = (byte) index; images.add(image); names.add("same.jpg"); }
+        List<List<OcrTextDetection>> inline = tasks.recognizeBatch(images, names);
+        for (int index = 0; index < inline.size(); index++) { assertEquals(String.valueOf(index), inline.get(index).get(0).getText()); }
+        verify(oss, never()).uploadAndGetUrl(any(File.class), anyString());
+        byte[] large = new byte[32769]; large[0] = 40;
+        List<List<OcrTextDetection>> packed = tasks.recognizeBatch(Arrays.asList(large, new byte[]{41}), Arrays.asList("same.jpg", "same.jpg"));
+        assertEquals("40", packed.get(0).get(0).getText()); assertEquals("41", packed.get(1).get(0).getText());
+        verify(oss).uploadAndGetUrl(any(File.class), anyString()); verify(oss).download(anyString(), any(OutputStream.class));
+        verify(oss, timeout(2000)).delete(anyString());
+        assertTrue(client.executor(TaskType.OCR).getTaskIds().isEmpty());
+    }
+
+    @Test
     public void everyTypeIsAcquiredByItsOwnPoolAndFinishedTasksAreRemoved() throws Exception {
         String started = env + ":all-types-started", release = latch();
         driverRedis.getCountDownLatch(started).trySetCount(TaskType.values().length);

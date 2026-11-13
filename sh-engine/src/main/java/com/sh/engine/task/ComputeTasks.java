@@ -29,13 +29,20 @@ import java.util.Base64;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.concurrent.Callable;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
+import java.util.zip.Deflater;
 
-/** driver 的标准能力入口；序列化对象只包含输入，不包含 Spring 服务和媒体文件。 */
+/** driver 的标准能力入口；小批图片内联，大批图片打包 OSS，音频使用 OSS。 */
 @Service
 @Slf4j
 public class ComputeTasks {
+    public static final int OCR_BATCH_SIZE = 8;
+    private static final int INLINE_IMAGE_BYTES = 32 * 1024;
     @Resource private OssUploadService oss;
     private final TaskClient client;
 
@@ -56,14 +63,26 @@ public class ComputeTasks {
         return client.submit(TaskType.LLM, new LlmTask(prompt, imageKeys));
     }
 
-    /** 现有服务的 driver 路由入口：素材进入 OSS，Redis 只传对象 key。 */
+    /** 单图入口沿用相同的内联/打包规则。 */
     public List<OcrTextDetection> recognize(byte[] image, String fileName) {
-        return withImage(TaskType.OCR, image, fileName,
-                key -> new OcrTask(Collections.singletonList(key))).get(0);
+        return recognizeBatch(Collections.singletonList(image), Collections.singletonList(fileName)).get(0);
     }
 
-    public <R> R withImage(TaskType type, byte[] image, String fileName, Function<String, Callable<R>> task) {
-        return execute(type, keys -> task.apply(uploadBytes(image, suffix(fileName), keys)));
+    public List<List<OcrTextDetection>> recognizeBatch(List<byte[]> images, List<String> fileNames) {
+        validateImages(images, fileNames);
+        List<List<OcrTextDetection>> result = new ArrayList<>();
+        for (int from = 0; from < images.size(); from += OCR_BATCH_SIZE) {
+            int end = Math.min(from + OCR_BATCH_SIZE, images.size());
+            List<byte[]> batch = images.subList(from, end);
+            List<String> names = fileNames.subList(from, end);
+            result.addAll(execute(TaskType.OCR, keys -> new OcrTask(prepareImages(batch, names, keys))));
+        }
+        return result;
+    }
+
+    public <R> R withImage(TaskType type, byte[] image, String fileName, Function<ImageBatch, Callable<R>> task) {
+        return execute(type, keys -> task.apply(prepareImages(Collections.singletonList(image),
+                Collections.singletonList(fileName), keys)));
     }
 
     public List<AsrSegment> transcribeAudio(File audio, int offsetSeconds) {
@@ -99,6 +118,8 @@ public class ComputeTasks {
         if (content == null || content.isEmpty()) { throw new IllegalArgumentException("Missing model input"); }
         return execute(TaskType.LLM, keys -> {
             List<JSONObject> blocks = new ArrayList<>();
+            List<byte[]> images = new ArrayList<>();
+            List<String> names = new ArrayList<>();
             for (Content part : content) {
                 JSONObject block = new JSONObject();
                 if (part instanceof TextContent) {
@@ -118,7 +139,9 @@ public class ComputeTasks {
                     if (data != null) {
                         String extension = "image/png".equals(mime) ? ".png" : "image/webp".equals(mime) ? ".webp"
                                 : "image/gif".equals(mime) ? ".gif" : ".jpg";
-                        block.put("imageKey", uploadBytes(Base64.getDecoder().decode(data), extension, keys));
+                        block.put("imageIndex", images.size());
+                        images.add(Base64.getDecoder().decode(data));
+                        names.add("image-" + names.size() + extension);
                     } else {
                         block.put("url", Objects.requireNonNull(url, "image URL"));
                     }
@@ -126,7 +149,7 @@ public class ComputeTasks {
                 } else { throw new IllegalArgumentException("Only text and image model inputs are supported"); }
                 blocks.add(block);
             }
-            return new LlmTask(blocks);
+            return new LlmTask(blocks, images.isEmpty() ? null : prepareImages(images, names, keys));
         });
     }
 
@@ -137,14 +160,39 @@ public class ComputeTasks {
         return key;
     }
 
-    private String uploadBytes(byte[] data, String extension, List<String> keys) {
-        Path file = null;
+    private ImageBatch prepareImages(List<byte[]> images, List<String> names, List<String> keys) {
+        validateImages(images, names);
+        long size = images.stream().mapToLong(image -> image.length).sum();
+        if (size <= INLINE_IMAGE_BYTES) {
+            List<byte[]> data = new ArrayList<>();
+            for (byte[] image : images) { data.add(image.clone()); }
+            return new ImageBatch(names, data, null);
+        }
+        Path archive = null;
         try {
-            file = Files.createTempFile("compute-input-", extension);
-            Files.write(file, data);
-            return upload(file.toFile(), keys);
-        } catch (IOException error) { throw new IllegalStateException("Cannot prepare image input", error); }
-        finally { if (file != null) { file.toFile().delete(); } }
+            archive = Files.createTempFile("compute-images-", ".zip");
+            try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(archive))) {
+                zip.setLevel(Deflater.NO_COMPRESSION);
+                for (int index = 0; index < images.size(); index++) {
+                    zip.putNextEntry(new ZipEntry(String.valueOf(index)));
+                    zip.write(images.get(index));
+                    zip.closeEntry();
+                }
+            }
+            return new ImageBatch(names, null, upload(archive.toFile(), keys));
+        } catch (IOException error) { throw new IllegalStateException("Cannot prepare image archive", error); }
+        finally { if (archive != null) { archive.toFile().delete(); } }
+    }
+
+    private static void validateImages(List<byte[]> images, List<String> names) {
+        Objects.requireNonNull(images, "images"); Objects.requireNonNull(names, "fileNames");
+        if (images.size() != names.size()) { throw new IllegalArgumentException("Image/name count mismatch"); }
+        for (int index = 0; index < images.size(); index++) {
+            if (images.get(index) == null || images.get(index).length == 0
+                    || names.get(index) == null || names.get(index).trim().isEmpty()) {
+                throw new IllegalArgumentException("Image or filename is empty");
+            }
+        }
     }
 
     private static String suffix(String name) {
@@ -153,15 +201,22 @@ public class ComputeTasks {
     }
 
     private <R> R execute(TaskType type, Function<List<String>, Callable<R>> prepare) {
+        long started = System.nanoTime();
         List<String> keys = new ArrayList<>();
         RExecutorFuture<R> task;
         try { task = client.submit(type, prepare.apply(keys)); }
         catch (RuntimeException error) { deleteInputs(keys); throw error; }
         // 等待超时或调用线程中断时，执行可能仍在继续；只在原任务终结后删除输入。
-        task.whenCompleteAsync((value, error) -> deleteInputs(keys), ExecutorPoolUtil.getFlushPool());
+        if (!keys.isEmpty()) {
+            task.whenCompleteAsync((value, error) -> deleteInputs(keys), ExecutorPoolUtil.getFlushPool());
+        }
         log.info("Compute task submitted, type: {}, taskId: {}", type, task.getTaskId());
-        try { return client.result(task); }
-        catch (InterruptedException error) {
+        try {
+            R result = client.result(task);
+            log.info("Compute task completed, type: {}, taskId: {}, totalMillis: {}", type, task.getTaskId(),
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
+            return result;
+        } catch (InterruptedException error) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Compute task wait interrupted", error);
         } catch (ExecutionException | TimeoutException error) {
@@ -193,22 +248,82 @@ public class ComputeTasks {
         }
     }
 
+    public static final class ImageBatch implements Serializable {
+        private static final long serialVersionUID = 1L;
+        private final List<String> fileNames;
+        private final List<byte[]> inline;
+        private final String archiveKey;
+
+        public ImageBatch(List<String> fileNames, List<byte[]> inline, String archiveKey) {
+            this.fileNames = new ArrayList<>(fileNames);
+            this.inline = inline;
+            this.archiveKey = archiveKey;
+        }
+
+        public List<String> getFileNames() { return Collections.unmodifiableList(fileNames); }
+
+        /** 在内存中按索引读取，不向磁盘解压文件名。 */
+        public List<byte[]> read(OssUploadService oss) throws IOException, InterruptedException {
+            checkInterrupted();
+            if (inline != null) { return inline; }
+            ByteArrayOutputStream archive = new ByteArrayOutputStream();
+            oss.download(archiveKey, archive);
+            checkInterrupted();
+            List<byte[]> images = new ArrayList<>();
+            try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(archive.toByteArray()))) {
+                ZipEntry entry;
+                while ((entry = zip.getNextEntry()) != null) {
+                    checkInterrupted();
+                    if (images.size() >= fileNames.size() || entry.isDirectory()
+                            || !entry.getName().equals(String.valueOf(images.size()))) {
+                        throw new IOException("Unexpected image archive entry");
+                    }
+                    ByteArrayOutputStream image = new ByteArrayOutputStream();
+                    org.apache.commons.io.IOUtils.copy(zip, image);
+                    if (image.size() == 0) { throw new IOException("Empty image archive entry"); }
+                    images.add(image.toByteArray());
+                }
+            }
+            if (images.size() != fileNames.size()) { throw new IOException("Image archive count mismatch"); }
+            return images;
+        }
+
+        public String dataUrl(List<byte[]> images, int index) {
+            String name = fileNames.get(index);
+            String mime = name.endsWith(".png") ? "image/png" : name.endsWith(".webp") ? "image/webp"
+                    : name.endsWith(".gif") ? "image/gif" : "image/jpeg";
+            return "data:" + mime + ";base64," + Base64.getEncoder().encodeToString(images.get(index));
+        }
+    }
+
     public static final class OcrTask implements Callable<List<List<OcrTextDetection>>>, Serializable {
         private static final long serialVersionUID = 1L;
         private final List<String> imageKeys;
+        private final ImageBatch images;
         @Autowired private transient OcrService ocr;
         @Autowired private transient OssUploadService oss;
 
         public OcrTask(List<String> keys) {
+            images = null;
             imageKeys = imageKeys(keys);
             if (imageKeys.isEmpty()) {
                 throw new IllegalArgumentException("OCR requires at least one image");
             }
         }
 
+        public OcrTask(ImageBatch images) { this.images = images; this.imageKeys = null; }
+
         @Override
         public List<List<OcrTextDetection>> call() throws Exception {
             List<List<OcrTextDetection>> result = new ArrayList<>();
+            if (images != null) {
+                List<byte[]> data = images.read(oss);
+                for (int index = 0; index < data.size(); index++) {
+                    checkInterrupted();
+                    result.add(ocr.recognize(data.get(index), images.getFileNames().get(index)));
+                }
+                return result;
+            }
             for (String key : imageKeys) {
                 checkInterrupted();
                 ByteArrayOutputStream image = new ByteArrayOutputStream();
@@ -256,10 +371,12 @@ public class ComputeTasks {
     public static final class LlmTask implements Callable<JSONObject>, Serializable {
         private static final long serialVersionUID = 1L;
         private final List<JSONObject> blocks;
+        private final ImageBatch images;
         @Autowired private transient LlmService llm;
         @Autowired private transient OssUploadService oss;
 
         public LlmTask(String prompt, List<String> keys) {
+            images = null;
             if (prompt == null || prompt.trim().isEmpty()) { throw new IllegalArgumentException("LLM prompt is blank"); }
             blocks = new ArrayList<>();
             JSONObject text = new JSONObject(); text.put("text", prompt); blocks.add(text);
@@ -268,16 +385,18 @@ public class ComputeTasks {
             }
         }
 
-        private LlmTask(List<JSONObject> blocks) { this.blocks = new ArrayList<>(blocks); }
+        private LlmTask(List<JSONObject> blocks, ImageBatch images) { this.blocks = new ArrayList<>(blocks); this.images = images; }
 
         @Override
         public JSONObject call() throws Exception {
             List<Content> content = new ArrayList<>();
+            List<byte[]> data = images == null ? Collections.emptyList() : images.read(oss);
             for (JSONObject block : blocks) {
                 checkInterrupted();
                 if (block.containsKey("text")) { content.add(TextContent.from(block.getString("text"))); }
                 else {
-                    String url = block.containsKey("imageKey") ? oss.getImageDataUrl(block.getString("imageKey")) : block.getString("url");
+                    String url = block.containsKey("imageIndex") ? images.dataUrl(data, block.getIntValue("imageIndex"))
+                            : block.containsKey("imageKey") ? oss.getImageDataUrl(block.getString("imageKey")) : block.getString("url");
                     String detail = block.getString("detail");
                     content.add(detail == null ? ImageContent.from(url) : ImageContent.from(url, ImageContent.DetailLevel.valueOf(detail)));
                 }

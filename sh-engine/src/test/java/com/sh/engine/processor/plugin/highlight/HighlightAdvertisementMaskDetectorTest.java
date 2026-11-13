@@ -84,6 +84,13 @@ public class HighlightAdvertisementMaskDetectorTest {
 
     private static final class FixedOcrClient extends HighlightOcrClient {
         @Override
+        public List<List<OcrTextDetection>> recognizeBatch(List<byte[]> images, List<String> names) {
+            assertEquals(3, images.size());
+            List<List<OcrTextDetection>> result = new java.util.ArrayList<>();
+            for (int index = 0; index < images.size(); index++) { result.add(recognize(images.get(index), names.get(index))); }
+            return result;
+        }
+        @Override
         public List<OcrTextDetection> recognize(byte[] jpegData, String fileName) {
             return Arrays.asList(
                     new OcrTextDetection("ROG 键盘", 0.98f,

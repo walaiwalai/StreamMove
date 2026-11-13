@@ -52,7 +52,8 @@ public class ComputeTasksInterruptionTest {
         }.defineTask();
         java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
         try (java.io.ObjectOutputStream out = new java.io.ObjectOutputStream(bytes)) {
-            out.writeObject(new ComputeTasks.OcrTask(Collections.singletonList("frame.jpg")));
+            out.writeObject(new ComputeTasks.OcrTask(new ComputeTasks.ImageBatch(Collections.singletonList("frame.jpg"),
+                    Collections.singletonList(new byte[]{1}), null)));
         }
         Object task;
         try (java.io.ObjectInputStream in = new java.io.ObjectInputStream(new java.io.ByteArrayInputStream(bytes.toByteArray())) {
@@ -65,6 +66,23 @@ public class ComputeTasksInterruptionTest {
         set(task, "ocr", ocr); set(task, "oss", oss);
         ((java.util.concurrent.Callable<?>) task).call();
         verify(ocr).recognize(any(byte[].class), eq("frame.jpg"));
+    }
+
+    @Test
+    public void missingImageInZipFailsBeforeAnyModelCall() throws Exception {
+        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(bytes)) {
+            zip.putNextEntry(new java.util.zip.ZipEntry("0")); zip.write(new byte[]{1}); zip.closeEntry();
+        }
+        OssUploadService oss = mock(OssUploadService.class);
+        doAnswer(call -> { ((OutputStream) call.getArgument(1)).write(bytes.toByteArray()); return null; })
+                .when(oss).download(eq("batch.zip"), any(OutputStream.class));
+        OcrService ocr = mock(OcrService.class);
+        ComputeTasks.OcrTask task = new ComputeTasks.OcrTask(new ComputeTasks.ImageBatch(
+                java.util.Arrays.asList("first.jpg", "second.jpg"), null, "batch.zip"));
+        set(task, "oss", oss); set(task, "ocr", ocr);
+        try { task.call(); fail("incomplete archive accepted"); }
+        catch (java.io.IOException expected) { verifyZeroInteractions(ocr); }
     }
 
     private void set(Object bean, String name, Object value) throws Exception {

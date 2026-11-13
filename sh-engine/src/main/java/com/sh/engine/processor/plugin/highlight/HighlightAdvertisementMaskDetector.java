@@ -90,15 +90,20 @@ public class HighlightAdvertisementMaskDetector {
     private List<FrameAnalysis> analyzeFrames(List<? extends VideoInterval> intervals) {
         List<FrameSample> samples = selectSamples(intervals);
         List<FrameAnalysis> frames = new ArrayList<>();
-        for (int index = 0; index < samples.size(); index++) {
-            FrameSample sample = samples.get(index);
-            InMemoryVideoFrame frame = frameExtractor.extract(
-                    sample.sourceVideo, sample.timestampSeconds, FULL_FRAME_FILTER);
+        List<byte[]> images = new ArrayList<>();
+        List<BufferedImage> decoded = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        for (FrameSample sample : samples) {
+            InMemoryVideoFrame frame = frameExtractor.extract(sample.sourceVideo, sample.timestampSeconds, FULL_FRAME_FILTER);
             byte[] jpegData = frame.getJpegData();
-            BufferedImage image = readImage(jpegData, sample.sourceVideo, sample.timestampSeconds);
-            List<OcrCandidate> candidates = toCandidates(
-                    index + 1, image, ocrClient.recognize(
-                            jpegData, frameName(sample.sourceVideo, sample.timestampSeconds)));
+            decoded.add(readImage(jpegData, sample.sourceVideo, sample.timestampSeconds));
+            images.add(jpegData);
+            names.add(frameName(sample.sourceVideo, sample.timestampSeconds));
+        }
+        List<List<OcrTextDetection>> detections = ocrClient.recognizeBatch(images, names);
+        for (int index = 0; index < images.size(); index++) {
+            BufferedImage image = decoded.get(index);
+            List<OcrCandidate> candidates = toCandidates(index + 1, image, detections.get(index));
             frames.add(new FrameAnalysis(index + 1, image, candidates));
         }
         return frames;

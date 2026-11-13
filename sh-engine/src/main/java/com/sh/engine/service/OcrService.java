@@ -30,6 +30,16 @@ public class OcrService {
     @Value("${ocr.server.token:}")
     private String token;
 
+    public List<List<OcrTextDetection>> recognizeBatch(List<byte[]> images, List<String> fileNames) {
+        if (images.size() != fileNames.size()) { throw new IllegalArgumentException("Image/name count mismatch"); }
+        if (!EnvUtil.isTaskMode()) { return computeTasks.recognizeBatch(images, fileNames); }
+        List<List<OcrTextDetection>> result = new ArrayList<>();
+        for (int index = 0; index < images.size(); index++) {
+            result.add(recognize(images.get(index), fileNames.get(index)));
+        }
+        return result;
+    }
+
     public List<OcrTextDetection> recognize(byte[] image, String fileName) {
         if (image == null || image.length == 0 || StringUtils.isBlank(fileName)) {
             return Collections.emptyList();

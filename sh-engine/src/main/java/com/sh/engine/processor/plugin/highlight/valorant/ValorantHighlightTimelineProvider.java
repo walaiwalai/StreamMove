@@ -14,6 +14,7 @@ import com.sh.engine.model.highlight.core.OcrTextDetection;
 import com.sh.engine.processor.plugin.highlight.FfmpegFrameExtractor;
 import com.sh.engine.processor.plugin.highlight.HighlightOcrClient;
 import com.sh.engine.processor.plugin.highlight.HighlightTimelineProvider;
+import com.sh.engine.task.ComputeTasks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -165,19 +166,34 @@ public class ValorantHighlightTimelineProvider implements HighlightTimelineProvi
             if (frame == END_OF_STREAM) {
                 return;
             }
-            byte[] jpegData = frame.getJpegData();
-            BufferedImage feed = decodeFrame(sourceVideo, frame, jpegData);
-            List<OcrTextDetection> detections = ocrClient.recognize(
-                    jpegData,
-                    String.format(Locale.ROOT, "%s@%06d-kill-feed.jpg",
-                            prefix(sourceVideo), frame.getTimestampSeconds()));
-            List<ValorantKillFeedClassifier.Classification> classifications =
-                    classifier.classifyRows(
-                            detections, feed.getWidth(), feed.getHeight(), OCR_MIN_CONFIDENCE);
-            for (ValorantKillFeedClassifier.Classification classification : classifications) {
-                recognized.add(new RecognizedKillFeed(
-                        frame.getTimestampSeconds(), feed, classification));
+            List<InMemoryVideoFrame> batch = new ArrayList<>();
+            batch.add(frame);
+            boolean ended = false;
+            while (batch.size() < ComputeTasks.OCR_BATCH_SIZE) {
+                InMemoryVideoFrame next = frameQueue.poll();
+                if (next == null) { break; }
+                if (next == END_OF_STREAM) { ended = true; break; }
+                batch.add(next);
             }
+            List<byte[]> images = new ArrayList<>();
+            List<BufferedImage> feeds = new ArrayList<>();
+            List<String> names = new ArrayList<>();
+            for (InMemoryVideoFrame item : batch) {
+                byte[] jpegData = item.getJpegData();
+                images.add(jpegData);
+                feeds.add(decodeFrame(sourceVideo, item, jpegData));
+                names.add(String.format(Locale.ROOT, "%s@%06d-kill-feed.jpg", prefix(sourceVideo), item.getTimestampSeconds()));
+            }
+            List<List<OcrTextDetection>> detections = ocrClient.recognizeBatch(images, names);
+            for (int index = 0; index < batch.size(); index++) {
+                BufferedImage feed = feeds.get(index);
+                List<ValorantKillFeedClassifier.Classification> classifications = classifier.classifyRows(
+                        detections.get(index), feed.getWidth(), feed.getHeight(), OCR_MIN_CONFIDENCE);
+                for (ValorantKillFeedClassifier.Classification classification : classifications) {
+                    recognized.add(new RecognizedKillFeed(batch.get(index).getTimestampSeconds(), feed, classification));
+                }
+            }
+            if (ended) { return; }
         }
     }
 

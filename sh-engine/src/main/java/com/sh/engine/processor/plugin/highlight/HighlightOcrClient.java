@@ -59,6 +59,10 @@ public class HighlightOcrClient {
         return ocrService.recognize(jpegData, fileName);
     }
 
+    public List<List<OcrTextDetection>> recognizeBatch(List<byte[]> images, List<String> fileNames) {
+        return ocrService.recognizeBatch(images, fileNames);
+    }
+
     /**
      * 识别内存中的 LoL 击杀详情图。
      *
@@ -73,7 +77,7 @@ public class HighlightOcrClient {
             return null;
         }
         if (!EnvUtil.isTaskMode()) {
-            return computeTasks.withImage(TaskType.YOLO, jpegData, fileName, key -> new KillDetailTask(key, fileName));
+            return computeTasks.withImage(TaskType.YOLO, jpegData, fileName, images -> new KillDetailTask(images));
         }
         String response = postImage(
                 RequestBody.create(MediaType.parse("image/jpeg"), jpegData),
@@ -124,15 +128,21 @@ public class HighlightOcrClient {
     public static final class KillDetailTask implements Callable<LoLPicData.HeroKillOrAssistDetail>, Serializable {
         private static final long serialVersionUID = 1L;
         private final String imageKey;
+        private final ComputeTasks.ImageBatch images;
         private final String fileName;
         @Autowired private transient HighlightOcrClient client;
         @Autowired private transient OssUploadService oss;
-        public KillDetailTask(String imageKey, String fileName) { this.imageKey = imageKey; this.fileName = fileName; }
+        public KillDetailTask(String imageKey, String fileName) { this.imageKey = imageKey; this.fileName = fileName; this.images = null; }
+        public KillDetailTask(ComputeTasks.ImageBatch images) { this.images = images; this.imageKey = null; this.fileName = images.getFileNames().get(0); }
         @Override public LoLPicData.HeroKillOrAssistDetail call() throws Exception {
-            ByteArrayOutputStream image = new ByteArrayOutputStream();
-            oss.download(imageKey, image);
+            byte[] data;
+            if (images != null) { data = images.read(oss).get(0); }
+            else {
+                ByteArrayOutputStream image = new ByteArrayOutputStream();
+                oss.download(imageKey, image); data = image.toByteArray();
+            }
             if (Thread.currentThread().isInterrupted()) { throw new InterruptedException("Detection task interrupted"); }
-            return client.recognizeKillDetail(image.toByteArray(), fileName);
+            return client.recognizeKillDetail(data, fileName);
         }
     }
 
