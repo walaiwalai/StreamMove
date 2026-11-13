@@ -3,9 +3,6 @@ package com.sh.engine.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.sh.config.utils.EnvUtil;
-import com.sh.engine.task.ComputeTasks;
-import javax.annotation.Resource;
 import com.sh.config.exception.ErrorEnum;
 import com.sh.config.exception.StreamerRecordException;
 import com.sh.config.utils.OkHttpClientUtil;
@@ -22,7 +19,7 @@ import java.util.List;
 /** 与游戏规则无关的现有 /ocrDet 协议入口。 */
 @Service
 public class OcrService {
-    @Resource private ComputeTasks computeTasks;
+    public static final int OCR_BATCH_SIZE = 8;
     @Value("${ocr.server.host}")
     private String host;
     @Value("${ocr.server.port}")
@@ -32,7 +29,12 @@ public class OcrService {
 
     public List<List<OcrTextDetection>> recognizeBatch(List<byte[]> images, List<String> fileNames) {
         if (images.size() != fileNames.size()) { throw new IllegalArgumentException("Image/name count mismatch"); }
-        if (!EnvUtil.isTaskMode()) { return computeTasks.recognizeBatch(images, fileNames); }
+        for (int index = 0; index < images.size(); index++) {
+            if (images.get(index) == null || images.get(index).length == 0
+                    || StringUtils.isBlank(fileNames.get(index))) {
+                throw new IllegalArgumentException("Image or filename is empty");
+            }
+        }
         List<List<OcrTextDetection>> result = new ArrayList<>();
         for (int index = 0; index < images.size(); index++) {
             result.add(recognize(images.get(index), fileNames.get(index)));
@@ -44,15 +46,12 @@ public class OcrService {
         if (image == null || image.length == 0 || StringUtils.isBlank(fileName)) {
             return Collections.emptyList();
         }
-        if (!EnvUtil.isTaskMode()) {
-            return computeTasks.recognize(image, fileName);
-        }
         Request request = new Request.Builder().url("http://" + host + ":" + port + "/ocrDet")
                 .addHeader("Authorization", "Bearer " + token)
                 .post(new MultipartBody.Builder().setType(MultipartBody.FORM)
                         .addFormDataPart("image", fileName, RequestBody.create(MediaType.parse("image/jpeg"), image))
                         .build()).build();
-        String response = OkHttpClientUtil.execute(request);
+        String response = InferenceLimit.OCR.call(() -> OkHttpClientUtil.execute(request));
         if (StringUtils.isBlank(response)) {
             throw new StreamerRecordException(ErrorEnum.HTTP_REQUEST_ERROR, "Empty OCR response");
         }

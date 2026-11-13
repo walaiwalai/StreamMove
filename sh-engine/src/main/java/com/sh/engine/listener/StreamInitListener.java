@@ -22,9 +22,6 @@ public class StreamInitListener implements ApplicationListener<ApplicationReadyE
     @Override
     public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
         printInitInfo();
-        if (EnvUtil.isTaskMode()) {
-            return;
-        }
         initUploader();
     }
 

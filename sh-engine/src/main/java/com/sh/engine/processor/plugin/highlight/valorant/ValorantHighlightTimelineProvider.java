@@ -14,7 +14,7 @@ import com.sh.engine.model.highlight.core.OcrTextDetection;
 import com.sh.engine.processor.plugin.highlight.FfmpegFrameExtractor;
 import com.sh.engine.processor.plugin.highlight.HighlightOcrClient;
 import com.sh.engine.processor.plugin.highlight.HighlightTimelineProvider;
-import com.sh.engine.task.ComputeTasks;
+import com.sh.engine.service.OcrService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -169,7 +169,7 @@ public class ValorantHighlightTimelineProvider implements HighlightTimelineProvi
             List<InMemoryVideoFrame> batch = new ArrayList<>();
             batch.add(frame);
             boolean ended = false;
-            while (batch.size() < ComputeTasks.OCR_BATCH_SIZE) {
+            while (batch.size() < OcrService.OCR_BATCH_SIZE) {
                 InMemoryVideoFrame next = frameQueue.poll();
                 if (next == null) { break; }
                 if (next == END_OF_STREAM) { ended = true; break; }

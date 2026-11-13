@@ -1,9 +1,5 @@
 package com.sh.engine.service.impl;
 
-import cn.hutool.extra.spring.SpringUtil;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.StaticApplicationContext;
-import org.springframework.core.env.MapPropertySource;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
@@ -27,22 +23,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.*;
 
 public class LlmServiceImplTest {
-    private ApplicationContext previousContext;
-    private StaticApplicationContext roleContext;
-    @org.junit.Before
-    public void taskRole() {
-        previousContext = SpringUtil.getApplicationContext();
-        roleContext = new StaticApplicationContext();
-        roleContext.getEnvironment().getPropertySources().addFirst(new MapPropertySource("role",
-                java.util.Collections.singletonMap("streammove.mode", "task")));
-        new SpringUtil().setApplicationContext(roleContext);
-        try { start(); } catch (Exception error) { throw new IllegalStateException(error); }
-    }
-    @org.junit.After
-    public void restoreRole() {
-        new SpringUtil().setApplicationContext(previousContext);
-        roleContext.close();
-    }
+    @Before public void startClient() throws Exception { start(); }
 
     private MockWebServer server;
     private LlmServiceImpl service;
@@ -105,6 +86,12 @@ public class LlmServiceImplTest {
         assertEquals("/v1/chat/completions", request.getPath());
         JSONObject body = JSON.parseObject(request.getBody().readUtf8());
         assertEquals("ordinary text request", body.getJSONArray("messages").getJSONObject(0).getString("content"));
+    }
+
+    @Test public void asynchronousTextReturnsTheExistingTypedHttpResult() throws Exception {
+        server.enqueue(reply("stop", "{\"ok\":true}"));
+        assertTrue(service.chatAsync("async text", JSONObject.class).get(2, TimeUnit.SECONDS).getBooleanValue("ok"));
+        assertEquals("/v1/chat/completions", server.takeRequest(2, TimeUnit.SECONDS).getPath());
     }
 
     @Test public void ossDataUrlIsForwardedAsAnImageWithoutDoubleEncoding() throws Exception {

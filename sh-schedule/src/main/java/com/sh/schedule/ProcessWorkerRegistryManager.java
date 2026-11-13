@@ -1,7 +1,6 @@
 package com.sh.schedule;
 
 import com.sh.schedule.registry.ProcessWorkerRegister;
-import com.sh.config.utils.EnvUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.CronExpression;
 import org.springframework.context.ApplicationListener;
@@ -26,9 +25,6 @@ public class ProcessWorkerRegistryManager implements ApplicationListener<Context
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
-        if (EnvUtil.isTaskMode()) {
-            return;
-        }
         if (event.getApplicationContext().getParent() == null) {
             init();
         }

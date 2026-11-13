@@ -1,10 +1,6 @@
 package com.sh.config.manager;
 
-import cn.hutool.extra.spring.SpringUtil;
-import org.junit.After;
-import org.springframework.context.ApplicationContext;
 import com.sh.config.mapper.CommonParamMapper;
-import org.springframework.core.env.Environment;
 import com.sh.config.model.config.CommonParamKey;
 import com.sh.config.model.dao.CommonParamDO;
 import org.junit.Before;
@@ -28,35 +24,15 @@ public class CommonParamCacheTest {
     private CommonParamCache cache;
     private CommonParamMapper mapper;
     private CacheManager cacheManager;
-    private Environment environment;
-    private ApplicationContext previousContext;
 
     @Before
     public void setUp() throws Exception {
         cache = new CommonParamCache();
-        environment = mock(Environment.class);
-        when(environment.getProperty("streammove.mode", String.class)).thenReturn("driver");
-        previousContext = SpringUtil.getApplicationContext();
-        ApplicationContext context = mock(ApplicationContext.class);
-        when(context.getEnvironment()).thenReturn(environment);
-        new SpringUtil().setApplicationContext(context);
         mapper = mock(CommonParamMapper.class);
         cacheManager = mock(CacheManager.class);
         setField("commonParamMapper", mapper);
         setField("cacheManager", cacheManager);
         setField("currentEnv", "prod");
-    }
-
-    @After
-    public void restoreContext() {
-        new SpringUtil().setApplicationContext(previousContext);
-    }
-
-    @Test
-    public void taskStartupDoesNotLoadOrReplaceBusinessParameters() throws Exception {
-        when(environment.getProperty("streammove.mode", String.class)).thenReturn("task");
-        cache.refresh();
-        org.mockito.Mockito.verifyZeroInteractions(mapper, cacheManager);
     }
 
     @Test

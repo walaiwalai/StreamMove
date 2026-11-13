@@ -9,14 +9,7 @@ import com.sh.config.utils.OkHttpClientUtil;
 import com.sh.engine.model.highlight.core.OcrTextDetection;
 import com.sh.engine.model.highlight.lol.LoLPicData;
 import com.sh.engine.service.OcrService;
-import com.sh.engine.service.OssUploadService;
-import com.sh.engine.task.ComputeTasks;
-import com.sh.engine.task.TaskType;
-import com.sh.config.utils.EnvUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import java.io.ByteArrayOutputStream;
-import java.io.Serializable;
-import java.util.concurrent.Callable;
+import com.sh.engine.service.InferenceLimit;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -38,7 +31,6 @@ import javax.annotation.Resource;
 public class HighlightOcrClient {
     @Resource
     private OcrService ocrService;
-    @Resource private ComputeTasks computeTasks;
     private static final String KILL_DETAIL_ENDPOINT = "/lolKillVisDet";
 
     @Value("${ocr.server.host}")
@@ -75,9 +67,6 @@ public class HighlightOcrClient {
             String fileName) {
         if (jpegData == null || jpegData.length == 0 || StringUtils.isBlank(fileName)) {
             return null;
-        }
-        if (!EnvUtil.isTaskMode()) {
-            return computeTasks.withImage(TaskType.YOLO, jpegData, fileName, images -> new KillDetailTask(images));
         }
         String response = postImage(
                 RequestBody.create(MediaType.parse("image/jpeg"), jpegData),
@@ -122,28 +111,6 @@ public class HighlightOcrClient {
                 .post(body)
                 .addHeader("Authorization", "Bearer " + token)
                 .build();
-        return OkHttpClientUtil.execute(request);
+        return InferenceLimit.YOLO.call(() -> OkHttpClientUtil.execute(request));
     }
-    /** LoL 专属检测协议留在插件中，共享执行器只负责 YOLO 类型路由。 */
-    public static final class KillDetailTask implements Callable<LoLPicData.HeroKillOrAssistDetail>, Serializable {
-        private static final long serialVersionUID = 1L;
-        private final String imageKey;
-        private final ComputeTasks.ImageBatch images;
-        private final String fileName;
-        @Autowired private transient HighlightOcrClient client;
-        @Autowired private transient OssUploadService oss;
-        public KillDetailTask(String imageKey, String fileName) { this.imageKey = imageKey; this.fileName = fileName; this.images = null; }
-        public KillDetailTask(ComputeTasks.ImageBatch images) { this.images = images; this.imageKey = null; this.fileName = images.getFileNames().get(0); }
-        @Override public LoLPicData.HeroKillOrAssistDetail call() throws Exception {
-            byte[] data;
-            if (images != null) { data = images.read(oss).get(0); }
-            else {
-                ByteArrayOutputStream image = new ByteArrayOutputStream();
-                oss.download(imageKey, image); data = image.toByteArray();
-            }
-            if (Thread.currentThread().isInterrupted()) { throw new InterruptedException("Detection task interrupted"); }
-            return client.recognizeKillDetail(data, fileName);
-        }
-    }
-
 }
