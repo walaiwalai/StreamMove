@@ -36,4 +36,10 @@ public class AsrSegment implements java.io.Serializable {
      * Confidence score (0.0 - 1.0), may be null if not provided by ASR provider
      */
     private Double confidence;
+
+    /** Model-provided emotion for this segment; null when unavailable. */
+    private String emotion;
+
+    /** Model-provided audio event (for example Speech or BGM); null when unavailable. */
+    private String event;
 }

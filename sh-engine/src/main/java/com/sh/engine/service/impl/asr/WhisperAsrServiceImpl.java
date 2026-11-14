@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-/** 本地 Whisper HTTP 转写；仅处理调用方已经召回的候选范围。 */
+/** Whisper 兼容 HTTP 转写（含 SenseVoice）；仅处理调用方已经召回的候选范围。 */
 @Service
 @ConditionalOnProperty(name = "asr.provider", havingValue = "whisper")
 public class WhisperAsrServiceImpl implements AsrService {
@@ -98,7 +98,9 @@ public class WhisperAsrServiceImpl implements AsrService {
             result.add(AsrSegment.builder()
                     .startTime(offset + (int) Math.floor(segment.getDoubleValue("start")))
                     .endTime(offset + (int) Math.ceil(segment.getDoubleValue("end")))
-                    .text(segment.getString("text")).build());
+                    .text(segment.getString("text"))
+                    .emotion(segment.getString("emotion"))
+                    .event(segment.getString("event")).build());
         }
         return result;
     }

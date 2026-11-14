@@ -107,7 +107,8 @@ public class ComputeTasksIntegrationTest {
                 .thenReturn(Collections.singletonList(new OcrTextDetection("text", .9f, Arrays.asList(1, 2))));
         when(context.getBean(AsrService.class).transcribeAudio(any(File.class), eq(40))).thenAnswer(call -> {
             assertArrayEquals(new byte[]{7, 8}, Files.readAllBytes(((File) call.getArgument(0)).toPath()));
-            return Collections.singletonList(AsrSegment.builder().startTime(40).endTime(42).text("speech").build());
+            return Collections.singletonList(AsrSegment.builder().startTime(40).endTime(42).text("speech")
+                    .emotion("happy").event("Speech").build());
         });
         when(context.getBean(LlmService.class).chat(org.mockito.ArgumentMatchers.<List<Content>>any())).thenAnswer(call -> {
             assertEquals(3, ((List<?>) call.getArgument(0)).size());
@@ -119,7 +120,10 @@ public class ComputeTasksIntegrationTest {
         assertEquals(2, recognized.size());
         assertEquals("text", recognized.get(0).get(0).getText());
         assertEquals("text", client.resultAsync(ocr).get(5, TimeUnit.SECONDS).get(1).get(0).getText());
-        assertEquals(40, client.result(tasks.asr("audio/one.wav", 40), Duration.ofSeconds(5)).get(0).getStartTime());
+        AsrSegment speech = client.result(tasks.asr("audio/one.wav", 40), Duration.ofSeconds(5)).get(0);
+        assertEquals(40, speech.getStartTime());
+        assertEquals("happy", speech.getEmotion());
+        assertEquals("Speech", speech.getEvent());
         assertEquals("model result", client.result(tasks.llm("review", Arrays.asList("one.jpg", "two.jpg")),
                 Duration.ofSeconds(5)).getString("finalResponse"));
         verify(context.getBean(LlmService.class), never()).chatAsync(anyString(), any());

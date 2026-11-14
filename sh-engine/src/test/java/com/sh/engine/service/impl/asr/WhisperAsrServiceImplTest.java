@@ -39,8 +39,11 @@ public class WhisperAsrServiceImplTest {
             java.nio.file.Path audio = java.nio.file.Files.createTempFile("asr-input-", ".wav");
             try {
                 java.nio.file.Files.write(audio, new byte[]{1,2,3});
-                server.enqueue(new okhttp3.mockwebserver.MockResponse().setBody("{\"segments\":[{\"start\":1,\"end\":2,\"text\":\"speech\"}]}"));
-                assertEquals(41, service.transcribeAudio(audio.toFile(), 40).get(0).getStartTime());
+                server.enqueue(new okhttp3.mockwebserver.MockResponse().setBody("{\"segments\":[{\"start\":1,\"end\":2,\"text\":\"speech\",\"emotion\":\"neutral\",\"event\":\"BGM\"}]}"));
+                AsrSegment segment = service.transcribeAudio(audio.toFile(), 40).get(0);
+                assertEquals(41, segment.getStartTime());
+                assertEquals("neutral", segment.getEmotion());
+                assertEquals("BGM", segment.getEvent());
                 okhttp3.mockwebserver.RecordedRequest request = server.takeRequest(2, java.util.concurrent.TimeUnit.SECONDS);
                 assertTrue(request.getPath().startsWith("/asr?"));
                 assertTrue(request.getBody().readUtf8().contains("name=\"audio_file\""));
@@ -51,8 +54,28 @@ public class WhisperAsrServiceImplTest {
         List<AsrSegment> rows = WhisperAsrServiceImpl.parse("{\"segments\":[{\"start\":1.3,\"end\":2.7,\"text\":\"看这里\"}]}", 500);
         assertEquals(501, rows.get(0).getStartTime());
         assertEquals(503, rows.get(0).getEndTime());
+        assertNull(rows.get(0).getEmotion());
+        assertNull(rows.get(0).getEvent());
         try { WhisperAsrServiceImpl.parse("{\"text\":\"no timestamps\"}", 0); fail("missing segments accepted"); }
         catch (IllegalStateException expected) { assertTrue(expected.getMessage().contains("segments")); }
+    }
+
+    @Test public void preservesSegmentLabelsWithoutCopyingWholeCandidateEmotion() {
+        String response = "{\"candidate_analysis\":{\"emotion\":\"happy\",\"event\":\"BGM\"},"
+                + "\"segments\":[{\"start\":0.3,\"end\":2.4,\"text\":\"看这里\","
+                + "\"emotion\":\"angry\",\"event\":\"Speech\"},"
+                + "{\"start\":3,\"end\":4,\"text\":\"下一句\"}]}";
+        List<AsrSegment> rows = WhisperAsrServiceImpl.parse(response, 500);
+        assertEquals(500, rows.get(0).getStartTime());
+        assertEquals(503, rows.get(0).getEndTime());
+        assertEquals("angry", rows.get(0).getEmotion());
+        assertEquals("Speech", rows.get(0).getEvent());
+        assertNull(rows.get(1).getEmotion());
+        assertNull(rows.get(1).getEvent());
+        // ASR cache and JSON evidence use the same DTO.
+        List<AsrSegment> restored = com.alibaba.fastjson.JSON.parseArray(
+                com.alibaba.fastjson.JSON.toJSONString(rows), AsrSegment.class);
+        assertEquals(rows, restored);
     }
     @Test public void whisperSelectionDoesNotRegisterTwoAsrProviders() {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
