@@ -55,15 +55,6 @@ public abstract class AbstractHighlightCutPlugin implements VideoProcessPlugin {
      */
     @Override
     public final boolean process(String recordPath) {
-        try {
-            return processHighlight(recordPath);
-        } catch (Exception error) {
-            log.error("highlight plugin failed, plugin: {}, path: {}", getPluginName(), recordPath, error);
-            return false;
-        }
-    }
-
-    private boolean processHighlight(String recordPath) {
         List<File> sourceVideos = findSourceVideos(recordPath);
         if (CollectionUtils.isEmpty(sourceVideos)) {
             log.info("empty source mp4 video, skip highlight plugin: {}, path: {}",
@@ -108,7 +99,10 @@ public abstract class AbstractHighlightCutPlugin implements VideoProcessPlugin {
             }
         }
         notifyResult(success, targetVideo);
-        return success;
+        if (!success) {
+            throw new StreamerRecordException(ErrorEnum.PROCESS_PLUGIN_FAILED, "Cannot export highlight output");
+        }
+        return true;
     }
 
     @Override

@@ -45,6 +45,13 @@ public class WorkProcessStageProcessorTest {
         assertFailurePolicy(ProcessPluginEnum.TS_2_MP4_TRANSFER, new IllegalStateException("transfer failed"), true);
     }
 
+    @Test public void highlightExceptionsSkipTheCurrentRoundWithoutChangingOtherPlugins() throws Exception {
+        assertFailurePolicy(ProcessPluginEnum.LOL_HL_VOD_CUT,
+                new StreamerRecordException(ErrorEnum.HIGHLIGHT_ANALYSIS_ERROR), false);
+        assertFailurePolicy(ProcessPluginEnum.VALORANT_HL_VOD_CUT,
+                new StreamerRecordException(ErrorEnum.PROCESS_PLUGIN_FAILED), false);
+    }
+
     private void assertFailurePolicy(ProcessPluginEnum pluginType, RuntimeException failure, boolean retryable) throws Exception {
         File directory = temporary.newFolder();
         new FileStatusModel().writeSelfToFile(directory.getAbsolutePath());

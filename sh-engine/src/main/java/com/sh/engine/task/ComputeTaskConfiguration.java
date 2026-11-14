@@ -24,10 +24,12 @@ public class ComputeTaskConfiguration {
         SingleServerConfig server = config.useSingleServer()
                 .setAddress((redis.isSsl() ? "rediss://" : "redis://") + redis.getHost() + ":" + redis.getPort())
                 .setDatabase(redis.getDatabase())
-                .setConnectionMinimumIdleSize(1).setConnectionPoolSize(8)
-                .setSubscriptionConnectionMinimumIdleSize(1).setSubscriptionConnectionPoolSize(4);
+                .setTimeout(10_000)
+                .setConnectionMinimumIdleSize(1).setConnectionPoolSize(16)
+                // Avoid reconnect initialization waiting on a pool occupied by active subscriptions.
+                .setSubscriptionConnectionMinimumIdleSize(0).setSubscriptionConnectionPoolSize(8);
         if (StringUtils.hasText(redis.getPassword())) {
-            server.setPassword(redis.getPassword());
+            config.setPassword(redis.getPassword());
         }
         if (redis.getTimeout() != null) {
             server.setTimeout(Math.toIntExact(redis.getTimeout().toMillis()));

@@ -4,6 +4,8 @@ import com.sh.engine.model.Streamer;
 import com.sh.engine.model.StreamerInfoHolder;
 import com.sh.engine.model.highlight.core.*;
 import com.sh.engine.service.VideoMergeService;
+import com.sh.config.exception.ErrorEnum;
+import com.sh.config.exception.StreamerRecordException;
 import com.sh.message.service.MsgSendService;
 import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
@@ -47,11 +49,22 @@ public class HighlightOutputCommitTest {
         inject(plugin, "msgSendService", mock(MsgSendService.class));
         Streamer streamer = new Streamer(); streamer.setName("test"); StreamerInfoHolder.addStreamer(streamer);
         try {
-            assertFalse(plugin.process(recording.getPath()));
+            try {
+                plugin.process(recording.getPath());
+                fail("Failed export must throw instead of requesting a retry");
+            } catch (StreamerRecordException expected) {
+                assertEquals(ErrorEnum.PROCESS_PLUGIN_FAILED, expected.getErrorEnum());
+            }
             assertFalse(new File(recording, "highlight.mp4").exists());
             when(merge.mergeHighlightWithCover(anyList(), any(File.class), anyString(), any(HighlightMaskPlan.class)))
                     .thenThrow(new IllegalStateException("encoder failed"));
-            assertFalse(plugin.process(recording.getPath()));
+            try {
+                plugin.process(recording.getPath());
+                fail("Encoder failure must propagate");
+            } catch (IllegalStateException expected) {
+                assertEquals("encoder failed", expected.getMessage());
+            }
+            assertTrue(source.isFile());
             assertFalse(new File(recording, "highlight.mp4").exists());
             doAnswer(call -> { FileUtils.writeStringToFile(call.getArgument(1), "complete", StandardCharsets.UTF_8); return true; })
                     .when(merge).mergeHighlightWithCover(anyList(), any(File.class), anyString(), any(HighlightMaskPlan.class));

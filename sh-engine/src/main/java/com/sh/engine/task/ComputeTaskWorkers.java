@@ -4,6 +4,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RScheduledExecutorService;
 import org.redisson.api.WorkerOptions;
+import org.redisson.api.executor.TaskFailureListener;
+import org.redisson.api.executor.TaskStartedListener;
+import org.redisson.api.executor.TaskSuccessListener;
 import org.redisson.executor.SpringTasksInjector;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.SmartInitializingSingleton;
@@ -42,7 +45,42 @@ public class ComputeTaskWorkers implements SmartInitializingSingleton, Disposabl
             pools.put(executor, pool);
             executor.registerWorkers(WorkerOptions.defaults().workers(threads).executorService(pool)
                     .tasksInjector(new SpringTasksInjector(beanFactory))
+                    .addListener(new TaskLogListener(type))
                     .taskTimeout(type.getExecutionTimeoutSeconds(), TimeUnit.SECONDS));
+        }
+    }
+
+    /** Redisson 在同一执行线程依次通知开始和结果事件，只保留当前任务的计时。 */
+    private static final class TaskLogListener implements TaskStartedListener, TaskSuccessListener, TaskFailureListener {
+        private final TaskType type;
+        private final ThreadLocal<Long> started = new ThreadLocal<>();
+
+        private TaskLogListener(TaskType type) {
+            this.type = type;
+        }
+
+        @Override
+        public void onStarted(String taskId) {
+            started.set(System.nanoTime());
+            log.info("Compute task started, type: {}, taskId: {}", type, taskId);
+        }
+
+        @Override
+        public <T> void onSucceeded(String taskId, T result) {
+            log.info("Compute task succeeded, type: {}, taskId: {}, executionMillis: {}",
+                    type, taskId, elapsedMillis());
+        }
+
+        @Override
+        public void onFailed(String taskId, Throwable error) {
+            log.error("Compute task failed, type: {}, taskId: {}, executionMillis: {}, errorType: {}",
+                    type, taskId, elapsedMillis(), error == null ? "unknown" : error.getClass().getName());
+        }
+
+        private long elapsedMillis() {
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started.get());
+            started.remove();
+            return elapsed;
         }
     }
 

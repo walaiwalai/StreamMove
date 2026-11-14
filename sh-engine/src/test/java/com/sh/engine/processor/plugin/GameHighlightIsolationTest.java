@@ -44,7 +44,7 @@ public class GameHighlightIsolationTest {
         verify(analyzer).analyze(context, Collections.emptyList());
     }
 
-    @Test public void valorantAnalysisExceptionReturnsUnfinishedAndAllowsRetry() throws Exception {
+    @Test public void valorantAnalysisExceptionPropagatesWithoutDeletingTheSource() throws Exception {
         File recording = temporary.newFolder(); new File(recording, "P01.mp4").createNewFile();
         ValorantVodHighLightCutPlugin plugin = new ValorantVodHighLightCutPlugin();
         ValorantHighlightTimelineProvider timeline = mock(ValorantHighlightTimelineProvider.class);
@@ -54,7 +54,13 @@ public class GameHighlightIsolationTest {
         when(analyzer.analyze(any(), anyList())).thenThrow(new StreamerRecordException(ErrorEnum.HIGHLIGHT_ANALYSIS_ERROR));
         set(ValorantVodHighLightCutPlugin.class, plugin, "timelineProvider", timeline);
         set(ValorantVodHighLightCutPlugin.class, plugin, "analyzer", analyzer);
-        assertFalse(plugin.process(recording.getAbsolutePath()));
+        try {
+            plugin.process(recording.getAbsolutePath());
+            fail("Analysis failure must propagate");
+        } catch (StreamerRecordException expected) {
+            assertEquals(ErrorEnum.HIGHLIGHT_ANALYSIS_ERROR, expected.getErrorEnum());
+        }
+        assertTrue(new File(recording, "P01.mp4").isFile());
         assertFalse(new File(recording, "highlight.mp4").exists());
         doReturn(Collections.emptyList()).when(analyzer).analyze(any(), anyList());
         assertTrue(plugin.process(recording.getAbsolutePath()));
@@ -66,7 +72,13 @@ public class GameHighlightIsolationTest {
         LolHighlightTimelineProvider timeline = mock(LolHighlightTimelineProvider.class);
         when(timeline.buildScoredTimeline(any())).thenThrow(new IllegalStateException("OCR unavailable"));
         set(LoLVodHighLightCutPlugin.class, plugin, "timelineProvider", timeline);
-        assertFalse(plugin.process(recording.getAbsolutePath()));
+        try {
+            plugin.process(recording.getAbsolutePath());
+            fail("OCR failure must propagate");
+        } catch (IllegalStateException expected) {
+            assertEquals("OCR unavailable", expected.getMessage());
+        }
+        assertTrue(new File(recording, "P01.mp4").isFile());
         assertFalse(new File(recording, "highlight.mp4").exists());
     }
 
